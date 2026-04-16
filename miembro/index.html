@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Área de Miembros - Sincronía NEXUS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { 
+      --ink: #f5f6ff; 
+      --line: rgba(255,255,255,.2); 
+      --panel: rgba(10, 15, 30, .85); 
+      --accent: #9ed6ff; 
+      --accent2: #a970ff;
+      --glow: rgba(169, 112, 255, 0.4);
+    }
+    * { box-sizing: border-box; }
+    @keyframes galaxy {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    body {
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+      color: var(--ink);
+      background: 
+        linear-gradient(rgba(10, 5, 20, 0.6), rgba(10, 5, 20, 0.6)),
+        url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=2000&q=80") center / cover fixed;
+      animation: galaxy 30s ease infinite;
+    }
+    .wrap { max-width:1100px; margin:0 auto; padding:1.2rem 1rem 3rem; }
+    
+    .header-logos {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      background: var(--panel);
+      padding: 1rem 2rem;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      box-shadow: 0 0 20px rgba(169, 112, 255, 0.15);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .header-logos img {
+      height: 70px;
+      object-fit: contain;
+      border-radius: 10px;
+      transition: transform 0.3s;
+    }
+    .header-logos img:hover { transform: scale(1.05); }
+    
+    .panel { 
+      background: var(--panel); 
+      border: 1px solid var(--line); 
+      border-radius: 18px; 
+      padding: 2rem; 
+      margin-top: 1.5rem; 
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    h1, h2, h3 { font-family: "Cinzel", serif; margin-top: 0; }
+    h1 { text-align: center; color: #fff2bf; font-size: 2.5rem; text-shadow: 0 0 10px rgba(255,242,191,0.3); }
+    h2 { color: var(--accent); }
+    h3 { color: var(--accent2); margin-top: 1rem; }
+    
+    .chat-container {
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      border: 1px solid var(--accent2);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    textarea { 
+      width: 100%; 
+      border-radius: 10px; 
+      border: 1px solid rgba(255,255,255,.3); 
+      padding: 1rem; 
+      background: rgba(0,0,0,.4); 
+      color: #fff; 
+      font: inherit;
+      min-height: 120px;
+      resize: vertical;
+      margin-bottom: 1rem;
+    }
+    textarea:focus { outline: none; border-color: var(--accent2); box-shadow: 0 0 10px var(--glow); }
+    
+    .btn { 
+      border: 0; 
+      border-radius: 999px; 
+      padding: 0.8rem 1.5rem; 
+      font-weight: 700; 
+      cursor: pointer; 
+      background: linear-gradient(135deg, var(--accent2), #58229b);
+      color: #fff;
+      transition: all 0.3s;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px var(--glow); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .alert {
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+      display: none;
+      font-weight: 500;
+    }
+    .alert-warning { background: rgba(255, 166, 0, 0.2); border: 1px solid orange; color: #ffebcc; display: block; }
+    .alert-info { background: rgba(158, 214, 255, 0.2); border: 1px solid var(--accent); color: #dbe9ff; display: block; }
+    .alert-danger { background: rgba(255, 60, 60, 0.2); border: 1px solid red; color: #ffcccc; display: block; }
+
+    .player-container { margin-top: 1.5rem; text-align: center; display: none; }
+    audio { width: 100%; max-width: 600px; height: 50px; border-radius: 25px; outline: none; }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .gallery img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      opacity: 0.8;
+      transition: opacity 0.3s;
+    }
+    .gallery img:hover { opacity: 1; }
+
+    #ia-response {
+      background: rgba(169, 112, 255, 0.1);
+      border-left: 4px solid var(--accent2);
+      padding: 1.5rem;
+      border-radius: 0 12px 12px 0;
+      margin-top: 1.5rem;
+      display: none;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    
+    #loading { display: none; text-align: center; margin-top: 1rem; color: var(--accent); }
+    
+    .argumentative-text {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      font-style: italic;
+      text-align: center;
+      margin-top: 1rem;
+      padding: 1rem;
+      border-top: 1px solid var(--line);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    
+    <div class="header-logos">
+      <img src="/Assets/Images/IA_VIAM_logo.png" alt="IA VIAM" />
+      <img src="/Assets/Images/CMS_logo.jpg" alt="CMS" style="border-radius: 50%;" />
+      <img src="/Assets/Images/SincNex_logo.png" alt="Sincronía Nexus" />
+    </div>
+
+    <h1>Santuario Sincronía NEXUS</h1>
+
+    <div id="membership-alert-container"></div>
+
+    <section class="panel">
+      <h2>Música Generativa y Visuales Relajantes</h2>
+      <p>Disfruta sin límites de las frecuencias musicales creadas para ti. Las pistas pueden descargarse y se renovarán periódicamente para optimizar tu experiencia.</p>
+      
+      <div class="gallery">
+        <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=600&q=80" alt="Paisaje estrellado" loading="lazy" />
+        <img src="https://images.unsplash.com/photo-1464802686167-b939a6910659?auto=format&fit=crop&w=600&q=80" alt="Galaxia azul" loading="lazy" />
+        <img src="https://images.unsplash.com/photo-1507502707541-f369a3b18502?auto=format&fit=crop&w=600&q=80" alt="Aurora boreal" loading="lazy" />
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Consejero Cuántico con IA Groq</h2>
+      <p>Cuéntame tu situación actual. Tienes un límite de <strong>3 intervenciones diarias</strong>. Con cada consejo recibirás una pista musical personalizada completa de frecuencia, la cual podrás disfrutar sin restricciones de tiempo mientras dure tu membresía.</p>
+      
+      <div class="chat-container">
+        <textarea id="user-input" placeholder="Escribe aquí tu situación, emociones y lo que deseas transformar. La IA de Groq te guiará y creará tu frecuencia cuántica..."></textarea>
+        <button id="send-btn" class="btn" onclick="askIA()">Solicitar Consejo y Frecuencia</button>
+        <div id="loading">Sintonizando con tu energía y creando tu frecuencia... por favor espera.</div>
+      </div>
+
+      <div id="ia-response"></div>
+
+      <div class="player-container" id="player-wrapper">
+        <h3>Tu Frecuencia Completa</h3>
+        <audio id="member-audio" controls>
+          <source src="" type="audio/mpeg" />
+          Tu navegador no soporta el reproductor.
+        </audio>
+      </div>
+
+      <p class="argumentative-text">
+        <strong>Nota Importante:</strong> La profundidad de los consejos otorgados deben ser acatados y practicarse dando tiempo para que se observe una auténtica mejoría en tu problema, para que de esa manera seas ordenado/a en tu proceso de sanación. De no ser así, nunca podrás realmente encontrar una señal de mejoría franca.
+      </p>
+    </section>
+
+    <div style="text-align: center; margin-top: 2rem;">
+      <button class="btn" onclick="logout()" style="background: transparent; border: 1px solid var(--line); color: #a1a1aa; font-size: 0.9rem; padding: 0.5rem 1rem;">Cerrar sesión / Salir</button>
+    </div>
+
+  </div>
+
+  <script>
+    // Authentication
+    const memberCode = localStorage.getItem('nexus_member_code');
+    if(!memberCode) {
+      window.location.href = '/nexus.html';
+    }
+
+    // Check membership status on load
+    async function checkMembership() {
+      try {
+        const res = await fetch('/.netlify/functions/member-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: memberCode })
+        });
+        const data = await res.json();
+        
+        if (!res.ok || data.error) {
+           alert(data.error || 'Membresía no válida.');
+           logout();
+           return;
+        }
+
+        const container = document.getElementById('membership-alert-container');
+        
+        if (data.status === 'expired') {
+           alert('Agradecemos infinitamente habernos permitido ayudarte durante este tiempo. Tu membresía ha concluido.');
+           logout();
+           return;
+        }
+        
+        if (data.status === 'warning') {
+           container.innerHTML = `<div class="alert alert-warning">Tu membresía termina en <strong>${data.daysLeft} días</strong>. Por favor, considera renovarla pronto para no perder el acceso a tu espacio de sanación.</div>`;
+        } else if (data.status === 'last_day') {
+           container.innerHTML = `<div class="alert alert-danger"><strong>¡Atención!</strong> Hoy es el último día de tu membresía. Por favor renuévala para continuar disfrutando de tus frecuencias y consejos.</div>`;
+        } else {
+           container.innerHTML = `<div class="alert alert-info">Bienvenido/a a tu santuario. Te quedan <strong>${data.daysLeft} días</strong> de membresía activa.</div>`;
+        }
+      } catch (e) {
+        console.error('Error verificando membresía:', e);
+      }
+    }
+
+    checkMembership();
+
+    async function askIA() {
+      const input = document.getElementById('user-input').value.trim();
+      if(!input) {
+        alert('Por favor escribe tu situación primero.');
+        return;
+      }
+
+      const btn = document.getElementById('send-btn');
+      const loading = document.getElementById('loading');
+      const responseBox = document.getElementById('ia-response');
+      const playerWrap = document.getElementById('player-wrapper');
+      const audio = document.getElementById('member-audio');
+
+      btn.disabled = true;
+      loading.style.display = 'block';
+      responseBox.style.display = 'none';
+      playerWrap.style.display = 'none';
+
+      try {
+        const res = await fetch('/.netlify/functions/member-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: memberCode, message: input })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          throw new Error(data.error || 'Error al comunicarse con la IA.');
+        }
+
+        responseBox.innerHTML = `<strong>Consejo de Groq IA:</strong><br><br>${data.reply}`;
+        responseBox.style.display = 'block';
+
+        if(data.audioUrl) {
+          audio.src = data.audioUrl;
+          audio.load();
+          playerWrap.style.display = 'block';
+        }
+
+        document.getElementById('user-input').value = '';
+
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('nexus_member_code');
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IA Viam Music & Pubicity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --ink:#f8f8ff; --bg:#05070d; --line:rgba(255,255,255,.2); --panel:rgba(9,14,33,.86); --accent:#53d9ff; --accent2:#ffd166; }
+    * { box-sizing: border-box; }
+        body { margin:0; font-family:"Montserrat",sans-serif; color:var(--ink); background: linear-gradient(rgba(65, 0, 100, 0.7), rgba(180, 0, 0, 0.7), rgba(255, 80, 0, 0.7)), url('https://images.unsplash.com/photo-1470229722913-7c092bce8e4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center / cover fixed; }
+    .wrap { max-width:980px; margin:0 auto; padding:1.2rem 1rem 2.6rem; }
+    .topnav { display:flex; flex-wrap:wrap; gap:.6rem; }
+    .topnav a { color:var(--ink); text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:.5rem .85rem; }
+    .topnav a[aria-current="page"] { color:var(--accent2); border-color:var(--accent2); }
+    header,.panel { background:var(--panel); border:1px solid var(--line); border-radius:18px; margin-top:1rem; padding:1rem; }
+    .logo-frame { width:min(260px,80vw); margin:0 auto .9rem; border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+    .logo-frame img { width:100%; height:auto; display:block; }
+    h1 { margin:0; text-align:center; font-family:"Bebas Neue",sans-serif; font-size:clamp(2rem,8vw,3.2rem); letter-spacing:.04em; color:var(--accent2); }
+    .subtitle { text-align:center; color:#dbe8ff; max-width:720px; margin:.7rem auto 0; }
+    .intro { display:grid; grid-template-columns:120px 1fr; gap:1rem; align-items:center; }
+    .intro img { width:100%; border-radius:12px; border:1px solid var(--line); }
+    iframe { width:100%; max-width:100%; border:0; border-radius:14px; aspect-ratio:16/9; }
+    .row { margin-top:.8rem; display:flex; gap:.6rem; flex-wrap:wrap; }
+    .btn { text-decoration:none; font-weight:700; padding:.58rem .9rem; border-radius:999px; border:1px solid transparent; }
+    .btn.primary { background:var(--accent2); color:#171412; }
+    .btn.ghost { background:transparent; border-color:var(--line); color:var(--ink); }
+    .social-links { display:flex; flex-wrap:wrap; gap:.6rem; }
+    .social-links a { text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:.45rem .75rem; color:var(--ink); }
+    @media (max-width:680px) { .intro { grid-template-columns:1fr; } .intro img { max-width:180px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="topnav" aria-label="Menú del ecosistema">
+      <a href="/">CMS Principal</a>
+      <a href="/obras">Obras Literarias</a>
+      <a href="/musica" aria-current="page">IA VIAM Music &amp; Pubicity</a>
+      <a href="/nexus">Sincronía Nexus</a>
+    </nav>
+
+    <header>
+      <div class="logo-frame">
+        <img src="/Assets/Images/IA_VIAM_logo.png" alt="Logo temporal de IA VIAM Music and Publicity" loading="lazy" />
+      </div>
+      <h1>IA Viam Music &amp; Pubicity</h1>
+      <p class="subtitle">Soluciones de música y publicidad con identidad creativa. Crece sin límites, conquista tus estándares del mundo creativo.</p>
+    </header>
+
+    <section class="panel">
+      <h2>¿Por qué VIAM?</h2>
+      <div class="intro">
+        <img src="/Assets/Images/IA_VIAM_logo.png" alt="Ícono temporal de VIAM" loading="lazy" />
+        <p>VIAM integra visión artística, estrategia de marca y producción técnica para desarrollar piezas musicales y campañas publicitarias con identidad propia. Puedes aprovechar nuestros servicios para fines personales o empresariales.</p>
+      </div>
+    </section>
+
+    <section class="panel video-wrap">
+      <h2>Video de calidad del trabajo</h2>
+      <iframe src="https://www.youtube.com/embed/LVTvU0Ap3Dc?si=Nt6bLFjt9HHS-IKt" title="Video de IA Viam Music & Pubicity" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </section>
+    <section class="panel">
+      <h3>Radio IA VIAM</h3>
+      <p>Espacio para la radio de IA VIAM Music and Publicity. Disfruta de nuestras composiciones generadas con inteligencia artificial.</p>
+      
+      <div style="background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; border: 1px solid var(--edge);">
+        <p id="radio-title" style="margin-top: 0; color: #f59e0b; font-weight: bold;"></p>
+        <audio id="radio-player" controls controlsList="nodownload" style="width: 100%; margin-bottom: 0.5rem;"></audio>
+        <button id="radio-player-next" class="btn btn-outline" style="width: 100%; font-size: 0.9rem;">Siguiente Pista</button>
+      </div>
+    </section>
+
+    <script src="/Assets/radio.js"></script>
+
+
+    <section class="panel">
+      <h3>Solicitud de servicios</h3>
+      <p>Solicita composición, producción o campaña publicitaria. El pago final se gestiona dentro del sistema general del CMS.</p>
+      <div class="row" style="align-items: center;">
+        <a class="btn primary" href="mailto:iaviammusic@outlook.es">Solicitud de servicios</a>
+        <span style="margin: 0 0.5rem; font-weight: bold; color: var(--ink);">o</span>
+        <a class="btn primary" href="/Assets/Docs/Cotizacion_IAVIAMMusicPublicidad.pdf" download="Cotizacion_IAVIAMMusicandPublicity.pdf">Pide tu cotización</a>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>Redes sociales</h3>
+      <div class="social-links">
+        <a href="" target="_blank" rel="noreferrer">Facebook</a>
+        <a href="https://www.youtube.com/channel/UCK0b_bKU-uU78MzittsAv-Q" target="_blank" rel="noreferrer">YouTube</a>
+        <a href="https://www.tiktok.com/@iaviammusic?_r=1&amp;_t=ZS-959bMhnfOQ0" target="_blank" rel="noreferrer">TikTok</a>
+        <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
+        <a href="https://x.com/IaviamM" target="_blank" rel="noreferrer">X</a>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

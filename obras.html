@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Obras Literarias</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    .logo-frame { width: min(200px, 60vw); margin: 0 auto 1.5rem; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: rgba(0,0,0,0.4); }
+    .logo-frame img { width: 100%; display: block; object-fit: contain; }
+    :root { --bg:#04060c; --card:#0c1124; --ink:#f4f6ff; --line:rgba(255,255,255,.2); --accent:#f1c96b; --accent2:#7fd2ff; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:"Montserrat",sans-serif; color:var(--ink); background: linear-gradient(rgba(4, 6, 12, 0.75), rgba(4, 6, 12, 0.75)), url("https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=2000&auto=format&fit=crop") center / cover fixed, var(--bg); }
+    .wrap { max-width:1160px; margin:0 auto; padding:1.2rem 1rem 3rem; }
+    .topnav { display:flex; flex-wrap:wrap; gap:.6rem; margin-bottom:1rem; }
+    .topnav a { color:var(--ink); text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:.55rem .9rem; }
+    .topnav a[aria-current="page"] { color:var(--accent); border-color:var(--accent); }
+    header { text-align:center; margin-bottom:1rem; }
+    h1 { margin:0; font-family:"Cinzel",serif; color:#fff2c3; }
+    .subtitle { max-width:760px; margin:.7rem auto 0; color:#dbe5ff; }
+    .shelf { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem; }
+    .book { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; display:grid; grid-template-rows:220px auto; }
+    .book img { width:100%; height:220px; object-fit:contain; }
+    .book-body { padding:1rem; }
+    .book-body h2 { margin:.1rem 0 .45rem; font-size:1.1rem; color:var(--accent2); }
+    .actions { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:.7rem; }
+    .btn { border:1px solid transparent; border-radius:999px; padding:.5rem .9rem; text-decoration:none; font-weight:700; cursor:pointer; }
+    button.btn { background:var(--accent); color:#0b1022; }
+    a.btn { background:transparent; color:var(--ink); border-color:var(--line); }
+    .panel { margin-top:1.2rem; background:rgba(12,17,36,.88); border:1px solid var(--line); border-radius:16px; padding:1rem; }
+    .selector-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:.5rem .9rem; }
+    .selector-grid label { display:flex; align-items:flex-start; gap:.45rem; }
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,.82); display:none; align-items:center; justify-content:center; padding:1rem; }
+    .modal.show { display:flex; }
+    .modal-card { width:min(760px,96vw); max-height:88vh; overflow:auto; background:#0c1124; border:1px solid var(--line); border-radius:18px; padding:1rem; }
+    .close { float:right; background:none; color:#fff; border:0; font-size:1.4rem; cursor:pointer; }
+    #modal-copy { white-space:pre-line; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="topnav" aria-label="Menú del ecosistema">
+      <a href="/">CMS Principal</a>
+      <a href="/obras" aria-current="page">Obras Literarias</a>
+      <a href="/musica">IA VIAM Music &amp; Pubicity</a>
+      <a href="/nexus">Sincronía Nexus</a>
+    </nav>
+    
+    <audio id="bg-melody" src="https://res.cloudinary.com/dgkruw6n7/video/upload/v1776139879/Universal_Acoustic_Ballad_Instrumental_e8b1al.mp3" loop preload="auto"></audio>
+    <script>
+      document.addEventListener('click', function initAudio() {
+        const audio = document.getElementById('bg-melody');
+        if (audio && audio.paused) {
+          audio.volume = 0.3;
+          audio.play().catch(e => console.log('Auto-play prevented:', e));
+        }
+        document.removeEventListener('click', initAudio);
+      }, { once: true });
+    </script>
+
+    <header>
+      <div class="logo-frame"><img src="/Assets/Images/Escritor_Logo.png" alt="Centro Multidisciplinario para la Salud" loading="lazy" /></div>
+      <h1>Obras Literarias</h1>
+      <p class="subtitle">Catálogo visual con mis obras literarias y técnicas para su compra, hallarás la sinopsis dentro de la misma pestaña y el flujo de compra enlazado al sistema general de pago del CMS.</p>
+    </header>
+
+    <section class="shelf" aria-label="Catálogo de libros">
+      <article class="book">
+        <img src="/Assets/Images/portada_memorias.png" alt="Portada novela 1" loading="lazy" />
+        <div class="book-body">
+          <h2>Memorias Peligrosas</h2>
+          <p>Novela policiaca romántica de acción y drama. MXN 250.00</p>
+          <div class="actions">
+            <button class="btn open-synopsis" data-title="Memorias Peligrosas" data-copy='Un par de memorias cuyo contenido hace estremecer los fundamentos de poderosas instituciones secretas milenarias son robadas, y también son casualmente entregadas a Javier y a Yukie dos profesionistas de enfermería, por unas victimas sobrevivientes de un meticuloso e imponente asesino, quien junto a sus poderosos y presionados contratantes no descansaran hasta obtenerlas, persiguiendo a quien las tenga, pues un multimillonario negocio está en juego, así como su vida y su subsistencia en el poder.
+
+Ahora solo Marcos y Shalton, un detective de la DGJ y un agente especial del FBI, serán quienes con el tiempo limitado y en su contra, junto a esos profesionistas desentrañen los secretos que en ellas se encuentran, mientras el número de víctimas crece gradualmente en el intento por recuperarlas.
+
+Esta será una historia de amor, policiaca y de suspenso donde valores, ética, moral, los principios y creencias religiosas de una pareja que en esas críticas circunstancias se enamoran, junto a sus conocimientos profundos de la historia universal y de la biblia influirán profundamente en cada mortal situación que la pareja enfrentará.'>Ver sinopsis</button>
+            <a class="btn" href="/?item=Memorias+Peligrosas&amp;price=250#pago-general" target="_blank" rel="noreferrer">Comprar libro</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="book">
+        <img src="/Assets/Images/portada_programacion.png" alt="Portada novela 2" loading="lazy" />
+        <div class="book-body">
+          <h2>Programación Fatal</h2>
+          <p>Novela policiaca romántica de acción y drama. MXN 250.00</p>
+          <div class="actions">
+            <button class="btn open-synopsis" data-title="Programación Fatal" data-copy='Unos programadores bien intencionados intentan hacer un sistema operativo dividiendo sus claves en cuatro discos DVD que beneficie ampliamente a las personas que más lo están necesitando, poniendo la informática más actual a su alcance, antes de poder lograrlo, dos ambiciosos y corruptos empresarios que son líderes en el negocio del software y el hardware al enterarse los mandan matar por medio de un cruel y metódico terrorista cibernético, por afectar a sus intereses.
+
+Esteban y Lidiya una pareja de programadores, que al conocerse se enamoran, se encuentran con un único sobreviviente, y son llevados con ello hacia un mundo de corrupción y de inteligencia oscura que pondrá en peligro sus vidas.
+
+Shalton Derek un Agente del FBI y Marcos Gallardo un detective y criminalista de la DGJ en medio de un clima extremo y una ciudad cerrada enfrentarán dificultades de gran envergadura para protegerlos y resolver los crímenes mientras el número de víctimas asciende.
+
+Esta será una historia romántica y policiaca donde el amor superará los sentimientos y situaciones más profundas que lo probarán en cada peligro que se irá presentando.'>Ver sinopsis</button>
+            <a class="btn" href="/?item=Programaci%C3%B3n+Fatal&amp;price=250#pago-general" target="_blank" rel="noreferrer">Comprar libro</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="book">
+        <img src="/Assets/Images/portada_litigio.png" alt="Portada novela 3" loading="lazy" />
+        <div class="book-body">
+          <h2>Litigio Mortal</h2>
+          <p>Novela policiaca romántica de acción y drama. MXN 250.00</p>
+          <div class="actions">
+            <button class="btn open-synopsis" data-title="Litigio Mortal" data-copy='Dentro de la tradicional Feria Internacional de San Marcos dos sucesos marcarán su historia. Un peligroso delincuente que es buscado en todo el mundo será atrapado, logrando escapar de forma espectacular de su fatal condena y una gran epidemia que le daría la vuelta al mundo se desarrollaría suspendiendo sus múltiples actividades.
+
+Dos abogados que en ese tiempo festivo se conocen y enamoran, ahora serán perseguidos junto con el jurado experimental y el juez penal que participaron en ese litigio.
+
+Ahora el agente Shalton Derek y el detective Marcos Gallardo junto con su hábil equipo deben proteger de esta fatal amenaza a una amenazada ciudad cuyas víctimas ascienden en número rápidamente.
+
+Esta será una historia donde las leyes y el amor estarán por encima de la ética común por un solo principio: preservar su vida y el amor.'>Ver sinopsis</button>
+            <a class="btn" href="/?item=Litigio+Mortal&amp;price=250#pago-general" target="_blank" rel="noreferrer">Comprar libro</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="book">
+        <img src="/Assets/Images/portada_busqueda.png" alt="Portada novela 4" loading="lazy" />
+        <div class="book-body">
+          <h2>Búsqueda Impactante (El cuerpo perdido)</h2>
+          <p>Novela policiaca romántica de acción y drama. MXN 250.00</p>
+          <div class="actions">
+            <button class="btn open-synopsis" data-title="Búsqueda Impactante (El cuerpo perdido)" data-copy='Un gran terremoto que sacude el monte Nebo pone
+al descubierto en sus escombros secretos milenarios
+que jamás deberían de conocerse, entre ellos, el
+cuerpo de un profeta cuya influencia es respetada en
+tres corrientes religiosas poderosas, el cristianismo,
+el judaísmo y el islam.
+Un prestigiado grupo dirigido por Karima y Josué, dos
+arqueólogos de renombre especialistas en la biblia y
+etnohistoria que al conocerse se enamoran, ahora
+lucharán no solo con las varias y cerradas tradiciones
+religiosas que se oponen a su amor y a su trabajo,
+sino con una logia poderosa y una organización
+terrorista israelí que desea ante todo poseer ese
+cuerpo para sus fines insaciables de poder.
+Traspasando las fronteras de Jordania en sus planes,
+ahora la ciudad natal de Josué estará amenazada por
+unos hábiles y violentos terroristas que intentarán de
+un solo golpe segar la vida de miles de personas que
+estarán en un estadio disfrutando de un concierto.
+
+Ahora solo Marcos Gallardo un detective criminalista
+de la DGJ y su gran amigo Shalton Derek, un agente
+especial del FBI, con la ayuda de su hábil equipo y
+con el tiempo en su contra tratarán de detener esa
+amenaza y dar fin a la carrera de esos terroristas
+mientras protegen a la pareja de arqueólogos del
+hermano de ella dispuesto a todo por separarlos.
+
+Esta será una historia policiaca y de amor, en la que
+los más profundos sentimientos serán desenterrados
+para encontrar su lugar en la vida de dos personas
+que siendo diferentes en culturas, lograrán que el
+amor lo pueda todo.'>Ver sinopsis</button>
+            <a class="btn" href="/?item=B%C3%BAsqueda+Impactante+%28El+cuerpo+perdido%29&amp;price=250#pago-general" target="_blank" rel="noreferrer">Comprar libro</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="book">
+        <img src="/Assets/Images/portada_isotonicos.png" alt="Portada libro técnico" loading="lazy" />
+        <div class="book-body">
+          <h2>Libro Técnico Profesional</h2>
+          <p>Ejercicios Isotónicos e Isométricos para Fortalecer tu Cuerpo en Casa. MXN 200.00</p>
+          <div class="actions">
+            <button class="btn open-synopsis" data-title="Libro Técnico Profesional" data-copy='¡Despierta la Fuerza que Llevas Dentro 
+y Transforma Tu Vida en Solo 10 Minutos al Día!
+
+¿Sientes que tu cuerpo ya no responde como antes? ¿Las escaleras se han vuelto 
+un desafío o simplemente te falta esa energía vital para disfrutar plenamente 
+de tus días? ¡No estás solo! Con el paso del tiempo, es natural que experimentemos 
+cambios, pero la noticia más emocionante es que recuperar tu fuerza, vitalidad y 
+movilidad es totalmente posible, ¡y puedes lograrlo desde la comodidad de tu hogar!
+
+Presentamos "Ejercicios Fáciles para Recuperar Tu Fuerza: Movimientos Isotónicos 
+e Isométricos para Fortalecer Tu Cuerpo en Casa", la guía definitiva diseñada 
+especialmente para ti, que buscas un cambio real sin complicaciones ni rutinas 
+extremas. Olvídate de las excusas y las limitaciones. Este eBook es tu pasaporte 
+hacia un cuerpo más fuerte, estable y lleno de energía, sin importar tu edad o 
+tu nivel de experiencia.
+
+¿Qué te espera en esta increíble aventura?
+
+Un Método Probado y Sencillo: Descubre 30 ejercicios prácticos y fáciles de seguir, 
+explicados paso a paso, que combinan movimientos isotónicos e isométricos para 
+maximizar tus resultados.
+
+Resultados Tangibles en Poco Tiempo: Con solo 10 minutos al día, notarás una mejora 
+significativa en tu fuerza, equilibrio, postura y reducción de dolores. 
+¡Sí, has leído bien, solo 10 minutos! Enfoque Personalizado: Diseñado pensando en 
+personas mayores de 50 años, este programa se adapta a tus necesidades, fortaleciendo 
+tus músculos, articulaciones y mejorando tu movilidad de forma segura.
+
+Más Allá del Ejercicio: Aprende consejos de nutrición, técnicas de relajación y 
+estrategias de motivación para crear un hábito duradero y disfrutar del proceso.
+Adiós al Dolor y la Rigidez: Transforma tu cuerpo y recupera la confianza para 
+moverte con libertad, subir escaleras sin esfuerzo y disfrutar de cada día con 
+plena energía.
+Este no es solo un libro de ejercicios; es una invitación a redescubrir tu potencial, 
+a invertir en tu salud y a vivir una vida más plena y activa. Cada capítulo te acercará 
+más a tu mejor versión, guiándote con sabiduría y apoyo constante.
+
+¡No esperes más para darle a tu cuerpo el cuidado que se merece! Adquierelo ahora y comienza 
+tu transformación. Tu yo del futuro te lo agradecerá.'>Ver sinopsis</button>
+            <a class="btn" href="/?item=Libro+T%C3%A9cnico+Profesional&amp;price=200#pago-general" target="_blank" rel="noreferrer">Comprar libro</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="book">
+        <img src="/Assets/Images/Portada_Poesias.png" alt="Portada poemario" loading="lazy" />
+        <div class="book-body">
+          <h2>Libro de Poesías</h2>
+          <p>Poesías del Corazón MXN 100.00</p>
+          <div class="actions">
+            <button class="btn open-synopsis" data-title="Poesías del Corazón" data-copy='Poesías del Corazón es un libro donde las
+emociones hablan, donde la poesía expresa lo que sólo el
+sentimiento puede percibir cuando el corazón es tocado
+por estímulos que marcan nuestra vida.
+
+¿Cuántas veces quisiste decir "te amo" o "me
+gustas" sin poder encontrar las palabras? ó ¿Cuántas
+veces el desengaño o la traición, te dejaron sin palabras?
+¿Cómo expresar los deseos profundos? ¿Haz querido
+decirle a Dios cuánto lo amas, sin encontrar cómo hacerlo?.
+
+Encuentra entonces en este libro la más bella forma de
+expresar tus sentimientos mas profundos.'>Ver sinopsis</button>
+            <a class="btn" href="/?item=Poes%C3%ADas+del+Coraz%C3%B3n&amp;price=100#pago-general" target="_blank" rel="noreferrer">Comprar libro</a>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel" id="selector-pago">
+      <h3>Ícono de pago de Obras Literarias</h3>
+      <p>Selecciona uno o varios libros para continuar al sistema general de pago único del CMS.</p>
+      <form id="book-picker">
+        <div class="selector-grid">
+          <label><input type="checkbox" name="libro" value="Memorias Peligrosas" data-price="250" /> Memorias Peligrosas</label>
+          <label><input type="checkbox" name="libro" value="Programación Fatal" data-price="250" /> Programación Fatal</label>
+          <label><input type="checkbox" name="libro" value="Litigio Mortal" data-price="250" /> Litigio Mortal</label>
+          <label><input type="checkbox" name="libro" value="Búsqueda Impactante (El cuerpo perdido)" data-price="250" /> Búsqueda Impactante (El cuerpo perdido)</label>
+          <label><input type="checkbox" name="libro" value="Ejercicios Isotónicos e Isométricos para Fortalecer tu Cuerpo en Casa" data-price="200" /> Ejercicios Isotónicos e Isométricos para Fortalecer tu Cuerpo en Casa</label>
+          <label><input type="checkbox" name="libro" value="Poesías del Corazón" data-price="100" /> Poesías del Corazón</label>
+        </div>
+        <div style="margin-top:0.8rem;display:flex;gap:0.6rem;flex-wrap:wrap;">
+          <button class="btn primary" type="submit" id="btn-submit-pago">Ir al pago general (Resumen)</button>
+          <a class="btn" href="/#descargas-libros" target="_blank" rel="noreferrer">Descargar libros ya pagados</a>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal" id="synopsis-modal" aria-hidden="true">
+    <div class="modal-card">
+      <button class="close" type="button" aria-label="Cerrar">×</button>
+      <h2 id="modal-title"></h2>
+      <p id="modal-copy"></p>
+      <div style="margin-top: 1rem; margin-bottom: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+         <p style="margin-top:0;">¿Deseas 5 minutos de cortesía de lectura del libro?</p>
+         <button class="btn btn-outline" onclick="openReading(document.getElementById('modal-title').textContent)">Sí, quiero leer una muestra</button>
+      </div>
+      <a class="btn" href="/#pago-general" target="_blank" rel="noreferrer">Comprar con pago general del CMS</a>
+    </div>
+  </div>
+
+  <script>
+    const modal = document.getElementById('synopsis-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalCopy = document.getElementById('modal-copy');
+    const modalBuyLink = document.querySelector('#synopsis-modal a.btn');
+    const bookPrices = {
+      'Memorias Peligrosas': 250,
+      'Programación Fatal': 250,
+      'Litigio Mortal': 250,
+      'Búsqueda Impactante (El cuerpo perdido)': 250,
+      'Libro Técnico Profesional': 200,
+      'Poesías del Corazón': 100
+    };
+
+    document.querySelectorAll('.open-synopsis').forEach((button) => {
+      button.addEventListener('click', () => {
+        modalTitle.textContent = button.dataset.title || 'Sinopsis';
+        modalCopy.textContent = button.dataset.copy || '';
+        const currentTitle = button.dataset.title || '';
+        const currentPrice = bookPrices[currentTitle] || 0;
+        modalBuyLink.href = `/?item=${encodeURIComponent(currentTitle)}&price=${encodeURIComponent(String(currentPrice))}#pago-general`;
+        modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+      });
+    });
+
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal || event.target.classList.contains('close')) {
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    document.getElementById('book-picker').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const selectedInputs = Array.from(event.currentTarget.querySelectorAll('input[name="libro"]:checked'));
+      const url = new URL('/#pago-general', window.location.origin);
+      selectedInputs.forEach((input) => {
+        url.searchParams.append('item', input.value);
+        url.searchParams.append('price', input.dataset.price || '0');
+      });
+      if (selectedInputs.length) {
+        url.searchParams.set('source', 'obras');
+      }
+      window.open(url.toString(), '_blank', 'noopener');
+    });
+  </script>
+
+    <audio id="bg-music" src="https://cdn.pixabay.com/audio/2022/10/25/audio_517454949a.mp3" loop preload="auto"></audio>
+    <script>
+      // Autoplay music on user interaction
+      document.body.addEventListener('click', function() {
+        const music = document.getElementById('bg-music');
+        if (music && music.paused) {
+          music.volume = 0.3;
+          music.play().catch(e => console.log('Audio autoplay prevented'));
+        }
+      }, {once: true});
+    </script>
+
+
+  <dialog id="reading-modal" style="background: #111; color: #eee; border: 1px solid var(--edge); border-radius: 12px; padding: 2rem; width: 90vw; max-width: 800px; max-height: 80vh; overflow-y: auto;">
+    <h3 id="reading-title" style="color: var(--accent);"></h3>
+    <div id="reading-content" style="font-family: serif; font-size: 1.1rem; line-height: 1.8; text-align: justify; margin-bottom: 2rem;">
+      Cargando cortesía de lectura...
+    </div>
+    <div id="reading-timer" style="text-align: center; color: #ff5555; font-weight: bold; margin-bottom: 1rem;">Tiempo restante: 05:00</div>
+    <button class="btn" onclick="closeReading()" style="display: block; margin: 0 auto;">Cerrar Lectura</button>
+  </dialog>
+  <script>
+    let readingInterval;
+    const pdfMap = {
+      'Memorias Peligrosas': 'Memorias_Peligrosas.pdf',
+      'Programación Fatal': 'Programacion_Fatal.pdf',
+      'Litigio Mortal': 'Litigio_Mortal.pdf',
+      'Búsqueda Impactante (El cuerpo perdido)': 'Busqueda_Impactante.pdf',
+      'Libro Técnico Profesional': 'EBook_ISometricos.pdf',
+      'Poesías del Corazón': 'Poesias_del_Corazon.pdf'
+    };
+
+    function openReading(title) {
+      const modal = document.getElementById('reading-modal');
+      document.getElementById('reading-title').textContent = title + " (5 min de cortesía)";
+      
+      const fileName = pdfMap[title] || '';
+      if (fileName) {
+        document.getElementById('reading-content').innerHTML = `<iframe src="/Assets/Docs/${fileName}#toolbar=0" style="width:100%; height:65vh; border:none; background:#fff;" title="${title}"></iframe>`;
+      } else {
+        document.getElementById('reading-content').innerHTML = "<p>Cortesía de lectura no disponible para esta obra en este momento.</p>";
+      }
+      
+      modal.showModal();
+      
+      let timeLeft = 300;
+      document.getElementById('reading-timer').textContent = "Tiempo restante: 05:00";
+      
+      clearInterval(readingInterval);
+      readingInterval = setInterval(() => {
+        timeLeft--;
+        const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const s = (timeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('reading-timer').textContent = `Tiempo restante: ${m}:${s}`;
+        
+        if (timeLeft <= 0) {
+           closeReading();
+           const wantsToBuy = confirm("El tiempo de cortesía ha terminado. ¡Esperamos que hayas disfrutado la lectura! ¿Deseas comprar la obra completa?");
+           if (wantsToBuy) {
+              document.getElementById('selector-pago').scrollIntoView({behavior: 'smooth'});
+           }
+        }
+      }, 1000);
+    }
+    
+    function closeReading() {
+      clearInterval(readingInterval);
+      document.getElementById('reading-modal').close();
+    }
+  </script>
+
+
+</body>
+</html>
