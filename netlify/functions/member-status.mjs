@@ -12,20 +12,14 @@ export default async (req) => {
     }
 
     const store = getStore('nexus-members');
-    let memberData = await store.get(code, { type: 'json' });
+    const memberData = await store.get(code, { type: 'json' });
+
+    if (!memberData) {
+      return Response.json({ error: 'Código de membresía no encontrado.' }, { status: 404 });
+    }
 
     const now = Date.now();
     const msInDay = 1000 * 60 * 60 * 24;
-
-    if (!memberData) {
-      memberData = {
-        startDate: now,
-        durationDays: 30, // 30 days membership default
-        usage: {}
-      };
-      await store.setJSON(code, memberData);
-    }
-
     const elapsedMs = now - memberData.startDate;
     const elapsedDays = Math.floor(elapsedMs / msInDay);
     const daysLeft = memberData.durationDays - elapsedDays;

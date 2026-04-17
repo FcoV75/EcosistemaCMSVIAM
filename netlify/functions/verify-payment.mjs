@@ -12,14 +12,6 @@ export default async (req) => {
       return Response.json({ success: false, error: 'Debe proporcionar un ID de Transacción.' }, { status: 400 });
     }
 
-    // Bypass maestro para pruebas (solo para el desarrollador)
-    if (transactionId.trim() === 'TEST-PAGO-EXITOSO') {
-       return Response.json({ 
-          success: true, 
-          code: 'CMS-' + Math.random().toString(36).substring(2, 8).toUpperCase() 
-       }, { status: 200 });
-    }
-
     const store = getStore('nexus-payments');
     const payment = await store.get(transactionId, { type: 'json' });
 
@@ -35,13 +27,25 @@ export default async (req) => {
        return Response.json({ success: false, error: 'Este ID de transacción ya fue utilizado para generar un comprobante.' }, { status: 400 });
     }
 
+    // Generate unique code
+    const generatedCode = 'CMS-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // Create the membership record
+    const membersStore = getStore('nexus-members');
+    await membersStore.setJSON(generatedCode, {
+      startDate: Date.now(),
+      durationDays: 30, // 30 days membership
+      usage: {}
+    });
+
     // Marcar como usado
     payment.used = true;
+    payment.issuedCode = generatedCode;
     await store.setJSON(transactionId, payment);
 
     return Response.json({ 
       success: true, 
-      code: 'CMS-' + Math.random().toString(36).substring(2, 8).toUpperCase() 
+      code: generatedCode 
     }, { status: 200 });
 
   } catch (err) {
