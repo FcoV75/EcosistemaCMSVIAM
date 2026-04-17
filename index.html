@@ -303,10 +303,10 @@
       <div class="pay-total" id="total-box">Total automático a pagar: MXN 0.00</div>
       <p class="pay-note">El total se calcula automáticamente con los libros/servicios seleccionados y se refleja en este recuadro.</p>
       <div style="margin-top:0.8rem;display:flex;gap:0.6rem;flex-wrap:wrap;">
-        <a class="btn" href="https://paypal.me/JValdezOsorio?locale.x=es_XC&amp;country.x=MX" target="_blank" rel="noreferrer">Pagar con PayPal</a>
-        <a class="btn btn-outline" href="https://buy.stripe.com/5kQ5kFdiJ1aQ66m6RSbAs00" target="_blank" rel="noreferrer">Pagar con Stripe</a>
+        <a id="paypal-btn" class="btn" href="#" target="_blank" rel="noreferrer">Pagar con PayPal</a>
+        <button id="stripe-btn" class="btn btn-outline">Pagar con Stripe</button>
       </div>
-      <p class="small-note" style="margin-top: 1rem; font-size: 0.9em; color: #d4e8ff; border-left: 3px solid #d4af37; padding-left: 10px;"><strong>Nota:</strong> Se eliminó el cálculo manual para facilitar el pago directo.</p>
+      <p class="small-note" style="margin-top: 1rem; font-size: 0.9em; color: #d4e8ff; border-left: 3px solid #d4af37; padding-left: 10px;"><strong>Nota:</strong> Los links de pago ahora se generan de manera dinámica con el total exacto.</p>
       <details>
         <summary>¿Dónde se realizan los pagos?</summary>
         <p>Todos los pagos convergen en el sistema único general de pago del CMS. Y también en caso de ser paciente o cliente local podrá ser en efectivo</p>
@@ -512,16 +512,61 @@
       renderTotal();
 
       // Overwrite payment links
-      document.querySelectorAll('a[href*="paypal.me"], a[href*="buy.stripe"]').forEach(a => {
-        a.addEventListener('click', (e) => {
-           // We do NOT prevent default, let it open the real PayPal/Stripe in a new tab.
-           if(window.currentPaymentTotal === 0) {
-              e.preventDefault();
-              alert("Selecciona un servicio para pagar.");
-              return;
-           }
-           simulatePayment(window.currentPaymentTotal);
-        });
+      const stripeBtn = document.getElementById('stripe-btn');
+      const paypalBtn = document.getElementById('paypal-btn');
+
+      paypalBtn.addEventListener('click', (e) => {
+         if (window.currentPaymentTotal === 0) {
+            e.preventDefault();
+            alert("Selecciona un servicio para pagar.");
+            return;
+         }
+         // Set dynamic url for paypal
+         const url = `https://paypal.me/JValdezOsorio/${window.currentPaymentTotal.toFixed(2)}MXN`;
+         paypalBtn.href = url;
+         localStorage.setItem('nexus_pending_services', JSON.stringify(window.pendingServices || []));
+         setTimeout(() => simulatePayment(window.currentPaymentTotal), 500);
+      });
+
+      stripeBtn.addEventListener('click', async (e) => {
+         e.preventDefault();
+         if (window.currentPaymentTotal === 0) {
+            alert("Selecciona un servicio para pagar.");
+            return;
+         }
+         
+         const oldText = stripeBtn.textContent;
+         stripeBtn.textContent = "Procesando...";
+         stripeBtn.disabled = true;
+
+         localStorage.setItem('nexus_pending_services', JSON.stringify(window.pendingServices || []));
+
+         try {
+            const response = await fetch('/.netlify/functions/create-checkout-session', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({
+                  montoTotal: window.currentPaymentTotal,
+                  nombreProducto: 'Compra en Ecosistema CMS'
+               })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok && data.url) {
+               // Redirect to Stripe checkout
+               window.location.href = data.url;
+            } else {
+               alert("Error al crear sesión de pago: " + (data.error || "Desconocido"));
+               stripeBtn.textContent = oldText;
+               stripeBtn.disabled = false;
+            }
+         } catch (err) {
+            alert("Error de conexión al procesar pago.");
+            console.error(err);
+            stripeBtn.textContent = oldText;
+            stripeBtn.disabled = false;
+         }
       });
 
       function simulatePayment(amount) {
@@ -634,6 +679,34 @@
       window.closeSimulatedPayment = function() {
         document.getElementById('simulated-payment-modal').close();
       };
+
+      // Check URL parameters for Stripe callbacks
+      const urlParams = new URLSearchParams(window.location.search);
+      const isSuccess = urlParams.get('payment_success');
+      const isCancelled = urlParams.get('payment_cancelled');
+      const sessionId = urlParams.get('session_id');
+
+      if (isSuccess === 'true' && sessionId) {
+         // Restore pending services from storage
+         try {
+           const stored = localStorage.getItem('nexus_pending_services');
+           if (stored) window.pendingServices = JSON.parse(stored);
+         } catch (e) {
+           window.pendingServices = [];
+         }
+         
+         simulatePayment(0); // Amount doesn't matter for the verification UI
+         document.getElementById('transaction-id-input').value = sessionId;
+         document.getElementById('sim-payment-processing').innerHTML = '<p>Reanudando verificación automática de pago...</p>';
+         setTimeout(() => {
+           confirmUserPayment();
+           // Clean URL without refreshing
+           window.history.replaceState({}, document.title, "/");
+         }, 1000);
+      } else if (isCancelled === 'true') {
+         alert("El pago ha sido cancelado.");
+         window.history.replaceState({}, document.title, "/");
+      }
     </script>
 
 
