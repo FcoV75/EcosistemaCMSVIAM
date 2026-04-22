@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Centro Multidisciplinario para la Salud</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc;
+      --panel: rgba(8, 11, 26, 0.78);
+      --edge: rgba(255, 255, 255, 0.16);
+      --accent: #f1c96b;
+      --accent-2: #86d6ff;
+      --shadow: 0 20px 40px rgba(1, 3, 16, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background:
+        linear-gradient(rgba(5, 8, 20, 0.4), rgba(5, 8, 20, 0.4)),
+        radial-gradient(circle at 12% 18%, rgba(79, 45, 181, 0.6), transparent 75%),
+        radial-gradient(circle at 78% 20%, rgba(188, 31, 59, 0.5), transparent 70%),
+        radial-gradient(circle at 50% 75%, rgba(18, 90, 180, 0.45), transparent 75%),
+        url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1800&q=80") center / cover fixed;
+    }
+
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 1.3rem 1rem 3rem;
+    }
+
+    header {
+      display: grid;
+      gap: 1rem;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .logo-frame {
+      width: min(300px, 70vw);
+      border: 1px solid var(--edge);
+      border-radius: 22px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.35);
+      box-shadow: var(--shadow);
+    }
+
+    .logo-frame img {
+      width: 100%;
+      display: block;
+      max-height: 190px;
+      object-fit: contain;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Cinzel", serif;
+      letter-spacing: 0.03em;
+      font-size: clamp(1.8rem, 5vw, 2.7rem);
+      color: #fff3ce;
+    }
+
+    .tab-bar {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      justify-content: center;
+    }
+
+    .tab-btn {
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid var(--edge);
+      padding: 0.62rem 1rem;
+      border-radius: 999px;
+      background: rgba(8, 11, 26, 0.6);
+      font-weight: 600;
+      transition: transform .2s ease, border-color .2s ease;
+    }
+
+    .tab-btn:hover { transform: translateY(-1px); border-color: var(--accent-2); }
+    .tab-btn.is-home { border-color: var(--accent); color: var(--accent); }
+
+    .panel {
+      margin-top: 1.2rem;
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      padding: 1.2rem;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(4px);
+    }
+
+    h2, h3 { margin-top: 0; color: #fff1be; }
+
+    .grid-4 {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .specialty-card {
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(2, 4, 14, 0.65);
+    }
+
+    .specialty-card h3 {
+      margin: 0;
+      padding: 0.85rem;
+      font-size: 1rem;
+      color: var(--accent-2);
+    }
+
+    .specialty-card img {
+      width: 100%;
+      height: 170px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .specialty-card p { margin: 0; padding: 0.85rem; font-size: 0.94rem; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 0.6rem 1rem;
+      text-decoration: none;
+      font-weight: 700;
+      color: #0d1125;
+      background: var(--accent);
+    }
+
+    .btn-outline {
+      color: var(--ink);
+      background: transparent;
+      border-color: rgba(255,255,255,.35);
+    }
+
+    .status { min-height: 1.2rem; color: #d3e9ff; }
+    .pay-list { margin: 0.8rem 0 0; padding-left: 1rem; }
+    .pay-total {
+      margin-top: 0.8rem;
+      font-weight: 700;
+      color: #fff6cc;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 12px;
+      padding: 0.7rem 0.85rem;
+      background: rgba(0,0,0,.22);
+    }
+    .pay-note { margin-top: .55rem; color: #d4e8ff; font-size: .92rem; }
+    .selector-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .45rem .9rem; margin-top: .7rem; }
+    .selector-grid label { display: flex; align-items: flex-start; gap: .45rem; }
+
+    .founder {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 190px 1fr;
+      align-items: start;
+    }
+
+    .founder img {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--edge);
+      object-fit: contain;
+    }
+
+    .social-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+    }
+
+    .social-links a {
+      color: #fff;
+      text-decoration: none;
+      padding: 0.5rem .8rem;
+      border-radius: 999px;
+      background: rgba(0,0,0,.3);
+      border: 1px solid rgba(255,255,255,.25);
+    }
+
+    details {
+      border: 1px dashed rgba(255,255,255,.3);
+      border-radius: 12px;
+      padding: .8rem;
+      margin-top: 1rem;
+    }
+
+    summary { cursor: pointer; color: var(--accent-2); font-weight: 700; }
+
+    @media (max-width: 760px) {
+      .founder { grid-template-columns: 1fr; }
+      .founder img { max-width: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo-frame">
+        <img src="/Assets/Images/CMS_logo.jpg" alt="Centro Multidisciplinario para la Salud" loading="lazy" />
+      </div>
+      <h1>Centro Multidisciplinario para la Salud</h1>
+      <nav class="tab-bar" aria-label="Menú del ecosistema">
+        <a class="tab-btn is-home" href="/" aria-current="page">CMS Principal</a>
+        <a class="tab-btn" href="/obras" rel="noreferrer" target="_blank">Obras Literarias</a>
+        <a class="tab-btn" href="/musica" rel="noreferrer" target="_blank">IA VIAM Music &amp; Pubicity</a>
+        <a class="tab-btn" href="/nexus" rel="noreferrer" target="_blank">Sincronía Nexus</a>
+      </nav>
+    </header>
+
+    <section class="panel" aria-labelledby="especialidades-title">
+      <h2 id="especialidades-title">Especialidades del CMS</h2>
+      <div class="grid-4">
+        <article class="specialty-card">
+          <h3>Biomagnetismo clínico y emocional</h3>
+          <img src="/Assets/Images/Biomag.jpeg" alt="Biomagnetismo" loading="lazy" />
+          <p>El Biomagnetismo parte del fundamento de que el cuerpo funciona como un sistema energético que puede desequilibrarse por factores físicos, químicos o emocionales. A través de la colocación de imanes en zonas específicas que se rastrean con técnica adecuadamente, se busca restablecer ese equilibrio interno.  Costo: MXN 600.00</p>
+        </article>
+
+        <article class="specialty-card">
+          <h3>Biodescodificación</h3>
+          <img src="/Assets/Images/Biodesc.png" alt="Biodescodificación" loading="lazy" />
+          <p>La Biodescodificación es un enfoque mental terapéutico complementario que busca identificar y resignificar el origen emocional de síntomas o conflictos físicos, facilitando procesos de conciencia, liberación emocional y bienestar integral.  Costo: MXN 1200.00</p>
+        </article>
+
+        <article class="specialty-card">
+          <h3>Resonancia Magnética Cuántica</h3>
+          <img src="/Assets/Images/RMC.jpeg" alt="Resonancia Magnética Cuántica" loading="lazy" />
+          <p>Este estudio se basa en el principio de que el cuerpo humano emite frecuencias energéticas que reflejan su estado de salud. A través de dispositivos especializados, se realiza una lectura de estas señales para obtener información sobre posibles alteraciones y favorecer medidas preventivas comentadas y planeadas dentro de la consulta con detalle. Costo: MXN 800.00</p>
+        </article>
+
+        <article class="specialty-card">
+          <h3>Rehabilitación Osteoneuromuscular</h3>
+          <img src="/Assets/Images/Rehab.jpg" alt="Rehabilitación" loading="lazy" />
+          <p>Esta técnica manual y con dispositivos ergonómicos y aparatología diversa especializada es un enfoque terapéutico integral orientado a la recuperación gradual  de la función del sistema óseo, muscular y nervioso que buscan aliviar el dolor, mejorar la movilidad y restaurar el equilibrio corporal.  Costo: MXN 600.00</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="consulta-title">
+      <h2 id="consulta-title">Solicitud de consulta</h2>
+      <p>Este formulario quedó preparado dentro de la app oficial del Centro Multidisciplinario para la Salud. Aquí programas tu cita el día y hora que te convengan dentro de nuestro horario al llenar los datos solicitados.</p>
+      <div style="margin-top:0.8rem;display:flex;gap:0.6rem;flex-wrap:wrap;">
+        <button type="button" class="btn" onclick="window.open('https://calendly.com/multidisciplinarioags', '_blank', 'noopener')">Solicitar consulta al CMS</button>
+        <a class="btn btn-outline" href="https://calendly.com/multidisciplinarioags" target="_blank" rel="noreferrer">Abrir App Oficial del CMS</a>
+      </div>
+      <p class="status" id="consulta-status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel">
+      <h3>Podcast del CMS (Entra y aprende a cuidarte)</h3>
+      <p>Acceso al canal de YouTube donde se publicarán episodios de educación y autocuidado.</p>
+      <a class="btn" href="https://www.youtube.com/watch?v=s8aY8r1anV0&amp;list=PLUG8H9uemFi6zgfdjxhPV7c24iC3nmqt8" target="_blank" rel="noreferrer">Ir al podcast en YouTube</a>
+    </section>
+
+    <section class="panel" aria-labelledby="radio-title">
+      <h3 id="radio-title">Radio del CMS</h3>
+      <p>Se restauró el bloque de radio para seguir trabajando su contenido dentro del CMS.</p>
+      <audio id="radio-player" controls controlsList="nodownload" preload="none" style="width:min(520px,100%);">
+        <source src="/Assets/Audio/radio-cms.mp3" type="audio/mpeg" />
+        Tu navegador no soporta reproducción de audio integrada.
+      </audio>
+      <div style="margin-top: 1rem; width:min(520px,100%);">
+        <button id="radio-player-next" class="btn btn-outline" style="width: 100%; font-size: 0.9rem;">Siguiente Pista</button>
+      </div>
+    </section>
+
+    <section class="panel founder" aria-labelledby="fundador-title">
+      <img src="/Assets/Images/FValdez.png" alt="Fotografía del fundador" loading="lazy" />
+      <div>
+        <h2 id="fundador-title">Mensaje del fundador</h2>
+        <p>¡Hola! Mi nombre es Francisco Valdez y soy Fundador del Centro Multidisciplinario para la Salud, IA VIAM Music and Publicity y Sincronía Nexus. Soy Licenciado en Enfermería, Terapia física y Rehabilitación Osteoneuromuscular, Biodescodificador y Biomagnetista clínico y Emocional, entre otros estudios profundos de otras ramas del saber como Máster en Inteligencia Artificial y sus variantess, Programador Diseñador Gráfico, también soy escritor de novelas narrativas, poesía, literatura técnica profesional y canciones con arreglos profesionales con IA, Trader y Publicista, traductor de Idiomas, Inglés, Japonés, Español. Soy Docente Universitario y Bíblico, Ministro Religioso y Conferencista. En Sincronía Nexus y en IA VIAM Music and Publicity, unifico mis pasiones para ofrecerte un camino de recuperación física y mental que no se ofrece en la medicina convencional, siendo éste un complemento muy útil y práctico. ¡Anímate a conocerlo y a recibir sus beneficios!</p>
+      </div>
+    </section>
+
+    <section class="panel" id="pago-general" aria-labelledby="pago-title">
+      <h2 id="pago-title">Pago general del CMS</h2>
+      <p>Este sistema centraliza la recepción de pagos para servicios, consultas y compras del ecosistema.</p>
+      <div class="selector-grid" id="service-selector">
+        <label><input type="checkbox" name="servicio" value="Consulta CMS" data-price="600" /> Consulta CMS (Selecciona tu servicio)</label>
+        <label><input type="checkbox" name="servicio" value="Servicio IA VIAM" data-price="0" /> Servicio IA VIAM (Dependerá del servicio solicitado, pide tu cotización)</label>
+        <label><input type="checkbox" name="servicio" value="Membresía Sincronía NEXUS" data-price="400" /> Membresía Sincronía NEXUS (MXN 400.00/mes o MNX 3600.00/año con 3 meses gratis. )</label>
+      </div>
+      <ul class="pay-list" id="selected-items"></ul>
+      <div class="pay-total" id="total-box">Total automático a pagar: MXN 0.00</div>
+      <p class="pay-note">El total se calcula automáticamente con los libros/servicios seleccionados y se refleja en este recuadro.</p>
+      <div style="margin-top:0.8rem;display:flex;gap:0.6rem;flex-wrap:wrap;">
+        <a id="paypal-btn" class="btn" href="#" target="_blank" rel="noreferrer">Pagar con PayPal</a>
+        <button id="stripe-btn" class="btn btn-outline">Pagar con Stripe</button>
+      </div>
+      <p class="small-note" style="margin-top: 1rem; font-size: 0.9em; color: #d4e8ff; border-left: 3px solid #d4af37; padding-left: 10px;"><strong>Nota:</strong> Los links de pago ahora se generan de manera dinámica con el total exacto.</p>
+      <details>
+        <summary>¿Dónde se realizan los pagos?</summary>
+        <p>Todos los pagos convergen en el sistema único general de pago del CMS. Y también en caso de ser paciente o cliente local podrá ser en efectivo</p>
+      </details>
+    </section>
+
+    <section class="panel" id="descargas-libros" aria-labelledby="descargas-title">
+      <h3 id="descargas-title">Descarga de novelas y libros comprados</h3>
+      <p>Después del pago, el cliente puede usar estos enlaces directos para descargar su compra.</p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Memorias_Peligrosas.pdf', 'Memorias_Peligrosas.pdf')">Memorias Peligrosas</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Programacion_Fatal.pdf', 'Programacion_Fatal.pdf')">Programación Fatal</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Litigio_Mortal.pdf', 'Litigio_Mortal.pdf')">Litigio Mortal</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Busqueda_Impactante.pdf', 'Busqueda_Impactante.pdf')">Búsqueda Impactante</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/EBook_ISometricos.pdf', 'EBook_ISometricos.pdf')">Libro Técnico Profesional</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Poesias_del_Corazon.pdf', 'Poesias_del_Corazon.pdf')">Poesías del Corazón</a>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="faq-title">
+      <h3 id="faq-title">FAQ del CMS</h3>
+      <details>
+        <summary>¿Qué incluye el pago general?</summary>
+        <p>Incluye consultas, servicios y compra de obras literarias dentro del ecosistema CMS.</p>
+      </details>
+      <details>
+        <summary>¿Cómo recibo mi libro después del pago?</summary>
+        <p>Al concluir el pago, el cliente puede descargar el material desde el bloque de descargas de esta página.</p>
+      </details>
+    </section>
+
+    <section class="panel" aria-labelledby="terms-title">
+      <h3 id="terms-title">Términos y Condiciones</h3>
+      <p>Al pagar en este sitio, el cliente acepta que el acceso a servicios y materiales digitales es personal e intransferible.</p>
+      <p>Los contenidos adquiridos no pueden redistribuirse sin autorización escrita del autor.</p>
+      <p>Si existe un error de acceso a una descarga comprada, el cliente puede solicitar soporte por los canales oficiales del CMS.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="social-title">
+      <h2 id="social-title">Redes sociales oficiales</h2>
+      <div class="social-links">
+        <a href="https://www.facebook.com/profile.php?id=100090252948042&amp;locale=es_LA" target="_blank" rel="noreferrer">Facebook</a>
+        <a href="https://www.youtube.com/watch?v=s8aY8r1anV0&amp;list=PLUG8H9uemFi6zgfdjxhPV7c24iC3nmqt8&amp;pp=sAgC" target="_blank" rel="noreferrer">YouTube</a>
+        <a href="https://www.tiktok.com/@tumaestroyguia?is_from_webapp=1&amp;sender_device=pc" target="_blank" rel="noreferrer">TikTok</a>
+        <a href="https://www.instagram.com/jfcovaoso?igsh=enh0djRwOXlrNXo=" target="_blank" rel="noreferrer">Instagram</a>
+        <a href="https://x.com/ayudaCN?s=20" target="_blank" rel="noreferrer">X</a>
+      </div>
+    </section>
+  </div>
+  
+    <script>
+      // Global payment simulation state
+      window.currentPaymentTotal = 0;
+      window.pendingServices = [];
+
+      const selectedItemsList = document.getElementById('selected-items');
+      const totalBox = document.getElementById('total-box');
+      const serviceOptions = Array.from(document.querySelectorAll('input[name="servicio"]'));
+      const params = new URLSearchParams(window.location.search);
+      const itemParams = params.getAll('item');
+      const priceParams = params.getAll('price').map((value) => Number.parseFloat(value) || 0);
+
+      // Custom modals containers
+      const customModalsHtml = `
+      <dialog id="consulta-modal" style="background: var(--panel); color: var(--ink); border: 1px solid var(--edge); border-radius: 12px; padding: 1.5rem; max-width: 400px;">
+        <h3>Selecciona tu servicio</h3>
+        <select id="consulta-select" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem;">
+          <option value="Rehabilitación Osteoneuromuscular" data-price="600">Rehabilitación Osteoneuromuscular MXN 600.00</option>
+          <option value="Biodescodificación" data-price="1200">Biodescodificación MXN 1200.00</option>
+          <option value="Biomagnetismo Clínico y Emocional" data-price="600">Biomagnetismo Clínico y Emocional MXN 600.00</option>
+          <option value="Resonancia Magnética Cuántica" data-price="800">Resonancia Magnética Cuántica MXN 800.00</option>
+        </select>
+        <button class="btn" onclick="confirmConsulta()">Confirmar</button>
+      </dialog>
+
+      <dialog id="membresia-modal" style="background: var(--panel); color: var(--ink); border: 1px solid var(--edge); border-radius: 12px; padding: 1.5rem; max-width: 400px;">
+        <h3>Selecciona tu membresía</h3>
+        <select id="membresia-select" style="width: 100%; padding: 0.5rem; margin-bottom: 1rem;">
+          <option value="Mensual" data-price="400">MXN 400.00 al mes</option>
+          <option value="Anual" data-price="3600">MXN 3600.00 al año (3 meses gratis)</option>
+        </select>
+        <button class="btn" onclick="confirmMembresia()">Confirmar</button>
+      </dialog>
+
+      <dialog id="simulated-payment-modal" style="background: var(--panel); color: var(--ink); border: 1px solid var(--edge); border-radius: 12px; padding: 1.5rem; max-width: 500px; text-align: center;">
+        <h3 id="sim-payment-title">Procesando Pago</h3>
+        <p id="sim-payment-amount" style="font-size: 1.2rem; font-weight: bold;"></p>
+        <div id="sim-payment-processing">
+          <p>Conectando con la pasarela de pago segura...</p>
+          <div style="margin: 20px auto; border: 4px solid var(--edge); border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+        </div>
+        <div id="sim-payment-success" style="display: none;">
+          <h2 style="color: #4ade80;">¡Pago Exitoso!</h2>
+          <p>Gracias por tu compra.</p>
+          <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+            <p style="margin:0;">Código de comprobante:</p>
+            <strong id="sim-payment-code" style="font-size: 1.5rem; color: var(--accent); letter-spacing: 2px;"></strong>
+            <button class="btn btn-outline" onclick="copyCode()" style="margin-top:0.5rem; padding: 0.3rem 0.6rem; font-size: 0.8rem;">Copiar</button>
+          </div>
+          <div id="ticket-container"></div>
+          <button class="btn" onclick="closeSimulatedPayment()">Cerrar y continuar</button>
+        </div>
+        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+      </dialog>
+      `;
+      document.body.insertAdjacentHTML('beforeend', customModalsHtml);
+
+      let selectedConsulta = null;
+      let selectedMembresia = null;
+
+      function renderTotal() {
+        selectedItemsList.innerHTML = '';
+        let total = 0;
+        window.pendingServices = [];
+
+        itemParams.forEach((name, index) => {
+          const currentPrice = priceParams[index] || 0;
+          total += currentPrice;
+          const li = document.createElement('li');
+          li.textContent = `${name} - MXN ${currentPrice.toFixed(2)}`;
+          selectedItemsList.appendChild(li);
+        });
+
+        serviceOptions.forEach((option) => {
+          if (!option.checked) return;
+          
+          if (option.value === "Consulta CMS" && selectedConsulta) {
+            total += selectedConsulta.price;
+            const li = document.createElement('li');
+            li.textContent = `Consulta CMS: ${selectedConsulta.name} - MXN ${selectedConsulta.price.toFixed(2)}`;
+            selectedItemsList.appendChild(li);
+            window.pendingServices.push({type: 'consulta', name: selectedConsulta.name, price: selectedConsulta.price});
+          } else if (option.value === "Membresía Sincronía NEXUS" && selectedMembresia) {
+            total += selectedMembresia.price;
+            const li = document.createElement('li');
+            li.textContent = `Membresía Sincronía NEXUS: ${selectedMembresia.name} - MXN ${selectedMembresia.price.toFixed(2)}`;
+            selectedItemsList.appendChild(li);
+            window.pendingServices.push({type: 'membresia', name: selectedMembresia.name});
+          } else if (option.value === "Servicio IA VIAM") {
+             const li = document.createElement('li');
+             li.textContent = `Servicio IA VIAM (Cotización) - Gratis`;
+             selectedItemsList.appendChild(li);
+          } else {
+             // Fallback
+             const servicePrice = Number.parseFloat(option.dataset.price || '0') || 0;
+             total += servicePrice;
+             if(servicePrice > 0) {
+               const li = document.createElement('li');
+               li.textContent = `${option.value} - MXN ${servicePrice.toFixed(2)}`;
+               selectedItemsList.appendChild(li);
+             }
+          }
+        });
+
+        if (!selectedItemsList.children.length) {
+          const li = document.createElement('li');
+          li.textContent = 'Sin selección recibida todavía.';
+          selectedItemsList.appendChild(li);
+        }
+
+        totalBox.textContent = `Total automático a pagar: MXN ${total.toFixed(2)}`;
+        window.currentPaymentTotal = total;
+      }
+
+      window.confirmConsulta = function() {
+        const select = document.getElementById('consulta-select');
+        const option = select.options[select.selectedIndex];
+        selectedConsulta = { name: option.value, price: parseFloat(option.dataset.price) };
+        document.getElementById('consulta-modal').close();
+        renderTotal();
+      };
+
+      window.confirmMembresia = function() {
+        const select = document.getElementById('membresia-select');
+        const option = select.options[select.selectedIndex];
+        selectedMembresia = { name: option.value, price: parseFloat(option.dataset.price) };
+        document.getElementById('membresia-modal').close();
+        renderTotal();
+      };
+
+      serviceOptions.forEach((option) => {
+        option.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            if (e.target.value === "Consulta CMS") {
+              document.getElementById('consulta-modal').showModal();
+            } else if (e.target.value === "Membresía Sincronía NEXUS") {
+              document.getElementById('membresia-modal').showModal();
+            } else if (e.target.value === "Servicio IA VIAM") {
+               // Download automatically
+               const a = document.createElement('a');
+               a.href = '/Assets/Docs/Cotizacion_IAVIAMMusicPublicidad.pdf';
+               a.download = 'Cotizacion_IAVIAM.pdf';
+               a.click();
+               renderTotal();
+            }
+          } else {
+             if (e.target.value === "Consulta CMS") selectedConsulta = null;
+             if (e.target.value === "Membresía Sincronía NEXUS") selectedMembresia = null;
+             renderTotal();
+          }
+        });
+      });
+      renderTotal();
+
+      // Overwrite payment links
+      const stripeBtn = document.getElementById('stripe-btn');
+      const paypalBtn = document.getElementById('paypal-btn');
+
+      paypalBtn.addEventListener('click', (e) => {
+         if (window.currentPaymentTotal === 0) {
+            e.preventDefault();
+            alert("Selecciona un servicio para pagar.");
+            return;
+         }
+         // Set dynamic url for paypal
+         const url = `https://paypal.me/JValdezOsorio/${window.currentPaymentTotal.toFixed(2)}MXN`;
+         paypalBtn.href = url;
+         localStorage.setItem('nexus_pending_services', JSON.stringify(window.pendingServices || []));
+         setTimeout(() => simulatePayment(window.currentPaymentTotal), 500);
+      });
+
+      stripeBtn.addEventListener('click', async (e) => {
+         e.preventDefault();
+         if (window.currentPaymentTotal === 0) {
+            alert("Selecciona un servicio para pagar.");
+            return;
+         }
+         
+         const oldText = stripeBtn.textContent;
+         stripeBtn.textContent = "Procesando...";
+         stripeBtn.disabled = true;
+
+         localStorage.setItem('nexus_pending_services', JSON.stringify(window.pendingServices || []));
+
+         try {
+            const response = await fetch('/.netlify/functions/create-checkout-session', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({
+                  montoTotal: window.currentPaymentTotal,
+                  nombreProducto: 'Compra en Ecosistema CMS'
+               })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok && data.url) {
+               // Redirect to Stripe checkout
+               window.location.href = data.url;
+            } else {
+               alert("Error al crear sesión de pago: " + (data.error || "Desconocido"));
+               stripeBtn.textContent = oldText;
+               stripeBtn.disabled = false;
+            }
+         } catch (err) {
+            alert("Error de conexión al procesar pago.");
+            console.error(err);
+            stripeBtn.textContent = oldText;
+            stripeBtn.disabled = false;
+         }
+      });
+
+      function simulatePayment(amount) {
+        const modal = document.getElementById('simulated-payment-modal');
+        document.getElementById('sim-payment-amount').textContent = `Total a pagar: MXN ${amount.toFixed(2)}`;
+        
+        // Show an intermediary state waiting for the user to finish in the other tab
+        const procDiv = document.getElementById('sim-payment-processing');
+        procDiv.style.display = 'block';
+        procDiv.innerHTML = `
+          <p style="margin-bottom: 0.5rem;">Se ha abierto la pasarela de pago en una nueva pestaña.</p>
+          <p style="font-size: 0.95rem; margin-bottom: 1rem; color: #dbe9ff;">Para confirmar tu pago a través de nuestro webhook, por favor introduce el <strong>ID de Transacción</strong> o <strong>Recibo</strong> que te proporcionó Stripe o PayPal.</p>
+          <input type="text" id="transaction-id-input" placeholder="Ej: ch_1Nj... o 9XY123..." style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border-radius: 6px; border: 1px solid var(--edge); background: rgba(0,0,0,0.5); color: var(--ink);">
+          <button class="btn btn-primary" onclick="confirmUserPayment()">Verificar mi pago</button>
+        `;
+        
+        document.getElementById('sim-payment-success').style.display = 'none';
+        document.getElementById('ticket-container').innerHTML = '';
+        modal.showModal();
+      }
+
+      window.retrySimulatedPayment = function() {
+        simulatePayment(window.currentPaymentTotal);
+      };
+
+      window.confirmUserPayment = function() {
+        const transId = document.getElementById('transaction-id-input').value.trim();
+        if (!transId) {
+          alert('Por favor, ingresa el ID de Transacción de tu pago.');
+          return;
+        }
+
+        const procDiv = document.getElementById('sim-payment-processing');
+        procDiv.innerHTML = `
+          <p>Conectando con el Webhook de pagos para verificar...</p>
+          <div style="margin: 20px auto; border: 4px solid var(--edge); border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+        `;
+        
+        fetch('/.netlify/functions/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transactionId: transId })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('sim-payment-processing').style.display = 'none';
+            document.getElementById('sim-payment-success').style.display = 'block';
+            
+            // Generate code from the server
+            const code = data.code;
+            document.getElementById('sim-payment-code').textContent = code;
+
+            // Check if we need to generate tickets or membership messages
+            let ticketHtml = '';
+            window.pendingServices.forEach(s => {
+               if(s.type === 'consulta') {
+                  const date = new Date().toLocaleDateString();
+                  ticketHtml += `
+                    <div style="background: #fff; color: #000; padding: 1rem; margin-top: 1rem; border-radius: 8px; text-align: left; border: 2px dashed #ccc; font-family: monospace;">
+                      <div style="text-align:center; margin-bottom: 0.5rem;">
+                         <img src="/Assets/Images/CMS_logo.jpg" style="height: 40px;" />
+                      </div>
+                      <strong>TICKET DE CONSULTA</strong><br/>
+                      Fecha: ${date}<br/>
+                      Servicio: ${s.name}<br/>
+                      Monto Pagado: MXN ${s.price.toFixed(2)}<br/>
+                      Paciente: (Por llenar en consultorio)<br/>
+                      <hr/>
+                      <small>Puede tomar captura de pantalla de este ticket y enviarlo por WhatsApp a quien le atenderá o mostrarlo directamente de su dispositivo.</small>
+                    </div>
+                    <p style="color: #4ade80;">¡Ya puedes disfrutar del servicio adquirido en NEXUS!</p>
+                  `;
+               } else if (s.type === 'membresia') {
+                  const isAnual = s.name === 'Anual';
+                  ticketHtml += `
+                    <div style="background: rgba(74, 222, 128, 0.2); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                      <strong>Membresía Activada</strong>
+                      <p>¡Ya puedes disfrutar del servicio adquirido en NEXUS!</p>
+                      <p>Tu membresía ${s.name} es válida a partir de hoy. Te avisaremos por correo o WhatsApp 5 días antes de que termine para que puedas renovarla.</p>
+                      <p>Tu código de comprobante sirve para controlar tu estancia en la membresía.</p>
+                    </div>
+                  `;
+               }
+            });
+            document.getElementById('ticket-container').innerHTML = ticketHtml;
+          } else {
+             procDiv.innerHTML = `
+                <p style="color: #ef4444; margin-bottom: 0.5rem;">Error: Pago no verificado.</p>
+                <p style="font-size: 0.9rem; margin-bottom: 1rem;">${data.error || 'El webhook no ha registrado este ID de transacción. Asegúrate de haber finalizado el pago en PayPal/Stripe.'}</p>
+                <button class="btn btn-primary" onclick="window.retrySimulatedPayment()">Intentar de nuevo</button>
+             `;
+          }
+        })
+        .catch(err => {
+             procDiv.innerHTML = `
+                <p style="color: #ef4444; margin-bottom: 0.5rem;">Error de conexión.</p>
+                <p style="font-size: 0.9rem; margin-bottom: 1rem;">No se pudo conectar con el servidor para verificar el pago.</p>
+                <button class="btn btn-primary" onclick="window.retrySimulatedPayment()">Intentar de nuevo</button>
+             `;
+        });
+      };
+
+      window.copyCode = function() {
+        const code = document.getElementById('sim-payment-code').innerText;
+        navigator.clipboard.writeText(code);
+        alert('Código copiado: ' + code);
+      };
+
+      window.closeSimulatedPayment = function() {
+        document.getElementById('simulated-payment-modal').close();
+      };
+
+      // Check URL parameters for Stripe callbacks
+      const urlParams = new URLSearchParams(window.location.search);
+      const isSuccess = urlParams.get('payment_success');
+      const isCancelled = urlParams.get('payment_cancelled');
+      const sessionId = urlParams.get('session_id');
+
+      if (isSuccess === 'true' && sessionId) {
+         // Restore pending services from storage
+         try {
+           const stored = localStorage.getItem('nexus_pending_services');
+           if (stored) window.pendingServices = JSON.parse(stored);
+         } catch (e) {
+           window.pendingServices = [];
+         }
+         
+         simulatePayment(0); // Amount doesn't matter for the verification UI
+         document.getElementById('transaction-id-input').value = sessionId;
+         document.getElementById('sim-payment-processing').innerHTML = '<p>Reanudando verificación automática de pago...</p>';
+         setTimeout(() => {
+           confirmUserPayment();
+           // Clean URL without refreshing
+           window.history.replaceState({}, document.title, "/");
+         }, 1000);
+      } else if (isCancelled === 'true') {
+         alert("El pago ha sido cancelado.");
+         window.history.replaceState({}, document.title, "/");
+      }
+    </script>
+
+
+      <dialog id="payment-modal" style="background: var(--panel); color: var(--ink); border: 1px solid var(--edge); border-radius: 12px; padding: 1.5rem; max-width: 400px; text-align: center;">
+        <h4 style="margin-top: 0; color: var(--accent);">Verificación de Pago</h4>
+        <p style="font-size: 0.9rem; margin-bottom: 1rem;">Por favor, ingresa tu código de comprobante de pago para habilitar la descarga o visualización.</p>
+        <input type="text" id="payment-code" placeholder="Código de comprobante" style="width: 100%; padding: 0.5rem; border: 1px solid var(--edge); border-radius: 6px; background: rgba(0,0,0,0.5); color: var(--ink); margin-bottom: 1rem;" />
+        <button class="btn btn-primary" onclick="verifyPayment()" style="width: 100%; margin-bottom: 1rem; border-radius: 999px; padding: 0.75rem 1.25rem;">Verificar Pago</button>
+        
+        <div id="download-options" style="display: none; flex-direction: column; gap: 0.5rem;">
+          <p style="color: #4ade80; font-weight: bold; margin: 0;">¡Pago verificado!</p>
+          <a id="btn-view" class="btn btn-primary" href="#" target="_blank" rel="noreferrer">Ver en navegador</a>
+          <a id="btn-download" class="btn btn-outline" href="#" download>Descargar en mi dispositivo</a>
+        </div>
+        
+        <button class="btn btn-outline" onclick="closeModal()" style="margin-top: 1rem; width: 100%; border-radius: 999px; padding: 0.75rem 1.25rem;">Cerrar</button>
+      </dialog>
+
+      <script>
+        const modal = document.getElementById('payment-modal');
+        const codeInput = document.getElementById('payment-code');
+        const downloadOptions = document.getElementById('download-options');
+        const btnView = document.getElementById('btn-view');
+        const btnDownload = document.getElementById('btn-download');
+
+        function openPaymentModal(url, name) {
+          event.preventDefault();
+          btnView.href = url;
+          btnDownload.href = url;
+          btnDownload.setAttribute('download', name);
+          codeInput.value = '';
+          downloadOptions.style.display = 'none';
+          modal.showModal();
+        }
+
+        function verifyPayment() {
+          if (codeInput.value.trim().length > 3) {
+            downloadOptions.style.display = 'flex';
+          } else {
+            alert('Por favor, ingresa un código válido de tu comprobante.');
+          }
+        }
+
+        function closeModal() {
+          modal.close();
+        }
+      </script>
+<script src="/Assets/radio.js"></script>
+</body>
+</html>
