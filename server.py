@@ -4,22 +4,23 @@ import subprocess
 import os
 
 app = Flask(__name__)
-CORS(app)  # Permite la comunicación limpia con la web de Netlify
+
+# BLINDAJE CORS: Permite que absolutamente cualquier petición de Netlify entre sin bloqueos
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/renderizar', methods=['POST'])
 def renderizar():
     try:
-        print("🎬 Interfaz web conectada. Recibiendo archivos...")
+        print("🎬 Petición recibida en la nube. Validando archivos...")
         
-        # 1. Guardar temporalmente el audio si es que llegó de la web
+        # Guardar audio eficientemente en el contenedor de la nube
         audio_file = request.files.get('audio')
         if audio_file:
             audio_file.save("audio_temp.mp3")
-            print("🎵 Audio de fondo guardado temporalmente.")
             
-        print("⚡ Ejecutando motor gráfico de forma silenciosa en segundo plano...")
+        print("⚡ Iniciando procesamiento del motor gráfico (Modo Silencioso)...")
         
-        # 2. Ejecutar tu script principal directo sin abrir ventanas estorbosas
+        # Ejecuta el script de manera interna en el servidor de Railway
         resultado = subprocess.run(
             ["python", "generador_videos.py"],
             capture_output=True,
@@ -27,28 +28,23 @@ def renderizar():
             check=True
         )
         
-        print("✅ ¡Motor de Python finalizado con éxito!")
-        print("📺 Salida del script:", resultado.stdout)
-        
-        # 3. Buscar el video generado (Si tu script arroja otro nombre, cámbialo aquí)
         video_output = "video_output.mp4"
-        
         if os.path.exists(video_output):
+            print("✅ Video compilado con éxito. Enviando al cliente...")
             return send_file(video_output, as_attachment=True)
         else:
-            return jsonify({"error": "El script corrió pero no se encontró el archivo de video final."}), 500
+            return jsonify({"error": "No se encontró el archivo de video final en el servidor."}), 500
             
     except subprocess.CalledProcessError as e:
-        print("❌ Error crítico dentro de generador_videos.py:")
-        print(e.stderr)
-        return jsonify({"error": "Error al ejecutar el generador interno", "detalle": e.stderr}), 500
-        
+        print("❌ Error en el script interno:", e.stderr)
+        return jsonify({"error": "Error en el generador", "detalle": e.stderr}), 500
     except Exception as e:
-        print(f"❌ Error general en el servidor puente: {str(e)}")
-        return jsonify({"error": "Error inesperado en el servidor", "detalle": str(e)}), 500
+        print("❌ Error general:", str(e))
+        return jsonify({"error": "Error inesperado", "detalle": str(e)}), 500
 
 if __name__ == '__main__':
-    # Lee el puerto que le asigna Railway, y si no existe usa el 5000
+    # CONFIGURACIÓN ESTRICTA DE PUERTO PARA PRODUCIR EN CLOUD
+    # Railway asigna el puerto automáticamente; si no lo detecta, usa el 5000 por defecto
     puerto = int(os.environ.get("PORT", 5000))
-    # Escucha en el host 0.0.0.0 para permitir conexiones externas públicas
-    app.run(host='0.0.0.0', port=puerto, debug=True)
+    # Escucha en 0.0.0.0 para abrir las puertas al tráfico de internet público
+    app.run(host='0.0.0.0', port=puerto, debug=False) 
