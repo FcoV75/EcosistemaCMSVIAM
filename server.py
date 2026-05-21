@@ -3,9 +3,10 @@ from flask_cors import CORS
 import subprocess
 import os
 
+# 1. Definición global de la aplicación (Crucial para la nube)
 app = Flask(__name__)
 
-# Permite que Netlify se conecte de forma pública y segura sin bloqueos de red
+# Permite que la web de Netlify se conecte de forma pública y segura
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/renderizar', methods=['POST'])
@@ -33,7 +34,7 @@ def renderizar():
     except Exception as e:
         return jsonify({"error": "Error inesperado", "detalle": str(e)}), 500
 
+# Este bloque se mantiene para cuando hagas pruebas locales en tu PC
 if __name__ == '__main__':
-    # Forzamos la lectura al puerto 5000 que Railway dejó bloqueado en su red
     puerto = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=puerto, debug=False)
+    app.run(host='0.0.0.0', port=puerto, debug=False) 
