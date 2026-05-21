@@ -1,9 +1,13 @@
 <script>
+// 1. Declaración de variables globales (Aseguran que el script recuerde tus archivos)
+let audioFile = audioFile || null;
+let selectedImages = selectedImages || [];
+
 // Capturamos el contenedor de estatus de tu propia interfaz para actualizar los mensajes
 const statusText = document.getElementById("status-text");
 
 async function generarVideo() {
-    // 1. Validamos que existan los archivos obligatorios
+    // Validamos que existan los archivos obligatorios
     if (!audioFile) {
         alert("Por favor, selecciona un archivo de audio primero.");
         return;
@@ -21,7 +25,7 @@ async function generarVideo() {
     const formData = new FormData();
     formData.append("audio", audioFile);
     
-    // Si manejas imágenes dinámicas, las añadimos
+    // Añadimos las imágenes seleccionadas
     selectedImages.forEach((img, index) => {
         formData.append(`imagen_${index}`, img);
     });
@@ -37,7 +41,7 @@ async function generarVideo() {
 
         if (respuesta.status === 200 || respuesta.status === 202) {
             statusText.innerText = "Procesando audio, imágenes y subtítulos en segundo plano... Espere por favor.";
-            // 4. ¡La clave! Activamos el reloj para revisar el estatus de la renderización cada 10 segundos
+            // 4. Activamos el reloj para revisar el estatus de la renderización cada 10 segundos
             verificarEstatusRenderizado();
         } else {
             statusText.innerText = "Error al arrancar el motor: " + (datos.detalle || "Error desconocido");
@@ -82,6 +86,6 @@ function verificarEstatusRenderizado() {
         } catch (error) {
             console.error("Error consultando el estatus:", error);
         }
-    }, 10000); // 10000 milisegundos = Consulta automática cada 10 segundos
+    }, 10000); // Consulta automática cada 10 segundos
 }
 </script>
