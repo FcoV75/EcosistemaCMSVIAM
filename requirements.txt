@@ -3,3 +3,4 @@ Flask-CORS==6.0.2
 opencv-python
 openai-whisper
 ffmpeg-python
+gunicorn==22.0.0
