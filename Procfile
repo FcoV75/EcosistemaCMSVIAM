@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:5000 server:app
+web: gunicorn --bind 0.0.0.0:5000 --timeout 600 server:app
