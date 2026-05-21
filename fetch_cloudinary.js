@@ -82,6 +82,6 @@ function verificarEstatusRenderizado() {
         } catch (error) {
             console.error("Error consultando el estatus:", error);
         }
-            </script>
     }, 10000); // 10000 milisegundos = Consulta automática cada 10 segundos
 }
+</script>
