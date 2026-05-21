@@ -43,8 +43,7 @@ def renderizar():
         return jsonify({"error": "Error inesperado", "detalle": str(e)}), 500
 
 if __name__ == '__main__':
-    # CONFIGURACIÓN ESTRICTA DE PUERTO PARA PRODUCIR EN CLOUD
-    # Railway asigna el puerto automáticamente; si no lo detecta, usa el 5000 por defecto
-    puerto = int(os.environ.get("PORT", 5000))
-    # Escucha en 0.0.0.0 para abrir las puertas al tráfico de internet público
+    # Lee el puerto dinámico exacto asignado por el servidor de Railway
+    puerto = int(os.environ.get("PORT", 8080))
+    # Escucha en 0.0.0.0 para abrir de forma segura la red pública
     app.run(host='0.0.0.0', port=puerto, debug=False) 
