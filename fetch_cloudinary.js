@@ -1,3 +1,4 @@
+<script>
 // Capturamos el contenedor de estatus de tu propia interfaz para actualizar los mensajes
 const statusText = document.getElementById("status-text");
 
@@ -81,5 +82,6 @@ function verificarEstatusRenderizado() {
         } catch (error) {
             console.error("Error consultando el estatus:", error);
         }
+            </script>
     }, 10000); // 10000 milisegundos = Consulta automática cada 10 segundos
 }
