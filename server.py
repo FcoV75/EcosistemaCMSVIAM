@@ -8,7 +8,6 @@ import json
 app = Flask(__name__)
 CORS(app)
 
-# Asegurar de forma absoluta la existencia de la carpeta temporal en la nube
 UPLOAD_FOLDER = "temp_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -20,7 +19,6 @@ def ejecutar_renderizador(config_path, audio_path):
         ESTADO_PROCESO["status"] = "procesando"
         ESTADO_PROCESO["detalle"] = "Procesando video de fidelidad nativa en Railway..."
         
-        # Pasamos los argumentos explícitos al script secundario para que no falle por falta de rutas
         resultado = subprocess.run(
             ["python", "generador_videos.py", "--config", config_path, "--audio", audio_path],
             capture_output=True,
@@ -33,7 +31,7 @@ def ejecutar_renderizador(config_path, audio_path):
             ESTADO_PROCESO["detalle"] = "Video renderizado con éxito."
         else:
             ESTADO_PROCESO["status"] = "error"
-            ESTADO_PROCESO["detalle"] = "El motor no generó el archivo de video final o está vacío."
+            ESTADO_PROCESO["detalle"] = "No se generó el archivo de video final o está vacío."
             
     except subprocess.CalledProcessError as e:
         ESTADO_PROCESO["status"] = "error"
@@ -49,12 +47,10 @@ def renderizar():
         return jsonify({"message": "Hay un proceso en curso.", "status": "procesando"}), 202
 
     try:
-        # Limpieza higiénica previa
         if os.path.exists("video_output.mp4"):
             try: os.remove("video_output.mp4")
             except: pass
 
-        # 1. Procesar audio
         audio_file = request.files.get('audio')
         audio_path = os.path.join(UPLOAD_FOLDER, "audio_temp.mp3")
         if audio_file:
@@ -62,7 +58,6 @@ def renderizar():
         else:
             audio_path = ""
 
-        # 2. Reconstruir la estructura base para el mapa de configuración
         linea_tiempo_raw = request.form.get('linea_tiempo', '[]')
         leyenda_portada = request.form.get('leyenda_portada', '')
         leyenda_cierre = request.form.get('leyenda_cierre', '')
@@ -75,7 +70,6 @@ def renderizar():
             "leyenda_cierre": leyenda_cierre
         }
         
-        # Procesar archivos de portada/cierre si vienen en la petición de Netlify
         portada = request.files.get('portada')
         if portada:
             p_path = os.path.join(UPLOAD_FOLDER, "portada_temp.png")
@@ -92,7 +86,6 @@ def renderizar():
         with open(config_json_path, "w", encoding="utf-8") as f:
             json.dump(config_data, f, ensure_ascii=False)
             
-        # Lanzar el hilo de renderizado sin bloquear el puerto de Railway
         hilo = threading.Thread(target=ejecutar_renderizador, args=(config_json_path, audio_path))
         hilo.start()
         
