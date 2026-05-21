@@ -2,10 +2,10 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import subprocess
 import os
-
+from flask_cors import CORS
 # 1. Definición global de la aplicación (Crucial para la nube)
 app = Flask(__name__)
-
+CORS(app)
 # Permite que la web de Netlify se conecte de forma pública y segura
 CORS(app, resources={r"/*": {"origins": "*"}})
 
