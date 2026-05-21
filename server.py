@@ -34,6 +34,6 @@ def renderizar():
         return jsonify({"error": "Error inesperado", "detalle": str(e)}), 500
 
 if __name__ == '__main__':
-    # OBLIGATORIO PARA RAILWAY: Escucha en el host público y lee el puerto exacto de la nube
-    # Se cambia la conversión estricta por lectura directa del entorno seguro
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)), debug=False)
+    # Forzamos la lectura al puerto 5000 que Railway dejó bloqueado en su red
+    puerto = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=puerto, debug=False)
