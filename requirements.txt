@@ -4,3 +4,4 @@ opencv-python
 openai-whisper
 ffmpeg-python
 gunicorn==22.0.0
+Flask-CORS==4.0.1
