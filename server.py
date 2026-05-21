@@ -48,5 +48,7 @@ def renderizar():
         return jsonify({"error": "Error inesperado en el servidor", "detalle": str(e)}), 500
 
 if __name__ == '__main__':
-    # Arranca el servidor local estable en el puerto 5000
-    app.run(host='127.0.0.1', port=5000, debug=True) 
+    # Lee el puerto que le asigna Railway, y si no existe usa el 5000
+    puerto = int(os.environ.get("PORT", 5000))
+    # Escucha en el host 0.0.0.0 para permitir conexiones externas públicas
+    app.run(host='0.0.0.0', port=puerto, debug=True)
