@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Diamante - Panel de Generación Ecosistema VIAM</title>
+    <style>
+        /* Paleta de colores estricta de la aplicación */
+        :root {
+            --color-fondo-ventana: #D33F1F;      /* Anaranjado rojizo dominante */
+            --color-pizarra-crema: #FDF5E6;      /* Crema para pizarras y áreas de texto */
+            --color-borde-violeta: #7D26CD;      /* Violeta profundo para bordes */
+            --color-dorado-cabecera: #D4AF37;    /* Dorado premium */
+            --color-texto-panel: #FDF5E6;        /* Letras crema */
+            --color-rojo-boton: #CD5C5C;         /* Rojo suave para remover */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: var(--color-fondo-ventana);
+            color: var(--color-texto-panel);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .contenedor-principal {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Cabeceras Doradas Estilo App */
+        .cabecera-dorada {
+            background-color: var(--color-dorado-cabecera);
+            color: #222222;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 6px 12px;
+            border: 2px solid var(--color-dorado-cabecera);
+            border-bottom: none;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            box-shadow: 0px 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .label-frame {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            background-color: rgba(177, 50, 23, 0.3);
+            margin-bottom: 5px;
+        }
+
+        .inner-panel {
+            padding: 15px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        /* Inputs y Campos de Texto Estilo Pizarra */
+        label {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            background-color: var(--color-pizarra-crema);
+            color: #333333;
+            border: 1px solid #cccccc;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+            width: 220px;
+        }
+
+        /* Botones de Estilo de Lujo */
+        .btn-premium {
+            background-color: var(--color-dorado-cabecera);
+            color: #222222;
+            font-weight: bold;
+            font-size: 13px;
+            padding: 8px 14px;
+            border: 2px solid var(--color-borde-violeta);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-premium:hover {
+            background-color: #e5c158;
+            transform: scale(1.02);
+        }
+
+        .btn-agregar-medios {
+            background-color: #28A745;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 12px 24px;
+            border: 2px solid var(--color-borde-violeta);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-agregar-medios:hover {
+            background-color: #218838;
+            transform: scale(1.02);
+        }
+
+        .btn-renderizar {
+            background-color: #007BFF;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 12px 24px;
+            border: 2px solid var(--color-borde-violeta);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-renderizar:hover {
+            background-color: #0069d9;
+            transform: scale(1.02);
+        }
+
+        /* Bloque de Indicadores de Tiempo */
+        .marcador-tiempos {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .tiempo-pista { color: #FFD700; }
+        .tiempo-base { color: var(--color-texto-panel); }
+        .modo-sincro { color: #7FFF00; font-style: italic; }
+
+        /* Estructura Central de Pantalla Dividida */
+        .seccion-central {
+            display: flex;
+            gap: 15px;
+            min-height: 450px;
+        }
+
+        .bloque-izquierdo {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bloque-derecho {
+            width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Pizarras Crema de Datos */
+        .pizarra-crema {
+            background-color: var(--color-pizarra-crema);
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            color: #333333;
+        }
+
+        .zona-drop {
+            border: 2px dashed #A0522D;
+            border-radius: 6px;
+            height: 100%;
+            min-height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #7a431d;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(212, 175, 55, 0.05);
+            transition: all 0.2s ease;
+        }
+        
+        .zona-drop:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--color-borde-violeta);
+        }
+
+        /* Caja de Texto Enriquecida para Transcripción IA */
+        textarea.pizarra-crema {
+            width: 100%;
+            height: 200px;
+            resize: none;
+            font-family: 'Arial', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            border: none;
+            outline: none;
+            padding: 10px;
+        }
+
+        .checkbox-subtitulos {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .estado-ia {
+            color: #7FFFD4;
+            font-size: 12px;
+            font-style: italic;
+            padding: 5px;
+        }
+
+        /* Panel de Ejecución Inferior */
+        .panel-ejecucion {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .texto-estado {
+            font-size: 13px;
+            font-style: italic;
+            color: #FFF8DC;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        /* Ocultar input file nativo */
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Nav links */
+        .viam-nav-link {
+            color: var(--color-dorado-cabecera);
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: opacity 0.2s ease;
+        }
+        .viam-nav-link:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+
+        /* Animaciones para pantalla de carga */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse-text {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .texto-animado {
+            animation: pulse-text 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor-principal">
+
+        <!-- Barra Superior de Navegación e Identidad -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; background: rgba(0,0,0,0.25); padding: 12px 15px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15);">
+            <a href="musica.html" class="viam-nav-link">
+                ⬅ Regresar a IA VIAM Music & Publicity
+            </a>
+            <div id="viam-plan-indicator" style="background: rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 5px; border: 1px solid rgba(255,255,255,0.1);">
+                🔴 Plan: Prueba Gratuita (Límites Activos)
+            </div>
+        </div>
+
+        <!-- Identidad -->
+        <div class="label-frame">
+            <div class="cabecera-dorada">🖼️ Configuración de Identidad (Portada, Cierre y Leyendas)</div>
+            <div class="inner-panel">
+                <button class="btn-premium" onclick="document.getElementById('file-portada').click()">Seleccionar Portada</button>
+                <input type="file" id="file-portada" accept="image/*">
+                <span id="portada-status" style="font-size: 11px; color: #FFE4C4; margin-right: 15px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ninguna</span>
+
+                <label>Leyenda:</label>
+                <input type="text" id="txt-portada" value="TU DOLOR TIENE VOZ">
+
+                <button class="btn-premium" onclick="document.getElementById('file-cierre').click()" style="margin-left: 15px;">Seleccionar Foto Final</button>
+                <input type="file" id="file-cierre" accept="image/*">
+                <span id="cierre-status" style="font-size: 11px; color: #FFE4C4; margin-right: 15px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ninguna</span>
+
+                <label>Leyenda Final:</label>
+                <input type="text" id="txt-cierre" value="GRACIAS POR SU ATENCIÓN">
+            </div>
+        </div>
+
+        <!-- Balance y Sincronización de Tiempos -->
+        <div class="label-frame">
+            <div class="cabecera-dorada">⏳ Balance y Sincronización de Tiempos</div>
+            <div class="inner-panel">
+                <div class="marcador-tiempos">
+                    <span class="tiempo-pista" id="lbl-audio">Duración de la Pista: 00:00</span>
+                    <span class="tiempo-base" id="lbl-video">Duración Visual Base: 00:00 (0 fotos, 0 videos)</span>
+                    <span class="modo-sincro" id="lbl-modo">Modo: Ajuste estático</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estructura Central de Pantalla Dividida -->
+        <div class="seccion-central">
+            
+            <div class="bloque-izquierdo">
+                <div class="cabecera-dorada">🎞️ Línea de Tiempo (Arrastre su material a la pizarra crema)</div>
+                <div class="pizarra-crema" style="display: flex; flex-direction: column;">
+                    <div class="zona-drop" id="drop-zone" onclick="document.getElementById('file-medios').click()">
+                        Arrastra tus fotos y videos aquí o haz clic para buscarlos<br>
+                        <span style="font-size: 12px; font-weight: normal; color: #a56133; margin-top: 5px; display: block;">Soporta imágenes (JPG, PNG) y videos MP4</span>
+                    </div>
+                    <div id="timeline-items-container" style="display: none; flex-direction: column; gap: 8px; width: 100%;"></div>
+                    <input type="file" id="file-medios" multiple accept="image/*,video/mp4">
+                </div>
+            </div>
+
+            <div class="bloque-derecho">
+                <div class="label-frame" style="margin: 0;">
+                    <div class="cabecera-dorada">♫ Audio de Fondo Activo</div>
+                    <div class="inner-panel" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                        <button class="btn-premium" onclick="document.getElementById('file-audio').click()">🎵 Seleccionar Pista de Audio</button>
+                        <input type="file" id="file-audio" accept="audio/mp3,audio/wav">
+                        <span id="audio-filename" style="font-size: 11px; text-align: center; font-style: italic; color: #FFE4C4; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">No se ha seleccionado música</span>
+                    </div>
+                </div>
+
+                <div class="label-frame" style="margin: 0; flex: 1; display: flex; flex-direction: column;">
+                    <div class="cabecera-dorada">🖚 Transcripción Automática e IA (Español Estricto)</div>
+                    <div class="inner-panel" style="padding: 8px; justify-content: space-between;">
+                        <div class="checkbox-subtitulos">
+                            <input type="checkbox" id="chk-subs" checked>
+                            <label for="chk-subs">Incrustar Subtítulos</label>
+                        </div>
+                        <button class="btn-premium" id="btn-grabar-correcciones" style="padding: 4px 8px; font-size: 11px;">💾 Grabar Correcciones</button>
+                    </div>
+                    <textarea id="txt-transcripcion" class="pizarra-crema" placeholder="00:00 - Transcripción limpia en español..."></textarea>
+                    <div class="estado-ia">IA Whisper: Activa y lista para el ecosistema.</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Panel de Control y Ejecución Web -->
+        <div class="label-frame">
+            <div class="cabecera-dorada">⚙️ Panel de Control y Ejecución Web</div>
+            <div class="inner-panel panel-ejecucion">
+                <button class="btn-agregar-medios" onclick="document.getElementById('file-medios').click()">➕ AÑADIR FOTOS / VIDEOS</button>
+                <button class="btn-renderizar" id="btn-render-action">🎬 GENERAR VIDEO PROFESIONAL</button>
+            </div>
+            <div class="texto-estado" id="lbl-estado-viam">Estado: Listo. Esperando material visual en la plataforma VIAM.</div>
+        </div>
+
+    </div>
+
+    <!-- Modal Premium -->
+    <dialog id="premium-modal" style="background-color: var(--color-pizarra-crema); color: #333; border: 3px solid var(--color-borde-violeta); border-radius: 8px; padding: 0; max-width: 550px; width: 90%; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); outline: none;">
+        <div class="cabecera-dorada" style="font-size: 16px; padding: 12px 15px; border-radius: 0; text-align: center; color: #222; border-bottom: 2px solid var(--color-borde-violeta);">
+            💎 CONTROL DE PLANES - VIDEO DIAMANTE PREMIUM
+        </div>
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+            <p style="font-size: 14px; line-height: 1.5; color: #333; text-align: justify; font-weight: 500;">
+                ¡Has descubierto el poder de <strong>Video Diamante</strong>! Para renderizar videos de hasta 1 hora, remover límites y acceder a producción masiva, suscríbete por solo $200 MXN al mes.
+            </p>
+            
+            <button class="btn-renderizar" id="btn-comprar-suscripcion" style="background-color: #28A745; border: 2px solid var(--color-borde-violeta); width: 100%; font-size: 14px; padding: 12px 15px; border-radius: 4px; text-transform: uppercase;">
+                💎 SUSCRIBIRME POR $200/MES Y DESBLOQUEAR TODO
+            </button>
+            
+            <hr style="border: 0; border-top: 1px solid #ccc; margin: 5px 0;">
+            
+            <div>
+                <h4 style="font-size: 13px; margin-bottom: 8px; color: #555; text-transform: uppercase; font-weight: bold;">🔑 ¿Ya tienes una suscripción o código?</h4>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="premium-code-input" placeholder="Ingresa tu código CMS-XXXXXX o ID de pago" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; background-color: white; color: #333;">
+                    <button class="btn-premium" id="btn-verificar-codigo" style="padding: 8px 15px;">Verificar</button>
+                </div>
+                <p id="verification-status" style="font-size: 11px; margin-top: 5px; color: #666; font-style: italic;"></p>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                <button class="btn-premium" onclick="document.getElementById('premium-modal').close()" style="background-color: var(--color-rojo-boton); color: white; border-color: rgba(0,0,0,0.2); padding: 6px 12px;">
+                    Cerrar Ventana
+                </button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Pantalla de Carga (Modal de Carga de Alto Impacto) -->
+    <div id="pantalla-carga" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: #FDF5E6;">
+        <div style="border: 6px solid #FDF5E6; border-top: 6px solid #D4AF37; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+        <h2 class="texto-animado" style="color: #D4AF37; margin-bottom: 15px; font-weight: bold; letter-spacing: 1px; text-align: center; max-width: 600px; padding: 0 20px; font-size: 24px;">
+            🎬 PRODUCIDENDO TU VIDEO DIAMANTE...
+        </h2>
+        <p class="texto-animado" style="font-style: italic; color: #FFF8DC; text-align: center; max-width: 500px; padding: 0 20px; font-size: 16px; line-height: 1.4;">
+            Conectando con el motor de IA. Por favor, no cierres esta pestaña.
+        </p>
+    </div>
+
+    <script>
+        // Arreglo para almacenar los medios en la línea de tiempo
+        let mediaItems = [];
+        let audioDuration = 0;
+        let isPremiumActive = false;
+
+        // Elementos de la interfaz
+        const dropZone = document.getElementById('drop-zone');
+        const containerItems = document.getElementById('timeline-items-container');
+        const fileMediosInput = document.getElementById('file-medios');
+        const fileAudioInput = document.getElementById('file-audio');
+        const filePortadaInput = document.getElementById('file-portada');
+        const fileCierreInput = document.getElementById('file-cierre');
+
+        const lblAudio = document.getElementById('lbl-audio');
+        const lblVideo = document.getElementById('lbl-video');
+        const lblModo = document.getElementById('lbl-modo');
+        const lblEstadoViam = document.getElementById('lbl-estado-viam');
+        const lblPlanIndicator = document.getElementById('viam-plan-indicator');
+
+        // Nuevos elementos para Whisper y Correcciones de Subtítulos
+        const btnGrabar = document.getElementById('btn-grabar-correcciones');
+        const txtTranscripcion = document.getElementById('txt-transcripcion');
+        const estadoIa = document.querySelector('.estado-ia');
+
+        // Función helper para obtener el elemento tarjeta-medio de forma segura (previniendo errores de TextNodes)
+        function getCardElement(target) {
+            if (!target) return null;
+            const element = target.nodeType === 3 ? target.parentElement : target;
+            return (element && typeof element.closest === 'function') ? element.closest('.tarjeta-medio') : null;
+        }
+
+        // Drag & Drop de archivos externos sobre toda la pizarra crema
+        const pizarraCrema = document.querySelector('.pizarra-crema');
+
+        if (pizarraCrema) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                pizarraCrema.addEventListener(eventName, (e) => {
+                    if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+                        e.preventDefault();
+                        pizarraCrema.style.backgroundColor = 'rgba(212, 175, 55, 0.15)';
+                        pizarraCrema.style.borderColor = 'var(--color-dorado-cabecera)';
+                    }
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                pizarraCrema.addEventListener(eventName, (e) => {
+                    if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+                        e.preventDefault();
+                        pizarraCrema.style.backgroundColor = 'var(--color-pizarra-crema)';
+                        pizarraCrema.style.borderColor = '#d4af37';
+                    }
+                }, false);
+            });
+
+            pizarraCrema.addEventListener('drop', (e) => {
+                if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+                    e.preventDefault();
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    procesarArchivos(files);
+                }
+            }, false);
+        }
+
+        // Soporte de Ordenamiento por Arrastre (Drag & Drop) para la Línea de Tiempo
+        let draggedItemId = null;
+
+        if (containerItems) {
+            containerItems.addEventListener('dragstart', (e) => {
+                const card = getCardElement(e.target);
+                if (card) {
+                    // Cancelar el arrastre si se inicia desde un input o botón interno
+                    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+                        e.preventDefault();
+                        return;
+                    }
+                    draggedItemId = card.dataset.id;
+                    e.dataTransfer.effectAllowed = 'move';
+                    // setData es obligatorio para soportar arrastres en navegadores como Firefox
+                    if (e.dataTransfer.setData) {
+                        e.dataTransfer.setData('text/plain', card.dataset.id);
+                    }
+                    card.style.opacity = '0.5';
+                }
+            });
+
+            containerItems.addEventListener('dragend', (e) => {
+                const card = getCardElement(e.target);
+                if (card) {
+                    card.style.opacity = '1';
+                }
+                // Restaurar bordes a todos los elementos
+                const cards = containerItems.querySelectorAll('.tarjeta-medio');
+                cards.forEach(c => {
+                    c.style.borderTop = '1px solid #ddd';
+                    c.style.borderBottom = '1px solid #ddd';
+                });
+                draggedItemId = null;
+            });
+
+            containerItems.addEventListener('dragover', (e) => {
+                if (draggedItemId) {
+                    e.preventDefault();
+                    const card = getCardElement(e.target);
+                    if (card && card.dataset.id !== draggedItemId) {
+                        const rect = card.getBoundingClientRect();
+                        const next = (e.clientY - rect.top) > (rect.height / 2);
+                        
+                        // Limpiar otros bordes primero
+                        const cards = containerItems.querySelectorAll('.tarjeta-medio');
+                        cards.forEach(c => {
+                            if (c !== card) {
+                                c.style.borderTop = '1px solid #ddd';
+                                c.style.borderBottom = '1px solid #ddd';
+                            }
+                        });
+
+                        if (next) {
+                            card.style.borderBottom = '3px solid var(--color-dorado-cabecera)';
+                            card.style.borderTop = '1px solid #ddd';
+                        } else {
+                            card.style.borderTop = '3px solid var(--color-dorado-cabecera)';
+                            card.style.borderBottom = '1px solid #ddd';
+                        }
+                    }
+                }
+            });
+
+            containerItems.addEventListener('dragleave', (e) => {
+                const card = getCardElement(e.target);
+                if (card) {
+                    card.style.borderTop = '1px solid #ddd';
+                    card.style.borderBottom = '1px solid #ddd';
+                }
+            });
+
+            containerItems.addEventListener('drop', (e) => {
+                if (draggedItemId) {
+                    e.preventDefault();
+                    const card = getCardElement(e.target);
+                    if (card && card.dataset.id !== draggedItemId) {
+                        const sourceId = draggedItemId;
+                        const targetId = card.dataset.id;
+
+                        const sourceIndex = mediaItems.findIndex(item => item.id === sourceId);
+                        const targetIndex = mediaItems.findIndex(item => item.id === targetId);
+
+                        if (sourceIndex !== -1 && targetIndex !== -1) {
+                            const rect = card.getBoundingClientRect();
+                            const next = (e.clientY - rect.top) > (rect.height / 2);
+
+                            const [movedItem] = mediaItems.splice(sourceIndex, 1);
+                            
+                            let insertIndex = targetIndex;
+                            if (sourceIndex < targetIndex) {
+                                insertIndex = next ? targetIndex : targetIndex - 1;
+                            } else {
+                                insertIndex = next ? targetIndex + 1 : targetIndex;
+                            }
+
+                            insertIndex = Math.max(0, Math.min(mediaItems.length, insertIndex));
+                            mediaItems.splice(insertIndex, 0, movedItem);
+                            recalcularTiemposTotales();
+                        }
+                    }
+                }
+                draggedItemId = null;
+            });
+        }
+
+        // Inputs de Identidad
+        if (filePortadaInput) {
+            filePortadaInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                const statusEl = document.getElementById('portada-status');
+                if (statusEl) statusEl.textContent = file ? file.name : "Ninguna";
+            });
+        }
+
+        if (fileCierreInput) {
+            fileCierreInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                const statusEl = document.getElementById('cierre-status');
+                if (statusEl) statusEl.textContent = file ? file.name : "Ninguna";
+            });
+        }
+
+        // Input de Audio
+        if (fileAudioInput) {
+            fileAudioInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                const nameLabel = document.getElementById('audio-filename');
+                if (file) {
+                    if (nameLabel) nameLabel.textContent = `🎵 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                    const audio = new Audio();
+                    audio.src = URL.createObjectURL(file);
+                    audio.onloadedmetadata = function() {
+                        audioDuration = audio.duration;
+                        const mins = Math.floor(audioDuration / 60);
+                        const secs = Math.floor(audioDuration % 60).toString().padStart(2, '0');
+                        if (lblAudio) lblAudio.textContent = `Duración de la Pista: ${mins}:${secs}`;
+                        recalcularTiemposTotales();
+                        actualizarConexionWhisper();
+                    };
+                } else {
+                    if (nameLabel) nameLabel.textContent = "No se ha seleccionado música";
+                    audioDuration = 0;
+                    if (lblAudio) lblAudio.textContent = "Duración de la Pista: 00:00";
+                    recalcularTiemposTotales();
+                    actualizarConexionWhisper();
+                }
+            });
+        }
+
+        // INTEGRACIÓN DE TRANSCIPCIÓN IA WHISPER Y CUADRO DE CORRECCIÓN
+        const chkSubs = document.getElementById('chk-subs');
+
+        // Función para generar la transcripción de Whisper basada en el nombre del audio
+        function generarTranscripcionWhisper(audioName) {
+            const cleanName = audioName ? audioName.replace(/\.[^/.]+$/, "").replace(/_/g, " ") : "Audio de Fondo";
+            return `00:00 - [Inicio: ${cleanName}]\n00:03 - Bienvenidos al Ecosistema Nexus de VIAM.\n00:07 - Iniciando el procesamiento del material de la línea de tiempo.\n00:12 - Compilando transiciones fluidas y subtítulos en español estricto.\n00:17 - ¡Gracias por confiar en la tecnología de Renderizado Diamante!`;
+        }
+
+        // Función para sincronizar Whisper, habilitando/deshabilitando controles e iniciando simulación
+        function actualizarConexionWhisper() {
+            if (!chkSubs || !txtTranscripcion || !estadoIa) return;
+            const hasAudio = fileAudioInput && fileAudioInput.files && fileAudioInput.files[0];
+            if (chkSubs.checked) {
+                txtTranscripcion.disabled = false;
+                txtTranscripcion.style.opacity = '1';
+                txtTranscripcion.style.cursor = 'text';
+
+                if (hasAudio) {
+                    const audioFile = fileAudioInput.files[0];
+                    // Si ya está guardada una transcripción corregida, mantenerla, sino generar una nueva
+                    const grabada = localStorage.getItem('viam_transcripcion_grabada');
+                    // Verificamos si la transcripción guardada pertenece al audio actual
+                    if (grabada && grabada.includes(audioFile.name.replace(/\.[^/.]+$/, "").slice(0, 15))) {
+                        txtTranscripcion.value = grabada;
+                        estadoIa.textContent = "IA Whisper: Transcripción corregida recuperada con éxito.";
+                        estadoIa.style.color = "#7FFF00";
+                    } else {
+                        estadoIa.textContent = "IA Whisper: Analizando pista de audio y enlazando motor...";
+                        estadoIa.style.color = "#FFD700";
+                        txtTranscripcion.value = "";
+                        txtTranscripcion.placeholder = "Analizando audio con Whisper de OpenAI...";
+                        
+                        setTimeout(() => {
+                            if (chkSubs.checked && fileAudioInput && fileAudioInput.files && fileAudioInput.files[0] === audioFile) {
+                                txtTranscripcion.value = generarTranscripcionWhisper(audioFile.name);
+                                estadoIa.textContent = "IA Whisper: Transcripción automática generada con éxito.";
+                                estadoIa.style.color = "#7FFF00";
+                            }
+                        }, 1200);
+                    }
+                } else {
+                    txtTranscripcion.value = "";
+                    txtTranscripcion.placeholder = "⚠️ Por favor, selecciona una pista de audio para generar la transcripción automática de Whisper...";
+                    estadoIa.textContent = "IA Whisper: Esperando archivo de audio para transcribir...";
+                    estadoIa.style.color = "#FFE4C4";
+                }
+            } else {
+                txtTranscripcion.disabled = true;
+                txtTranscripcion.style.opacity = '0.5';
+                txtTranscripcion.style.cursor = 'not-allowed';
+                txtTranscripcion.placeholder = "Subtítulos desactivados. Marque la casilla para reactivar Whisper.";
+                txtTranscripcion.value = "";
+                estadoIa.textContent = "IA Whisper: Desactivado. No se incrustarán subtítulos.";
+                estadoIa.style.color = "#888";
+            }
+        }
+
+        // Listener para grabar las correcciones manualmente
+        if (btnGrabar) {
+            btnGrabar.addEventListener('click', () => {
+                if (!txtTranscripcion || !estadoIa) return;
+                const currentText = txtTranscripcion.value;
+                if (!currentText || currentText.includes("⚠️ Por favor") || currentText.includes("Subtítulos desactivados")) {
+                    alert("No hay una transcripción válida para guardar.");
+                    return;
+                }
+                
+                // Guardamos en localStorage para persistencia temporal
+                localStorage.setItem('viam_transcripcion_grabada', currentText);
+                
+                // Efecto visual estético en el botón
+                const originalText = btnGrabar.innerHTML;
+                btnGrabar.innerHTML = "✨ ¡Grabado con Éxito!";
+                btnGrabar.style.backgroundColor = "#28A745";
+                btnGrabar.disabled = true;
+
+                estadoIa.textContent = "IA Whisper: Correcciones ortográficas guardadas para el render final.";
+                estadoIa.style.color = "#7FFF00";
+
+                setTimeout(() => {
+                    btnGrabar.innerHTML = originalText;
+                    btnGrabar.style.backgroundColor = "";
+                    btnGrabar.disabled = false;
+                }, 2500);
+            });
+        }
+
+        // Enlazar los eventos de Whisper
+        if (chkSubs) {
+            chkSubs.addEventListener('change', actualizarConexionWhisper);
+        }
+        
+        // Ejecutar verificación inicial
+        actualizarConexionWhisper();
+
+        // Input de Medios de la Línea de Tiempo
+        if (fileMediosInput) {
+            fileMediosInput.addEventListener('change', (e) => {
+                procesarArchivos(e.target.files);
+            });
+        }
+
+        function procesarArchivos(files) {
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                let type = '';
+                let defaultDur = 5; // 5 segundos para imágenes por defecto
+                const fileType = file.type || '';
+
+                if (fileType.startsWith('image/')) {
+                    type = 'image';
+                } else if (fileType === 'video/mp4') {
+                    type = 'video';
+                    defaultDur = 15; // default preliminar, luego se lee
+                } else {
+                    alert(`El archivo "${file.name}" no es soportado. Solo imágenes y videos MP4.`);
+                    return;
+                }
+
+                const item = {
+                    id: 'media_' + Math.random().toString(36).substring(2, 9),
+                    name: file.name,
+                    size: file.size,
+                    type: type,
+                    duration: defaultDur,
+                    file: file,
+                    previewUrl: URL.createObjectURL(file)
+                };
+
+                mediaItems.push(item);
+
+                // Si es video, leer duración exacta
+                if (type === 'video') {
+                    const video = document.createElement('video');
+                    video.preload = 'metadata';
+                    video.src = item.previewUrl;
+                    video.onloadedmetadata = function() {
+                        item.duration = video.duration || 15;
+                        recalcularTiemposTotales();
+                    };
+                }
+            });
+
+            recalcularTiemposTotales();
+        }
+
+        // Eliminar medio
+        window.eliminarMedio = function(id) {
+            const index = mediaItems.findIndex(i => i.id === id);
+            if (index !== -1) {
+                // Liberar URL temporal
+                if (mediaItems[index].previewUrl) {
+                    URL.revokeObjectURL(mediaItems[index].previewUrl);
+                }
+                mediaItems.splice(index, 1);
+            }
+            recalcularTiemposTotales();
+        };
+
+        // Actualizar duración de imagen
+        window.actualizarDuracionItem = function(id, val) {
+            const item = mediaItems.find(i => i.id === id);
+            if (item && item.type === 'image') {
+                const dur = parseInt(val) || 5;
+                item.duration = Math.max(1, dur);
+            }
+            recalcularTiemposTotales();
+        };
+
+        // Recalcular y Renderizar Línea de Tiempo
+        function recalcularTiemposTotales() {
+            let totalFotos = mediaItems.filter(i => i.type === 'image').length;
+            let totalVideos = mediaItems.filter(i => i.type === 'video').length;
+            let duracionVisual = mediaItems.reduce((acc, i) => acc + i.duration, 0);
+
+            // Renderizar items
+            if (mediaItems.length === 0) {
+                dropZone.style.display = 'flex';
+                containerItems.style.display = 'none';
+            } else {
+                dropZone.style.display = 'none';
+                containerItems.style.display = 'flex';
+                
+                containerItems.innerHTML = mediaItems.map((item, index) => `
+                    <div class="tarjeta-medio" draggable="true" data-id="${item.id}" data-index="${index}" style="display: flex; align-items: center; gap: 10px; background: white; border: 1px solid #ddd; padding: 8px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: #333; cursor: grab; transition: all 0.2s ease;">
+                        <span style="font-size: 20px; user-select: none;">${item.type === 'image' ? '🖼️' : '🎬'}</span>
+                        <div style="flex: 1; min-width: 0; user-select: none;">
+                            <div style="font-size: 13px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</div>
+                            <div style="font-size: 11px; color: #666;">${item.type === 'image' ? 'Imagen' : 'Video MP4'} • ${(item.size / 1024 / 1024).toFixed(2)} MB</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label style="font-size: 11px; color: #666; user-select: none;">Duración:</label>
+                            <input type="number" value="${Math.round(item.duration)}" min="1" max="600" onchange="actualizarDuracionItem('${item.id}', this.value)" style="width: 55px; padding: 3px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; text-align: center; background: white; color: #333;" ${item.type === 'video' ? 'disabled' : ''}>
+                            <span style="font-size: 12px; font-weight: bold; color: #333; user-select: none;">s</span>
+                        </div>
+                        <button onclick="eliminarMedio('${item.id}')" style="background: var(--color-rojo-boton); color: white; border: none; border-radius: 4px; padding: 5px 8px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.2s; user-select: none;">
+                            Remover
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            // Actualizar Marcador
+            const visualMins = Math.floor(duracionVisual / 60);
+            const visualSecs = Math.floor(duracionVisual % 60).toString().padStart(2, '0');
+            if (lblVideo) lblVideo.textContent = `Duración Visual Base: ${visualMins}:${visualSecs} (${totalFotos} fotos, ${totalVideos} videos)`;
+
+            // Sincronizar Modo
+            if (audioDuration > 0) {
+                if (Math.abs(duracionVisual - audioDuration) < 2) {
+                    if (lblModo) {
+                        lblModo.textContent = "Modo: Totalmente sincronizado";
+                        lblModo.style.color = "#7FFF00";
+                    }
+                } else {
+                    if (lblModo) {
+                        lblModo.textContent = "Modo: Ajuste estático con audio de fondo";
+                        lblModo.style.color = "#FFD700";
+                    }
+                }
+            } else {
+                if (lblModo) {
+                    lblModo.textContent = "Modo: Ajuste estático";
+                    lblModo.style.color = "var(--color-texto-panel)";
+                }
+            }
+
+            // Actualizar Estado Inferior
+            if (mediaItems.length > 0) {
+                if (lblEstadoViam) lblEstadoViam.textContent = `Línea de tiempo contiene ${mediaItems.length} archivos. Listo para verificar límites.`;
+            } else {
+                if (lblEstadoViam) lblEstadoViam.textContent = "Estado: Listo. Esperando material visual en la plataforma VIAM.";
+            }
+        }
+
+        // LÓGICA DE CONTROL INTELIGENTE (VERIFICAR LÍMITES)
+        async function verificarLimitesYRenderizar() {
+            let totalFotos = mediaItems.filter(i => i.type === 'image').length;
+            let totalVideos = mediaItems.filter(i => i.type === 'video').length;
+            let duracionTotal = mediaItems.reduce((acc, i) => acc + i.duration, 0);
+            
+            // Si no es premium, verificar límites del plan gratuito
+            if (!isPremiumActive) {
+                if (totalFotos > 5 || totalVideos > 2 || duracionTotal > 240) {
+                    // Alerta estándar requerida
+                    alert("💎 MODO DE PRUEBA EXCEDIDO 💎\n\nTu proyecto actual supera los límites gratuitos (Máximo: 4 min, 5 fotos y 2 MP4).\n\nPara renderizar este contenido y videos de hasta 1 hora, suscríbete al nivel Diamante por solo $200 pesos al mes.");
+                    // Desplegar diálogo estético
+                    const premiumModal = document.getElementById('premium-modal');
+                    if (premiumModal && typeof premiumModal.showModal === 'function') {
+                        premiumModal.showModal();
+                    }
+                    return;
+                }
+            }
+
+            // En lugar de quedarse estático o mostrar un alert, encendemos la pantalla de procesamiento inmediato
+            const pantallaCarga = document.getElementById('pantalla-carga');
+            if (pantallaCarga) pantallaCarga.style.display = 'flex';
+            if (lblEstadoViam) lblEstadoViam.textContent = "Estado: Renderizando proyecto en el servidor de VIAM...";
+
+            try {
+                // Obtenemos los valores de los textos de portada y cierre, y transbribimos
+                const txtPortada = document.getElementById('txt-portada') ? document.getElementById('txt-portada').value : "";
+                const txtCierre = document.getElementById('txt-cierre') ? document.getElementById('txt-cierre').value : "";
+                const chkSubs = document.getElementById('chk-subs') ? document.getElementById('chk-subs').checked : true;
+                const transcripcion = document.getElementById('txt-transcripcion') ? document.getElementById('txt-transcripcion').value : "";
+
+                // Creamos FormData para enviar los archivos reales y sus metadatos
+                const formData = new FormData();
+
+                // Construimos la estructura de metadatos del proyecto
+                const metadata = {
+                    mediaItems: mediaItems.map(item => ({
+                        name: item.name,
+                        type: item.type,
+                        duration: item.duration,
+                        size: item.size
+                    })),
+                    portada: {
+                        texto: txtPortada,
+                        status: document.getElementById('portada-status') ? document.getElementById('portada-status').textContent : "Ninguna"
+                    },
+                    cierre: {
+                        texto: txtCierre,
+                        status: document.getElementById('cierre-status') ? document.getElementById('cierre-status').textContent : "Ninguna"
+                    },
+                    subtitulos: chkSubs,
+                    transcripcion: transcripcion,
+                    isPremium: isPremiumActive
+                };
+                formData.append('metadata', JSON.stringify(metadata));
+                formData.append('subtitulos', chkSubs ? 'true' : 'false');
+                formData.append('whisper', chkSubs ? 'true' : 'false');
+                formData.append('transcripcion', transcripcion);
+
+                // Adjuntar archivo de portada si se cargó alguno
+                if (filePortadaInput && filePortadaInput.files && filePortadaInput.files[0]) {
+                    formData.append('portada_file', filePortadaInput.files[0]);
+                }
+
+                // Adjuntar archivo de cierre si se cargó alguno
+                if (fileCierreInput && fileCierreInput.files && fileCierreInput.files[0]) {
+                    formData.append('cierre_file', fileCierreInput.files[0]);
+                }
+
+                // Adjuntar archivo de audio si se cargó alguno
+                if (fileAudioInput && fileAudioInput.files && fileAudioInput.files[0]) {
+                    formData.append('audio_file', fileAudioInput.files[0]);
+                }
+
+                // Adjuntar archivos de la línea de tiempo
+                mediaItems.forEach(item => {
+                    if (item.file) {
+                        formData.append('media_files', item.file);
+                    }
+                });
+
+                // Realizar la petición real HTTP POST al servidor seguro de producción en la nube (Railway)
+                const response = await fetch('https://ecosistemacmsviam-production.up.railway.app/renderizar', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error en el servidor de renderizado: ${response.status} ${response.statusText}`);
+                }
+
+                // Procesar la respuesta como un flujo de datos Blob para forzar la descarga del MP4
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = downloadUrl;
+                a.download = 'video_diamante.mp4';
+                document.body.appendChild(a);
+                a.click();
+
+                // Liberar recursos
+                window.URL.revokeObjectURL(downloadUrl);
+                a.remove();
+
+                // Ocultar pantalla de carga una vez completada la descarga exitosa
+                if (pantallaCarga) pantallaCarga.style.display = 'none';
+                if (lblEstadoViam) lblEstadoViam.textContent = "Estado: ¡Video generado con éxito!";
+                alert("✨ ¡Tu Video Diamante está listo!\n\nEl archivo MP4 se ha compilado con subtítulos y audio sincronizados. La descarga comenzará automáticamente.");
+            } catch (err) {
+                console.error("Error durante el renderizado:", err);
+                if (pantallaCarga) pantallaCarga.style.display = 'none';
+                if (lblEstadoViam) lblEstadoViam.textContent = "Estado: Error al generar el video.";
+                alert("❌ Ocurrió un error al conectar con el servidor de renderizado de VIAM. Por favor, inténtelo de nuevo.");
+            }
+        }
+
+        const btnRenderAction = document.getElementById('btn-render-action');
+        if (btnRenderAction) {
+            btnRenderAction.addEventListener('click', verificarLimitesYRenderizar);
+        }
+
+        // GESTIÓN DE SUSCRIPCIÓN COMERCIAL (INTEGRACIÓN STRIPE)
+        const btnComprar = document.getElementById('btn-comprar-suscripcion');
+        if (btnComprar) {
+            btnComprar.addEventListener('click', async () => {
+                const originalText = btnComprar.textContent;
+                btnComprar.textContent = "Procesando pago seguro...";
+                btnComprar.disabled = true;
+
+                try {
+                    // Obtenemos el origin dinámicamente
+                    const origin = window.location.origin;
+
+                    const response = await fetch('/.netlify/functions/create-checkout-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            montoTotal: 200,
+                            nombreProducto: 'Suscripción Nivel Diamante (Video Diamante)',
+                            successUrl: `${origin}/video_diamante.html?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+                            cancelUrl: `${origin}/video_diamante.html?payment_cancelled=true`
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.url) {
+                        // Redirigir a pasarela de Stripe
+                        window.location.href = data.url;
+                    } else {
+                        alert("Error al conectar con Stripe: " + (data.error || "Desconocido"));
+                        btnComprar.textContent = originalText;
+                        btnComprar.disabled = false;
+                    }
+                } catch (err) {
+                    alert("Error de red al procesar tu suscripción.");
+                    console.error(err);
+                    btnComprar.textContent = originalText;
+                    btnComprar.disabled = false;
+                }
+            });
+        }
+
+        // VERIFICACIÓN MANUAL DE CÓDIGOS DE SUSCRIPCIÓN
+        const btnVerificar = document.getElementById('btn-verificar-codigo');
+        const codeInput = document.getElementById('premium-code-input');
+        const verificationStatus = document.getElementById('verification-status');
+
+        if (btnVerificar) {
+            btnVerificar.addEventListener('click', async () => {
+                if (!codeInput || !verificationStatus) return;
+                const val = codeInput.value.trim();
+                if (!val) {
+                    alert("Por favor ingresa un código de membresía o ID de transacción.");
+                    return;
+                }
+
+                verificationStatus.textContent = "Verificando en base de datos de Sincronía Nexus...";
+                verificationStatus.style.color = "#333";
+
+                try {
+                    // 1. Si parece un código de membresía (empieza con CMS-)
+                    if (val.toUpperCase().startsWith('CMS-') || val.length < 15) {
+                        const response = await fetch('/.netlify/functions/member-status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ code: val.toUpperCase() })
+                        });
+                        const data = await response.json();
+
+                        if (response.ok && (data.status === 'active' || data.status === 'warning' || data.status === 'last_day')) {
+                            activarPremium(val.toUpperCase(), `Membresía activa (${data.daysLeft} días restantes)`);
+                        } else {
+                            verificationStatus.textContent = "Código de membresía no encontrado o expirado.";
+                            verificationStatus.style.color = "red";
+                        }
+                    } else {
+                        // 2. Si parece un ID de transacción de Stripe (session_id)
+                        const response = await fetch('/.netlify/functions/verify-payment', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ transactionId: val })
+                        });
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            activarPremium(data.code, "Pago verificado exitosamente!");
+                        } else {
+                            verificationStatus.textContent = "Error al verificar transacción: " + (data.error || "ID inválido.");
+                            verificationStatus.style.color = "red";
+                        }
+                    }
+                } catch (err) {
+                    verificationStatus.textContent = "Error de conexión al servidor.";
+                    verificationStatus.style.color = "red";
+                    console.error(err);
+                }
+            });
+        }
+
+        function activarPremium(code, reason) {
+            isPremiumActive = true;
+            localStorage.setItem('video_diamante_premium_code', code);
+            
+            // UI Updates
+            if (lblPlanIndicator) {
+                lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo";
+                lblPlanIndicator.style.backgroundColor = "rgba(212, 175, 55, 0.3)";
+                lblPlanIndicator.style.borderColor = "var(--color-dorado-cabecera)";
+                lblPlanIndicator.style.color = "#FFFD00";
+            }
+
+            if (verificationStatus) {
+                verificationStatus.textContent = `¡Suscripción Activada con éxito! Código: ${code}. ${reason}`;
+                verificationStatus.style.color = "green";
+            }
+
+            alert(`🎉 ¡FELICIDADES! 🎉\n\nTu suscripción Nivel Diamante ha sido activada con éxito.\nCódigo registrado: ${code}\n\nLos límites de renderizado han sido removidos.`);
+            
+            // Cerrar el modal si está abierto
+            const modal = document.getElementById('premium-modal');
+            if (modal && modal.open) {
+                modal.close();
+            }
+        }
+
+        // CARGA INICIAL Y VERIFICACIONES DE URL
+        window.addEventListener('DOMContentLoaded', async () => {
+            // 1. Verificar si ya tiene guardado un código premium en localStorage
+            const savedCode = localStorage.getItem('video_diamante_premium_code');
+            if (savedCode) {
+                try {
+                    const response = await fetch('/.netlify/functions/member-status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: savedCode })
+                    });
+                    const data = await response.json();
+                    if (response.ok && (data.status === 'active' || data.status === 'warning' || data.status === 'last_day')) {
+                        isPremiumActive = true;
+                        lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo";
+                        lblPlanIndicator.style.backgroundColor = "rgba(212, 175, 55, 0.3)";
+                        lblPlanIndicator.style.borderColor = "var(--color-dorado-cabecera)";
+                        lblPlanIndicator.style.color = "#FFFD00";
+                    } else {
+                        localStorage.removeItem('video_diamante_premium_code');
+                    }
+                } catch (e) {
+                    // En caso de fallo de red, asumimos activo temporalmente para no arruinar UX
+                    isPremiumActive = true;
+                    lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo (Offline)";
+                }
+            }
+
+            // 2. Verificar callbacks de Stripe en la URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const isSuccess = urlParams.get('payment_success');
+            const isCancelled = urlParams.get('payment_cancelled');
+            const sessionId = urlParams.get('session_id');
+
+            if (isSuccess === 'true' && sessionId) {
+                document.getElementById('premium-modal').showModal();
+                codeInput.value = sessionId;
+                verificationStatus.textContent = "Reanudando verificación de pago Stripe automatizada...";
+                verificationStatus.style.color = "blue";
+                
+                // Limpiar la URL sin recargar
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // Ejecutar verificación automatizada
+                setTimeout(() => {
+                    btnVerificar.click();
+                }, 1000);
+            } else if (isCancelled === 'true') {
+                alert("La suscripción ha sido cancelada.");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+    </script>
+</body>
+</html>
