@@ -18,7 +18,7 @@ export default async (req, context) => {
   const stripe = new Stripe(stripeSecret);
 
   try {
-    const { montoTotal, nombreProducto } = await req.json();
+    const { montoTotal, nombreProducto, successUrl, cancelUrl } = await req.json();
 
     if (!montoTotal || montoTotal <= 0) {
       return new Response(JSON.stringify({ error: 'Invalid amount.' }), {
@@ -46,9 +46,9 @@ export default async (req, context) => {
         },
       ],
       mode: 'payment',
-      // We send them back to the home page with a success parameter to trigger the verify modal
-      success_url: `${origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/?payment_cancelled=true`,
+      // We send them back to the success url or home page with a success parameter to trigger the verify modal
+      success_url: successUrl || `${origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${origin}/?payment_cancelled=true`,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {
