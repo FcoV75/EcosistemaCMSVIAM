@@ -6,12 +6,20 @@ import os
 import json
 
 app = Flask(__name__)
-CORS(app)
 
-UPLOAD_FOLDER = "temp_uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-ESTADO_PROCESO = {"status": "libre", "detalle": ""}
+# Configuración de CORS ultra-flexible para que acepte tu dominio oficial sin restricciones
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://centromultidisciplinarioags.com",
+            "http://centromultidisciplinarioags.com",
+            "https://ecosistema-cms-viam-nexus.netlify.app",
+            "*"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 def ejecutar_renderizador(config_path, audio_path):
     global ESTADO_PROCESO
