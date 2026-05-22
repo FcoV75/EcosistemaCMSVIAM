@@ -7,8 +7,18 @@ import json
 
 app = Flask(__name__)
 
-# CORS ultra-abierto para evitar bloqueos en tu dominio oficial
-CORS(app, resources={r"/*": {"origins": "*"}})
+# Permite de manera explícita tanto los dominios de Netlify como tu dominio personalizado
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://centromultidisciplinarioags.com",
+            "http://centromultidisciplinarioags.com",
+            "https://ecosistema-cms-viam-nexus.netlify.app"
+        ],
+        "methods": ["POST", "GET", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 # Carpeta temporal del sistema Linux (con permisos de escritura garantizados en la nube)
 UPLOAD_FOLDER = "/tmp/viam_uploads"
@@ -45,8 +55,12 @@ def hilo_renderizador(config_path, audio_path, output_path):
         ESTADO_RENDER["status"] = "error"
         ESTADO_RENDER["detalle"] = f"Fallo inesperado: {str(e)}"
 
-@app.route('/renderizar', methods=['POST'])
+@app.route('/renderizar', methods=['POST', 'OPTIONS'])
 def renderizar():
+    # Manejo explícito de peticiones PREFLIGHT (OPTIONS) del navegador
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     global ESTADO_RENDER
     if ESTADO_RENDER["status"] == "procesando":
         return jsonify({"message": "Hay un proceso de renderizado en curso.", "status": "procesando"}), 202
@@ -78,28 +92,23 @@ def renderizar():
             "leyenda_cierre": leyenda_cierre
         }
         
-        # Guardar imágenes si existen
-        portada = request.files.get('portada')
-        if portada:
-            p_path = os.path.join(UPLOAD_FOLDER, "portada_temp.png")
-            portada.save(p_path)
-            config_data["ruta_portada"] = p_path
-
-        cierre = request.files.get('cierre')
-        if cierre:
-            c_path = os.path.join(UPLOAD_FOLDER, "cierre_temp.png")
-            cierre.save(c_path)
-            config_data["ruta_cierre"] = c_path
+        # Guardar imágenes si existen de manera dinámica
+        for key in request.files:
+            if key.startswith("imagen_"):
+                img_file = request.files[key]
+                img_path = os.path.join(UPLOAD_FOLDER, f"{key}_temp.png")
+                img_file.save(img_path)
+                # Vincula de forma secuencial los elementos a tu lógica interna
+                config_data["linea_tiempo"][int(key.split("_")[1])]["ruta"] = img_path
 
         config_json_path = os.path.join(UPLOAD_FOLDER, "render_config.json")
         with open(config_json_path, "w", encoding="utf-8") as f:
             json.dump(config_data, f, ensure_ascii=False)
             
-        # ¡LA MAGIA! Lanzamos el renderizado en un hilo de fondo
+        # Lanzamos el renderizado en un hilo de fondo independiente
         hilo = threading.Thread(target=hilo_renderizador, args=(config_json_path, audio_path, video_final_path))
         hilo.start()
         
-        # Le respondemos inmediatamente a Netlify para que no se cuelgue la conexión
         return jsonify({"message": "Iniciado correctamente.", "status": "procesando"}), 200
         
     except Exception as e:
@@ -116,11 +125,11 @@ def descargar_video():
     video_final_path = "/tmp/video_viam_output.mp4"
     if os.path.exists(video_final_path) and os.path.getsize(video_final_path) > 1000:
         response = send_file(video_final_path, as_attachment=True)
-        # Limpiamos el estado para el siguiente video
+        # Reseteamos el estado para dejar libre el canal para el siguiente video
         ESTADO_RENDER = {"status": "libre", "detalle": "Esperando proyecto..."}
         return response
     return jsonify({"error": "El archivo de video no está listo o no existe."}), 404
 
 if __name__ == '__main__':
     puerto = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=puerto, debug=False) 
+    app.run(host='0.0.0.0', port=puerto, debug=False)
