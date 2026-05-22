@@ -7,10 +7,9 @@ import json
 
 app = Flask(__name__)
 
-# 1. Configuración de CORS total y abierta para producción
+# Configuración de CORS total y abierta para producción
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# 2. INYECTOR MANUAL DE CABECERAS: Rompe cualquier bloqueo del navegador
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -19,11 +18,9 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
-# Carpeta temporal del sistema Linux (con permisos de escritura garantizados en la nube)
 UPLOAD_FOLDER = "/tmp/viam_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Aquí guardamos el estado del renderizado para que el frontend pueda preguntar cómo va
 ESTADO_RENDER = {"status": "libre", "detalle": "Esperando proyecto..."}
 
 def hilo_renderizador(config_path, audio_path, output_path):
@@ -32,7 +29,6 @@ def hilo_renderizador(config_path, audio_path, output_path):
         ESTADO_RENDER["status"] = "procesando"
         ESTADO_RENDER["detalle"] = "Compilando transiciones fluidas y subtítulos en español estricto..."
         
-        # Ejecuta el generador de manera independiente
         resultado = subprocess.run(
             ["python", "generador_videos.py", "--config", config_path, "--audio", audio_path, "--output", output_path],
             capture_output=True,
@@ -69,7 +65,7 @@ def renderizar():
             try: os.remove(video_final_path)
             except: pass
 
-        # 1. Guardar Audio temporal recibido
+        # 1. Guardar Audio temporal
         audio_file = request.files.get('audio')
         audio_path = os.path.join(UPLOAD_FOLDER, "audio_temp.mp3")
         if audio_file:
@@ -77,44 +73,59 @@ def renderizar():
         else:
             audio_path = ""
 
-        # 2. Capturar datos de la línea de tiempo y textos
+        # 2. Capturar y validar la línea de tiempo de forma ultra-segura
         linea_tiempo_raw = request.form.get('linea_tiempo', '[]')
+        
+        # Procesamos el JSON asegurándonos de que termine como una lista de Python
+        try:
+            if isinstance(linea_tiempo_raw, str):
+                linea_tiempo_procesada = json.loads(linea_tiempo_raw)
+            else:
+                linea_tiempo_procesada = linea_tiempo_raw
+                
+            if not isinstance(linea_tiempo_procesada, list):
+                linea_tiempo_procesada = []
+        except:
+            linea_tiempo_procesada = []
+
         leyenda_portada = request.form.get('leyenda_portada', '')
         leyenda_cierre = request.form.get('leyenda_cierre', '')
         
         config_data = {
-            "linea_tiempo": json.loads(linea_tiempo_raw),
+            "linea_tiempo": linea_tiempo_procesada,
             "ruta_portada": "",
             "ruta_cierre": "",
             "leyenda_portada": leyenda_portada,
             "leyenda_cierre": leyenda_cierre
         }
         
-        # Guardar imágenes de forma dinámica interpretando las llaves del FormData
+        # 3. Guardar imágenes dinámicas de forma segura sin romper los índices
         for key in request.files:
             if key.startswith("imagen_"):
-                img_file = request.files[key]
-                img_path = os.path.join(UPLOAD_FOLDER, f"{key}_temp.png")
-                img_file.save(img_path)
-                
                 try:
                     indice = int(key.split("_")[1])
-                    if indice < len(config_data["linea_tiempo"]):
+                    img_file = request.files[key]
+                    img_path = os.path.join(UPLOAD_FOLDER, f"img_{indice}_temp.png")
+                    img_file.save(img_path)
+                    
+                    # Verificamos si el índice existe en la lista antes de asignarlo
+                    if indice < len(config_data["linea_tiempo"]) and isinstance(config_data["linea_tiempo"][indice], dict):
                         config_data["linea_tiempo"][indice]["ruta"] = img_path
-                except Exception as e:
-                    print(f"Aviso en mapeo de índice: {e}")
+                except Exception as error_img:
+                    print(f"Aviso procesando imagen individual: {error_img}")
 
         config_json_path = os.path.join(UPLOAD_FOLDER, "render_config.json")
         with open(config_json_path, "w", encoding="utf-8") as f:
             json.dump(config_data, f, ensure_ascii=False)
             
-        # Lanzamos el renderizado en un hilo de fondo independiente
+        # Lanzamos el proceso pesado en el hilo de fondo
         hilo = threading.Thread(target=hilo_renderizador, args=(config_json_path, audio_path, video_final_path))
         hilo.start()
         
         return jsonify({"message": "Iniciado correctamente.", "status": "procesando"}), 200
         
     except Exception as e:
+        # Si algo falla, el servidor ya no muere en silencio, te avisa qué pasó con un 500 estructurado
         return jsonify({"error": "No se pudo iniciar el renderizado", "detalle": str(e)}), 500
 
 @app.route('/status', methods=['GET'])
@@ -134,4 +145,4 @@ def descargar_video():
 
 if __name__ == '__main__':
     puerto = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=puerto, debug=False) 
+    app.run(host='0.0.0.0', port=puerto, debug=False)
