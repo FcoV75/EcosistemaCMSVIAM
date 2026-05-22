@@ -7,18 +7,17 @@ import json
 
 app = Flask(__name__)
 
-# Permite de manera explícita tanto los dominios de Netlify como tu dominio personalizado
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://centromultidisciplinarioags.com",
-            "http://centromultidisciplinarioags.com",
-            "https://ecosistema-cms-viam-nexus.netlify.app"
-        ],
-        "methods": ["POST", "GET", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }
-})
+# 1. Configuración de CORS total y abierta para producción
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# 2. INYECTOR MANUAL DE CABECERAS: Rompe cualquier bloqueo del navegador
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 # Carpeta temporal del sistema Linux (con permisos de escritura garantizados en la nube)
 UPLOAD_FOLDER = "/tmp/viam_uploads"
@@ -57,7 +56,6 @@ def hilo_renderizador(config_path, audio_path, output_path):
 
 @app.route('/renderizar', methods=['POST', 'OPTIONS'])
 def renderizar():
-    # Manejo explícito de peticiones PREFLIGHT (OPTIONS) del navegador
     if request.method == 'OPTIONS':
         return '', 200
         
@@ -92,14 +90,19 @@ def renderizar():
             "leyenda_cierre": leyenda_cierre
         }
         
-        # Guardar imágenes si existen de manera dinámica
+        # Guardar imágenes de forma dinámica interpretando las llaves del FormData
         for key in request.files:
             if key.startswith("imagen_"):
                 img_file = request.files[key]
                 img_path = os.path.join(UPLOAD_FOLDER, f"{key}_temp.png")
                 img_file.save(img_path)
-                # Vincula de forma secuencial los elementos a tu lógica interna
-                config_data["linea_tiempo"][int(key.split("_")[1])]["ruta"] = img_path
+                
+                try:
+                    indice = int(key.split("_")[1])
+                    if indice < len(config_data["linea_tiempo"]):
+                        config_data["linea_tiempo"][indice]["ruta"] = img_path
+                except Exception as e:
+                    print(f"Aviso en mapeo de índice: {e}")
 
         config_json_path = os.path.join(UPLOAD_FOLDER, "render_config.json")
         with open(config_json_path, "w", encoding="utf-8") as f:
@@ -125,11 +128,10 @@ def descargar_video():
     video_final_path = "/tmp/video_viam_output.mp4"
     if os.path.exists(video_final_path) and os.path.getsize(video_final_path) > 1000:
         response = send_file(video_final_path, as_attachment=True)
-        # Reseteamos el estado para dejar libre el canal para el siguiente video
         ESTADO_RENDER = {"status": "libre", "detalle": "Esperando proyecto..."}
         return response
     return jsonify({"error": "El archivo de video no está listo o no existe."}), 404
 
 if __name__ == '__main__':
     puerto = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=puerto, debug=False)
+    app.run(host='0.0.0.0', port=puerto, debug=False) 
