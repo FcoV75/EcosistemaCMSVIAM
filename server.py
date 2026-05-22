@@ -7,22 +7,23 @@ import json
 
 app = Flask(__name__)
 
-# CORS ultra-abierto y flexible para evitar bloqueos en tu dominio oficial
+# CORS ultra-abierto para evitar bloqueos en tu dominio oficial
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Usamos la ruta /tmp de Linux, que tiene permisos de escritura 100% garantizados en la nube
-UPLOAD_FOLDER = "/tmp/temp_uploads"
+# Carpeta temporal del sistema Linux (con permisos de escritura garantizados en la nube)
+UPLOAD_FOLDER = "/tmp/viam_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-ESTADO_PROCESO = {"status": "libre", "detalle": ""}
+# Aquí guardamos el estado del renderizado para que el frontend pueda preguntar cómo va
+ESTADO_RENDER = {"status": "libre", "detalle": "Esperando proyecto..."}
 
-def ejecutar_renderizador(config_path, audio_path, output_path):
-    global ESTADO_PROCESO
+def hilo_renderizador(config_path, audio_path, output_path):
+    global ESTADO_RENDER
     try:
-        ESTADO_PROCESO["status"] = "procesando"
-        ESTADO_PROCESO["detalle"] = "Procesando video de fidelidad nativa..."
+        ESTADO_RENDER["status"] = "procesando"
+        ESTADO_RENDER["detalle"] = "Compilando transiciones fluidas y subtítulos en español estricto..."
         
-        # Ejecutamos pasando las rutas exactas de la carpeta con permisos definitivos
+        # Ejecuta el generador de manera independiente
         resultado = subprocess.run(
             ["python", "generador_videos.py", "--config", config_path, "--audio", audio_path, "--output", output_path],
             capture_output=True,
@@ -31,32 +32,32 @@ def ejecutar_renderizador(config_path, audio_path, output_path):
         )
         
         if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-            ESTADO_PROCESO["status"] = "listo"
-            ESTADO_PROCESO["detalle"] = "Video renderizado con éxito."
+            ESTADO_RENDER["status"] = "listo"
+            ESTADO_RENDER["detalle"] = "¡Video Diamante renderizado con éxito!"
         else:
-            ESTADO_PROCESO["status"] = "error"
-            ESTADO_PROCESO["detalle"] = "El archivo de video final no se consolidó correctamente."
+            ESTADO_RENDER["status"] = "error"
+            ESTADO_RENDER["detalle"] = "El motor terminó pero el archivo de video final está vacío."
             
     except subprocess.CalledProcessError as e:
-        ESTADO_PROCESO["status"] = "error"
-        ESTADO_PROCESO["detalle"] = f"Error en el motor: {e.stderr if e.stderr else e.output}"
+        ESTADO_RENDER["status"] = "error"
+        ESTADO_RENDER["detalle"] = f"Error en el motor: {e.stderr if e.stderr else e.output}"
     except Exception as e:
-        ESTADO_PROCESO["status"] = "error"
-        ESTADO_PROCESO["detalle"] = f"Fallo imprevisto: {str(e)}"
+        ESTADO_RENDER["status"] = "error"
+        ESTADO_RENDER["detalle"] = f"Fallo inesperado: {str(e)}"
 
 @app.route('/renderizar', methods=['POST'])
 def renderizar():
-    global ESTADO_PROCESO
-    if ESTADO_PROCESO["status"] == "procesando":
-        return jsonify({"message": "Hay un proceso en curso.", "status": "procesando"}), 202
+    global ESTADO_RENDER
+    if ESTADO_RENDER["status"] == "procesando":
+        return jsonify({"message": "Hay un proceso de renderizado en curso.", "status": "procesando"}), 202
 
     try:
-        video_final_path = "/tmp/video_output.mp4"
+        video_final_path = "/tmp/video_viam_output.mp4"
         if os.path.exists(video_final_path):
             try: os.remove(video_final_path)
             except: pass
 
-        # 1. Guardar Audio temporal
+        # 1. Guardar Audio temporal recibido
         audio_file = request.files.get('audio')
         audio_path = os.path.join(UPLOAD_FOLDER, "audio_temp.mp3")
         if audio_file:
@@ -64,7 +65,7 @@ def renderizar():
         else:
             audio_path = ""
 
-        # 2. Mapear la configuración recibida
+        # 2. Capturar datos de la línea de tiempo y textos
         linea_tiempo_raw = request.form.get('linea_tiempo', '[]')
         leyenda_portada = request.form.get('leyenda_portada', '')
         leyenda_cierre = request.form.get('leyenda_cierre', '')
@@ -77,6 +78,7 @@ def renderizar():
             "leyenda_cierre": leyenda_cierre
         }
         
+        # Guardar imágenes si existen
         portada = request.files.get('portada')
         if portada:
             p_path = os.path.join(UPLOAD_FOLDER, "portada_temp.png")
@@ -93,28 +95,31 @@ def renderizar():
         with open(config_json_path, "w", encoding="utf-8") as f:
             json.dump(config_data, f, ensure_ascii=False)
             
-        # Lanzamos el renderizado en un hilo separado para liberar la conexión HTTP de inmediato
-        hilo = threading.Thread(target=ejecutar_renderizador, args=(config_json_path, audio_path, video_final_path))
+        # ¡LA MAGIA! Lanzamos el renderizado en un hilo de fondo
+        hilo = threading.Thread(target=hilo_renderizador, args=(config_json_path, audio_path, video_final_path))
         hilo.start()
         
+        # Le respondemos inmediatamente a Netlify para que no se cuelgue la conexión
         return jsonify({"message": "Iniciado correctamente.", "status": "procesando"}), 200
+        
     except Exception as e:
         return jsonify({"error": "No se pudo iniciar el renderizado", "detalle": str(e)}), 500
 
 @app.route('/status', methods=['GET'])
 def obtener_status():
-    global ESTADO_PROCESO
-    return jsonify(ESTADO_PROCESO)
+    global ESTADO_RENDER
+    return jsonify(ESTADO_RENDER)
 
 @app.route('/descargar', methods=['GET'])
 def descargar_video():
-    global ESTADO_PROCESO
-    video_final_path = "/tmp/video_output.mp4"
+    global ESTADO_RENDER
+    video_final_path = "/tmp/video_viam_output.mp4"
     if os.path.exists(video_final_path) and os.path.getsize(video_final_path) > 1000:
         response = send_file(video_final_path, as_attachment=True)
-        ESTADO_PROCESO = {"status": "libre", "detalle": ""}
+        # Limpiamos el estado para el siguiente video
+        ESTADO_RENDER = {"status": "libre", "detalle": "Esperando proyecto..."}
         return response
-    return jsonify({"error": "El archivo no se encuentra disponible."}), 404
+    return jsonify({"error": "El archivo de video no está listo o no existe."}), 404
 
 if __name__ == '__main__':
     puerto = int(os.environ.get("PORT", 5000))
