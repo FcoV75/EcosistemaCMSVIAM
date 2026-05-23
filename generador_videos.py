@@ -120,7 +120,7 @@ def generar_video_cloud():
                 img = cv2.imread(ruta_img)
                 if img is not None:
                     frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT)
-                    frames_totales = int(FPS * duracion_por_foto)
+                    frames_totales = int(round(FPS * duracion_por_foto)) 
                     for _ in range(frames_totales):
                         f_render = frame_base.copy()
                         
