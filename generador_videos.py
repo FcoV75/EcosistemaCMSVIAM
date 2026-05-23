@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import json
 import argparse
+import subprocess
 
 def ajustar_proporcion_lienzo(img, ancho_objetivo=1280, alto_objetivo=720):
     alto_orig, ancho_orig = img.shape[:2]
@@ -51,18 +52,24 @@ def generar_video_cloud():
     FPS = 30
     DURACION_BASE_FOTO = 5.0
 
-    # 1. Medimos de forma precisa la duración real del archivo de audio MP3
+    # 1. Medimos de forma ultra-segura la duración real del audio usando subprocess para evitar bloqueos
     duracion_audio = 0.0
     if ruta_audio and os.path.exists(ruta_audio):
         try:
-            cmd = f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{ruta_audio}"'
-            duracion_audio = float(os.popen(cmd).read().strip())
-        except:
+            resultado = subprocess.run(
+                ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', ruta_audio],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            duracion_audio = float(resultado.stdout.strip())
+        except Exception as e:
+            print(f"Aviso en ffprobe: {e}. Usando duración por defecto.")
             duracion_audio = 30.0
     else:
         duracion_audio = 30.0
 
-    # 2. SISTEMA ULTRA-RESISTENTE: Contamos de forma segura los nodos sin depender de campos extras
+    # 2. SISTEMA ULTRA-RESISTENTE: Contamos de forma segura los nodos
     conteo_imagenes = 0
     if isinstance(linea_tiempo, list):
         for item in linea_tiempo:
@@ -77,7 +84,6 @@ def generar_video_cloud():
     else:
         duracion_por_foto = DURACION_BASE_FOTO
 
-    # Forzamos un límite mínimo de tiempo por imagen para evitar transiciones traumáticas
     if duracion_por_foto < 2.0:
         duracion_por_foto = 2.0
 
@@ -115,12 +121,10 @@ def generar_video_cloud():
                 img = cv2.imread(ruta_img)
                 if img is not None:
                     frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT)
-                    # BLINDAJE MATEMÁTICO: Redondeo entero estricto para sincronía perfecta
                     frames_totales = int(round(FPS * duracion_por_foto)) 
                     for _ in range(frames_totales):
                         f_render = frame_base.copy()
                         
-                        # Si la celda contiene subtítulos añadidos por el usuario, los estampamos en tiempo real
                         if texto_subtitulo:
                             f_render = estampar_texto_nativo(f_render, texto_subtitulo, (80, HEIGHT - 100), 1.1, (255, 255, 255))
                             
@@ -144,22 +148,33 @@ def generar_video_cloud():
                 video_writer.write(f_render)
                 frame_contador += 1
 
+    # Forzamos el cierre estricto del archivo de video intermedio antes de llamar a FFmpeg
     video_writer.release()
 
-    # --- ENSAMBLE DE AUDIO Y VIDEO CON FFMPEG (ALTA FIDELIDAD) ---
+    # --- ENSAMBLE DE AUDIO Y VIDEO CON FFMPEG (USANDO SUBPROCESS EVITA CONGELAMIENTOS) ---
     archivo_final = args.output
     if os.path.exists(ruta_audio):
-        cmd_mix = f'ffmpeg -y -i "{ruta_video_puro}" -i "{ruta_audio}" -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest -map 0:v:0 -map 1:a:0 "{archivo_final}"'
-        os.system(cmd_mix)
+        try:
+            subprocess.run([
+                'ffmpeg', '-y', '-i', ruta_video_puro, '-i', ruta_audio, 
+                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', 
+                '-shortest', '-map', '0:v:0', '-map', '1:a:0', archivo_final
+            ], capture_output=True, text=True, check=True)
+        except Exception as e:
+            print(f"Error ensamblando con audio: {e}")
     else:
         if os.path.exists(archivo_final): 
             try: os.remove(archivo_final)
             except: pass
-        # Si no hay audio, convertimos el crudo al formato final ejecutable
-        cmd_fallback = f'ffmpeg -y -i "{ruta_video_puro}" -c:v libx264 -pix_fmt yuv420p "{archivo_final}"'
-        os.system(cmd_fallback)
+        try:
+            subprocess.run([
+                'ffmpeg', '-y', '-i', ruta_video_puro, 
+                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', archivo_final
+            ], capture_output=True, text=True, check=True)
+        except Exception as e:
+            print(f"Error ensamblando video fallback: {e}")
 
-    # Limpieza absoluta de temporales en la máquina virtual
+    # Limpieza absoluta de temporales
     if os.path.exists(ruta_video_puro):
         try: os.remove(ruta_video_puro)
         except: pass
