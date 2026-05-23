@@ -99,7 +99,7 @@ def renderizar():
             "leyenda_cierre": leyenda_cierre
         }
         
-        # 3. Guardar imágenes dinámicas de forma segura sin romper los índices
+        # 3. Guardar imágenes dinámicas de forma blindada con expansión automática de la lista de control
         for key in request.files:
             if key.startswith("imagen_"):
                 try:
@@ -108,9 +108,11 @@ def renderizar():
                     img_path = os.path.join(UPLOAD_FOLDER, f"img_{indice}_temp.png")
                     img_file.save(img_path)
                     
-                    # Verificamos si el índice existe en la lista antes de asignarlo
-                    if indice < len(config_data["linea_tiempo"]) and isinstance(config_data["linea_tiempo"][indice], dict):
-                        config_data["linea_tiempo"][indice]["ruta"] = img_path
+                    # BLINDAJE NUEVO: Si el índice no existe en la lista, expandimos dinámicamente para evitar desbordes
+                    while len(config_data["linea_tiempo"]) <= indice:
+                        config_data["linea_tiempo"].append({"id": len(config_data["linea_tiempo"]), "texto": "", "duracion": 5.0})
+                    
+                    config_data["linea_tiempo"][indice]["ruta"] = img_path
                 except Exception as error_img:
                     print(f"Aviso procesando imagen individual: {error_img}")
 
@@ -125,7 +127,7 @@ def renderizar():
         return jsonify({"message": "Iniciado correctamente.", "status": "procesando"}), 200
         
     except Exception as e:
-        # Si algo falla, el servidor ya no muere en silencio, te avisa qué pasó con un 500 estructurado
+        # El servidor responde con un error 500 estructurado en vez de colapsar en silencio
         return jsonify({"error": "No se pudo iniciar el renderizado", "detalle": str(e)}), 500
 
 @app.route('/status', methods=['GET'])
