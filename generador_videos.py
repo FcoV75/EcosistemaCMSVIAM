@@ -47,12 +47,21 @@ def generar_video_cloud():
     leyenda_portada = config.get("leyenda_portada", "")
     leyenda_cierre = config.get("leyenda_cierre", "")
     ruta_audio = args.audio
+    archivo_final = args.output
+
+    # LIMPIEZA PREVENTIVA: Si existe un archivo final previo, lo borramos antes de compilar
+    if os.path.exists(archivo_final):
+        try:
+            os.remove(archivo_final)
+            print(f"Limpieza preventiva: Archivo antiguo {archivo_final} eliminado con éxito.")
+        except Exception as e:
+            print(f"Aviso en limpieza preventiva: {e}")
 
     WIDTH, HEIGHT = 1280, 720
     FPS = 30
     DURACION_BASE_FOTO = 5.0
 
-    # 1. Medimos de forma ultra-segura la duración real del audio usando subprocess para evitar bloqueos
+    # 1. Medimos la duración real del audio usando subprocess
     duracion_audio = 0.0
     if ruta_audio and os.path.exists(ruta_audio):
         try:
@@ -69,16 +78,16 @@ def generar_video_cloud():
     else:
         duracion_audio = 30.0
 
-    # 2. SISTEMA ULTRA-RESISTENTE: Contamos de forma segura los nodos
+    # 2. Conteo seguro de imágenes de la línea de tiempo
     conteo_imagenes = 0
-    if isinstance(linea_tiempo, list):
-        for item in linea_tiempo:
+    if isinstance(linea_timeline := linea_tiempo, list):
+        for item in linea_timeline:
             conteo_imagenes += 1
     
     if ruta_portada: conteo_imagenes += 1
     if ruta_cierre: conteo_imagenes += 1
 
-    # 3. Calculamos una distribución del tiempo milimétrica y armónica
+    # 3. Distribución armónica del tiempo por cuadro
     if duracion_audio > 0 and conteo_imagenes > 0:
         duracion_por_foto = duracion_audio / conteo_imagenes
     else:
@@ -89,8 +98,13 @@ def generar_video_cloud():
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     ruta_video_puro = "/tmp/visual_temp_raw.mp4"
-    video_writer = cv2.VideoWriter(ruta_video_puro, fourcc, FPS, (WIDTH, HEIGHT))
     
+    # Limpieza preventiva del archivo crudo de video
+    if os.path.exists(ruta_video_puro):
+        try: os.remove(ruta_video_puro)
+        except: pass
+
+    video_writer = cv2.VideoWriter(ruta_video_puro, fourcc, FPS, (WIDTH, HEIGHT))
     nombre_pista = os.path.basename(ruta_audio) if ruta_audio else "Producción Sincronía Nexus"
     frame_contador = 0
 
@@ -109,7 +123,7 @@ def generar_video_cloud():
                 video_writer.write(f_render)
                 frame_contador += 1
 
-    # --- RENDERIZADO DE LAS IMÁGENES INTERMEDIAS CON SUBTÍTULOS DINÁMICOS ---
+    # --- RENDERIZADO DE LAS IMÁGENES INTERMEDIAS ---
     if isinstance(linea_tiempo, list):
         for item in linea_tiempo:
             if not isinstance(item, dict): continue
@@ -148,29 +162,30 @@ def generar_video_cloud():
                 video_writer.write(f_render)
                 frame_contador += 1
 
-    # Forzamos el cierre estricto del archivo de video intermedio antes de llamar a FFmpeg
+    # Liberación de recursos de OpenCV
     video_writer.release()
 
-    # --- ENSAMBLE DE AUDIO Y VIDEO CON FFMPEG (USANDO SUBPROCESS EVITA CONGELAMIENTOS) ---
-    archivo_final = args.output
+    # --- ENSAMBLE DE AUDIO Y VIDEO CON FFMPEG (SOPORTE DE SOBREESCRITURA TOTAL) ---
     if os.path.exists(ruta_audio):
         try:
+            print("Iniciando ensamble definitivo de audio y video con FFmpeg...")
+            # Forzamos '-y' al inicio para saltarnos de forma estricta cualquier confirmación interactiva
             subprocess.run([
                 'ffmpeg', '-y', '-i', ruta_video_puro, '-i', ruta_audio, 
                 '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', 
                 '-shortest', '-map', '0:v:0', '-map', '1:a:0', archivo_final
             ], capture_output=True, text=True, check=True)
+            print("¡Ensamble de alta fidelidad completado exitosamente!")
         except Exception as e:
             print(f"Error ensamblando con audio: {e}")
     else:
-        if os.path.exists(archivo_final): 
-            try: os.remove(archivo_final)
-            except: pass
         try:
+            print("Iniciando ensamble de fallback (sin pista de audio)...")
             subprocess.run([
                 'ffmpeg', '-y', '-i', ruta_video_puro, 
                 '-c:v', 'libx264', '-pix_fmt', 'yuv420p', archivo_final
             ], capture_output=True, text=True, check=True)
+            print("Ensamble de fallback completado.")
         except Exception as e:
             print(f"Error ensamblando video fallback: {e}")
 
