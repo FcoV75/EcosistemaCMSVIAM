@@ -343,10 +343,11 @@
                     console.log("Híbrido de renderizado aceptado en la nube. Activando monitoreo...");                    
                     // Arranca el bucle de escucha que repara la pantalla congelada                    
                     verificarEstatusRenderizado();
-                } else {                    
+                } 
+                    else {                    
                     throw new Error(resultado.detalle || "Respuesta inválida del servidor.");
                 }
-            } catch (error) {                
+                    catch (error) {                
                 console.error("Error crítico en el despacho:", error);
                 
                 // CORREGIDO: Bloque unificado de forma estricta con sus llaves de apertura y cierre
@@ -361,6 +362,7 @@
                     loadingBox.style.display = "none";
                 }
             }
+         }
 </script>
     <dialog id="premium-modal">
         <h3 style="color: #D4AF37; margin-bottom: 15px; font-size: 1.4rem;">¡Gracias por tu Suscripción Nivel Diamante!</h3>
