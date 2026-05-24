@@ -294,15 +294,17 @@
     </dialog>
 
     <script>
-        // 1. CORRECCIÓN QUIRÚRGICA: Declaración limpia de variables globales para evitar el ReferenceError
+        // ==========================================
+        // VARIABLES GLOBALES DEL SISTEMA DEL PANEL
+        // ==========================================
         let audioFile = null;
         let selectedImages = [];
-        let isPremiumActive = true; // Por defecto activo para pruebas inmediatas en producción
+        let isPremiumActive = true; 
 
         const statusText = document.getElementById("status-text");
         const contenedorLineaTiempo = document.getElementById("contenedor-linea-tiempo");
 
-        // Escuchadores nativos para capturar los archivos reales sin romper las variables
+        // Escuchadores nativos de archivos
         document.getElementById("input-audio-real").addEventListener("change", function(e) {
             if (e.target.files.length > 0) {
                 audioFile = e.target.files[0];
@@ -319,12 +321,11 @@
             }
         });
 
-        // Dibuja visualmente las celdas de las imágenes en tu hermosa interfaz
         function renderizarInterfazLineaTiempo() {
+            if (!contenedorLineaTiempo) return;
             contenedorLineaTiempo.innerHTML = "";
             selectedImages.forEach((file, index) => {
                 const urlTemporal = URL.createObjectURL(file);
-                
                 const celda = document.createElement("div");
                 celda.className = "celda-imagen";
                 celda.innerHTML = `
@@ -341,132 +342,52 @@
             renderizarInterfazLineaTiempo();
         }
 
-        // FUNCIÓN PRINCIPAL DE COMUNICACIÓN CON RAILWAY
-        async function generarVideo() {
-            if (!audioFile) {
-                alert("Por favor, selecciona un archivo de audio primero.");
-                return;
-            }
-            if (selectedImages.length === 0) {
-                alert("Por favor, selecciona al menos una imagen para la línea de tiempo.");
-                return;
-            }
-
-            statusText.innerText = "Sincronizando archivos y empaquetando proyecto Diamante...";
-            document.getElementById("loading-box").style.display = "block";
-
-            const formData = new FormData();
-            formData.append("audio", audioFile);
-            
-            const listaLineaTiempo = [];
-
-            // Extraemos con precisión quirúrgica cada caja de texto emparejada con su índice
-            selectedImages.forEach((img, index) => {
-                const inputsSubtitulos = document.querySelectorAll('.input-subtitulo');
-                const textoSubtitulo = (inputsSubtitulos && inputsSubtitulos[index]) ? inputsSubtitulos[index].value : "";
-
-                listaLineaTiempo.push({
-                    id: index,
-                    texto: textoSubtitulo,
-                    duracion: 5.0
-                });
-
-                formData.append(`imagen_${index}`, img);
-            });
-
-            // Empaquetamos la metadata como JSON estricto
-            formData.append("linea_tiempo", JSON.stringify(listaLineaTiempo));
-
-            const txtPortada = document.getElementById("texto-portada");
-            const txtCierre = document.getElementById("texto-cierre");
-            formData.append("leyenda_portada", txtPortada ? txtPortada.value : "");
-            formData.append("leyenda_cierre", txtCierre ? txtCierre.value : "");
-
-            try {
-                statusText.innerText = "Transmitiendo datos en alta fidelidad al servidor de VIAM...";
-                
-                const respuesta = await fetch("https://ecosistemacmsviam-production.up.railway.app/renderizar", {
-                    method: "POST",
-                    body: formData
-                });
-
-                const datos = await respuesta.json();
-
-                if (respuesta.status === 200 || respuesta.status === 202) {
-                    statusText.innerText = "¡Proyecto recibido en la nube! Procesando transiciones y subtítulos...";
-                    verificarEstatusRenderizado();
-                } else {
-                    statusText.innerText = "Error: " + (datos.detalle || "Error de procesamiento");
-                    alert("El motor reportó un detalle: " + (datos.detalle || "Revisa la configuración del proyecto"));
-                    document.getElementById("loading-box").style.display = "none";
-                }
-            } catch (error) {
-                console.error("Error crítico de comunicación:", error);
-                statusText.innerText = "Sincronizando con el canal de renderizado de fondo...";
-                verificarEstatusRenderizado();
-            }
-        }
-
-        function verificarEstatusRenderizado() {
-            if (window.renderInterval) {
-                clearInterval(window.renderInterval);
-            }
-
-            window.renderInterval = setInterval(async () => {
-                try {
-                    const respuesta = await fetch("https://ecosistemacmsviam-production.up.railway.app/status");
-                    const datos = await respuesta.json();
-
-                    console.log("Estatus recibido de la nube:", datos.status);
-                    
-                    // Convertimos a minúsculas para evitar problemas de mayúsculas/minúsculas
-                    const estadoActual = String(datos.status).toLowerCase();
-
-                    if (estadoActual === "procesando" || estadoActual === "rendering" || estadoActual === "working") {
-                        statusText.innerText = `Renderizando: ${datos.detalle || 'Sincronizando transiciones fluidas...'}`;
-                    } 
-                    // BLINDAJE TOTAL: Si dice listo, success, completed o finished, lo dejamos pasar
-                    else if (estadoActual === "listo" || estadoActual === "success" || estadoActual === "completed" || estadoActual === "finished") {
-                        clearInterval(window.renderInterval);
-                        statusText.innerText = "¡Video Diamante procesado con éxito! Iniciando descarga nativa...";
-                        statusText.style.color = "#00FFCC"; // Cambia a verde éxito
-                        
-                        // Forzamos la redirección para descargar el archivo real
-                        window.location.href = "https://ecosistemacmsviam-production.up.railway.app/descargar";
-                        
-                        setTimeout(() => {
-                            document.getElementById("loading-box").style.display = "none";
-                        }, 6000);
-                    } 
-                    else if (estadoActual === "error" || estadoActual === "failed") {
-                        clearInterval(window.renderInterval);
-                        statusText.innerText = `Fallo en el motor: ${datos.detalle}`;
-                        alert("El renderizador de fondo se detuvo: " + datos.detalle);
-                        document.getElementById("loading-box").style.display = "none";
-                    }
-                } catch (error) {
-                    console.log("Sincronizando con el servidor de fondo de VIAM...", error);
-                }
-            }, 4000);
-        } 
-
-        // LÓGICA DE CONTROL COMPLEMENTARIA Y STRIPE MODAL
+        // ==========================================
+        // CONTROL DE FLUJO DEL DOM (STRIPE E INTERFAZ)
+        // ==========================================
         document.addEventListener("DOMContentLoaded", function() {
+            // 1. Inicialización segura de elementos de la interfaz
             const lblPlanIndicator = document.getElementById("plan-indicator");
-            lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo";
+            if (lblPlanIndicator) {
+                lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo";
+            }
 
+            // 2. Captura y lectura limpia de parámetros de la URL (UNA SOLA DECLARACIÓN)
             const urlParams = new URLSearchParams(window.location.search);
             const isSuccess = urlParams.get('payment_success');
+            const isCancelled = urlParams.get('payment_cancelled');
             const sessionId = urlParams.get('session_id');
 
+            // 3. Evaluación de Éxito en la pasarela de Stripe
             if (isSuccess === 'true' && sessionId) {
                 const modal = document.getElementById('premium-modal');
-                if(modal) {
+                const campoCodigo = document.getElementById('stripe-session-code');
+                const statusVerificacion = document.getElementById('verification-status');
+                const btnVerificar = document.getElementById('btn-verificar-stripe');
+
+                if (modal && campoCodigo) {
                     modal.showModal();
-                    document.getElementById('stripe-session-code').value = sessionId;
-                    document.getElementById('verification-status').textContent = "Reanudando verificación automatizada...";
-                    document.getElementById('verification-status').style.color = "cyan";
+                    campoCodigo.value = sessionId;
+                    
+                    if (statusVerificacion) {
+                        statusVerificacion.textContent = "Reanudando verificación automatizada...";
+                        statusVerificacion.style.color = "cyan";
+                    }
+                    
+                    // Limpieza estética de la barra de direcciones de la URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+
+                    // Autoejecución del clic de validación de licencia
+                    if (btnVerificar) {
+                        setTimeout(() => {
+                            btnVerificar.click();
+                        }, 1000);
+                    }
                 }
+            } 
+            // 4. Evaluación de Cancelación
+            else if (isCancelled === 'true') {
+                alert("La suscripción ha sido cancelada.");
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         });
