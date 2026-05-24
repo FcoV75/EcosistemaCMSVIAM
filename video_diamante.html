@@ -449,17 +449,6 @@
                 }
             }, 4000);
         } 
-                    else if (datosstatus === "error") {
-                        clearInterval(window.renderInterval);
-                        statusText.innerText = `Fallo en el motor: ${datos.detalle}`;
-                        alert("El renderizador de fondo se detuvo: " + datos.detalle);
-                        document.getElementById("loading-box").style.display = "none";
-                    }
-                } catch (error) {
-                    console.log("Sincronizando con el servidor de fondo de VIAM...");
-                }
-            }, 4000);
-        }
 
         // LÓGICA DE CONTROL COMPLEMENTARIA Y STRIPE MODAL
         document.addEventListener("DOMContentLoaded", function() {
