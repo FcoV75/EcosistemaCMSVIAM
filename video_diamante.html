@@ -287,6 +287,78 @@
 <script>
   const boton = document.querySelector('.btn-disparador-motor');
   boton.addEventListener('click', generarVideo);
+    // ==========================================
+        // MOTOR DE LANZAMIENTO: GENERAR VIDEO DIAMANTE
+        // ==========================================
+        async function generarVideo() {
+            // 1. Validaciones preventivas de seguridad
+            if (!audioFile) {
+                alert("Por favor, carga una pista de audio (MP3) antes de continuar.");
+                return;
+            }
+
+            if (selectedImages.length === 0) {
+                alert("La línea de tiempo está vacía. Añade al menos una imagen para renderizar.");
+                return;
+            }
+
+            // Muestra el cuadro de carga de inmediato para dar feedback visual
+            const loadingBox = document.getElementById("loading-box");
+            if (loadingBox) {
+                loadingBox.style.display = "flex";
+            }
+            if (statusText) {
+                statusText.innerText = "Iniciando conexión con el nodo de Railway...";
+                statusText.style.color = "cyan";
+            }
+
+            try {
+                // 2. Recolección de subtítulos dinámicos desde la interfaz
+                const inputsSubtitulos = document.querySelectorAll(".input-subtitulo");
+                const datosLineaTiempo = [];
+
+                selectedImages.forEach((file, index) => {
+                    const textoSub = inputsSubtitulos[index] ? inputsSubtitulos[index].value : "";
+                    datosLineaTiempo.push({
+                        nombre_archivo: file.name,
+                        texto: textoSub
+                    });
+                });
+
+                // 3. Empaquetado de datos en FormData de alta fidelidad
+                const formData = new FormData();
+                formData.append("audio", audioFile);
+                formData.append("linea_tiempo", JSON.stringify(datosLineaTiempo));
+
+                // 4. Despacho directo hacia el Backend en la nube
+                console.log("Despachando paquete multimedia hacia Railway...");
+                const respuesta = await fetch("https://ecosistemacmsviam-production.up.railway.app/render", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const resultado = await respuesta.json();
+
+                if (respuesta.ok && (resultado.status === "procesando" || resultado.status === "success")) {
+                    console.log("Híbrido de renderizado aceptado en la nube. Activando monitoreo...");
+                    // Arranca el bucle de escucha que repara la pantalla congelada
+                    verificarEstatusRenderizado();
+                } else {
+                    throw new Error(resultado.detalle || "Respuesta inválida del servidor.");
+                }
+
+            } catch (error) {
+                console.error("Error crítico en el despacho:", error);
+                if (statusText) {
+                    statusText.innerText = `Fallo de conexión: ${error.message}`;
+                    statusText.style.color = "#FF3333";
+                }
+                alert("No se pudo iniciar el renderizado: " + error.message);
+                if (loadingBox) {
+                    loadingBox.style.display = "none";
+                }
+            }
+        }
 </script>
     </div>
 
