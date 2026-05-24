@@ -449,7 +449,7 @@
                 }
             }, 4000);
         } 
-                    else if (datos.status === "error") {
+                    else if (datosstatus === "error") {
                         clearInterval(window.renderInterval);
                         statusText.innerText = `Fallo en el motor: ${datos.detalle}`;
                         alert("El renderizador de fondo se detuvo: " + datos.detalle);
