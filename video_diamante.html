@@ -418,20 +418,37 @@
                     const datos = await respuesta.json();
 
                     console.log("Estatus recibido de la nube:", datos.status);
+                    
+                    // Convertimos a minúsculas para evitar problemas de mayúsculas/minúsculas
+                    const estadoActual = String(datos.status).toLowerCase();
 
-                    if (datos.status === "procesando") {
+                    if (estadoActual === "procesando" || estadoActual === "rendering" || estadoActual === "working") {
                         statusText.innerText = `Renderizando: ${datos.detalle || 'Sincronizando transiciones fluidas...'}`;
                     } 
-                    else if (datos.status === "listo") {
+                    // BLINDAJE TOTAL: Si dice listo, success, completed o finished, lo dejamos pasar
+                    else if (estadoActual === "listo" || estadoActual === "success" || estadoActual === "completed" || estadoActual === "finished") {
                         clearInterval(window.renderInterval);
                         statusText.innerText = "¡Video Diamante procesado con éxito! Iniciando descarga nativa...";
+                        statusText.style.color = "#00FFCC"; // Cambia a verde éxito
                         
+                        // Forzamos la redirección para descargar el archivo real
                         window.location.href = "https://ecosistemacmsviam-production.up.railway.app/descargar";
                         
                         setTimeout(() => {
                             document.getElementById("loading-box").style.display = "none";
-                        }, 5000);
+                        }, 6000);
                     } 
+                    else if (estadoActual === "error" || estadoActual === "failed") {
+                        clearInterval(window.renderInterval);
+                        statusText.innerText = `Fallo en el motor: ${datos.detalle}`;
+                        alert("El renderizador de fondo se detuvo: " + datos.detalle);
+                        document.getElementById("loading-box").style.display = "none";
+                    }
+                } catch (error) {
+                    console.log("Sincronizando con el servidor de fondo de VIAM...", error);
+                }
+            }, 4000);
+        } 
                     else if (datos.status === "error") {
                         clearInterval(window.renderInterval);
                         statusText.innerText = `Fallo en el motor: ${datos.detalle}`;
