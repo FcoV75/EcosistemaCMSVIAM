@@ -339,22 +339,25 @@
 
                 const resultado = await respuesta.json();
 
-                if (respuesta.ok && (resultado.status === "procesando" || resultado.status === "success")) {
-                    console.log("Híbrido de renderizado aceptado en la nube. Activando monitoreo...");
-                    // Arranca el bucle de escucha que repara la pantalla congelada
+                if (respuesta.ok && (resultado.status === "procesando" || resultado.status === "success")) {                    
+                    console.log("Híbrido de renderizado aceptado en la nube. Activando monitoreo...");                    
+                    // Arranca el bucle de escucha que repara la pantalla congelada                    
                     verificarEstatusRenderizado();
-                } else {
+                } else {                    
                     throw new Error(resultado.detalle || "Respuesta inválida del servidor.");
                 }
-
-            } catch (error) {
+            } catch (error) {                
                 console.error("Error crítico en el despacho:", error);
-                if (statusText) 
-                    statusText.innerText = `Fallo de conexión: ${error.message}`;
+                
+                // CORREGIDO: Bloque unificado de forma estricta con sus llaves de apertura y cierre
+                if (statusText) {                     
+                    statusText.innerText = `Fallo de conexión: ${error.message}`;                    
                     statusText.style.color = "#FF3333";
-                }
+                }                
+                
                 alert("No se pudo iniciar el renderizado: " + error.message);
-                if (loadingBox) {
+                
+                if (loadingBox) {                    
                     loadingBox.style.display = "none";
                 }
             }
