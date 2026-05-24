@@ -78,10 +78,10 @@ def generar_video_cloud():
     else:
         duracion_audio = 30.0
 
-    # 2. Conteo seguro de imágenes de la línea de tiempo
+    # 2. Conteo seguro de imágenes de la línea de tiempo (Corregido de raíz)
     conteo_imagenes = 0
-    if isinstance(linea_timeline := linea_tiempo, list):
-        for item in linea_timeline:
+    if isinstance(linea_tiempo, list):
+        for item in linea_tiempo:
             conteo_imagenes += 1
     
     if ruta_portada: conteo_imagenes += 1
@@ -169,7 +169,6 @@ def generar_video_cloud():
     if os.path.exists(ruta_audio):
         try:
             print("Iniciando ensamble definitivo de audio y video con FFmpeg...")
-            # Forzamos '-y' al inicio para saltarnos de forma estricta cualquier confirmación interactiva
             subprocess.run([
                 'ffmpeg', '-y', '-i', ruta_video_puro, '-i', ruta_audio, 
                 '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', 
@@ -195,4 +194,4 @@ def generar_video_cloud():
         except: pass
 
 if __name__ == '__main__':
-    generar_video_cloud() 
+    generar_video_cloud()
