@@ -287,6 +287,23 @@
 <script>
   const boton = document.querySelector('.btn-disparador-motor');
   boton.addEventListener('click', generarVideo);
+    <script>
+    // 1. PRIMERO DECLARAMOS LA FUNCIÓN GLOBAL EN EL NAVEGADOR
+    window.generarVideo = async function() {
+        // // 1. Validaciones preventivas de seguridad
+        // (Aquí va todo el contenido interno de tu función, validaciones, fetch, catch, etc.)
+        
+    }; // <- Asegúrate de que tu función cierre correctamente aquí abajo antes del botón
+
+    // ==========================================
+    // MOTOR DE LANZAMIENTO: ASIGNAR AL BOTÓN
+    // ==========================================
+    // 2. AHORA QUE YA EXISTE, SE LA ASIGNAMOS AL LLAMADO DEL CLICK
+    const boton = document.querySelector('.btn-disparador-motor');
+    if (boton) {
+        boton.addEventListener('click', window.generarVideo);
+    }
+</script>
     // ==========================================
         // MOTOR DE LANZAMIENTO: GENERAR VIDEO DIAMANTE
         // ==========================================
