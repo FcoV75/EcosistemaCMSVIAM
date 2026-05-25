@@ -346,21 +346,21 @@
                 } 
                     else {                    
                     throw new Error(resultado.detalle || "Respuesta inválida del servidor.");
-               } catch (error) {                
+              } catch (error) {                
                 console.error("Error crítico en el despacho:", error);
-               }
+                
                 if (statusText) {                     
                     statusText.innerText = `Fallo de conexión: ${error.message}`;                    
                     statusText.style.color = "#FF3333";
-                }                
+                } // <- Cierra el IF de statusText
                 
                 alert("No se pudo iniciar el renderizado: " + error.message);
                 
                 if (loadingBox) {                    
                     loadingBox.style.display = "none";
-                }
-            } // <- Aquí se cierra correctamente el bloque 'catch'
-        } // <- Aquí se cierra de forma limpia y global la función generarVideo()
+                } // <- Cierra el IF de loadingBox
+            } // <- LLAVE 1: Cierra de forma estricta el bloque 'catch'
+        } // <- LLAVE 2: Cierra de forma global la función 'generarVideo' limpia y global la función generarVideo()
 </script>
     <dialog id="premium-modal">
         <h3 style="color: #D4AF37; margin-bottom: 15px; font-size: 1.4rem;">¡Gracias por tu Suscripción Nivel Diamante!</h3>
