@@ -273,8 +273,7 @@
                 <label class="btn-viam-subir" for="input-imagenes-multiples">Añadir Imágenes al Proyecto</label>
                 <input type="file" id="input-imagenes-multiples" class="input-archivo-oculto" accept="image/*" multiple>
             </div>
-            <div class="rejilla-linea-tiempo" id="contenedor-linea-tiempo">
-                </div>
+            <div class="rejilla-linea-tiempo" id="contenedor-linea-tiempo"></div>
         </div>
 
         <div class="caja-loading" id="loading-box">
@@ -283,103 +282,8 @@
         </div>
 
         <button class="btn-disparador-motor">Comenzar Renderizado Diamante</button>
+    </div>
 
-<script>
-  const boton = document.querySelector('.btn-disparador-motor');
-  boton.addEventListener('click', generarVideo);
-    // 1. PRIMERO DECLARAMOS LA FUNCIÓN GLOBAL EN EL NAVEGADOR
-    window.generarVideo = async function() {
-        // // 1. Validaciones preventivas de seguridad
-        // (Aquí va todo el contenido interno de tu función, validaciones, fetch, catch, etc.)
-        
-    }; // <- Asegúrate de que tu función cierre correctamente aquí abajo antes del botón
-
-    // ==========================================
-    // MOTOR DE LANZAMIENTO: ASIGNAR AL BOTÓN
-    // ==========================================
-    // 2. AHORA QUE YA EXISTE, SE LA ASIGNAMOS AL LLAMADO DEL CLICK
-   
-    if (boton) {
-        boton.addEventListener('click', window.generarVideo);
-    }
-</script>
-    <script>
-    // ==========================================
-        // MOTOR DE LANZAMIENTO: GENERAR VIDEO DIAMANTE
-        // ==========================================
-        // FORZAMOS A QUE EL NAVEGADOR RECONOZCA LA FUNCIÓN DESDE CUALQUIER BOTÓN
-window.generarVideo = async function() {
-    // 1. Validaciones preventivas de seguridad
-    if (!audioFile) {
-        alert("Por favor, carga una pista de audio (MP3) antes de continuar.");
-        return;
-    }
-
-    if (selectedImages.length === 0) {
-        alert("La línea de tiempo está vacía. Añade al menos una imagen para renderizar.");
-        return;
-    }
-
-    // Muestra el cuadro de carga de inmediato
-    const loadingBox = document.getElementById("loading-box");
-    if (loadingBox) {
-        loadingBox.style.display = "flex";
-    }
-    if (statusText) {
-        statusText.innerText = "Iniciando conexión con el nodo de Railway...";
-        statusText.style.color = "cyan";
-    }
-
-    try {
-        // 2. Recolección de subtítulos dinámicos
-        const inputsSubtitulos = document.querySelectorAll(".input-subtitulo");
-        const datosLineaTiempo = [];
-
-        selectedImages.forEach((file, index) => {
-            const textoSub = inputsSubtitulos[index] ? inputsSubtitulos[index].value : "";
-            datosLineaTiempo.push({
-                nombre_archivo: file.name,
-                texto: textoSub
-            });
-        });
-
-        // 3. Empaquetado en FormData
-        const formData = new FormData();
-        formData.append("audio", audioFile);
-        formData.append("linea_tiempo", JSON.stringify(datosLineaTiempo));
-
-        // 4. Despacho directo hacia Railway
-        console.log("Despachando paquete multimedia hacia Railway...");
-        const respuesta = await fetch("https://ecosistemacmsviam-production.up.railway.app/render", {
-            method: "POST",
-            body: formData
-        });
-
-        const resultado = await respuesta.json();
-
-        if (respuesta.ok && (resultado.status === "procesando" || resultado.status === "success")) {
-            console.log("Híbrido de renderizado aceptado en la nube. Activando monitoreo...");
-            if (typeof verificarEstatusRenderizado === "function") {
-                verificarEstatusRenderizado();
-            }
-        } else {
-            throw new Error(resultado.detalle || "Respuesta inválida del servidor.");
-        }
-
-    } catch (error) {
-        console.error("Error crítico en el despacho:", error);
-        if (statusText) {
-            statusText.innerText = `Fallo de conexión: ${error.message}`;
-            statusText.style.color = "#FF3333";
-        }
-        alert("No se pudo iniciar el renderizado: " + error.message);
-        if (loadingBox) {
-            loadingBox.style.display = "none";
-        }
-    }
-}
-    
-</script>
     <dialog id="premium-modal">
         <h3 style="color: #D4AF37; margin-bottom: 15px; font-size: 1.4rem;">¡Gracias por tu Suscripción Nivel Diamante!</h3>
         <p style="margin-bottom:20px; font-size:0.95rem; color:#DDD;">Detectamos tu pago con éxito a través de Stripe. Por favor ingresa el ID de sesión enviado a tu correo para activar el motor:</p>
@@ -390,16 +294,22 @@ window.generarVideo = async function() {
 
     <script>
         // ==========================================
-        // VARIABLES GLOBALES DEL SISTEMA DEL PANEL
+        // VARIABLES GLOBALES DEL SISTEMA
         // ==========================================
         let audioFile = null;
         let selectedImages = [];
+        let objectUrls = []; // Control estricto de memoria para URLs de previsualización
         let isPremiumActive = true; 
 
+        // Capturas seguras del DOM
         const statusText = document.getElementById("status-text");
         const contenedorLineaTiempo = document.getElementById("contenedor-linea-tiempo");
+        const loadingBox = document.getElementById("loading-box");
+        const botonDisparador = document.querySelector('.btn-disparador-motor');
 
-        // Escuchadores nativos de archivos
+        // ==========================================
+        // MANEJADORES DE EVENTOS DE ARCHIVOS
+        // ==========================================
         document.getElementById("input-audio-real").addEventListener("change", function(e) {
             if (e.target.files.length > 0) {
                 audioFile = e.target.files[0];
@@ -416,19 +326,36 @@ window.generarVideo = async function() {
             }
         });
 
+        // Renders e inyección limpia de elementos al DOM
         function renderizarInterfazLineaTiempo() {
             if (!contenedorLineaTiempo) return;
+            
+            // Liberar memoria previa de URLs temporales
+            objectUrls.forEach(url => URL.revokeObjectURL(url));
+            objectUrls = [];
+            
             contenedorLineaTiempo.innerHTML = "";
+            
             selectedImages.forEach((file, index) => {
                 const urlTemporal = URL.createObjectURL(file);
+                objectUrls.push(urlTemporal); // Guardamos tracking
+                
                 const celda = document.createElement("div");
                 celda.className = "celda-imagen";
                 celda.innerHTML = `
                     <img src="${urlTemporal}" class="miniatura-imagen" alt="Miniatura">
                     <input type="text" class="input-subtitulo" placeholder="Subtítulo para esta escena..." style="width:100%; padding:5px; border-radius:4px; border:none;">
-                    <button class="btn-eliminar-celda" onclick="removerImagenDeLineaTiempo(${index})">Remover</button>
+                    <button class="btn-eliminar-celda" data-index="${index}">Remover</button>
                 `;
                 contenedorLineaTiempo.appendChild(celda);
+            });
+
+            // Asignación de eliminación delegada de forma estricta (evita onclick global obsoleto)
+            document.querySelectorAll('.btn-eliminar-celda').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idx = parseInt(this.getAttribute('data-index'));
+                    removerImagenDeLineaTiempo(idx);
+                });
             });
         }
 
@@ -438,22 +365,115 @@ window.generarVideo = async function() {
         }
 
         // ==========================================
+        // MOTOR DE CORE: RENDERIZADO / DESPACHO 
+        // ==========================================
+        window.generarVideo = async function() {
+            // Validaciones preventivas del motor
+            if (!audioFile) {
+                alert("Por favor, carga una pista de audio (MP3) antes de continuar.");
+                return;
+            }
+
+            if (selectedImages.length === 0) {
+                alert("La línea de tiempo está vacía. Añade al menos una imagen para renderizar.");
+                return;
+            }
+
+            // Muestra el contenedor de carga
+            if (loadingBox) {
+                loadingBox.style.display = "block";
+            }
+            if (statusText) {
+                statusText.innerText = "Iniciando conexión con el nodo de Railway...";
+                statusText.style.color = "cyan";
+            }
+
+            try {
+                // Recolección y mapeo dinámico de subtítulos
+                const inputsSubtitulos = document.querySelectorAll(".input-subtitulo");
+                const datosLineaTiempo = [];
+
+                selectedImages.forEach((file, index) => {
+                    const textoSub = inputsSubtitulos[index] ? inputsSubtitulos[index].value : "";
+                    datosLineaTiempo.push({
+                        nombre_archivo: file.name,
+                        texto: textoSub
+                    });
+                });
+
+                // Empaquetado estricto en FormData
+                const formData = new FormData();
+                formData.append("audio", audioFile);
+                formData.append("linea_tiempo", JSON.stringify(datosLineaTiempo));
+                
+                // Textos adicionales opcionales (por si tu backend en Railway los requiere)
+                formData.append("texto_portada", document.getElementById("texto-portada").value);
+                formData.append("texto_cierre", document.getElementById("texto-cierre").value);
+
+                console.log("Despachando paquete multimedia hacia Railway...");
+                
+                const respuesta = await fetch("https://ecosistemacmsviam-production.up.railway.app/render", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const resultado = await respuesta.json();
+
+                if (respuesta.ok && (resultado.status === "procesando" || resultado.status === "success")) {
+                    console.log("Híbrido de renderizado aceptado en la nube. Activando monitoreo...");
+                    if (statusText) {
+                        statusText.innerText = "¡Procesamiento iniciado con éxito en la nube!";
+                        statusText.style.color = "#00FFCC";
+                    }
+                    if (typeof verificarEstatusRenderizado === "function") {
+                        verificarEstatusRenderizado();
+                    }
+                } else {
+                    throw new Error(resultado.detalle || "Respuesta inválida del servidor.");
+                }
+
+            } catch (error) {
+                console.error("Error crítico en el despacho:", error);
+                if (statusText) {
+                    statusText.innerText = `Fallo de conexión: ${error.message}`;
+                    statusText.style.color = "#FF3333";
+                }
+                alert("No se pudo iniciar el renderizado: " + error.message);
+                if (loadingBox) {
+                    loadingBox.style.display = "none";
+                }
+            }
+        };
+
+        // Mock preventivo por si no existe la función externa de chequeo de estatus
+        if (typeof window.verificarEstatusRenderizado !== "function") {
+            window.verificarEstatusRenderizado = function() {
+                console.log("Monitoreando cola de renderizado remota...");
+            };
+        }
+
+        // ==========================================
         // CONTROL DE FLUJO DEL DOM (STRIPE E INTERFAZ)
         // ==========================================
         document.addEventListener("DOMContentLoaded", function() {
-            // 1. Inicialización segura de elementos de la interfaz
+            // Vincular el botón disparador una vez el DOM esté listo
+            if (botonDisparador) {
+                botonDisparador.addEventListener('click', window.generarVideo);
+            }
+
+            // Inicialización de la UI del plan
             const lblPlanIndicator = document.getElementById("plan-indicator");
             if (lblPlanIndicator) {
                 lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo";
             }
 
-            // 2. Captura y lectura limpia de parámetros de la URL (UNA SOLA DECLARACIÓN)
+            // Captura y lectura limpia de parámetros de Stripe en la URL
             const urlParams = new URLSearchParams(window.location.search);
             const isSuccess = urlParams.get('payment_success');
             const isCancelled = urlParams.get('payment_cancelled');
             const sessionId = urlParams.get('session_id');
 
-            // 3. Evaluación de Éxito en la pasarela de Stripe
+            // Evaluación de pasarela de Stripe con Dialog Nativo
             if (isSuccess === 'true' && sessionId) {
                 const modal = document.getElementById('premium-modal');
                 const campoCodigo = document.getElementById('stripe-session-code');
@@ -469,10 +489,10 @@ window.generarVideo = async function() {
                         statusVerificacion.style.color = "cyan";
                     }
                     
-                    // Limpieza estética de la barra de direcciones de la URL
+                    // Limpieza estética de Query Params en la barra de direcciones del navegador
                     window.history.replaceState({}, document.title, window.location.pathname);
 
-                    // Autoejecución del clic de validación de licencia
+                    // Autoejecución del click de validación
                     if (btnVerificar) {
                         setTimeout(() => {
                             btnVerificar.click();
@@ -480,7 +500,6 @@ window.generarVideo = async function() {
                     }
                 }
             } 
-            // 4. Evaluación de Cancelación
             else if (isCancelled === 'true') {
                 alert("La suscripción ha sido cancelada.");
                 window.history.replaceState({}, document.title, window.location.pathname);
