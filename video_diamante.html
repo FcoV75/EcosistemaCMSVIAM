@@ -346,11 +346,9 @@
                 } 
                     else {                    
                     throw new Error(resultado.detalle || "Respuesta inválida del servidor.");
-                }
-                    catch (error) {                
+               } catch (error) {                
                 console.error("Error crítico en el despacho:", error);
                 
-                // CORREGIDO: Bloque unificado de forma estricta con sus llaves de apertura y cierre
                 if (statusText) {                     
                     statusText.innerText = `Fallo de conexión: ${error.message}`;                    
                     statusText.style.color = "#FF3333";
@@ -361,8 +359,8 @@
                 if (loadingBox) {                    
                     loadingBox.style.display = "none";
                 }
-            }
-         }
+            } // <- Aquí se cierra correctamente el bloque 'catch'
+        } // <- Aquí se cierra de forma limpia y global la función generarVideo()
 </script>
     <dialog id="premium-modal">
         <h3 style="color: #D4AF37; margin-bottom: 15px; font-size: 1.4rem;">¡Gracias por tu Suscripción Nivel Diamante!</h3>
