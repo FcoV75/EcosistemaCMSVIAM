@@ -64,6 +64,12 @@ export function Feed({ selectedState }: FeedProps) {
         </p>
       )}
 
+      {(postsQuery.data ?? []).length === 0 && !postsQuery.isLoading && !postsQuery.isError && (
+        <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          No hay publicaciones en este estado todavía. Prueba cambiar el filtro a &quot;Todos los estados&quot; o publica la primera.
+        </p>
+      )}
+
       {(postsQuery.data ?? []).map((post) => (
         <PostCard
           key={post.id}

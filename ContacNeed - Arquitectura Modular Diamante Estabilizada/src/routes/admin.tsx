@@ -129,7 +129,7 @@ function AdminDashboard() {
               <thead className="border-b border-slate-800 text-slate-400">
                 <tr>
                   <th className="px-3 py-2">Nombre</th>
-                  <th className="px-3 py-2">Email</th>
+                  <th className="px-3 py-2">ID</th>
                   <th className="px-3 py-2">Estado</th>
                   <th className="px-3 py-2">PRO</th>
                   <th className="px-3 py-2">Acciones</th>
@@ -139,7 +139,7 @@ function AdminDashboard() {
                 {(data?.users ?? []).map((user: any) => (
                   <tr key={user.id} className="border-b border-slate-800/80">
                     <td className="px-3 py-3">{user.full_name || 'Sin nombre'}</td>
-                    <td className="px-3 py-3">{user.email || '—'}</td>
+                    <td className="px-3 py-3">{user.id.slice(0, 8)}...</td>
                     <td className="px-3 py-3">{user.estado || '—'}</td>
                     <td className="px-3 py-3">{user.es_pro || user.is_premium ? 'Sí' : 'No'}</td>
                     <td className="px-3 py-3">

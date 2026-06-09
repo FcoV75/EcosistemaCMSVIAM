@@ -40,10 +40,10 @@ export function mapPublicacionToPost(post: {
   usuario_id?: string | null
   estado?: string | null
   estatus?: string | null
-  users?: { raw_user_meta_data?: Record<string, unknown> | null } | null
+  perfiles?: { full_name?: string | null; specialty?: string | null } | null
 }): MappedPost {
-  const meta = (post.users?.raw_user_meta_data ?? {}) as Record<string, unknown>
   const media = toMediaFields(post.url_multimedia)
+  const userId = post.usuario_id ?? 'anon'
 
   return {
     id: post.id,
@@ -57,11 +57,11 @@ export function mapPublicacionToPost(post: {
     comments: 0,
     commentList: [],
     authorData: {
-      name: String(meta.name ?? meta.full_name ?? 'Usuario'),
-      avatar: String(meta.avatar_url ?? `https://i.pravatar.cc/150?u=${post.usuario_id ?? 'anon'}`),
-      title: meta.title ? String(meta.title) : undefined,
-      verified: Boolean(meta.verified),
-      isFounder: Boolean(meta.is_founder ?? meta.isFounder),
+      name: post.perfiles?.full_name ?? 'Usuario',
+      avatar: `https://i.pravatar.cc/150?u=${userId}`,
+      title: post.perfiles?.specialty ?? 'Profesional',
+      verified: false,
+      isFounder: false,
     },
   }
 }

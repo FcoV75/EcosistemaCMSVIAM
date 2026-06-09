@@ -16,7 +16,7 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
     prisma.publicaciones.findMany({
       orderBy: { fecha_creacion: 'desc' },
       take: 100,
-      include: { users: { select: { raw_user_meta_data: true } } },
+      include: { perfiles: { select: { full_name: true, specialty: true } } },
     }),
     prisma.perfiles.findMany({
       orderBy: { created_at: 'desc' },

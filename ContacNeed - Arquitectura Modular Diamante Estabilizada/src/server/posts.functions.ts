@@ -9,6 +9,13 @@ type GetPostsInput = {
   includePending?: boolean
 }
 
+function buildApprovedFilter(includePending: boolean) {
+  if (includePending) return {}
+  return {
+    OR: [{ estatus: 'aprobado' }, { estatus: null }],
+  }
+}
+
 export const getPosts = createServerFn({ method: 'GET' })
   .inputValidator((d: GetPostsInput) => d ?? {})
   .handler(async ({ data }) => {
@@ -17,14 +24,15 @@ export const getPosts = createServerFn({ method: 'GET' })
 
     const postsData = await prisma.publicaciones.findMany({
       where: {
+        ...buildApprovedFilter(includePending),
         ...(estado ? { estado } : {}),
-        ...(includePending ? {} : { estatus: 'aprobado' }),
       },
       orderBy: { fecha_creacion: 'desc' },
       include: {
-        users: {
+        perfiles: {
           select: {
-            raw_user_meta_data: true,
+            full_name: true,
+            specialty: true,
           },
         },
       },
@@ -63,9 +71,10 @@ export const createPostFn = createServerFn({ method: 'POST' })
         tipo_archivo: data.tipo_archivo ?? null,
       },
       include: {
-        users: {
+        perfiles: {
           select: {
-            raw_user_meta_data: true,
+            full_name: true,
+            specialty: true,
           },
         },
       },
