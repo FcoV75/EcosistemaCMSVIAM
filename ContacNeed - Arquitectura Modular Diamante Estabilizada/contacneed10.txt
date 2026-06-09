@@ -1,0 +1,55 @@
+
+Instala esto también por favor con las indicaciones de Gemini:
+
+Configuración de Prisma (El traductor):
+
+npx prisma init
+
+IMPORTANTE: Aquí debes sustituir [YOUR-PASSWORD] por la contraseña real que pusiste al crear tu proyecto en Supabase. Sin la contraseña real, el enlace es solo texto muerto.
+
+Conexión de Agente (La inteligencia):
+
+El comando npx skills add supabase/agent-skills y el de claude mcp son para que el Agente "entienda" tu base de datos. Esto es excelente porque le permite al Agente arreglar errores de la base de datos por sí mismo.
+
+2. ¿Qué te falta? (El "Pegamento" Final)
+Para que esto funcione al 100%, faltan dos cosas que el código no hará solo:
+
+A. Generar el Cliente de Prisma:
+Después de hacer el init, debes decirle al Agente:
+
+"Ejecuta npx prisma generate y npx prisma db pull para que el código reconozca las tablas que ya creamos en Supabase."
+
+B. El archivo .env en Netlify:
+Esas líneas que dicen DATABASE_URL y DIRECT_URL debes pegarlas manualmente en la sección de Environment Variables de Netlify (donde pegaste las anteriores). Si las dejas solo en el chat, Netlify no las usará para el sitio en vivo.
+
+3. Advertencia de Seguridad (CRÍTICO)
+Veo que estás usando el Connection Pooler (puerto 6543). ¡Muy bien hecho! Eso evita que la base de datos se sature cuando muchos usuarios entren a ContacNeed al mismo tiempo.
+
+¿Qué falta? Solo una cosa: La contraseña.
+En los enlaces que pasaste: postgres:[YOUR-PASSWORD]@...
+Debes asegurarte de que el Agente de Netlify sepa cuál es esa contraseña. No la escribas aquí si es privada, pero asegúrate de ponerla correctamente en el panel de variables de entorno de Netlify.
+
+postgresql://postgres:[YOUR-PASSWORD]@db.ioknnnpgyqfafewnksup.supabase.co:5432/postgres
+
+npm install prisma --save-dev
+
+npx prisma init
+
+# Connect to Supabase via Shared Connection Pooler
+DATABASE_URL="postgresql://postgres.ioknnnpgyqfafewnksup:[YOUR-PASSWORD]@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Direct connection to the database through Shared Pooler (supports IPv4/IPv6). Used for migrations.
+DIRECT_URL="postgresql://postgres.ioknnnpgyqfafewnksup:[YOUR-PASSWORD]@aws-1-us-east-1.pooler.supabase.com:5432/postgres"
+
+# If your network supports IPv6 or you purchased IPv4 addon, use dedicated pooler
+# DATABASE_URL="postgres://postgres:[YOUR-PASSWORD]@db.ioknnnpgyqfafewnksup.supabase.co:6543/postgres?pgbouncer=true"
+# DIRECT_URL="postgres://postgres:[YOUR-PASSWORD]@db.ioknnnpgyqfafewnksup.supabase.co:5432/postgres"
+
+claude mcp add --scope project --transport http supabase "https://mcp.supabase.com/mcp?project_ref=ioknnnpgyqfafewnksup"
+
+claude /mcp
+
+
+saqué cuenta de Supabase con GitHub así que deben de manejar el mismo Password y ya lo tienes amigo. 
+
+

@@ -1,0 +1,37 @@
+Hola Amigo, vamos muy bien en la red social de ContacNeed y la vamos a mejorar más... 
+
+Quiero ajustar el tamaño del logo del formulario de registro por favor, hazlo cuatro veces más grande, 
+y en la pizarra de fondo de página pondrás también el mismo logo pero con una transparencia del 75%. 
+
+La menbresía mensual de ContacNeed tendrá un precio de MXN 300.00 al mes, y si el cliente desea una membresía anual será de MXN 3000.00 con dos meses de Regalo. 
+
+Por favor cerciórate que la base de datos esté funcional para los registros y que se solicite también junto con lo que ya está establecido Municipio, Comunidad (Si aplica), correo electrónico, Numero de Celular, Sexo, Fecha de Nacimiento, y así como en la sección de Oficio colocaste un recuadro para que la persona describa su oficio o habilidad, también coloca uno en Licenciaturas y Especialidades para que describan su profesión, licenciatura o especialidad. 
+
+Ya dentro del área de miembros en la pizarra tanto de la gratuita como la Pro de paga, debe de haber un espacio para que la persona ponga su fotografía de perfil obligatoria, y su cédula profesional con nombre de carreara con una breve descripción, y en la de oficios, el nombre de su oficio y una breve descripción para que el público la pueda ver, en el perfil externo.
+
+habrá una pizarra del área privada para cada miembro gratuito o de paga y una general en donde todos pueden interacturar para respetar la privacidad de los miembros, en esta pizarra prepararán sus publicaciones y las verán para corregirlas si es necesario antes de publicarlas en la pizarra pública, loo gratuitos tendrán derecho un video diario de 3 a 5 minutos y los de paga a dos de hasta 20 minutos. las imágenes en los gratuitos estarán limitadas 7 diarias y los de paga hasta 20. Argumentando que será para que no saturen sus espacios innecesariamente complicando la navegación y búsqueda a los demás miembros cuando vean y visiten su perfil, el beneficio será notorio ya que los verán con más seriedad y los escogerán por eso. 
+
+Al principio la pizarra estará expuesta al publico con unos cuantos perfiles sobresalientes para despertar el interés en las personas pero sin dejar que participen en nada, solo serán observadoras, después de unos 15 a 20 perfiles y unos tres minutos de navegación se detendrá todo y te invitará a suscribirte. 
+
+la pantalla de suscripción antes de entrar al formularios será el logotipo de ContacNeed en su tamaño normal original, su fondo será con esos mismos colores y habrá un mensaje de bienvenida a la red social y habrá un mapa de la republica mexicana preguntado de que Estado es el cliente. cuando el cliente escoja su estado con el cursor o con el mouse o con su dedo en pantallas táctiles se abrirá el formulario de ingreso para pertenecer a la red social, habrá la opción en esa pantalla de si será usuaria o profesionista que ofrece sus servicios, permitiéndole ya su área que cambien de modalidad libremente. 
+
+en la Pizarra que compartirán los gratuitos u los de paga habrá una valiosa opción que si tienen su negocio podrán entrar a una sección aparte de la pizarra general en la cual podrán mostrar mas de sus productos y servicios como si fuera su página web personal, a los gratuitos les restringirás a menos de 20 imágenes y un video en su espacio y a los de paga serán sin límite las imágenes y con límite de 10 videos de 10 minutos a lo máximo. así cada persona tendrá su propia tienda dentro de su perfil de ContacNeed haciendo más deseable y valiosa esta red social. 
+
+Lo que sea que venda la persona la IA le ayudará con las imágenes y los textos de su publicidad. 
+
+A los miembros gratuitos se les permitirá conectar sus demás redes sociales a ContacNeed, pero solo a los Pro de paga se les permitirá el privilegios de que sus publicaciones en esta red se puedan publicar simultáneamente en sus otras redes simultáneamente. eso es un privilegio Pro.
+
+Por favor haz la programación necesaria para que cada Estado de la república sea independiente para que al cambiar a cada Estado El usuario pueda observar y consumir y localizar lo que se refiera a ese estado específico, en caso de que viaje, para que en la pizarra principal no se mezcle lo de todos los estados y provoque confusiones. Esto también tendrá la ventaja de que si desde Aguascalientes busco algo de Guadalajara o de Chihuahua lo podre encontrar en su Estado que corresponde. 
+
+Por favor por un filtro importante en los oficios, profesiones y especialidades, no permitas que se acepte nada en la red social que promueva la prostitución, la drogadicción, el narcotráfico, el odio racial, la violencia, el fraude, la sexualidad pervertida o trabajos que corrompan la mente y los valores que mantienen en paz y en orden a la sociedad. 
+
+Por el momento has estas modificaciones por favor amigo.
+
+
+
+
+
+
+
+
+

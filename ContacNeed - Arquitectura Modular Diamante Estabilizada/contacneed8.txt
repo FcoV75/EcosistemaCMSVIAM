@@ -1,0 +1,64 @@
+Este escrito está diseñado para que lo pegues en tu chat de soporte, en tu repositorio o se lo pases directamente a tu equipo técnico. Está organizado por prioridad crítica para asegurar que el motor de ContacNeed sea impecable.
+
+🚀 Directivas de Optimización: https://www.google.com/search?q=ContacNeed.com
+Objetivo: Transición de Fase Beta a Entorno de Producción de Alta Gama.
+
+🔴 PRIORIDAD 1: Identidad y Sincronización de Datos (Backend)
+Meta: Que cada registro sea un usuario real, seguro y persistente.
+
+Sincronización Netlify Identity <> Supabase:
+
+Sentencia: Implementar un Webhook de Netlify (evento identity-signup) que dispare una Netlify Function. Esta función debe crear automáticamente una fila en la tabla perfiles de Supabase usando el UUID generado por Identity.
+
+Propósito: Evitar "usuarios fantasma" que se registran en la web pero no aparecen en la base de datos.
+
+Validación de Sesión en la Pizarra:
+
+Sentencia: El botón "Publicar" y el acceso a la "Radio VIAM" deben estar protegidos por el objeto netlifyIdentity.currentUser(). Si el usuario no está logueado, debe saltar el widget de Login automáticamente.
+
+🟠 PRIORIDAD 2: Lógica PRO y Seguridad de Roles
+Meta: Bloquear las funciones premium y automatizar el cobro.
+
+Etiquetado Criptográfico de Roles:
+
+Sentencia: Configurar la función stripe-webhook.js para que, tras el evento checkout.session.completed, ejecute una llamada a la API de Administración de Netlify Identity para asignar el rol app_metadata: { roles: ['pro'] }.
+
+Validación de Límites en Cloudinary:
+
+Sentencia: Restringir el Upload Widget de Cloudinary. Si el usuario tiene el rol pro, habilitar maxFileSize: 500mb y duración de video de 20 min. Si es usuario gratuito, limitar a 10mb (solo fotos).
+
+🟡 PRIORIDAD 3: Estabilidad de Interfaz (Frontend & UX)
+Meta: Que la red sea rápida, fluida y no "se rompa" en móviles.
+
+Persistencia de Radio VIAM (Global Player):
+
+Sentencia: Envolver la aplicación en un layout de "Single Page Application" (SPA) o utilizar un Sticky Footer para el reproductor de audio. La navegación entre secciones NO debe reiniciar el streaming de la radio.
+
+Refresco en Tiempo Real (Realtime UI):
+
+Sentencia: Habilitar supabase.channel('public:publicaciones').on('INSERT', ...) para que los nuevos posts aparezcan en la pizarra de todos los usuarios sin necesidad de recargar la página (F5).
+
+Corrección de Layout Responsive:
+
+Sentencia: Aplicar overflow-wrap: break-word y flex-direction: column en los contenedores de la pizarra para dispositivos con ancho menor a 768px.
+
+🔵 PRIORIDAD 4: Geolocalización y Mapas
+Meta: Eliminar el modo "Development" de Google Maps.
+
+Restricción de API Key:
+
+Sentencia: Configurar en Google Cloud Console la restricción por HTTP Referrer para el dominio https://contacneed.com/*.
+
+Optimización de "Cómo Llegar":
+
+Sentencia: Implementar un Fallback (plan B). Si el usuario no tiene activo el GPS, el botón debe abrir directamente la App de Google Maps con la dirección del profesional pre-cargada.
+
+🟢 PRIORIDAD 5: Curaduría de Contenido (Filtro Profesional)
+Meta: Garantizar que los especialistas sean de "Alta Gama".
+
+Módulo de Cédula Profesional:
+
+Sentencia: Para registros tipo "Profesión" o "Especialidad", el formulario debe exigir un campo de texto cedula_profesional y un campo de carga de archivo. El estatus de "Verificado" debe permanecer en false hasta que el administrador lo valide manualmente en Supabase.
+
+📝 Resumen para el equipo de Netlify:
+"Por favor, ejecuten estas correcciones siguiendo estrictamente el orden de prioridades. No realicen alteraciones estéticas en el logo ni en la paleta de colores actual (Morado/Naranja/Dorado), ya que la identidad visual está aprobada. Enfoquen el trabajo exclusivamente en la conectividad de las APIs y la seguridad de los roles."

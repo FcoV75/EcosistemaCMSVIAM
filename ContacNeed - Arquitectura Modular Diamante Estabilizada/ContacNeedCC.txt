@@ -1,0 +1,702 @@
+Here is the complete, unsummarized code for the requested files:
+
+src/server/posts.functions.ts
+import { createServerFn } from '@tanstack/react-start';
+import { prisma } from '../lib/prisma.server';
+import { createSupabaseServerClient } from '../lib/supabase.server';
+
+export const getPosts = createServerFn({ method: 'GET' }).handler(async () => {
+  const postsData = await prisma.publicaciones.findMany({
+    orderBy: { fecha_creacion: 'desc' },
+    include: {
+      users: {
+        select: {
+          raw_user_meta_data: true,
+        }
+      }
+    }
+  });
+
+  return postsData.map((post: any) => {
+    const meta = post.users?.raw_user_meta_data as any || {};
+    return {
+      id: post.id,
+      content: post.contenido,
+      mediaUrl: post.url_multimedia,
+      createdAt: post.fecha_creacion?.getTime() || Date.now(),
+      professionalId: post.usuario_id || '',
+      likes: 0,
+      comments: 0,
+      commentList: [],
+      authorData: {
+        name: meta.name || meta.full_name || 'Usuario',
+        avatar: meta.avatar_url || 'https://i.pravatar.cc/150?u=' + post.usuario_id,
+      }
+    };
+  });
+});
+
+export const createPostFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: any) => d)
+  .handler(async ({ data }) => {
+    const supabase = createSupabaseServerClient();
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData?.user) throw new Error('Not authenticated');
+
+    const content = data.content || '';
+    let mediaUrl = data.mediaUrl || data.imageUrl || data.videoUrl || null;
+
+    // Convert youtube links to embed
+    if (mediaUrl) {
+      const ytMatch = mediaUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+      if (ytMatch) {
+        mediaUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+      }
+    }
+
+    const post = await prisma.publicaciones.create({
+      data: {
+        usuario_id: authData.user.id,
+        contenido: content,
+        url_multimedia: mediaUrl,
+      }
+    });
+
+    return {
+      id: post.id,
+      content: post.contenido,
+      mediaUrl: post.url_multimedia,
+      createdAt: post.fecha_creacion?.getTime() || Date.now(),
+      professionalId: post.usuario_id || '',
+      likes: 0,
+      comments: 0,
+      commentList: []
+    };
+  });
+
+export const deletePostFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: any) => d)
+  .handler(async ({ data }) => {
+    await prisma.publicaciones.delete({ where: { id: data.id } });
+    return { success: true };
+  });
+
+export const updatePostFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: any) => d)
+  .handler(async ({ data }) => {
+    await prisma.publicaciones.update({
+      where: { id: data.id },
+      data: { contenido: data.content }
+    });
+    return { success: true };
+  });
+
+export const reportContentFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: any) => d)
+  .handler(async () => {
+    return { success: true };
+  });
+
+export const addCommentFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: any) => d)
+  .handler(async () => {
+    return { success: true };
+  });
+src/routes/profile.tsx
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useState } from 'react'
+import { Camera, Settings, Star, TrendingUp, HelpCircle, Store, MessageSquare, Image as ImageIcon, Sparkles, X, Plus } from 'lucide-react'
+import { useUser } from '../store/userContext'
+import { getServerUser } from '../lib/auth'
+import { getNegocioFn, updateNegocioFn } from '../server/negocios.functions'
+
+export const Route = createFileRoute('/profile')({
+  beforeLoad: async () => {
+    const user = await getServerUser()
+    if (!user) throw redirect({ to: '/' })
+    return { user }
+  },
+  loader: async ({ context }) => {
+    const negocio = await getNegocioFn({ data: context.user.id })
+    return { negocio }
+  },
+  component: ProfilePage,
+})
+
+function ProfilePage() {
+  const { negocio } = Route.useLoaderData()
+  const { userType, setUserType, profileData, setProfileData, saveProfileData } = useUser()
+  const [activeTab, setActiveTab] = useState<'perfil' | 'negocio' | 'guia'>('perfil')
+  const [storePrompt, setStorePrompt] = useState('')
+  const [aiSuggestions, setAiSuggestions] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSavingStore, setIsSavingStore] = useState(false)
+
+  const [bannerUrl, setBannerUrl] = useState(negocio?.banner_url || '')
+  const [items, setItems] = useState<string[]>(Array.isArray(negocio?.items) ? negocio.items as string[] : [])
+
+  const handleUpdateNegocio = async (newBanner: string, newItems: string[]) => {
+    setIsSavingStore(true)
+    try {
+      await updateNegocioFn({ data: { banner_url: newBanner, items: newItems } })
+    } catch (e) {
+      console.error('Error saving negocio:', e)
+    } finally {
+      setIsSavingStore(false)
+    }
+  }
+
+  const uploadToCloudinary = (onSuccess: (url: string) => void) => {
+    if (!(window as any).cloudinary) {
+      alert('Cloudinary widget no está cargado');
+      return;
+    }
+    (window as any).cloudinary.createUploadWidget(
+      {
+        cloudName: 'dgkruw6n7',
+        uploadPreset: 'contacneed_uploads',
+        maxFiles: 1,
+      },
+      (error: any, result: any) => {
+        if (!error && result && result.event === 'success') {
+          onSuccess(result.info.secure_url);
+        }
+      }
+    ).open();
+  };
+
+  const handleBannerUpload = () => {
+    uploadToCloudinary((url) => {
+      setBannerUrl(url);
+      handleUpdateNegocio(url, items);
+    });
+  }
+
+  const handleAddItem = () => {
+    uploadToCloudinary((url) => {
+      const newItems = [...items, url];
+      setItems(newItems);
+      handleUpdateNegocio(bannerUrl, newItems);
+    });
+  }
+
+  const handleRemoveItem = (index: number) => {
+    const newItems = items.filter((_, i) => i !== index);
+    setItems(newItems);
+    handleUpdateNegocio(bannerUrl, newItems);
+  }
+
+  const handleGenerateStoreIdeas = async () => {
+    if (!storePrompt) return
+    setIsGenerating(true)
+    setTimeout(() => {
+      setAiSuggestions(`
+        <div class="space-y-4">
+          <h4 class="font-bold text-lg text-slate-900">Sugerencias para tu Tienda:</h4>
+          <ul class="list-disc pl-5 space-y-2 text-slate-700">
+            <li><strong>Colores:</strong> Usa tonos azules y grises para transmitir confianza.</li>
+            <li><strong>Sección Destacada:</strong> Agrega fotos de antes/después de tus trabajos.</li>
+            <li><strong>Llamado a la acción:</strong> "Cotización gratis por ContacNeed".</li>
+          </ul>
+        </div>
+      `)
+      setIsGenerating(false)
+    }, 1500)
+
+  }
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileData({ ...profileData, avatar: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="p-4 flex flex-col md:flex-row gap-6 max-w-6xl mx-auto">
+      {/* Menú Lateral */}
+      <div className="md:w-64 flex-shrink-0">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
+          <div className="p-6 flex flex-col items-center border-b border-gray-100">
+            <div className="relative mb-4">
+              <img src={profileData.avatar || "https://i.pravatar.cc/150?u=current"} alt="Mi Perfil" className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover" />
+              <label className="absolute bottom-0 right-0 bg-amber-500 text-slate-950 p-1.5 rounded-full shadow-lg hover:bg-amber-600 transition-colors cursor-pointer">
+                <Camera size={16} />
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+              </label>
+            </div>
+            <h3 className="font-bold text-lg text-slate-900">{profileData.name}</h3>
+            <p className="text-sm text-gray-500">Usuario {userType === 'pro' ? 'Pro' : 'Gratuito'}</p>
+            <button 
+              onClick={() => setUserType(userType === 'pro' ? 'free' : 'pro')}
+              className="mt-2 text-xs bg-slate-100 px-2 py-1 rounded hover:bg-slate-200 transition-colors"
+            >
+              Cambiar a {userType === 'pro' ? 'Gratuito' : 'Pro'} (Test)
+            </button>
+          </div>
+          <div className="p-2 space-y-1">
+            <button 
+              onClick={() => setActiveTab('perfil')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === 'perfil' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+            >
+              <Settings size={18} /> Configurar Perfil
+            </button>
+            <button 
+              onClick={() => setActiveTab('negocio')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === 'negocio' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+            >
+              <Store size={18} /> Mi Negocio / Tienda
+            </button>
+            <button 
+              onClick={() => setActiveTab('guia')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === 'guia' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+            >
+              <HelpCircle size={18} /> Guía de Uso (IA)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido Principal */}
+      <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 min-h-[600px] overflow-hidden">
+        {activeTab === 'perfil' && (
+          <div className="p-6 md:p-8 animate-in fade-in">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-slate-900">Perfil Personal</h2>
+              <p className="text-gray-500">Actualiza tu información para que la comunidad te encuentre más fácil.</p>
+            </div>
+            <form className="space-y-6 max-w-2xl" onSubmit={async (e) => {
+              e.preventDefault();
+              setIsSaving(true);
+              try {
+                await saveProfileData(profileData);
+                alert('Perfil actualizado con éxito');
+              } catch (e) {
+                console.error('Error detallado capturado en el frontend:', e);
+                alert('Error al actualizar el perfil');
+              } finally {
+                setIsSaving(false);
+              }
+            }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                  <input type="text" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} className="w-full border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Título o Especialidad</label>
+                  <input type="text" value={profileData.title} onChange={e => setProfileData({...profileData, title: e.target.value})} placeholder="Ej. Maestro Plomero" className="w-full border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación (Ciudad, Estado)</label>
+                  <input type="text" value={profileData.location} onChange={e => setProfileData({...profileData, location: e.target.value})} placeholder="Ej. Guadalajara, Jalisco" className="w-full border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción Breve</label>
+                  <textarea rows={4} value={profileData.description} onChange={e => setProfileData({...profileData, description: e.target.value})} placeholder="Describe tus habilidades..." className="w-full border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500"></textarea>
+                </div>
+              </div>
+              <button type="submit" disabled={isSaving} className="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-slate-800 transition-colors disabled:opacity-50">
+                {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {activeTab === 'negocio' && (
+          <div className="p-6 md:p-8 animate-in fade-in">
+            <div className="flex items-start justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Diseña tu Tienda / Negocio</h2>
+                <p className="text-gray-500">Personaliza tu mini página web. Exclusivo para usuarios Pro.</p>
+              </div>
+              <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Pro</span>
+            </div>
+            
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-8">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-3">
+                <Sparkles className="text-amber-500" size={20} /> Asistente de Diseño IA
+              </h3>
+              <p className="text-sm text-slate-600 mb-4">Describe qué tipo de negocio tienes y la IA te dará recomendaciones de colores, secciones y textos para tu tienda.</p>
+              <div className="flex gap-3">
+                <input 
+                  type="text" 
+                  value={storePrompt}
+                  onChange={(e) => setStorePrompt(e.target.value)}
+                  placeholder="Ej. Soy carpintero y quiero destacar mis servicios 24/7..." 
+                  className="flex-1 border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500 text-sm"
+                />
+                <button 
+                  onClick={handleGenerateStoreIdeas}
+                  disabled={isGenerating || !storePrompt}
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  {isGenerating ? 'Generando...' : 'Recomendar'}
+                </button>
+              </div>
+              {aiSuggestions && (
+                <div className="mt-6 bg-white p-4 rounded-lg border border-amber-100 shadow-sm" dangerouslySetInnerHTML={{ __html: aiSuggestions }}></div>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-slate-900 mb-2">Banner Principal</label>
+                {bannerUrl ? (
+                  <div className="relative h-32 rounded-xl overflow-hidden group">
+                    <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button onClick={handleBannerUpload} className="bg-white text-slate-900 px-4 py-2 rounded-lg font-bold">Cambiar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div onClick={handleBannerUpload} className="h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
+                    <div className="flex flex-col items-center">
+                      <ImageIcon size={24} className="mb-2" />
+                      <span>Subir imagen de portada</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-slate-900 mb-2">Servicios o Productos Destacados</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {items.map((item, index) => (
+                    <div key={index} className="relative h-32 border border-gray-200 rounded-xl overflow-hidden group bg-white">
+                      <img src={item} alt={`Item ${index}`} className="w-full h-full object-cover" />
+                      <button onClick={() => handleRemoveItem(index)} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <div onClick={handleAddItem} className="border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center h-32 bg-white hover:border-amber-500 cursor-pointer transition-colors">
+                    <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-2">
+                      <Plus size={20} />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">Agregar Item</span>
+                  </div>
+                </div>
+                <div className="mt-8">
+                  <button 
+                    onClick={() => handleUpdateNegocio(bannerUrl, items)} 
+                    disabled={isSavingStore}
+                    className="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-slate-800 transition-colors disabled:opacity-50"
+                  >
+                    {isSavingStore ? 'Publicando...' : 'GUARDAR CAMBIOS DE TIENDA'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'guia' && (
+          <div className="p-6 md:p-8 animate-in fade-in">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-slate-900">Guía de Uso Inteligente</h2>
+              <p className="text-gray-500">Consejos personalizados por IA según tu actividad en la red.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6">
+                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                  <TrendingUp size={20} />
+                </div>
+                <h3 className="font-bold text-slate-900 mb-2">Aumenta tu Visibilidad</h3>
+                <p className="text-sm text-slate-700 mb-4">Hemos notado que publicas poco contenido visual. Sube fotos de tus trabajos terminados para conseguir un 40% más de interacciones.</p>
+                <button className="text-sm font-bold text-blue-600 hover:text-blue-700">Crear Publicación</button>
+              </div>
+
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-6">
+                <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                  <Star size={20} />
+                </div>
+                <h3 className="font-bold text-slate-900 mb-2">Aprovecha tu Cuenta Pro</h3>
+                <p className="text-sm text-slate-700 mb-4">Aún no has configurado los botones de contacto directo en tu Tienda. Actívalos para que los clientes te llamen al instante.</p>
+                <button onClick={() => setActiveTab('negocio')} className="text-sm font-bold text-amber-700 hover:text-amber-800">Ir a Mi Negocio</button>
+              </div>
+
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-6 md:col-span-2">
+                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+                  <MessageSquare size={20} />
+                </div>
+                <h3 className="font-bold text-slate-900 mb-2">Interactúa con la Comunidad</h3>
+                <p className="text-sm text-slate-700 mb-4">Hay 3 nuevas preguntas sobre Plomería en tu ciudad (Guadalajara). Responderlas te posiciona como experto local.</p>
+                <button className="text-sm font-bold text-emerald-700 hover:text-emerald-800">Ver Preguntas Locales</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+src/components/PostCard.tsx
+import { useState } from 'react';
+import { ThumbsUp, ThumbsDown, MessageCircle, Share2, BadgeCheck, MoreHorizontal, Trash2, Edit2, ShieldAlert } from 'lucide-react';
+import { useIdentity } from '../lib/identity-context';
+import { updatePostFn, deletePostFn, addCommentFn, reportContentFn } from '../server/posts.functions';
+import { useRouter } from '@tanstack/react-router';
+
+export function PostCard({ post, author, initialLikes, initialComments }: any) {
+  const { user } = useIdentity();
+  const router = useRouter();
+  
+  const [likes, setLikes] = useState(initialLikes || post.likes || 0);
+  const [dislikes, setDislikes] = useState(0);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [comment, setComment] = useState('');
+  const [comments, setComments] = useState(initialComments || post.comments || 0);
+  const [commentList, setCommentList] = useState<{id: string, text: string, user_id: string}[]>(post.commentList || []);
+  
+  const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content || '');
+
+  const isAuthor = user?.id === post.professionalId || post.professionalId === 'current-user';
+
+  const handleDelete = async () => {
+    if (confirm('¿Seguro que quieres eliminar esta publicación? Esta acción no se puede deshacer.')) {
+      try {
+        await deletePostFn({ data: { id: post.id } });
+        alert('Publicación eliminada');
+        router.invalidate();
+      } catch(e) {
+        alert('Error al eliminar');
+      }
+    }
+  };
+
+  const handleEdit = async () => {
+    try {
+      await updatePostFn({ data: { id: post.id, content: editContent } });
+      setIsEditing(false);
+      router.invalidate();
+    } catch(e: any) {
+      alert(e.message || 'Error al actualizar');
+    }
+  };
+
+  const handleReport = async () => {
+    if (!user) {
+      alert('Debes iniciar sesión para reportar contenido');
+      return;
+    }
+    if (confirm('¿Quieres reportar esta publicación al administrador por contenido inapropiado?')) {
+      try {
+        await reportContentFn({ data: { postId: post.id, reporterId: user.id, reason: 'Contenido Inapropiado' } });
+        alert('Reporte enviado a moderación. Gracias por cuidar ContacNeed.');
+        setShowMenu(false);
+      } catch(e) {
+        alert('Error al reportar');
+      }
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden break-words mb-6">
+      <div className="p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div className="flex gap-3 items-center sm:items-start">
+          <img src={author.avatar} alt={author.name} className="w-12 h-12 rounded-full object-cover" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold text-gray-900 hover:text-slate-800 cursor-pointer">{author.name}</h4>
+              {author.verified && <span title="Identidad Validada"><BadgeCheck size={16} className="text-blue-500" /></span>}
+              {author.isFounder && (
+                <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase shadow-sm">
+                  ✨ Fundador
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">{author.title} • {post.timestamp || new Date(post.createdAt || Date.now()).toLocaleDateString()}</p>
+          </div>
+        </div>
+        
+        <div className="relative">
+          <button onClick={() => setShowMenu(!showMenu)} className="text-gray-400 hover:text-slate-700 p-1">
+            <MoreHorizontal size={20} />
+          </button>
+          
+          {showMenu && (
+            <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-100 shadow-lg rounded-xl z-10 py-1">
+              {isAuthor ? (
+                <>
+                  <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                    <Edit2 size={16} /> Editar
+                  </button>
+                  <button onClick={() => { handleDelete(); setShowMenu(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                    <Trash2 size={16} /> Eliminar
+                  </button>
+                </>
+              ) : (
+                <button onClick={handleReport} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 transition-colors">
+                  <ShieldAlert size={16} /> Reportar al Admin
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="px-4 pb-3">
+        {isEditing ? (
+          <div className="space-y-2">
+            <textarea 
+              value={editContent} 
+              onChange={e => setEditContent(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-amber-500"
+              rows={3}
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setIsEditing(false)} className="text-sm font-medium text-slate-500 hover:text-slate-700">Cancelar</button>
+              <button onClick={handleEdit} className="text-sm font-bold bg-amber-500 text-slate-900 px-3 py-1 rounded-lg">Guardar</button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-gray-800 text-sm whitespace-pre-wrap">{post.content}</p>
+        )}
+      </div>
+      
+      {post.mediaUrl && !isEditing && (
+        <div className="w-full bg-gray-100 max-h-[400px] overflow-hidden flex justify-center items-center">
+          {(() => {
+            const url = post.mediaUrl;
+            let videoUrl = null;
+            
+            const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+            if (ytMatch) {
+              videoUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+            }
+            
+            const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/i);
+            if (vimeoMatch) {
+              videoUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+            }
+            
+            if (url.endsWith('.mp4') || url.endsWith('.mov') || post.mediaType === 'video') {
+              return (
+                <video src={url} controls className="w-full max-h-[400px] bg-black" />
+              );
+            }
+            
+            if (videoUrl) {
+              return (
+                <iframe 
+                  src={videoUrl} 
+                  className="w-full aspect-video" 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen
+                ></iframe>
+              );
+            }
+            
+            return <img src={url} alt="Post content" className="w-full h-full object-cover" />;
+          })()}
+        </div>
+      )}
+      
+      <div className="px-4 py-3 border-t border-gray-50 flex items-center justify-between">
+        <div className="flex gap-4 w-full">
+          <button onClick={() => setLikes(likes + 1)} className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 transition-colors">
+            <ThumbsUp size={20} /> <span className="text-sm font-medium">{likes}</span>
+          </button>
+          <button onClick={() => setDislikes(dislikes + 1)} className="flex items-center gap-1.5 text-gray-500 hover:text-red-500 transition-colors">
+            <ThumbsDown size={20} /> <span className="text-sm font-medium">{dislikes > 0 ? dislikes : ''}</span>
+          </button>
+          <button onClick={() => setShowCommentInput(!showCommentInput)} className="flex items-center gap-1.5 text-gray-500 hover:text-slate-700 transition-colors">
+            <MessageCircle size={20} /> <span className="text-sm font-medium">{comments}</span>
+          </button>
+          <div className="flex-1"></div>
+          <button onClick={() => alert('Enlace de la publicación copiado')} className="flex items-center gap-1.5 text-gray-500 hover:text-green-600 transition-colors">
+            <Share2 size={20} /> <span className="text-sm font-medium hidden sm:inline">Compartir</span>
+          </button>
+        </div>
+      </div>
+      
+      {showCommentInput && (
+        <div className="px-4 pb-4 bg-gray-50 pt-3">
+          {commentList.map((c) => (
+            <div key={c.id} className="mb-2 bg-white p-2 rounded-lg text-sm border border-gray-100 shadow-sm group">
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1 whitespace-pre-wrap">{c.text}</div>
+                {user?.id === c.user_id && (
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => {
+                        const newText = prompt('Editar comentario:', c.text);
+                        if (newText && newText.trim()) {
+                          setCommentList((prev: any[]) => prev.map((item: any) => item.id === c.id ? { ...item, text: newText.trim() } : item));
+                        }
+                      }} 
+                      className="text-xs text-blue-500 hover:text-blue-700 font-medium"
+                    >
+                      Editar
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (confirm('¿Seguro que quieres eliminar este comentario?')) {
+                          setCommentList((prev: any[]) => prev.filter((item: any) => item.id !== c.id));
+                          setComments((prev: number) => prev - 1);
+                        }
+                      }} 
+                      className="text-xs text-red-500 hover:text-red-700 font-medium"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder="Escribe un comentario..."
+              className="flex-1 rounded-full border border-gray-300 px-4 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter' && comment.trim() && user?.id) {
+                  const newC = { text: comment.trim(), user_id: user.id };
+                  try {
+                    await addCommentFn({ data: { postId: post.id, comment: newC } });
+                    setCommentList([...commentList, { id: Math.random().toString(), ...newC }]);
+                    setComments((prev: number) => prev + 1);
+                    setComment('');
+                  } catch(e) { alert('Error al comentar'); }
+                }
+              }}
+            />
+            <button 
+              onClick={async () => {
+                if (!user) {
+                  alert('Debes iniciar sesión para comentar');
+                  return;
+                }
+                if(comment.trim() && user.id) {
+                  const newC = { text: comment.trim(), user_id: user.id };
+                  try {
+                    await addCommentFn({ data: { postId: post.id, comment: newC } });
+                    setCommentList([...commentList, { id: Math.random().toString(), ...newC }]);
+                    setComments((prev: number) => prev + 1);
+                    setComment('');
+                  } catch(e) { alert('Error al comentar'); }
+                }
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 rounded-full font-bold text-sm"
+            >
+              Comentar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

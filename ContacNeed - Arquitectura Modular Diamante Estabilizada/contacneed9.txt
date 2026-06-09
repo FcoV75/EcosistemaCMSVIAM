@@ -1,0 +1,171 @@
+como tu socio tecnológico, entiendo perfectamente la frustración de ver una interfaz "bonita" que es un cascarón vacío. Vamos a dejar de hablar de estética y vamos a construir la arquitectura funcional ahora mismo.
+
+El problema de fondo es que Netlify, por defecto, sirve archivos estáticos. Para una red social como ContacNeed, necesitamos un "Backend-as-a-Service". Para que esto funcione hoy mismo sin que tengas que montar un servidor propio, vamos a usar la infraestructura de Supabase (que es compatible al 100% con Netlify) para la base de datos, la seguridad y el inicio de sesión.
+
+Aquí tienes el diagnóstico técnico maestro y el código de implementación.
+
+1. Diagnóstico de Arquitectura "Master"
+Para que ContacNeed sea funcional, requiere estas cuatro capas que actualmente le faltan:
+
+Persistencia de Sesión (Auth): Implementar JSON Web Tokens (JWT) para que el navegador recuerde al usuario.
+
+Base de Datos Relacional: Para que los perfiles y "necesidades" se guarden y sean buscables.
+
+Middleware de Seguridad: Un código que bloquee la ruta /admin si el usuario no tiene el rol de administrador en la base de datos.
+
+Webhooks de Pago: Conexión real con la API de Stripe para activar servicios tras el pago.
+
+2. Código de Implementación (Estructura de Control)
+Copia y reemplaza estos bloques en tu proyecto. Este código utiliza Supabase para gestionar todo lo que te fallaba.
+
+A. El Guardián de Seguridad (Auth.js)
+Este script maneja el inicio de sesión y mantiene la sesión activa.
+
+// Configuración de la conexión (Debes poner tus llaves de Supabase en Netlify)
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = 'https://tu-proyecto.supabase.co'
+const supabaseKey = process.env.SUPABASE_KEY
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+// FUNCIÓN DE INICIO DE SESIÓN CON MEMORIA
+async function loginUser(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email,
+    password: password,
+  })
+  
+  if (error) {
+    alert("Error al ingresar: " + error.message);
+  } else {
+    // Esto guarda la sesión en el navegador automáticamente
+    window.location.href = "/dashboard"; 
+  }
+}
+
+// PROTECCIÓN DE RUTA ADMINISTRADOR
+function checkAdminAccess() {
+  const session = supabase.auth.session();
+  if (!session || session.user.user_metadata.role !== 'admin') {
+    window.location.href = "/login?error=unauthorized";
+  }
+}
+
+
+B. El Motor de Búsqueda de "Necesidades" (FunctionalSearch.js)
+Esto corrige que los iconos y búsquedas no funcionen.
+
+// Función para conectar personas con necesidades
+async function buscarEspecialista(categoria) {
+  let { data: especialistas, error } = await supabase
+    .from('perfiles')
+    .select('*')
+    .eq('especialidad', categoria)
+    .eq('esta_verificado', true);
+
+  if (error) console.error("Error en búsqueda", error);
+  
+  // Renderizado dinámico (esto reemplaza tus iconos estáticos)
+  const contenedor = document.getElementById('grid-especialistas');
+  contenedor.innerHTML = especialistas.map(esp => `
+    <div class="card-premium">
+      <img src="${esp.foto_url || 'default-avatar.png'}" />
+      <h3>${esp.nombre}</h3>
+      <p>${esp.bio}</p>
+      <button onclick="conectar(${esp.id})">Contactar Ahora</button>
+    </div>
+  `).join('');
+}
+
+
+C. Integración de Pagos (StripeCheckout.js)
+Para que el sistema de pago "vaya a algún lado".
+
+const stripe = Stripe('tu_llave_publica_de_stripe');
+
+async function procesarMembresia(priceId) {
+  const { error } = await stripe.redirectToCheckout({
+    lineItems: [{ price: priceId, quantity: 1 }],
+    mode: 'subscription',
+    successUrl: 'https://www.centromultidisciplinarioags.com/success',
+    cancelUrl: 'https://www.centromultidisciplinarioags.com/error',
+  });
+  
+  if (error) console.error("Error en pago:", error);
+}
+
+
+3. Instrucciones de Despliegue para que sea "Real"
+Para que estos comandos funcionen en tu Netlify ahora mismo, sigue estos pasos:
+
+Crea una cuenta gratuita en Supabase.com: Crea un proyecto llamado "ContacNeed".
+
+En Netlify: Ve a Site Settings > Environment Variables.
+
+
+vamos a dejar de jugar con maquetas y vamos a montar la columna vertebral de ContacNeed.
+
+Para que esta red social funcione con la precisión que exiges, el "Agente" de Netlify no solo debe diseñar, debe estructurar la base de datos. Sin tablas, no hay memoria; sin memoria, no hay red social.
+
+Aquí tienes la Sentencia Maestra y la estructura de datos que debes copiar y pegar en el chat del Agente de Netlify para que ejecute la integración real ahora mismo:
+
+1. El Comando de Ejecución (Pégalo así al Agente)
+"Actúa como Ingeniero Senior de Software. Olvida el código estático anterior. Configura el ecosistema ContacNeed usando Supabase como Backend-as-a-Service para resolver las fallas de funcionalidad:
+
+Autenticación Real: Implementa supabase.auth para el registro e inicio de sesión. La sesión debe ser persistente (usar onAuthStateChange) para que el sistema recuerde al usuario al refrescar la página.
+
+Seguridad de Admin: Crea un Middleware que bloquee el acceso a /admin. Solo usuarios con la columna is_admin: true en la tabla profiles pueden entrar.
+
+Base de Datos Dinámica: Crea y conecta las tablas profiles (para especialistas) y needs (para requerimientos). Los íconos de la interfaz deben hacer consultas SELECT a estas tablas, no estar vacíos.
+
+Pasarela de Pagos: Vincula los botones de membresía con Stripe Checkout usando variables de entorno para las API Keys. Tras el pago, el campo is_premium debe actualizarse a true automáticamente.
+
+Corrección de Rutas: Asegura que todos los assets e íconos usen rutas relativas correctas para que no haya errores 404."
+
+2. Esquema Técnico de la Base de Datos (Estructura de Control)
+Para que el sistema "sepa" quién es quién, estas son las tablas que el código va a gestionar
+
+
+Tabla,Columnas Clave,Función
+profiles,"id, full_name, specialty, is_premium, is_admin",Almacena a los profesionales y sus permisos.
+needs,"id, user_id, title, description, category, status",El muro donde la gente publica lo que necesita.
+connections,"id, sender_id, receiver_id, timestamp",El motor que une al que necesita con el que ofrece.
+
+Agrega estas variables:
+
+SUPABASE_URL: (La que te de Supabase).
+
+SUPABASE_KEY: (Tu llave secreta).
+
+STRIPE_SECRET_KEY: (De tu panel de Stripe).
+
+En el Agente de Netlify: Pégale este mensaje:
+
+"Usa el SDK de Supabase para la autenticación y la base de datos de perfiles. Implementa un Auth Guard en la ruta /admin y conecta los botones de pago usando Stripe Checkout. No quiero una maqueta, quiero que los datos se guarden en la base de datos."
+
+
+Al darle estas instrucciones al Agente:
+
+El Login ya no fallará: Cuando un usuario se registre, sus datos se guardarán físicamente en el servidor.
+
+La sección Admin será privada: Si alguien intenta entrar sin ser tú (el administrador), el sistema lo expulsará automáticamente al inicio.
+
+Los pagos serán operativos: Al dar clic en pagar, se abrirá la pasarela oficial de Stripe con el nombre de tu centro, procesará el dinero y devolverá al usuario a la red con su cuenta activa.
+
+Haz esto: Pégale el comando del punto 1 al Agente de Netlify. En cuanto termine de procesar, la URL de vista previa que te dé ya tendrá que permitirte crear una cuenta real que se mantenga abierta aunque cierres el navegador.
+
+El "Build Command" (La construcción)
+A veces el Agente intenta publicar el sitio como si fuera una página simple, pero ahora estamos usando una Red Social Funcional.
+
+Asegúrate de que en la configuración de Netlify, el comando de instalación sea: npm install
+
+Y el comando de construcción sea: npm run build o vite build (dependiendo de lo que esté usando el agente).
+
+Si el Agente te pregunta: "No encuentro las librerías", dile: "Instala supabase-js y stripe-js usando npm".
+
+3. El redireccionamiento (Filtro Anti-Errores)
+Como vas a tener rutas como /admin, /dashboard o /login, si alguien refresca la página, Netlify podría dar un error "404 Page Not Found".
+
+Para evitarlo, dile al Agente: "Crea un archivo llamado _redirects en la carpeta pública con la instrucción: /* /index.html  200".
+
+Esto obliga a que no importa qué haga el usuario, la red social siempre cargue correctamente.

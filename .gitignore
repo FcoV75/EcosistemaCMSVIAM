@@ -1,2 +1,9 @@
 # Local Netlify folder
 .netlify
+
+# Secrets — never commit credentials
+**/SupaB.txt
+**/VITE_CLOUDINARY.txt
+**/.env
+**/.env.local
+contacneed6.txt

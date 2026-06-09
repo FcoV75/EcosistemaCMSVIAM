@@ -1,0 +1,28 @@
+Dime por favor que es lo que hace falta para que esta red sea funcional mi amigo, porque está llena de fallas indeseables y no está funcional:
+te dejo la lista de fallas:
+
+En la barra superior no veo que la campana de notificaciones de la izquierda sea funcional, pereciera que tiene un mensaje peo no funciona, ese espacio debe de existir lógicamente.
+
+También note que ni el ícono de usuario de al lado esa funcionando, 
+
+En donde se registra el Estado en que estás viviendo que marca Guadalajara no funciona el botón ni te permite cambiarte a otro Estado y se supone que eso debía de hacer, 
+
+Ni que el botón de iniciar sesión funciona para quienes ya están inscritos, tampoco hay botón de salida o cerrar sesión,  
+
+No hay una sección de ayuda para que la IA pueda auxiliar o un espacio para que se pueda dirigir a un mail, este es el mail que usarás ayudacn@gmail.com
+
+ni que el botón de imagen y de video funcionan, ni el de compartir, e igualmente en la sección de hacer un negocio de la zona Pro ningún botón de subir imagen o subir algo más sirve, los botones de me gusta y no me gusta están inactivos y no se puede dejar algún comentario a lo publicado, son muchos detalles, 
+
+En el menú del usuario de los clientes no deseo que esté el panel de administración general de la red, eso no es lógico, debe de estar en la página principal de registro, debe de estar como opción segunda de elección para iniciar sesión como usuario o como administrador, eso es lo lógico, 
+
+El área de subir de nivel no me lleva a stripe para pagar, de hecho solo esta activa la opción de inscripción anual, pero opción de inscripción mensual no me deja elegirla, 
+
+Y también sería ideal que el formulario de contacneed de registro tenga detrás el logo de contacneed como fondo con una transparencias de 80%. 
+
+En el cuadro de "como llegar" de los usuarios ficticios marca error en lugar de abrir google maps.  y también deseo que vuelvas a revisar los detalles del área de administración por favor y arréglalos amigo porque ninguno funciona y es indispensable que todo funcione bien en tiempo y forma, las gráficas, los detalles, los controles y menús, etc, 
+
+¿Cómo es posible que se te escapen tantos detalles?, puedo entender que la programación es cuestión de lógica en los acomodos de una estructura, pero, eres una inteligencia muy poderosa mi amigo, sabes de redes porque conoces todas las que existen, así que deberías de tener sentido común. No es un regaño mi amigo, te estimo, solo es una observación, confío en ti de todos modos y agradezco mucho tu trabajo. 
+
+
+
+ 

@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model publicaciones {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id      String?   @db.Uuid
+  contenido       String?
+  url_multimedia  String?
+  tipo_archivo    String?
+  estado          String?
+  estatus         String?   @default("aprobado")
+  fecha_creacion  DateTime? @default(now()) @db.Timestamptz(6)
+  users           users?    @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+
+  @@map("publicaciones")
+}
+
+model perfiles {
+  id         String   @id @db.Uuid
+  email      String?
+  full_name  String?
+  specialty  String?
+  estado     String?
+  es_pro     Boolean? @default(false)
+  is_premium Boolean? @default(false)
+  is_admin   Boolean? @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("perfiles")
+}
+
+model negocios {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id String?  @unique @db.Uuid
+  banner_url String?
+  items      Json?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("negocios")
+}
+
+model users {
+  id                 String          @id @db.Uuid
+  raw_user_meta_data Json?
+  publicaciones      publicaciones[]
+
+  @@map("users")
+}
