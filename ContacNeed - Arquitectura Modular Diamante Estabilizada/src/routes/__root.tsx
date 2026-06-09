@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { IdentityProvider } from '../lib/identity-context'
 import { UserProvider } from '../store/userContext'
 import { createAppQueryClient } from '../lib/query-client'
-import { getServerUser } from '../lib/auth'
+import { getServerUserFn } from '../server/auth.functions'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
@@ -17,15 +17,8 @@ export const Route = createRootRoute({
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   beforeLoad: async () => {
-    const user = await getServerUser()
-    return {
-      user: user
-        ? {
-            id: user.id,
-            email: user.email,
-          }
-        : null,
-    }
+    const user = await getServerUserFn()
+    return { user }
   },
   component: RootLayout,
 })

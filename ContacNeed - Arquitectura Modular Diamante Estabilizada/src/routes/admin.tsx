@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, CheckCircle2, Trash2, Users } from 'lucide-react'
-import { requireAdminUser } from '../lib/auth'
+import { requireAdminUserFn } from '../server/auth.functions'
 import {
   banUserAdminFn,
   deletePostAdminFn,
@@ -12,7 +12,7 @@ import {
 
 export const Route = createFileRoute('/admin')({
   beforeLoad: async () => {
-    const admin = await requireAdminUser()
+    const admin = await requireAdminUserFn()
     if (!admin) throw redirect({ to: '/' })
     return { admin }
   },

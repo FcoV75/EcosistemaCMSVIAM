@@ -2,12 +2,12 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Camera, Settings, Star, TrendingUp, HelpCircle, Store, MessageSquare, Image as ImageIcon, Sparkles, X, Plus } from 'lucide-react'
 import { useUser } from '../store/userContext'
-import { getServerUser } from '../lib/auth'
+import { getServerUserFn } from '../server/auth.functions'
 import { getNegocioFn, updateNegocioFn } from '../server/negocios.functions'
 
 export const Route = createFileRoute('/profile')({
   beforeLoad: async () => {
-    const user = await getServerUser()
+    const user = await getServerUserFn()
     if (!user) throw redirect({ to: '/' })
     return { user }
   },
