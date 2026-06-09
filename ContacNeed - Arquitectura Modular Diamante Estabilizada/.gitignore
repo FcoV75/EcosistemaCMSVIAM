@@ -3,3 +3,4 @@ dist
 .output
 .env
 .env.local
+app.config.timestamp_*.js
