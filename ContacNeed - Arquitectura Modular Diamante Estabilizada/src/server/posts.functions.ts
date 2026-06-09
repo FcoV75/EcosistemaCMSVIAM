@@ -1,5 +1,4 @@
 import { createServerFn } from '@tanstack/react-start'
-import { prisma } from '../lib/prisma.server'
 import { createSupabaseServerClient } from '../lib/supabase.server'
 import { mapPublicacionToPost } from '../lib/posts-mapper'
 import { toYouTubeEmbedUrl } from '../lib/youtube'
@@ -9,11 +8,53 @@ type GetPostsInput = {
   includePending?: boolean
 }
 
-function buildApprovedFilter(includePending: boolean) {
-  if (includePending) return {}
-  return {
-    OR: [{ estatus: 'aprobado' }, { estatus: null }],
-  }
+type PublicacionRow = {
+  id: string
+  contenido?: string | null
+  url_multimedia?: string | null
+  tipo_archivo?: string | null
+  estado?: string | null
+  estatus?: string | null
+  fecha_creacion?: string | null
+  usuario_id?: string | null
+}
+
+type PerfilRow = {
+  id: string
+  full_name?: string | null
+  specialty?: string | null
+}
+
+async function attachProfiles(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  posts: PublicacionRow[],
+) {
+  const userIds = [...new Set(posts.map((post) => post.usuario_id).filter(Boolean))] as string[]
+  if (userIds.length === 0) return posts.map((post) => ({ ...post, perfiles: null }))
+
+  const { data: profiles, error } = await supabase
+    .from('perfiles')
+    .select('id, full_name, specialty')
+    .in('id', userIds)
+
+  if (error) throw error
+
+  const profileById = new Map((profiles ?? []).map((profile: PerfilRow) => [profile.id, profile]))
+
+  return posts.map((post) => ({
+    ...post,
+    perfiles: post.usuario_id ? profileById.get(post.usuario_id) ?? null : null,
+  }))
+}
+
+function toMappedPost(post: PublicacionRow & { perfiles?: PerfilRow | null }) {
+  return mapPublicacionToPost({
+    ...post,
+    fecha_creacion: post.fecha_creacion ? new Date(post.fecha_creacion) : null,
+    perfiles: post.perfiles
+      ? { full_name: post.perfiles.full_name, specialty: post.perfiles.specialty }
+      : null,
+  })
 }
 
 export const getPosts = createServerFn({ method: 'GET' })
@@ -21,24 +62,28 @@ export const getPosts = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     const estado = data?.estado?.trim()
     const includePending = Boolean(data?.includePending)
+    const supabase = createSupabaseServerClient()
 
-    const postsData = await prisma.publicaciones.findMany({
-      where: {
-        ...buildApprovedFilter(includePending),
-        ...(estado ? { estado } : {}),
-      },
-      orderBy: { fecha_creacion: 'desc' },
-      include: {
-        perfiles: {
-          select: {
-            full_name: true,
-            specialty: true,
-          },
-        },
-      },
-    })
+    let query = supabase
+      .from('publicaciones')
+      .select(
+        'id, contenido, url_multimedia, tipo_archivo, estado, estatus, fecha_creacion, usuario_id',
+      )
+      .order('fecha_creacion', { ascending: false })
 
-    return postsData.map(mapPublicacionToPost)
+    if (!includePending) {
+      query = query.or('estatus.eq.aprobado,estatus.is.null')
+    }
+
+    if (estado) {
+      query = query.eq('estado', estado)
+    }
+
+    const { data: posts, error } = await query
+    if (error) throw error
+
+    const postsWithProfiles = await attachProfiles(supabase, posts ?? [])
+    return postsWithProfiles.map(toMappedPost)
   })
 
 export const createPostFn = createServerFn({ method: 'POST' })
@@ -56,57 +101,67 @@ export const createPostFn = createServerFn({ method: 'POST' })
       mediaUrl = toYouTubeEmbedUrl(mediaUrl) ?? mediaUrl
     }
 
-    const profile = await prisma.perfiles.findUnique({
-      where: { id: authData.user.id },
-      select: { estado: true },
-    })
+    const { data: profile } = await supabase
+      .from('perfiles')
+      .select('estado, full_name, specialty')
+      .eq('id', authData.user.id)
+      .maybeSingle()
 
-    const post = await prisma.publicaciones.create({
-      data: {
+    const { data: post, error } = await supabase
+      .from('publicaciones')
+      .insert({
         usuario_id: authData.user.id,
         contenido: content,
         url_multimedia: mediaUrl,
         estado: data.estado ?? profile?.estado ?? null,
         estatus: 'aprobado',
         tipo_archivo: data.tipo_archivo ?? null,
-      },
-      include: {
-        perfiles: {
-          select: {
-            full_name: true,
-            specialty: true,
-          },
-        },
-      },
-    })
+      })
+      .select(
+        'id, contenido, url_multimedia, tipo_archivo, estado, estatus, fecha_creacion, usuario_id',
+      )
+      .single()
 
-    return mapPublicacionToPost(post)
+    if (error) throw error
+
+    return toMappedPost({
+      ...post,
+      perfiles: profile
+        ? { id: authData.user.id, full_name: profile.full_name, specialty: profile.specialty }
+        : null,
+    })
   })
 
 export const deletePostFn = createServerFn({ method: 'POST' })
   .inputValidator((d: any) => d)
   .handler(async ({ data }) => {
-    await prisma.publicaciones.delete({ where: { id: data.id } })
+    const supabase = createSupabaseServerClient()
+    const { error } = await supabase.from('publicaciones').delete().eq('id', data.id)
+    if (error) throw error
     return { success: true }
   })
 
 export const updatePostFn = createServerFn({ method: 'POST' })
   .inputValidator((d: any) => d)
   .handler(async ({ data }) => {
-    await prisma.publicaciones.update({
-      where: { id: data.id },
-      data: { contenido: data.content },
-    })
+    const supabase = createSupabaseServerClient()
+    const { error } = await supabase
+      .from('publicaciones')
+      .update({ contenido: data.content })
+      .eq('id', data.id)
+    if (error) throw error
     return { success: true }
   })
 
 export const reportContentFn = createServerFn({ method: 'POST' })
   .inputValidator((d: any) => d)
   .handler(async ({ data }) => {
-    await prisma.publicaciones.update({
-      where: { id: data.postId },
-      data: { estatus: 'pendiente' },
-    })
+    const supabase = createSupabaseServerClient()
+    const { error } = await supabase
+      .from('publicaciones')
+      .update({ estatus: 'pendiente' })
+      .eq('id', data.postId)
+    if (error) throw error
     return { success: true }
   })
 
