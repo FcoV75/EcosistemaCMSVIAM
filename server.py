@@ -20,6 +20,14 @@ def _cors_headers(response):
 def after_request(response):
     return _cors_headers(response)
 
+from werkzeug.exceptions import HTTPException
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    resp = jsonify({"error": e.name, "detalle": e.description})
+    resp.status_code = e.code
+    return _cors_headers(resp)
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     resp = jsonify({"error": "Error interno del servidor", "detalle": str(e)})
