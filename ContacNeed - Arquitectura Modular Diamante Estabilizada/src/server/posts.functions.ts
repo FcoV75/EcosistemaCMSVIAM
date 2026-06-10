@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { createSupabaseServerClient } from '../lib/supabase.server'
+import { createSupabaseAdminClient, createSupabaseServerClient } from '../lib/supabase.server'
 import { mapPublicacionToPost } from '../lib/posts-mapper'
 import { toYouTubeEmbedUrl } from '../lib/youtube'
 
@@ -26,7 +26,7 @@ type PerfilRow = {
 }
 
 async function attachProfiles(
-  supabase: ReturnType<typeof createSupabaseServerClient>,
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
   posts: PublicacionRow[],
 ) {
   const userIds = [...new Set(posts.map((post) => post.usuario_id).filter(Boolean))] as string[]
@@ -67,7 +67,7 @@ export const getPosts = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     const estado = data?.estado?.trim()
     const includePending = Boolean(data?.includePending)
-    const supabase = createSupabaseServerClient()
+    const supabase = createSupabaseAdminClient()
 
     let query = supabase
       .from('publicaciones')
@@ -106,13 +106,13 @@ export const createPostFn = createServerFn({ method: 'POST' })
       mediaUrl = toYouTubeEmbedUrl(mediaUrl) ?? mediaUrl
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await createSupabaseAdminClient()
       .from('perfiles')
       .select('estado, nombre, descripcion_profesion')
       .eq('id', authData.user.id)
       .maybeSingle()
 
-    const { data: post, error } = await supabase
+    const { data: post, error } = await createSupabaseAdminClient()
       .from('publicaciones')
       .insert({
         usuario_id: authData.user.id,
@@ -144,7 +144,7 @@ export const createPostFn = createServerFn({ method: 'POST' })
 export const deletePostFn = createServerFn({ method: 'POST' })
   .inputValidator((d: any) => d)
   .handler(async ({ data }) => {
-    const supabase = createSupabaseServerClient()
+    const supabase = createSupabaseAdminClient()
     const { error } = await supabase.from('publicaciones').delete().eq('id', data.id)
     if (error) throw error
     return { success: true }
@@ -153,7 +153,7 @@ export const deletePostFn = createServerFn({ method: 'POST' })
 export const updatePostFn = createServerFn({ method: 'POST' })
   .inputValidator((d: any) => d)
   .handler(async ({ data }) => {
-    const supabase = createSupabaseServerClient()
+    const supabase = createSupabaseAdminClient()
     const { error } = await supabase
       .from('publicaciones')
       .update({ contenido: data.content })
@@ -165,7 +165,7 @@ export const updatePostFn = createServerFn({ method: 'POST' })
 export const reportContentFn = createServerFn({ method: 'POST' })
   .inputValidator((d: any) => d)
   .handler(async ({ data }) => {
-    const supabase = createSupabaseServerClient()
+    const supabase = createSupabaseAdminClient()
     const { error } = await supabase
       .from('publicaciones')
       .update({ estatus: 'pendiente' })
