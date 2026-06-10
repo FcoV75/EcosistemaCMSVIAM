@@ -153,6 +153,21 @@ def renderizar():
         # El servidor responde con un error 500 estructurado en vez de colapsar en silencio
         return jsonify({"error": "No se pudo iniciar el renderizado", "detalle": str(e)}), 500
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    import shutil
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        try:
+            import imageio_ffmpeg
+            ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:
+            ffmpeg = None
+    return jsonify({
+        "status": "ok" if ffmpeg else "degraded",
+        "ffmpeg": ffmpeg or "no disponible"
+    })
+
 @app.route('/status', methods=['GET'])
 def obtener_status():
     global ESTADO_RENDER

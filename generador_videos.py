@@ -1,10 +1,57 @@
 import os
+import re
 import sys
+import shutil
 import cv2
 import numpy as np
 import json
 import argparse
 import subprocess
+
+
+def resolver_ffmpeg():
+    candidatos = [
+        os.environ.get("FFMPEG_BINARY"),
+        shutil.which("ffmpeg"),
+    ]
+    for ruta in candidatos:
+        if ruta and os.path.isfile(ruta):
+            return ruta
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
+
+
+def obtener_duracion_audio(ruta_audio, ffmpeg_bin=None):
+    if not ruta_audio or not os.path.exists(ruta_audio):
+        return 30.0
+
+    try:
+        from mutagen.mp3 import MP3
+        return float(MP3(ruta_audio).info.length)
+    except Exception:
+        pass
+
+    ffmpeg_bin = ffmpeg_bin or resolver_ffmpeg()
+    if ffmpeg_bin:
+        try:
+            resultado = subprocess.run(
+                [ffmpeg_bin, "-i", ruta_audio],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            salida = (resultado.stderr or "") + (resultado.stdout or "")
+            coincidencia = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", salida)
+            if coincidencia:
+                horas, minutos, segundos = coincidencia.groups()
+                return int(horas) * 3600 + int(minutos) * 60 + float(segundos)
+        except Exception as e:
+            print(f"Aviso midiendo audio con ffmpeg: {e}")
+
+    return 30.0
 
 def ajustar_proporcion_lienzo(img, ancho_objetivo=1280, alto_objetivo=720):
     alto_orig, ancho_orig = img.shape[:2]
@@ -62,22 +109,14 @@ def generar_video_cloud():
     FPS = 30
     DURACION_BASE_FOTO = 5.0
 
-    # 1. Medimos la duración real del audio usando subprocess
-    duracion_audio = 0.0
-    if ruta_audio and os.path.exists(ruta_audio):
-        try:
-            resultado = subprocess.run(
-                ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', ruta_audio],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            duracion_audio = float(resultado.stdout.strip())
-        except Exception as e:
-            print(f"Aviso en ffprobe: {e}. Usando duración por defecto.")
-            duracion_audio = 30.0
-    else:
-        duracion_audio = 30.0
+    ffmpeg_bin = resolver_ffmpeg()
+    if not ffmpeg_bin:
+        print("Error crítico: FFmpeg no está disponible en el servidor.")
+        sys.exit(1)
+
+    print(f"Motor FFmpeg activo en: {ffmpeg_bin}")
+    duracion_audio = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
+    print(f"Duración detectada del audio: {duracion_audio:.2f}s")
 
     # 2. Conteo seguro de imágenes de la línea de tiempo (Corregido de raíz)
     conteo_imagenes = 0
@@ -178,8 +217,8 @@ def generar_video_cloud():
         try:
             print("Iniciando ensamble definitivo de audio y video con FFmpeg...")
             subprocess.run([
-                'ffmpeg', '-y', '-i', ruta_video_puro, '-i', ruta_audio, 
-                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', 
+                ffmpeg_bin, '-y', '-i', ruta_video_puro, '-i', ruta_audio,
+                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac',
                 '-shortest', '-map', '0:v:0', '-map', '1:a:0', archivo_final
             ], capture_output=True, text=True, check=True)
             print("¡Ensamble de alta fidelidad completado exitosamente!")
@@ -190,7 +229,7 @@ def generar_video_cloud():
         try:
             print("Iniciando ensamble de fallback (sin pista de audio)...")
             subprocess.run([
-                'ffmpeg', '-y', '-i', ruta_video_puro, 
+                ffmpeg_bin, '-y', '-i', ruta_video_puro,
                 '-c:v', 'libx264', '-pix_fmt', 'yuv420p', archivo_final
             ], capture_output=True, text=True, check=True)
             print("Ensamble de fallback completado.")
