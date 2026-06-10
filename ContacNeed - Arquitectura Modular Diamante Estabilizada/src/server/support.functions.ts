@@ -1,21 +1,35 @@
 import { createServerFn } from '@tanstack/react-start'
 
+const SYSTEM_CONTEXT = `ContacNeed es una red social mexicana que conecta oficios, profesiones y especialidades por estado.
+Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin.
+Cloudinary sube fotos/videos con preset contacneed_uploads. Soporte técnico: pedir correo, navegador y captura del error.`
+
 const FAQ_ENTRIES: Record<string, string> = {
   registro:
-    'Puedes registrarte gratis como Observador o como profesional. Ve a Iniciar sesión y completa tu perfil con oficio, profesión o especialidad.',
-  pro: 'ContacNeed PRO desbloquea tienda personalizada, más publicaciones multimedia y mayor visibilidad local. Usa el botón "Subir de nivel" para pagar con Stripe.',
+    'Regístrate en /registro: nombre, email, contraseña, dirección, CP, celular, estado, municipio y tu oficio/profesión/especialidad. La cédula solo aplica a profesionales o especialistas.',
+  pro: 'ContacNeed PRO ($300 MXN/mes o $3,000 MXN/año) desbloquea tienda personalizada y mayor visibilidad. Paga con Stripe en "Subir de nivel" o PayPal: paypal.me/JValdezOsorio/300.00MXN (mensual) y /3000.00MXN (anual).',
   publicar:
-    'En la Pizarra de Servicios escribe tu contenido, adjunta imagen o enlace de YouTube, y pulsa Publicar. Los videos de YouTube se convierten automáticamente a formato embed.',
+    'En la Pizarra escribe tu mensaje, adjunta foto/video desde la galería o pega enlace de YouTube. Los videos de YouTube se convierten a embed automáticamente.',
   estados:
-    'Usa el selector de los 32 estados de México en la barra superior para filtrar publicaciones y profesionales por ubicación.',
+    'Usa el selector de estado en la barra superior para ver publicaciones y profesionales de cada entidad de México.',
+  cloudinary:
+    'Si falla la subida de imagen, verifica conexión y vuelve a intentar. El preset correcto es contacneed_uploads en Cloudinary dgkruw6n7.',
   soporte:
-    'Si tienes un problema técnico, describe tu error con pantallazo y correo de cuenta. El equipo revisará reportes marcados desde cada publicación.',
+    'Para ayuda humana, envía tu correo de cuenta, descripción del problema y captura de pantalla al equipo de ContacNeed.',
 }
 
 function matchFaq(question: string) {
   const normalized = question.toLowerCase()
 
-  if (normalized.includes('pro') || normalized.includes('pago') || normalized.includes('stripe')) {
+  if (normalized.includes('cloudinary') || normalized.includes('upload') || normalized.includes('subir')) {
+    return FAQ_ENTRIES.cloudinary
+  }
+  if (
+    normalized.includes('pro') ||
+    normalized.includes('pago') ||
+    normalized.includes('stripe') ||
+    normalized.includes('paypal')
+  ) {
     return FAQ_ENTRIES.pro
   }
   if (normalized.includes('estado') || normalized.includes('ubicacion') || normalized.includes('ubicación')) {
@@ -24,7 +38,7 @@ function matchFaq(question: string) {
   if (normalized.includes('public') || normalized.includes('video') || normalized.includes('youtube')) {
     return FAQ_ENTRIES.publicar
   }
-  if (normalized.includes('registr') || normalized.includes('cuenta')) {
+  if (normalized.includes('registr') || normalized.includes('cuenta') || normalized.includes('login')) {
     return FAQ_ENTRIES.registro
   }
 
@@ -34,6 +48,9 @@ function matchFaq(question: string) {
 export const askSupportBotFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { question: string }) => d)
   .handler(async ({ data }) => {
+    const question = data.question.trim()
+    if (!question) return { answer: 'Escribe tu pregunta y te ayudo con ContacNeed.' }
+
     const apiKey = process.env.GEMINI_API_KEY
 
     if (apiKey) {
@@ -48,7 +65,7 @@ export const askSupportBotFn = createServerFn({ method: 'POST' })
                 {
                   parts: [
                     {
-                      text: `Eres el bot de soporte de ContacNeed, red social de oficios en México. Responde en español, breve y útil. Pregunta: ${data.question}`,
+                      text: `${SYSTEM_CONTEXT}\n\nResponde en español, máximo 4 oraciones, tono cercano y profesional. Si no sabes algo, indica cómo contactar soporte.\n\nUsuario: ${question}`,
                     },
                   ],
                 },
@@ -67,5 +84,5 @@ export const askSupportBotFn = createServerFn({ method: 'POST' })
       }
     }
 
-    return { answer: matchFaq(data.question) }
+    return { answer: matchFaq(question) }
   })

@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { IdentityProvider } from '../lib/identity-context'
 import { UserProvider } from '../store/userContext'
 import { createAppQueryClient } from '../lib/query-client'
-import { getServerUserFn } from '../server/auth.functions'
+import { getSessionContextFn } from '../server/auth.functions'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
@@ -17,15 +17,14 @@ export const Route = createRootRoute({
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   beforeLoad: async () => {
-    const user = await getServerUserFn()
-    return { user }
+    return getSessionContextFn()
   },
   component: RootLayout,
 })
 
 function RootLayout() {
   const queryClient = useMemo(() => createAppQueryClient(), [])
-  const { user } = Route.useRouteContext()
+  const { user, isAdmin } = Route.useRouteContext()
 
   return (
     <html lang="es">
@@ -34,7 +33,7 @@ function RootLayout() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <IdentityProvider user={user}>
+          <IdentityProvider user={user} isAdmin={isAdmin}>
             <UserProvider>
               <Outlet />
             </UserProvider>

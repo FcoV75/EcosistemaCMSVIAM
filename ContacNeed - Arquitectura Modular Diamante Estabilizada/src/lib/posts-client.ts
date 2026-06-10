@@ -13,7 +13,10 @@ type PublicacionRow = {
 type PerfilRow = {
   id: string
   nombre?: string | null
+  habilidad_empirica?: string | null
   descripcion_profesion?: string | null
+  verificado?: boolean | null
+  es_fundador?: boolean | null
 }
 
 function getPublicSupabaseConfig() {
@@ -54,7 +57,7 @@ async function attachProfiles(posts: PublicacionRow[]) {
   try {
     const ids = userIds.map((id) => `"${id}"`).join(',')
     const profiles = await supabaseRest<PerfilRow[]>(
-      `perfiles?select=id,nombre,descripcion_profesion&id=in.(${ids})`,
+      `perfiles?select=id,nombre,habilidad_empirica,descripcion_profesion,verificado,es_fundador&id=in.(${ids})`,
     )
     const profileById = new Map(profiles.map((profile) => [profile.id, profile]))
 
@@ -87,7 +90,10 @@ export async function fetchPublicPosts(estado?: string) {
       perfiles: post.perfiles
         ? {
             nombre: post.perfiles.nombre,
+            habilidad_empirica: post.perfiles.habilidad_empirica,
             descripcion_profesion: post.perfiles.descripcion_profesion,
+            verificado: post.perfiles.verificado,
+            es_fundador: post.perfiles.es_fundador,
           }
         : null,
     }),

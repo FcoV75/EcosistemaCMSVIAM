@@ -7,18 +7,23 @@ export type IdentityUser = {
 
 type IdentityContextValue = {
   user: IdentityUser | null
+  isAdmin: boolean
 }
 
-const IdentityContext = createContext<IdentityContextValue>({ user: null })
+const IdentityContext = createContext<IdentityContextValue>({ user: null, isAdmin: false })
 
 export function IdentityProvider({
   user,
+  isAdmin = false,
   children,
 }: {
   user: IdentityUser | null
+  isAdmin?: boolean
   children: ReactNode
 }) {
-  return <IdentityContext.Provider value={{ user }}>{children}</IdentityContext.Provider>
+  return (
+    <IdentityContext.Provider value={{ user, isAdmin }}>{children}</IdentityContext.Provider>
+  )
 }
 
 export function useIdentity() {

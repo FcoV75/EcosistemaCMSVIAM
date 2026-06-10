@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { ContacNeedLogo } from './ContacNeedLogo'
 import { ProAdPanel } from './ProAdPanel'
 import { RadioPlayer } from './RadioPlayer'
@@ -5,6 +6,7 @@ import { SidebarNav } from './SidebarNav'
 import { StateSelector } from './StateSelector'
 import { SupportBot } from './SupportBot'
 import { StripeSubscriptionModal } from './StripeSubscriptionModal'
+import { useIdentity } from '../lib/identity-context'
 import type { MexicoState } from '../lib/mexico-states'
 
 type AppShellProps = {
@@ -24,33 +26,67 @@ export function AppShell({
   onOpenStripe,
   onCloseStripe,
 }: AppShellProps) {
+  const { user, isAdmin } = useIdentity()
+
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-white">
+    <div className="cn-metallic-bg relative min-h-screen overflow-x-hidden text-white">
       <div
-        className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.07]"
+        className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.04]"
         aria-hidden
       >
-        <ContacNeedLogo className="h-[min(70vw,28rem)] w-[min(70vw,28rem)]" />
+        <ContacNeedLogo className="h-[min(75vw,32rem)] w-auto max-w-[90vw]" />
       </div>
 
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(168,85,247,0.15),_transparent_50%)]" />
-
-      <header className="sticky top-0 z-30 border-b border-purple-500/20 bg-slate-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-4 py-3 lg:px-6">
+      <header className="cn-metallic-header sticky top-0 z-30 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-6">
           <div className="flex items-center gap-3">
-            <ContacNeedLogo className="h-10 w-10 shrink-0" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-400">ContacNeed</p>
-              <h1 className="text-lg font-black text-white sm:text-xl">La Red Social de Oficios</h1>
+            <ContacNeedLogo className="h-11 w-auto max-w-[130px] shrink-0 sm:h-12 sm:max-w-[150px]" />
+            <div className="hidden sm:block">
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-300/90">
+                La Red Social de Oficios
+              </p>
+              <p className="text-xs text-slate-400">México · Profesionales · Servicios</p>
             </div>
           </div>
-          <p className="hidden text-xs text-purple-200/60 sm:block">México · Profesionales · Servicios</p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {user ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="cn-btn-metallic-outline rounded-xl px-3 py-2 text-xs font-semibold text-amber-100 hover:text-white"
+                >
+                  Mi Perfil
+                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="rounded-xl border border-purple-400/40 bg-purple-900/40 px-3 py-2 text-xs font-semibold text-purple-100 hover:bg-purple-800/50"
+                  >
+                    Panel Admin
+                  </Link>
+                )}
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="cn-btn-metallic-outline rounded-xl px-3 py-2 text-xs font-semibold text-amber-100"
+                >
+                  Iniciar sesión
+                </Link>
+                <Link to="/registro" className="cn-btn-metallic rounded-xl px-3 py-2 text-xs font-bold text-slate-950">
+                  Registrarse
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
       <div className="relative mx-auto grid max-w-[90rem] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-12 lg:px-6">
         <aside className="space-y-4 lg:col-span-3 lg:sticky lg:top-24 lg:self-start">
-          <SidebarNav onOpenStripe={onOpenStripe} />
+          <SidebarNav onOpenStripe={onOpenStripe} isLoggedIn={Boolean(user)} />
           <StateSelector value={selectedState} onChange={onStateChange} variant="sidebar" />
           <RadioPlayer />
         </aside>

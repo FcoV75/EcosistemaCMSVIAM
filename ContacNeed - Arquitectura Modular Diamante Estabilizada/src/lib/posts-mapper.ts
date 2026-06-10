@@ -42,11 +42,18 @@ export function mapPublicacionToPost(post: {
   estatus?: string | null
   perfiles?: {
     nombre?: string | null
+    habilidad_empirica?: string | null
     descripcion_profesion?: string | null
+    verificado?: boolean | null
+    es_fundador?: boolean | null
   } | null
 }): MappedPost {
   const media = toMediaFields(post.url_multimedia)
   const userId = post.usuario_id ?? 'anon'
+  const profession =
+    post.perfiles?.habilidad_empirica?.trim() ||
+    post.perfiles?.descripcion_profesion?.split('.')[0]?.trim() ||
+    'Profesional'
 
   return {
     id: post.id,
@@ -62,9 +69,9 @@ export function mapPublicacionToPost(post: {
     authorData: {
       name: post.perfiles?.nombre ?? 'Usuario',
       avatar: `https://i.pravatar.cc/150?u=${userId}`,
-      title: post.perfiles?.descripcion_profesion ?? 'Profesional',
-      verified: false,
-      isFounder: false,
+      title: profession,
+      verified: Boolean(post.perfiles?.verificado),
+      isFounder: Boolean(post.perfiles?.es_fundador),
     },
   }
 }

@@ -21,7 +21,7 @@ export function RadioPlayer() {
   const [volume, setVolume] = useState(0.7)
   const [muted, setMuted] = useState(false)
   const [trackTitle, setTrackTitle] = useState('Selecciona un género para comenzar')
-  const [showGenres, setShowGenres] = useState(false)
+  const [showGenres, setShowGenres] = useState(true)
   const [activeGenre, setActiveGenre] = useState('')
 
   const genres = getGenreKeys()
@@ -113,7 +113,9 @@ export function RadioPlayer() {
     if (!audio) return
 
     audio.volume = muted ? 0 : volume
-    audio.controlsList.add('nodownload')
+    if ('controlsList' in audio) {
+      audio.controlsList.add('nodownload')
+    }
 
     const onPlay = () => setPlaying(true)
     const onPause = () => setPlaying(false)

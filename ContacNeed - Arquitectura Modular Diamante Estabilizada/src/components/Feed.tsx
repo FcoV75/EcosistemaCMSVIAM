@@ -259,7 +259,9 @@ function Composer({
     if (!file) return
 
     revokePreview()
-    const kind = file.type.startsWith('video/') ? 'video' : 'image'
+    const isVideo =
+      file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(file.name)
+    const kind = isVideo ? 'video' : 'image'
     setPreview({ file, url: URL.createObjectURL(file), kind })
     setError(null)
   }
@@ -401,9 +403,14 @@ function Composer({
             </button>
 
             {preview.kind === 'video' ? (
-
-              <video src={preview.url} controls className="max-h-56 w-full object-contain" />
-
+              <video
+                src={preview.url}
+                controls
+                preload="metadata"
+                playsInline
+                muted
+                className="max-h-56 w-full bg-black object-contain"
+              />
             ) : (
 
               <img src={preview.url} alt="Vista previa" className="max-h-56 w-full object-contain" />

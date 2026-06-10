@@ -21,7 +21,10 @@ type PublicacionRow = {
 type PerfilRow = {
   id: string
   nombre?: string | null
+  habilidad_empirica?: string | null
   descripcion_profesion?: string | null
+  verificado?: boolean | null
+  es_fundador?: boolean | null
 }
 
 async function attachProfiles(
@@ -33,7 +36,7 @@ async function attachProfiles(
 
   const { data: profiles, error } = await supabase
     .from('perfiles')
-    .select('id, nombre, descripcion_profesion')
+    .select('id, nombre, habilidad_empirica, descripcion_profesion, verificado, es_fundador')
     .in('id', userIds)
 
   if (error) {
@@ -55,7 +58,10 @@ function toMappedPost(post: PublicacionRow & { perfiles?: PerfilRow | null }) {
     perfiles: post.perfiles
       ? {
           nombre: post.perfiles.nombre,
+          habilidad_empirica: post.perfiles.habilidad_empirica,
           descripcion_profesion: post.perfiles.descripcion_profesion,
+          verificado: post.perfiles.verificado,
+          es_fundador: post.perfiles.es_fundador,
         }
       : null,
   })
@@ -107,7 +113,7 @@ export const createPostFn = createServerFn({ method: 'POST' })
 
     const { data: profile } = await createSupabaseAdminClient()
       .from('perfiles')
-      .select('estado, nombre, descripcion_profesion')
+      .select('estado, nombre, habilidad_empirica, descripcion_profesion, verificado, es_fundador')
       .eq('id', authData.user.id)
       .maybeSingle()
 
@@ -133,7 +139,10 @@ export const createPostFn = createServerFn({ method: 'POST' })
         ? {
             id: authData.user.id,
             nombre: profile.nombre,
+            habilidad_empirica: profile.habilidad_empirica,
             descripcion_profesion: profile.descripcion_profesion,
+            verificado: profile.verificado,
+            es_fundador: profile.es_fundador,
           }
         : null,
     })
