@@ -12,7 +12,6 @@ type PublicacionRow = {
   id: string
   contenido?: string | null
   url_multimedia?: string | null
-  tipo_archivo?: string | null
   estado?: string | null
   estatus?: string | null
   fecha_creacion?: string | null
@@ -72,7 +71,7 @@ export const getPosts = createServerFn({ method: 'GET' })
     let query = supabase
       .from('publicaciones')
       .select(
-        'id, contenido, url_multimedia, tipo_archivo, estado, estatus, fecha_creacion, usuario_id',
+        'id, contenido, url_multimedia, estado, estatus, fecha_creacion, usuario_id',
       )
       .order('fecha_creacion', { ascending: false })
 
@@ -120,10 +119,9 @@ export const createPostFn = createServerFn({ method: 'POST' })
         url_multimedia: mediaUrl,
         estado: data.estado ?? profile?.estado ?? null,
         estatus: 'aprobado',
-        tipo_archivo: data.tipo_archivo ?? null,
       })
       .select(
-        'id, contenido, url_multimedia, tipo_archivo, estado, estatus, fecha_creacion, usuario_id',
+        'id, contenido, url_multimedia, estado, estatus, fecha_creacion, usuario_id',
       )
       .single()
 

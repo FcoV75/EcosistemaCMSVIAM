@@ -4,7 +4,6 @@ type PublicacionRow = {
   id: string
   contenido?: string | null
   url_multimedia?: string | null
-  tipo_archivo?: string | null
   estado?: string | null
   estatus?: string | null
   fecha_creacion?: string | null
@@ -70,7 +69,7 @@ async function attachProfiles(posts: PublicacionRow[]) {
 
 export async function fetchPublicPosts(estado?: string) {
   let path =
-    'publicaciones?select=id,contenido,url_multimedia,tipo_archivo,estado,estatus,fecha_creacion,usuario_id' +
+    'publicaciones?select=id,contenido,url_multimedia,estado,estatus,fecha_creacion,usuario_id' +
     '&or=(estatus.eq.aprobado,estatus.is.null)' +
     '&order=fecha_creacion.desc'
 

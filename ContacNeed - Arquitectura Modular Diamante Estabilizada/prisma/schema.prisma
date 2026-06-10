@@ -13,7 +13,6 @@ model publicaciones {
   usuario_id     String?   @db.Uuid
   contenido      String?
   url_multimedia String?
-  tipo_archivo   String?
   estado         String?
   estatus        String?   @default("aprobado")
   fecha_creacion DateTime? @default(now()) @db.Timestamptz(6)
@@ -39,11 +38,9 @@ model perfiles {
 }
 
 model negocios {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  usuario_id String?   @unique @db.Uuid
+  id         String @id @db.Uuid
   banner_url String?
   items      Json?
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
 
   @@map("negocios")
 }

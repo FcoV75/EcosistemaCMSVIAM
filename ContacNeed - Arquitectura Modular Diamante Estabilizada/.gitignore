@@ -4,3 +4,6 @@ dist
 .env
 .env.local
 app.config.timestamp_*.js
+
+# Local Netlify folder
+.netlify

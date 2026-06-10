@@ -5,7 +5,7 @@ import { getServerUser } from '../lib/auth'
 export const getNegocioFn = createServerFn({ method: 'GET' })
   .inputValidator((d: string) => d)
   .handler(async ({ data: userId }) => {
-    return prisma.negocios.findFirst({ where: { usuario_id: userId } })
+    return prisma.negocios.findUnique({ where: { id: userId } })
   })
 
 export const updateNegocioFn = createServerFn({ method: 'POST' })
@@ -14,21 +14,14 @@ export const updateNegocioFn = createServerFn({ method: 'POST' })
     const user = await getServerUser()
     if (!user) throw new Error('Not authenticated')
 
-    const existing = await prisma.negocios.findFirst({ where: { usuario_id: user.id } })
-
-    if (existing) {
-      return prisma.negocios.update({
-        where: { id: existing.id },
-        data: {
-          banner_url: data.banner_url,
-          items: data.items ?? [],
-        },
-      })
-    }
-
-    return prisma.negocios.create({
-      data: {
-        usuario_id: user.id,
+    return prisma.negocios.upsert({
+      where: { id: user.id },
+      update: {
+        banner_url: data.banner_url,
+        items: data.items ?? [],
+      },
+      create: {
+        id: user.id,
         banner_url: data.banner_url,
         items: data.items ?? [],
       },

@@ -57,6 +57,9 @@ export function Feed({ selectedState }: FeedProps) {
       {postsQuery.isError && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           No se pudo cargar el feed. Usa el botón Actualizar para reintentar.
+          {postsQuery.error instanceof Error && postsQuery.error.message ? (
+            <span className="mt-1 block text-xs opacity-80">{postsQuery.error.message}</span>
+          ) : null}
         </p>
       )}
 
