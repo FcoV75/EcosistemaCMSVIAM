@@ -117,35 +117,74 @@ def renderizar():
 
         leyenda_portada = request.form.get('leyenda_portada', '')
         leyenda_cierre = request.form.get('leyenda_cierre', '')
-        
+        letra_cancion = request.form.get('letra_cancion', '')
+        subtitulos_activos = request.form.get('subtitulos_activos', 'false').lower() == 'true'
+
         config_data = {
             "linea_tiempo": linea_tiempo_procesada,
             "ruta_portada": "",
             "ruta_cierre": "",
             "leyenda_portada": leyenda_portada,
-            "leyenda_cierre": leyenda_cierre
+            "leyenda_cierre": leyenda_cierre,
+            "letra_cancion": letra_cancion,
+            "subtitulos_activos": subtitulos_activos
         }
-        
-        # 3. Guardar imágenes dinámicas de forma blindada con expansión automática de la lista de control
+
+        def guardar_archivo(file_storage, prefijo, extension_default):
+            nombre_orig = file_storage.filename or prefijo
+            extension = os.path.splitext(nombre_orig)[1].lower() or extension_default
+            ruta = os.path.join(UPLOAD_FOLDER, f"{prefijo}{extension}")
+            file_storage.save(ruta)
+            return ruta
+
+        portada_file = request.files.get('portada_file')
+        if portada_file and portada_file.filename:
+            config_data["ruta_portada"] = guardar_archivo(portada_file, "portada_temp", ".jpg")
+
+        cierre_file = request.files.get('cierre_file')
+        if cierre_file and cierre_file.filename:
+            config_data["ruta_cierre"] = guardar_archivo(cierre_file, "cierre_temp", ".jpg")
+
         for key in request.files:
             if key.startswith("imagen_"):
                 try:
                     indice = int(key.split("_")[1])
-                    img_file = request.files[key]
-                    nombre_orig = img_file.filename or f"img_{indice}.jpg"
+                    media_file = request.files[key]
+                    nombre_orig = media_file.filename or f"media_{indice}.jpg"
                     extension = os.path.splitext(nombre_orig)[1].lower() or ".jpg"
-                    if extension not in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
-                        extension = ".jpg"
-                    img_path = os.path.join(UPLOAD_FOLDER, f"img_{indice}_temp{extension}")
-                    img_file.save(img_path)
-                    
-                    # BLINDAJE NUEVO: Si el índice no existe en la lista, expandimos dinámicamente para evitar desbordes
+                    if extension in (".mp4", ".mov", ".webm", ".avi"):
+                        media_path = os.path.join(UPLOAD_FOLDER, f"video_{indice}_temp{extension}")
+                        tipo = "video"
+                    else:
+                        if extension not in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
+                            extension = ".jpg"
+                        media_path = os.path.join(UPLOAD_FOLDER, f"img_{indice}_temp{extension}")
+                        tipo = "imagen"
+                    media_file.save(media_path)
                     while len(config_data["linea_tiempo"]) <= indice:
-                        config_data["linea_tiempo"].append({"id": len(config_data["linea_tiempo"]), "texto": "", "duracion": 5.0})
-                    
-                    config_data["linea_tiempo"][indice]["ruta"] = img_path
+                        config_data["linea_tiempo"].append({
+                            "id": len(config_data["linea_tiempo"]), "texto": "", "duracion": 5.0, "tipo": "imagen"
+                        })
+                    config_data["linea_tiempo"][indice]["ruta"] = media_path
+                    config_data["linea_tiempo"][indice]["tipo"] = tipo
                 except Exception as error_img:
-                    print(f"Aviso procesando imagen individual: {error_img}")
+                    print(f"Aviso procesando media {key}: {error_img}")
+
+            elif key.startswith("video_"):
+                try:
+                    indice = int(key.split("_")[1])
+                    media_file = request.files[key]
+                    extension = os.path.splitext(media_file.filename or "")[1].lower() or ".mp4"
+                    media_path = os.path.join(UPLOAD_FOLDER, f"video_{indice}_temp{extension}")
+                    media_file.save(media_path)
+                    while len(config_data["linea_tiempo"]) <= indice:
+                        config_data["linea_tiempo"].append({
+                            "id": len(config_data["linea_tiempo"]), "texto": "", "duracion": 5.0, "tipo": "video"
+                        })
+                    config_data["linea_tiempo"][indice]["ruta"] = media_path
+                    config_data["linea_tiempo"][indice]["tipo"] = "video"
+                except Exception as error_vid:
+                    print(f"Aviso procesando video {key}: {error_vid}")
 
         config_json_path = os.path.join(UPLOAD_FOLDER, "render_config.json")
         with open(config_json_path, "w", encoding="utf-8") as f:

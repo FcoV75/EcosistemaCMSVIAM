@@ -2,18 +2,22 @@ import os
 import re
 import sys
 import shutil
+import textwrap
 import cv2
 import numpy as np
 import json
 import argparse
 import subprocess
 
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    PIL_DISPONIBLE = True
+except ImportError:
+    PIL_DISPONIBLE = False
+
 
 def resolver_ffmpeg():
-    candidatos = [
-        os.environ.get("FFMPEG_BINARY"),
-        shutil.which("ffmpeg"),
-    ]
+    candidatos = [os.environ.get("FFMPEG_BINARY"), shutil.which("ffmpeg")]
     for ruta in candidatos:
         if ruta and os.path.isfile(ruta):
             return ruta
@@ -27,53 +31,157 @@ def resolver_ffmpeg():
 def obtener_duracion_audio(ruta_audio, ffmpeg_bin=None):
     if not ruta_audio or not os.path.exists(ruta_audio):
         return 30.0
-
     try:
-        from mutagen.mp3 import MP3
-        return float(MP3(ruta_audio).info.length)
+        from mutagen import File as MutagenFile
+        meta = MutagenFile(ruta_audio)
+        if meta and meta.info and getattr(meta.info, "length", None):
+            return float(meta.info.length)
     except Exception:
         pass
-
     ffmpeg_bin = ffmpeg_bin or resolver_ffmpeg()
     if ffmpeg_bin:
         try:
             resultado = subprocess.run(
                 [ffmpeg_bin, "-i", ruta_audio],
-                capture_output=True,
-                text=True,
-                check=False
+                capture_output=True, text=True, check=False
             )
             salida = (resultado.stderr or "") + (resultado.stdout or "")
             coincidencia = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", salida)
             if coincidencia:
-                horas, minutos, segundos = coincidencia.groups()
-                return int(horas) * 3600 + int(minutos) * 60 + float(segundos)
+                h, m, s = coincidencia.groups()
+                return int(h) * 3600 + int(m) * 60 + float(s)
         except Exception as e:
-            print(f"Aviso midiendo audio con ffmpeg: {e}")
-
+            print(f"Aviso midiendo audio: {e}")
     return 30.0
+
 
 def ajustar_proporcion_lienzo(img, ancho_objetivo=1280, alto_objetivo=720):
     alto_orig, ancho_orig = img.shape[:2]
     escala = min(ancho_objetivo / ancho_orig, alto_objetivo / alto_orig)
     nuevo_ancho = int(ancho_orig * escala)
     nuevo_alto = int(alto_orig * escala)
-    
     img_redimensionada = cv2.resize(img, (nuevo_ancho, nuevo_alto), interpolation=cv2.INTER_AREA)
     lienzo = np.zeros((alto_objetivo, ancho_objetivo, 3), dtype=np.uint8)
-    
     x_offset = (ancho_objetivo - nuevo_ancho) // 2
     y_offset = (alto_objetivo - nuevo_alto) // 2
-    lienzo[y_offset:y_offset+nuevo_alto, x_offset:x_offset+nuevo_ancho] = img_redimensionada
+    lienzo[y_offset:y_offset + nuevo_alto, x_offset:x_offset + nuevo_ancho] = img_redimensionada
     return lienzo
 
-def estampar_texto_nativo(img, texto, posicion, escala_fuente=1.2, color_texto=(0, 215, 255)):
+
+def _fuente_pillow(tamano):
+    rutas = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+        "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/segoeui.ttf",
+    ]
+    for ruta in rutas:
+        if os.path.exists(ruta):
+            try:
+                return ImageFont.truetype(ruta, tamano)
+            except Exception:
+                continue
+    return ImageFont.load_default()
+
+
+def estampar_texto_sombra(img_bgr, texto, posicion, tamano=36, color=(255, 215, 0)):
+    if not texto or not str(texto).strip():
+        return img_bgr
+    texto = str(texto).strip()
     x, y = posicion
-    # Sombra negra de fondo para garantizar legibilidad perfecta
-    cv2.putText(img, texto, (x + 2, y + 2), cv2.FONT_HERSHEY_SIMPLEX, escala_fuente, (0, 0, 0), 3, cv2.LINE_AA)
-    # Texto principal al frente
-    cv2.putText(img, texto, (x, y), cv2.FONT_HERSHEY_SIMPLEX, escala_fuente, color_texto, 2, cv2.LINE_AA)
-    return img
+    if PIL_DISPONIBLE:
+        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+        pil = Image.fromarray(img_rgb)
+        draw = ImageDraw.Draw(pil)
+        font = _fuente_pillow(tamano)
+        for dx, dy in [(3, 3), (-2, 2), (2, -2)]:
+            draw.text((x + dx, y + dy), texto, font=font, fill=(0, 0, 0))
+        draw.text((x, y), texto, font=font, fill=(color[2], color[1], color[0]))
+        return cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
+    cv2.putText(img_bgr, texto, (x + 2, y + 2), cv2.FONT_HERSHEY_SIMPLEX, tamano / 40, (0, 0, 0), 3, cv2.LINE_AA)
+    cv2.putText(img_bgr, texto, (x, y), cv2.FONT_HERSHEY_SIMPLEX, tamano / 40, color, 2, cv2.LINE_AA)
+    return img_bgr
+
+
+def estampar_bloque_subtitulo(img_bgr, texto, width, height, tamano=28):
+    if not texto or not str(texto).strip():
+        return img_bgr
+    lineas = textwrap.wrap(str(texto).strip(), width=48)
+    y_base = height - 30 - (len(lineas) * (tamano + 8))
+    for i, linea in enumerate(lineas):
+        y = y_base + i * (tamano + 8)
+        if PIL_DISPONIBLE:
+            overlay = img_bgr.copy()
+            cv2.rectangle(overlay, (40, y - 8), (width - 40, y + tamano + 8), (0, 0, 0), -1)
+            img_bgr = cv2.addWeighted(overlay, 0.55, img_bgr, 0.45, 0)
+        img_bgr = estampar_texto_sombra(img_bgr, linea, (60, y), tamano=tamano, color=(255, 255, 255))
+    return img_bgr
+
+
+def crear_lienzo_portada_cierre(leyenda, width, height):
+    lienzo = np.full((height, width, 3), (28, 28, 35), dtype=np.uint8)
+    if leyenda:
+        if PIL_DISPONIBLE:
+            img_rgb = cv2.cvtColor(lienzo, cv2.COLOR_BGR2RGB)
+            pil = Image.fromarray(img_rgb)
+            draw = ImageDraw.Draw(pil)
+            font = _fuente_pillow(42)
+            bbox = draw.multiline_textbbox((0, 0), leyenda, font=font, align="center")
+            tw = bbox[2] - bbox[0]
+            th = bbox[3] - bbox[1]
+            tx = (width - tw) // 2
+            ty = (height - th) // 2
+            for dx, dy in [(3, 3), (-2, 2)]:
+                draw.multiline_text((tx + dx, ty + dy), leyenda, font=font, fill=(0, 0, 0), align="center")
+            draw.multiline_text((tx, ty), leyenda, font=font, fill=(255, 215, 0), align="center")
+            return cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
+        lienzo = estampar_texto_sombra(lienzo, leyenda[:80], (80, height // 2), tamano=42)
+    return lienzo
+
+
+def escribir_frames_imagen(writer, frame_base, frames_totales, texto, letra_global, nombre_pista, frame_contador, fps, height):
+    for _ in range(frames_totales):
+        f_render = frame_base.copy()
+        if texto:
+            f_render = estampar_texto_sombra(f_render, texto, (80, height - 100), tamano=32)
+        if letra_global:
+            f_render = estampar_bloque_subtitulo(f_render, letra_global, 1280, height)
+        if (frame_contador // fps) <= 15:
+            f_render = estampar_texto_sombra(f_render, f"Audio: {nombre_pista}", (40, 50), tamano=24, color=(255, 255, 255))
+        writer.write(f_render)
+        frame_contador += 1
+    return frame_contador
+
+
+def escribir_frames_video(ruta_video, writer, duracion_asignada, texto, letra_global, nombre_pista, frame_contador, fps, width, height, silenciado):
+    cap = cv2.VideoCapture(ruta_video)
+    if not cap.isOpened():
+        return frame_contador
+    frames_objetivo = max(1, int(round(fps * duracion_asignada)))
+    vfps = cap.get(cv2.CAP_PROP_FPS) or fps
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    paso = max(1, total_frames // frames_objetivo) if total_frames > frames_objetivo else 1
+    leidos = 0
+    idx = 0
+    while leidos < frames_objetivo:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, min(idx, max(0, total_frames - 1)))
+        ok, frame = cap.read()
+        if not ok:
+            break
+        frame = ajustar_proporcion_lienzo(frame, width, height)
+        if texto:
+            frame = estampar_texto_sombra(frame, texto, (80, height - 100), tamano=32)
+        if letra_global:
+            frame = estampar_bloque_subtitulo(frame, letra_global, width, height)
+        if (frame_contador // fps) <= 15:
+            frame = estampar_texto_sombra(frame, f"Audio: {nombre_pista}", (40, 50), tamano=24, color=(255, 255, 255))
+        writer.write(frame)
+        frame_contador += 1
+        leidos += 1
+        idx += paso
+    cap.release()
+    return frame_contador
+
 
 def generar_video_cloud():
     parser = argparse.ArgumentParser()
@@ -83,7 +191,7 @@ def generar_video_cloud():
     args = parser.parse_args()
 
     if not os.path.exists(args.config):
-        print(f"Error crítico: No se encontró el archivo de configuración en {args.config}")
+        print(f"Error crítico: No se encontró configuración en {args.config}")
         sys.exit(1)
 
     with open(args.config, 'r', encoding='utf-8') as f:
@@ -94,16 +202,18 @@ def generar_video_cloud():
     ruta_cierre = config.get("ruta_cierre", "")
     leyenda_portada = config.get("leyenda_portada", "")
     leyenda_cierre = config.get("leyenda_cierre", "")
+    letra_cancion = config.get("letra_cancion", "")
+    subtitulos_activos = config.get("subtitulos_activos", False)
+    letra_global = letra_cancion if subtitulos_activos and letra_cancion else ""
+
     ruta_audio = args.audio
     archivo_final = args.output
 
-    # LIMPIEZA PREVENTIVA: Si existe un archivo final previo, lo borramos antes de compilar
     if os.path.exists(archivo_final):
         try:
             os.remove(archivo_final)
-            print(f"Limpieza preventiva: Archivo antiguo {archivo_final} eliminado con éxito.")
-        except Exception as e:
-            print(f"Aviso en limpieza preventiva: {e}")
+        except Exception:
+            pass
 
     WIDTH, HEIGHT = 1280, 720
     FPS = 30
@@ -111,140 +221,117 @@ def generar_video_cloud():
 
     ffmpeg_bin = resolver_ffmpeg()
     if not ffmpeg_bin:
-        print("Error crítico: FFmpeg no está disponible en el servidor.")
+        print("Error crítico: FFmpeg no disponible.")
         sys.exit(1)
 
-    print(f"Motor FFmpeg activo en: {ffmpeg_bin}")
     duracion_audio = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
-    print(f"Duración detectada del audio: {duracion_audio:.2f}s")
+    print(f"Duración audio: {duracion_audio:.2f}s")
 
-    # 2. Conteo seguro de imágenes de la línea de tiempo (Corregido de raíz)
-    conteo_imagenes = 0
+    segmentos = []
+    if leyenda_portada or ruta_portada:
+        segmentos.append({"tipo": "portada"})
     if isinstance(linea_tiempo, list):
         for item in linea_tiempo:
-            conteo_imagenes += 1
-    
-    if ruta_portada: conteo_imagenes += 1
-    if ruta_cierre: conteo_imagenes += 1
+            if isinstance(item, dict):
+                segmentos.append(item)
+    if leyenda_cierre or ruta_cierre:
+        segmentos.append({"tipo": "cierre"})
 
-    # 3. Distribución armónica del tiempo por cuadro
-    if duracion_audio > 0 and conteo_imagenes > 0:
-        duracion_por_foto = duracion_audio / conteo_imagenes
-    else:
-        duracion_por_foto = DURACION_BASE_FOTO
-
-    if duracion_por_foto < 2.0:
-        duracion_por_foto = 2.0
+    conteo = max(1, len(segmentos))
+    duracion_por_segmento = duracion_audio / conteo if duracion_audio > 0 else DURACION_BASE_FOTO
+    if duracion_por_segmento < 2.0:
+        duracion_por_segmento = 2.0
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     ruta_video_puro = "/tmp/visual_temp_raw.mp4"
-    
-    # Limpieza preventiva del archivo crudo de video
     if os.path.exists(ruta_video_puro):
-        try: os.remove(ruta_video_puro)
-        except: pass
+        try:
+            os.remove(ruta_video_puro)
+        except Exception:
+            pass
 
     video_writer = cv2.VideoWriter(ruta_video_puro, fourcc, FPS, (WIDTH, HEIGHT))
-    nombre_pista = os.path.basename(ruta_audio) if ruta_audio else "Producción Sincronía Nexus"
+    nombre_pista = os.path.basename(ruta_audio) if ruta_audio else "VIAM"
     frame_contador = 0
+    frames_totales = int(round(FPS * duracion_por_segmento))
 
-    # --- RENDERIZADO DE LA PORTADA ---
-    if ruta_portada and os.path.exists(ruta_portada):
-        img = cv2.imread(ruta_portada)
-        if img is not None:
-            frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT)
-            frames_totales = int(round(FPS * duracion_por_foto))
-            for _ in range(frames_totales):
-                f_render = frame_base.copy()
-                if leyenda_portada:
-                    f_render = estampar_texto_nativo(f_render, leyenda_portada, (80, HEIGHT - 100), 1.2, (0, 215, 255))
-                if (frame_contador // FPS) <= 15:
-                    f_render = estampar_texto_nativo(f_render, f"Audio: {nombre_pista}", (40, 50), 0.8, (255, 255, 255))
-                video_writer.write(f_render)
-                frame_contador += 1
+    # Portada
+    if leyenda_portada or ruta_portada:
+        if ruta_portada and os.path.exists(ruta_portada):
+            img = cv2.imread(ruta_portada)
+            frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT) if img is not None else crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
+        else:
+            frame_base = crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
+        frame_contador = escribir_frames_imagen(
+            video_writer, frame_base, frames_totales, leyenda_portada if ruta_portada and os.path.exists(ruta_portada) else "",
+            letra_global, nombre_pista, frame_contador, FPS, HEIGHT
+        )
 
-    # --- RENDERIZADO DE LAS IMÁGENES INTERMEDIAS ---
-    if isinstance(linea_tiempo, list):
-        for item in linea_tiempo:
-            if not isinstance(item, dict): continue
-            
-            ruta_img = item.get("ruta", "")
-            texto_subtitulo = item.get("texto", "")
-            
-            if ruta_img and os.path.exists(ruta_img):
-                img = cv2.imread(ruta_img)
-                if img is not None:
-                    frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT)
-                    frames_totales = int(round(FPS * duracion_por_foto)) 
-                    for _ in range(frames_totales):
-                        f_render = frame_base.copy()
-                        
-                        if texto_subtitulo:
-                            f_render = estampar_texto_nativo(f_render, texto_subtitulo, (80, HEIGHT - 100), 1.1, (255, 255, 255))
-                            
-                        if (frame_contador // FPS) <= 15:
-                            f_render = estampar_texto_nativo(f_render, f"Audio: {nombre_pista}", (40, 50), 0.8, (255, 255, 255))
-                        video_writer.write(f_render)
-                        frame_contador += 1
+    # Línea de tiempo
+    for item in linea_tiempo:
+        if not isinstance(item, dict):
+            continue
+        tipo = item.get("tipo", "imagen")
+        ruta = item.get("ruta", "")
+        texto = item.get("texto", "")
+        silenciado = item.get("silenciado", True)
+        if not ruta or not os.path.exists(ruta):
+            continue
+        if tipo == "video":
+            frame_contador = escribir_frames_video(
+                ruta, video_writer, duracion_por_segmento, texto, letra_global,
+                nombre_pista, frame_contador, FPS, WIDTH, HEIGHT, silenciado
+            )
+        else:
+            img = cv2.imread(ruta)
+            if img is not None:
+                frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT)
+                frame_contador = escribir_frames_imagen(
+                    video_writer, frame_base, frames_totales, texto, letra_global,
+                    nombre_pista, frame_contador, FPS, HEIGHT
+                )
 
-    # --- RENDERIZADO DEL CIERRE ---
-    if ruta_cierre and os.path.exists(ruta_cierre):
-        img = cv2.imread(ruta_cierre)
-        if img is not None:
-            frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT)
-            frames_totales = int(round(FPS * duracion_por_foto))
-            for _ in range(frames_totales):
-                f_render = frame_base.copy()
-                if leyenda_cierre:
-                    f_render = estampar_texto_nativo(f_render, leyenda_cierre, (80, HEIGHT - 100), 1.2, (0, 215, 255))
-                if (frame_contador // FPS) <= 15:
-                    f_render = estampar_texto_nativo(f_render, f"Audio: {nombre_pista}", (40, 50), 0.8, (255, 255, 255))
-                video_writer.write(f_render)
-                frame_contador += 1
+    # Cierre
+    if leyenda_cierre or ruta_cierre:
+        if ruta_cierre and os.path.exists(ruta_cierre):
+            img = cv2.imread(ruta_cierre)
+            frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT) if img is not None else crear_lienzo_portada_cierre(leyenda_cierre, WIDTH, HEIGHT)
+        else:
+            frame_base = crear_lienzo_portada_cierre(leyenda_cierre, WIDTH, HEIGHT)
+        frame_contador = escribir_frames_imagen(
+            video_writer, frame_base, frames_totales, leyenda_cierre if ruta_cierre and os.path.exists(ruta_cierre) else "",
+            letra_global, nombre_pista, frame_contador, FPS, HEIGHT
+        )
 
     video_writer.release()
 
     if frame_contador == 0:
-        print("Error crítico: No se generó ningún fotograma. Verifique que las imágenes sean válidas.")
+        print("Error: ningún fotograma generado.")
         sys.exit(1)
 
-    if not os.path.exists(ruta_video_puro) or os.path.getsize(ruta_video_puro) < 1000:
-        print("Error crítico: El video visual temporal está vacío.")
-        sys.exit(1)
-
-    # --- ENSAMBLE DE AUDIO Y VIDEO CON FFMPEG (SOPORTE DE SOBREESCRITURA TOTAL) ---
     if os.path.exists(ruta_audio):
-        try:
-            print("Iniciando ensamble definitivo de audio y video con FFmpeg...")
-            subprocess.run([
-                ffmpeg_bin, '-y', '-i', ruta_video_puro, '-i', ruta_audio,
-                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac',
-                '-shortest', '-map', '0:v:0', '-map', '1:a:0', archivo_final
-            ], capture_output=True, text=True, check=True)
-            print("¡Ensamble de alta fidelidad completado exitosamente!")
-        except Exception as e:
-            print(f"Error ensamblando con audio: {e}")
-            sys.exit(1)
+        subprocess.run([
+            ffmpeg_bin, '-y', '-i', ruta_video_puro, '-i', ruta_audio,
+            '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac',
+            '-shortest', '-map', '0:v:0', '-map', '1:a:0', archivo_final
+        ], capture_output=True, text=True, check=True)
     else:
-        try:
-            print("Iniciando ensamble de fallback (sin pista de audio)...")
-            subprocess.run([
-                ffmpeg_bin, '-y', '-i', ruta_video_puro,
-                '-c:v', 'libx264', '-pix_fmt', 'yuv420p', archivo_final
-            ], capture_output=True, text=True, check=True)
-            print("Ensamble de fallback completado.")
-        except Exception as e:
-            print(f"Error ensamblando video fallback: {e}")
-            sys.exit(1)
+        subprocess.run([
+            ffmpeg_bin, '-y', '-i', ruta_video_puro,
+            '-c:v', 'libx264', '-pix_fmt', 'yuv420p', archivo_final
+        ], capture_output=True, text=True, check=True)
 
     if not os.path.exists(archivo_final) or os.path.getsize(archivo_final) < 1000:
-        print("Error crítico: El archivo MP4 final no se generó correctamente.")
+        print("Error: MP4 final vacío.")
         sys.exit(1)
 
-    # Limpieza absoluta de temporales
+    print("¡Ensamble de alta fidelidad completado exitosamente!")
     if os.path.exists(ruta_video_puro):
-        try: os.remove(ruta_video_puro)
-        except: pass
+        try:
+            os.remove(ruta_video_puro)
+        except Exception:
+            pass
+
 
 if __name__ == '__main__':
     generar_video_cloud()

@@ -18,38 +18,62 @@ export default async (req, context) => {
   const stripe = new Stripe(stripeSecret);
 
   try {
-    const { montoTotal, nombreProducto, successUrl, cancelUrl } = await req.json();
+    const { montoTotal, nombreProducto, successUrl, cancelUrl, planTipo } = await req.json();
 
-    if (!montoTotal || montoTotal <= 0) {
-      return new Response(JSON.stringify({ error: 'Invalid amount.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Determine base URL dynamically
     const url = new URL(req.url);
     const origin = url.origin;
+    const baseSuccess = successUrl || `${origin}/video_diamante.html?payment_success=true&session_id={CHECKOUT_SESSION_ID}`;
+    const baseCancel = cancelUrl || `${origin}/video_diamante.html?payment_cancelled=true`;
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
+    let session;
+
+    if (planTipo === 'mensual' || planTipo === 'anual') {
+      const esAnual = planTipo === 'anual';
+      session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
           price_data: {
             currency: 'mxn',
             product_data: {
-              name: nombreProducto || 'Compra en Ecosistema CMS',
+              name: esAnual
+                ? 'Video Diamante Premium — Anual (2 meses de regalo)'
+                : 'Video Diamante Premium — Mensual',
+              description: esAnual
+                ? 'Hasta 1 hora por video, 10 renders/día. 12 meses por el precio de 10.'
+                : 'Hasta 1 hora por video, 10 renders/día.',
             },
-            unit_amount: Math.round(montoTotal * 100), // Stripe uses cents
+            unit_amount: esAnual ? 300000 : 30000,
+            recurring: { interval: esAnual ? 'year' : 'month' },
           },
           quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      // We send them back to the success url or home page with a success parameter to trigger the verify modal
-      success_url: successUrl || `${origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${origin}/?payment_cancelled=true`,
-    });
+        }],
+        mode: 'subscription',
+        success_url: baseSuccess,
+        cancel_url: baseCancel,
+        metadata: { plan: planTipo, producto: 'video_diamante_premium' },
+      });
+    } else {
+      if (!montoTotal || montoTotal <= 0) {
+        return new Response(JSON.stringify({ error: 'Invalid amount.' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'mxn',
+            product_data: { name: nombreProducto || 'Compra en Ecosistema CMS' },
+            unit_amount: Math.round(montoTotal * 100),
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: baseSuccess,
+        cancel_url: baseCancel,
+      });
+    }
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,

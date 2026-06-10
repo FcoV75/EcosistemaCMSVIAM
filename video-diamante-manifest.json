@@ -1,0 +1,10 @@
+{
+  "name": "Video Diamante VIAM",
+  "short_name": "VideoDiamante",
+  "description": "Generador de videos multimedia del ecosistema VIAM",
+  "start_url": "/video_diamante.html",
+  "display": "standalone",
+  "background_color": "#D33F1F",
+  "theme_color": "#D33F1F",
+  "icons": []
+}

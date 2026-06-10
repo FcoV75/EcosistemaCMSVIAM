@@ -3,25 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#D33F1F">
+    <link rel="manifest" href="/video-diamante-manifest.json">
     <title>Video Diamante - Panel de Generación Ecosistema VIAM</title>
     <style>
-        /* Paleta de colores estricta de la aplicación */
         :root {
-            --color-fondo-ventana: #D33F1F;      /* Anaranjado rojizo dominante */
-            --color-pizarra-crema: #FDF5E6;      /* Crema para pizarras y áreas de texto */
-            --color-borde-violeta: #7D26CD;      /* Violeta profundo para bordes */
-            --color-dorado-cabecera: #D4AF37;    /* Dorado premium */
-            --color-texto-panel: #FDF5E6;        /* Letras crema */
-            --color-rojo-boton: #CD5C5C;         /* Rojo suave para remover */
+            --color-fondo-ventana: #D33F1F;
+            --color-pizarra-crema: #FDF5E6;
+            --color-borde-violeta: #7D26CD;
+            --color-dorado-cabecera: #D4AF37;
+            --color-texto-panel: #FDF5E6;
+            --color-rojo-boton: #CD5C5C;
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Arial', sans-serif;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Arial', sans-serif; }
         body {
             background-color: var(--color-fondo-ventana);
             color: var(--color-texto-panel);
@@ -29,66 +23,44 @@
             display: flex;
             justify-content: center;
         }
-
         .contenedor-principal {
             width: 100%;
-            max-width: 900px;
+            max-width: 960px;
             background: #1C1A1A;
             border: 4px double var(--color-borde-violeta);
             border-radius: 12px;
             padding: 25px;
-            box-shadow: 0px 10px 30px rgba(0,0,0,0.7);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
         }
-
         .cabecera-diamante {
             text-align: center;
             border-bottom: 3px dashed var(--color-dorado-cabecera);
             padding-bottom: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
-
         .cabecera-diamante h1 {
             color: var(--color-dorado-cabecera);
-            font-size: 2.2rem;
+            font-size: 2rem;
             text-transform: uppercase;
             letter-spacing: 2px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
-
-        .cabecera-diamante p {
-            font-size: 1rem;
-            color: #BCB4B4;
-            margin-top: 5px;
-        }
-
+        .cabecera-diamante p { color: #BCB4B4; margin-top: 5px; }
         .seccion-panel {
             background: #282525;
             border: 2px solid #403B3B;
             border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 18px;
+            margin-bottom: 18px;
         }
-
         .seccion-panel h2 {
-            font-size: 1.3rem;
-            margin-bottom: 15px;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
             color: var(--color-dorado-cabecera);
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
-
-        .grupo-control {
-            margin-bottom: 15px;
-        }
-
-        .grupo-control label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            font-size: 0.95rem;
-        }
-
+        .grupo-control { margin-bottom: 12px; }
+        .grupo-control label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 0.9rem; }
+        .fila-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 700px) { .fila-dos { grid-template-columns: 1fr; } }
         .input-texto-premium {
             width: 100%;
             background: var(--color-pizarra-crema);
@@ -97,66 +69,63 @@
             border-radius: 6px;
             padding: 10px;
             font-size: 1rem;
-            font-weight: bold;
         }
-
-        .input-archivo-oculto {
-            display: none;
-        }
-
+        .input-archivo-oculto { display: none; }
         .btn-viam-subir {
             display: inline-block;
-            background: linear-gradient(135deg, #7D26CD 0%, #521B8C 100%);
+            background: linear-gradient(135deg, #7D26CD, #521B8C);
             color: #FFF;
-            padding: 10px 20px;
+            padding: 10px 18px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
             border: 1px solid #A052FF;
-            transition: all 0.3s ease;
-            text-align: center;
+            transition: 0.2s;
         }
-
-        .btn-viam-subir:hover {
-            transform: scale(1.02);
-            box-shadow: 0 0 12px rgba(125, 38, 205, 0.6);
+        .btn-viam-subir:hover { transform: scale(1.02); }
+        .btn-premium-plan {
+            background: linear-gradient(135deg, #D4AF37, #AA820A);
+            color: #111;
+            border: 2px solid var(--color-borde-violeta);
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 4px;
         }
-
-        .status-archivo {
-            margin-left: 15px;
-            font-style: italic;
-            color: #00FFCC;
-            font-size: 0.9rem;
+        .status-archivo { margin-left: 10px; font-style: italic; color: #00FFCC; font-size: 0.85rem; }
+        .zona-drop, .pizarra-drop {
+            border: 2px dashed rgba(212, 175, 55, 0.5);
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 80px;
+            transition: 0.2s;
         }
-
-        /* Rejilla de línea de tiempo */
-        .rejilla-linea-tiempo {
+        .zona-activa { background: rgba(125, 38, 205, 0.15); border-color: var(--color-dorado-cabecera); }
+        .pizarra-titulo { font-size: 0.95rem; color: #D4AF37; margin: 10px 0 6px; font-weight: bold; }
+        .rejilla-pizarra {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
         }
-
-        .celda-imagen {
+        .celda-media {
             background: #383333;
             border: 2px solid var(--color-borde-violeta);
             border-radius: 6px;
-            padding: 12px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            padding: 10px;
+            cursor: grab;
         }
-
-        .miniatura-imagen {
+        .celda-media.arrastrando { opacity: 0.5; }
+        .arrastrar-hint { font-size: 0.75rem; color: #AAA; }
+        .miniatura-media {
             width: 100%;
-            height: 120px;
+            height: 110px;
             object-fit: cover;
             border-radius: 4px;
             background: #201F1D;
-            border: 1px solid #554E4E;
         }
-
+        .chk-silencio { font-size: 0.8rem; display: flex; align-items: center; gap: 6px; margin: 6px 0; }
         .btn-eliminar-celda {
             background: var(--color-rojo-boton);
             color: white;
@@ -164,16 +133,22 @@
             padding: 6px;
             border-radius: 4px;
             cursor: pointer;
+            width: 100%;
             font-weight: bold;
-            font-size: 0.85rem;
-            text-transform: uppercase;
+            font-size: 0.8rem;
         }
-
-        .btn-eliminar-celda:hover {
-            background: #B22222;
+        .pizarra-letra {
+            width: 100%;
+            min-height: 140px;
+            background: var(--color-pizarra-crema);
+            color: #201F1D;
+            border: 2px solid var(--color-borde-violeta);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            resize: vertical;
         }
-
-        /* Barra de carga centralizada */
         .caja-loading {
             display: none;
             background: #201F1D;
@@ -181,45 +156,29 @@
             border-radius: 8px;
             padding: 20px;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
-
         .spinner-viam {
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px;
             border: 4px solid rgba(212, 175, 55, 0.2);
             border-top: 4px solid var(--color-dorado-cabecera);
             border-radius: 50%;
-            animation: spinViam 1s linear infinite;
-            margin: 0 auto 15px auto;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
         }
-
-        @keyframes spinViam {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
+        @keyframes spin { to { transform: rotate(360deg); } }
         .btn-disparador-motor {
             width: 100%;
-            background: linear-gradient(135deg, #D4AF37 0%, #AA820A 100%);
+            background: linear-gradient(135deg, #D4AF37, #AA820A);
             color: #1C1A1A;
             border: none;
             padding: 15px;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: bold;
             text-transform: uppercase;
             border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0px 5px 15px rgba(212, 175, 55, 0.3);
-            transition: all 0.3s ease;
         }
-
-        .btn-disparador-motor:hover {
-            transform: translateY(-2px);
-            box-shadow: 0px 8px 20px rgba(212, 175, 55, 0.5);
-        }
-
-        /* Modal nativo */
         dialog {
             margin: auto;
             padding: 25px;
@@ -227,377 +186,113 @@
             color: white;
             border: 3px solid var(--color-dorado-cabecera);
             border-radius: 10px;
-            max-width: 450px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            max-width: 480px;
         }
-
-        dialog::backdrop {
-            background: rgba(0, 0, 0, 0.8);
+        dialog::backdrop { background: rgba(0,0,0,0.85); }
+        .banner-upgrade {
+            background: rgba(212, 175, 55, 0.12);
+            border: 1px solid var(--color-dorado-cabecera);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            margin-bottom: 18px;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
-
     <div class="contenedor-principal">
         <div class="cabecera-diamante">
             <h1>Generador de Video Nivel Diamante</h1>
-            <p>Ecosistema VIAM CMS - Renderizado de Contenidos Multimedia en Alta Fidelidad</p>
-            <span id="plan-indicator" style="display:inline-block; margin-top:10px; color:#D4AF37; font-weight:bold;">💎 Plan: Cargando nivel de cuenta...</span>
+            <p>Ecosistema VIAM CMS — Renderizado Multimedia en Alta Fidelidad</p>
+            <span id="plan-indicator" style="display:inline-block;margin-top:10px;font-weight:bold;">Cargando plan...</span>
+        </div>
+
+        <div class="banner-upgrade">
+            <strong>💎 Video Diamante Premium</strong> — Videos de 5 min a 1 hora · 10 renders/día<br>
+            <button type="button" class="btn-premium-plan" id="btn-plan-mensual">$300 MXN / mes</button>
+            <button type="button" class="btn-premium-plan" id="btn-plan-anual">$3,000 MXN / año (2 meses de regalo)</button>
         </div>
 
         <div class="seccion-panel">
-            <h2>🖼️ Textos de Entrada y Salida</h2>
-            <div class="grupo-control">
-                <label for="texto-portada">Leyenda Inicial (Portada):</label>
-                <input type="text" id="texto-portada" class="input-texto-premium" placeholder="Ej: Bienvenidos al Ecosistema VIAM...">
-            </div>
-            <div class="grupo-control">
-                <label for="texto-cierre">Leyenda Final (Cierre):</label>
-                <input type="text" id="texto-cierre" class="input-texto-premium" placeholder="Ej: Gracias por su atención. Sincronía Nexus 2026.">
+            <h2>🖼️ Portada y Cierre del Video</h2>
+            <div class="fila-dos">
+                <div class="grupo-control">
+                    <label for="texto-portada">Leyenda de entrada</label>
+                    <input type="text" id="texto-portada" class="input-texto-premium" placeholder="Ej: Bienvenidos al Ecosistema VIAM">
+                    <label class="btn-viam-subir" for="input-portada-img" style="margin-top:8px;">Imagen de portada (opcional)</label>
+                    <input type="file" id="input-portada-img" class="input-archivo-oculto" accept="image/*">
+                    <span id="status-portada-img" class="status-archivo"></span>
+                </div>
+                <div class="grupo-control">
+                    <label for="texto-cierre">Leyenda de cierre</label>
+                    <input type="text" id="texto-cierre" class="input-texto-premium" placeholder="Ej: Gracias por su atención">
+                    <label class="btn-viam-subir" for="input-cierre-img" style="margin-top:8px;">Imagen de cierre (opcional)</label>
+                    <input type="file" id="input-cierre-img" class="input-archivo-oculto" accept="image/*">
+                    <span id="status-cierre-img" class="status-archivo"></span>
+                </div>
             </div>
         </div>
 
         <div class="seccion-panel">
-            <h2>🎵 Archivo de Audio Principal (Base de Sincronización)</h2>
-            <div class="grupo-control">
-                <label class="btn-viam-subir" for="input-audio-real">Seleccionar Archivo MP3</label>
-                <input type="file" id="input-audio-real" class="input-archivo-oculto" accept="audio/mp3, audio/mpeg">
-                <span id="status-audio" class="status-archivo">Ningún archivo de audio seleccionado</span>
+            <h2>🎵 Audio Principal (arrastra desde tu explorador)</h2>
+            <div id="zona-audio" class="zona-drop">
+                <label class="btn-viam-subir" for="input-audio-real">Seleccionar audio (MP3, WAV, M4A, OGG)</label>
+                <input type="file" id="input-audio-real" class="input-archivo-oculto" accept="audio/*">
+                <span id="status-audio" class="status-archivo">Ningún audio seleccionado</span>
             </div>
         </div>
 
-        <div class="seccion-panel">
-            <h2>📸 Galería de Imágenes Dinámicas con Subtítulos</h2>
-            <div class="grupo-control">
-                <label class="btn-viam-subir" for="input-imagenes-multiples">Añadir Imágenes al Proyecto</label>
-                <input type="file" id="input-imagenes-multiples" class="input-archivo-oculto" accept="image/*" multiple>
+        <div class="seccion-panel" id="seccion-subtitulos" style="display:none;">
+            <h2>🎙️ Subtítulos IA de la canción (opcional)</h2>
+            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">La IA transcribe respetando acentos en español. Puedes corregir la letra antes de renderizar.</p>
+            <label class="chk-silencio"><input type="checkbox" id="chk-subtitulos"> Incrustar letra en el video (con sombra de fondo)</label>
+            <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="btn-viam-subir" id="btn-transcribir">🎙️ Transcribir con IA</button>
+                <button type="button" class="btn-viam-subir" id="btn-guardar-letra" style="background:#28A745;">💾 Guardar cambios</button>
             </div>
-            <div class="rejilla-linea-tiempo" id="contenedor-linea-tiempo"></div>
+            <span id="status-transcripcion" class="status-archivo" style="display:block;margin-bottom:8px;"></span>
+            <textarea id="letra-cancion" class="pizarra-letra" placeholder="La letra transcrita aparecerá aquí para que la edites..."></textarea>
+        </div>
+
+        <div class="seccion-panel">
+            <h2>📸 Pizarra multimedia — Imágenes y Videos</h2>
+            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">Arrastra archivos desde el explorador. Reordena dentro de cada fila. Gratuito: 3 imgs + 2 videos · Premium: sin límite práctico.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                <label class="btn-viam-subir" for="input-imagenes">+ Imágenes</label>
+                <input type="file" id="input-imagenes" class="input-archivo-oculto" accept="image/*" multiple>
+                <label class="btn-viam-subir" for="input-videos">+ Videos MP4</label>
+                <input type="file" id="input-videos" class="input-archivo-oculto" accept="video/mp4,video/webm,video/quicktime" multiple>
+            </div>
+            <p class="pizarra-titulo">🖼️ Línea de imágenes</p>
+            <div id="pizarra-imagenes" class="pizarra-drop rejilla-pizarra"></div>
+            <p class="pizarra-titulo">🎬 Línea de videos (opción silenciar audio del clip)</p>
+            <div id="pizarra-videos" class="pizarra-drop rejilla-pizarra"></div>
         </div>
 
         <div class="caja-loading" id="loading-box">
             <div class="spinner-viam"></div>
-            <p id="status-text" style="font-weight:bold; color:#D4AF37;">Iniciando comunicaciones con el servidor ferroviario...</p>
+            <p id="status-text" style="font-weight:bold;color:#D4AF37;">Conectando con Railway...</p>
         </div>
 
-        <button class="btn-disparador-motor">Comenzar Renderizado Diamante</button>
+        <button type="button" class="btn-disparador-motor">Comenzar Renderizado Diamante</button>
     </div>
 
-    <dialog id="premium-modal">
-        <h3 style="color: #D4AF37; margin-bottom: 15px; font-size: 1.4rem;">¡Gracias por tu Suscripción Nivel Diamante!</h3>
-        <p style="margin-bottom:20px; font-size:0.95rem; color:#DDD;">Detectamos tu pago con éxito a través de Stripe. Por favor ingresa el ID de sesión enviado a tu correo para activar el motor:</p>
-        <input type="text" id="stripe-session-code" class="input-texto-premium" style="text-align:center; margin-bottom:20px;" placeholder="cs_live_..."><br>
-        <span id="verification-status" style="display:block; margin-bottom:15px; font-weight:bold;"></span>
-        <button class="btn-viam-subir" id="btn-verificar-stripe" style="background:#D4AF37; color:#111;">Activar Licencia Nivel Diamante</button>
+    <dialog id="upgrade-modal">
+        <h3 style="color:#D4AF37;margin-bottom:12px;">Desbloquea Video Diamante Premium</h3>
+        <p id="upgrade-mensaje" style="margin-bottom:16px;color:#DDD;font-size:0.95rem;"></p>
+        <button type="button" class="btn-premium-plan" id="btn-plan-mensual-modal" onclick="document.getElementById('upgrade-modal').close();document.getElementById('btn-plan-mensual').click();">$300 / mes</button>
+        <button type="button" class="btn-premium-plan" onclick="document.getElementById('upgrade-modal').close();document.getElementById('btn-plan-anual').click();">$3,000 / año</button>
     </dialog>
 
-    <script>
-        // ==========================================
-        // CONFIGURACIÓN API RAILWAY + CORS
-        // ==========================================
-        const RAILWAY_API = "https://ecosistemacmsviam-production.up.railway.app";
+    <dialog id="premium-modal">
+        <h3 style="color:#D4AF37;margin-bottom:12px;">Activar licencia Premium</h3>
+        <p style="margin-bottom:12px;font-size:0.9rem;color:#DDD;">Ingresa el ID de sesión de Stripe:</p>
+        <input type="text" id="stripe-session-code" class="input-texto-premium" style="text-align:center;margin-bottom:12px;" placeholder="cs_live_...">
+        <span id="verification-status" style="display:block;margin-bottom:12px;font-weight:bold;"></span>
+        <button type="button" class="btn-viam-subir" id="btn-verificar-stripe" style="background:#D4AF37;color:#111;">Activar Licencia</button>
+    </dialog>
 
-        // FormData sin cabeceras custom = petición simple, sin preflight CORS
-        async function fetchRailway(endpoint, options = {}) {
-            const isFormData = options.body instanceof FormData;
-            if (isFormData) {
-                return fetch(`${RAILWAY_API}${endpoint}`, {
-                    method: options.method || "POST",
-                    body: options.body,
-                    mode: "cors",
-                    credentials: "omit"
-                });
-            }
-            const headers = { Accept: "application/json", ...(options.headers || {}) };
-            if (options.body) {
-                headers["Content-Type"] = "application/json";
-            }
-            return fetch(`${RAILWAY_API}${endpoint}`, {
-                ...options,
-                headers,
-                mode: "cors",
-                credentials: "omit"
-            });
-        }
-
-        // Proxy same-origin si Railway bloquea CORS en cargas pesadas
-        async function enviarRenderizado(formData) {
-            try {
-                const respuesta = await fetchRailway("/renderizar", { method: "POST", body: formData });
-                if (respuesta.ok || respuesta.status === 202) return respuesta;
-            } catch (directError) {
-                console.warn("Despacho directo falló, usando proxy Netlify:", directError.message);
-            }
-            return fetch("/.netlify/functions/render-proxy", { method: "POST", body: formData });
-        }
-
-        // ==========================================
-        // VARIABLES GLOBALES DEL SISTEMA
-        // ==========================================
-        let audioFile = null;
-        let selectedImages = [];
-        let objectUrls = [];
-        let isPremiumActive = true;
-
-        const statusText = document.getElementById("status-text");
-        const contenedorLineaTiempo = document.getElementById("contenedor-linea-tiempo");
-        const loadingBox = document.getElementById("loading-box");
-
-        // ==========================================
-        // MANEJADORES DE EVENTOS DE ARCHIVOS
-        // ==========================================
-        document.getElementById("input-audio-real").addEventListener("change", function(e) {
-            if (e.target.files.length > 0) {
-                audioFile = e.target.files[0];
-                document.getElementById("status-audio").textContent = `🎵 Cargado: ${audioFile.name}`;
-            }
-        });
-
-        document.getElementById("input-imagenes-multiples").addEventListener("change", function(e) {
-            if (e.target.files.length > 0) {
-                Array.from(e.target.files).forEach(file => selectedImages.push(file));
-                renderizarInterfazLineaTiempo();
-            }
-        });
-
-        function renderizarInterfazLineaTiempo() {
-            if (!contenedorLineaTiempo) return;
-
-            objectUrls.forEach(url => URL.revokeObjectURL(url));
-            objectUrls = [];
-            contenedorLineaTiempo.innerHTML = "";
-
-            selectedImages.forEach((file, index) => {
-                const urlTemporal = URL.createObjectURL(file);
-                objectUrls.push(urlTemporal);
-
-                const celda = document.createElement("div");
-                celda.className = "celda-imagen";
-                celda.innerHTML = `
-                    <img src="${urlTemporal}" class="miniatura-imagen" alt="Miniatura">
-                    <input type="text" class="input-subtitulo" placeholder="Subtítulo para esta escena..." style="width:100%; padding:5px; border-radius:4px; border:none;">
-                    <button class="btn-eliminar-celda" data-index="${index}">Remover</button>
-                `;
-                contenedorLineaTiempo.appendChild(celda);
-            });
-
-            document.querySelectorAll('.btn-eliminar-celda').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    removerImagenDeLineaTiempo(parseInt(this.getAttribute('data-index'), 10));
-                });
-            });
-        }
-
-        function removerImagenDeLineaTiempo(index) {
-            selectedImages.splice(index, 1);
-            renderizarInterfazLineaTiempo();
-        }
-
-        // ==========================================
-        // MONITOREO DE ESTATUS (normalizado)
-        // ==========================================
-        window.verificarEstatusRenderizado = function() {
-            if (window.renderInterval) {
-                clearInterval(window.renderInterval);
-            }
-
-            window.renderInterval = setInterval(async () => {
-                try {
-                    const respuesta = await fetchRailway("/status");
-                    if (!respuesta.ok) return;
-
-                    const datos = await respuesta.json();
-                    const estado = String(datos.status || "").toLowerCase();
-
-                    if (estado === "procesando") {
-                        if (statusText) {
-                            statusText.innerText = `Renderizando: ${datos.detalle || "Compilando transiciones y subtítulos..."}`;
-                            statusText.style.color = "#D4AF37";
-                        }
-                    } else if (estado === "listo" || estado === "success" || estado === "completed") {
-                        clearInterval(window.renderInterval);
-                        if (statusText) {
-                            statusText.innerText = "¡Video Diamante procesado con éxito! Iniciando descarga...";
-                            statusText.style.color = "#00FFCC";
-                        }
-                        window.location.href = `${RAILWAY_API}/descargar`;
-                        setTimeout(() => {
-                            if (loadingBox) loadingBox.style.display = "none";
-                        }, 5000);
-                    } else if (estado === "error") {
-                        clearInterval(window.renderInterval);
-                        if (statusText) {
-                            statusText.innerText = `Error en el renderizador: ${datos.detalle || "Error desconocido"}`;
-                            statusText.style.color = "#FF3333";
-                        }
-                        alert("El motor de renderizado se detuvo: " + (datos.detalle || "Error desconocido"));
-                        if (loadingBox) loadingBox.style.display = "none";
-                    }
-                } catch (error) {
-                    console.error("Error consultando el estatus:", error);
-                    if (statusText) {
-                        statusText.innerText = "Sincronizando con el servidor de fondo de VIAM...";
-                    }
-                }
-            }, 4000);
-        };
-
-        // ==========================================
-        // MOTOR DE CORE: RENDERIZADO / DESPACHO
-        // ==========================================
-        window.generarVideo = async function() {
-            if (!audioFile) {
-                alert("Por favor, carga una pista de audio (MP3) antes de continuar.");
-                return;
-            }
-            if (selectedImages.length === 0) {
-                alert("La línea de tiempo está vacía. Añade al menos una imagen para renderizar.");
-                return;
-            }
-
-            if (loadingBox) loadingBox.style.display = "block";
-            if (statusText) {
-                statusText.innerText = "Iniciando conexión con el nodo de Railway...";
-                statusText.style.color = "cyan";
-            }
-
-            try {
-                const inputsSubtitulos = document.querySelectorAll(".input-subtitulo");
-                const listaLineaTiempo = [];
-
-                selectedImages.forEach((file, index) => {
-                    const textoSub = inputsSubtitulos[index] ? inputsSubtitulos[index].value : "";
-                    listaLineaTiempo.push({
-                        id: index,
-                        texto: textoSub,
-                        duracion: 5.0
-                    });
-                });
-
-                const formData = new FormData();
-                formData.append("audio", audioFile);
-                formData.append("linea_tiempo", JSON.stringify(listaLineaTiempo));
-                formData.append("leyenda_portada", document.getElementById("texto-portada").value);
-                formData.append("leyenda_cierre", document.getElementById("texto-cierre").value);
-
-                selectedImages.forEach((file, index) => {
-                    formData.append(`imagen_${index}`, file);
-                });
-
-                const respuesta = await enviarRenderizado(formData);
-
-                const resultado = await respuesta.json();
-                const estado = String(resultado.status || "").toLowerCase();
-
-                if (respuesta.ok && (estado === "procesando" || estado === "success" || respuesta.status === 202)) {
-                    if (statusText) {
-                        statusText.innerText = "¡Procesamiento iniciado con éxito en la nube!";
-                        statusText.style.color = "#00FFCC";
-                    }
-                    window.verificarEstatusRenderizado();
-                } else {
-                    throw new Error(resultado.detalle || resultado.error || "Respuesta inválida del servidor.");
-                }
-            } catch (error) {
-                console.error("Error crítico en el despacho:", error);
-                if (statusText) {
-                    statusText.innerText = `Fallo de conexión: ${error.message}`;
-                    statusText.style.color = "#FF3333";
-                }
-                alert("No se pudo iniciar el renderizado: " + error.message);
-                if (loadingBox) loadingBox.style.display = "none";
-            }
-        };
-
-        // ==========================================
-        // CONTROL DE FLUJO DEL DOM (STRIPE E INTERFAZ)
-        // ==========================================
-        document.addEventListener("DOMContentLoaded", function() {
-            const lblPlanIndicator = document.getElementById("plan-indicator");
-            const stripeSessionCode = document.getElementById("stripe-session-code");
-            const verificationStatus = document.getElementById("verification-status");
-            const btnVerificarStripe = document.getElementById("btn-verificar-stripe");
-            const premiumModal = document.getElementById("premium-modal");
-
-            if (lblPlanIndicator) {
-                lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo";
-            }
-
-            const savedCode = localStorage.getItem("video_diamante_premium_code");
-            if (savedCode) {
-                isPremiumActive = true;
-            }
-
-            if (btnVerificarStripe && stripeSessionCode && verificationStatus) {
-                btnVerificarStripe.addEventListener("click", async function() {
-                    const val = stripeSessionCode.value.trim();
-                    if (!val) {
-                        alert("Por favor ingresa el ID de sesión de Stripe.");
-                        return;
-                    }
-
-                    verificationStatus.textContent = "Verificando pago en Sincronía Nexus...";
-                    verificationStatus.style.color = "cyan";
-
-                    try {
-                        const response = await fetch("/.netlify/functions/verify-payment", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ transactionId: val })
-                        });
-                        const data = await response.json();
-
-                        if (response.ok && data.success) {
-                            isPremiumActive = true;
-                            localStorage.setItem("video_diamante_premium_code", data.code || val);
-                            verificationStatus.textContent = "¡Licencia Nivel Diamante activada con éxito!";
-                            verificationStatus.style.color = "#00FF66";
-                            if (lblPlanIndicator) {
-                                lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo";
-                            }
-                            if (premiumModal && premiumModal.open) {
-                                premiumModal.close();
-                            }
-                        } else {
-                            verificationStatus.textContent = "Error al verificar: " + (data.error || "ID inválido.");
-                            verificationStatus.style.color = "#FF3333";
-                        }
-                    } catch (err) {
-                        verificationStatus.textContent = "Error de conexión al servidor.";
-                        verificationStatus.style.color = "#FF3333";
-                        console.error(err);
-                    }
-                });
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const isSuccess = urlParams.get("payment_success");
-            const isCancelled = urlParams.get("payment_cancelled");
-            const sessionId = urlParams.get("session_id");
-
-            if (isSuccess === "true" && sessionId && stripeSessionCode && premiumModal) {
-                premiumModal.showModal();
-                stripeSessionCode.value = sessionId;
-                if (verificationStatus) {
-                    verificationStatus.textContent = "Reanudando verificación automatizada...";
-                    verificationStatus.style.color = "cyan";
-                }
-                window.history.replaceState({}, document.title, window.location.pathname);
-                if (btnVerificarStripe) {
-                    setTimeout(() => btnVerificarStripe.click(), 1000);
-                }
-            } else if (isCancelled === "true") {
-                alert("La suscripción ha sido cancelada.");
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        });
-
-        // Event listener del disparador — al final del script (evita ReferenceError)
-        const botonDisparador = document.querySelector(".btn-disparador-motor");
-        if (botonDisparador) {
-            botonDisparador.addEventListener("click", window.generarVideo);
-        }
-    </script>
+    <script src="video_diamante.js"></script>
 </body>
 </html>
