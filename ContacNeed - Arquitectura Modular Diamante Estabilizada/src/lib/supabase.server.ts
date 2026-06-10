@@ -3,11 +3,20 @@ import { createServerClient } from '@supabase/ssr'
 import { getCookies, setCookie } from '@tanstack/react-start/server'
 
 function getSupabaseEnv() {
-  const url = String(process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim()
+  const viteEnv = import.meta.env as Record<string, string | undefined>
+
+  const url = String(
+    process.env.SUPABASE_URL ??
+      process.env.VITE_SUPABASE_URL ??
+      viteEnv.VITE_SUPABASE_URL ??
+      '',
+  ).trim()
+
   const key = String(
     process.env.SUPABASE_ANON_KEY ??
       process.env.SUPABASE_KEY ??
       process.env.VITE_SUPABASE_ANON_KEY ??
+      viteEnv.VITE_SUPABASE_ANON_KEY ??
       '',
   ).trim()
 
