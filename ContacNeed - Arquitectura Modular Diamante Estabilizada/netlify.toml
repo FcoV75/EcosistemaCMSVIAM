@@ -5,6 +5,8 @@
 [build.environment]
   NODE_VERSION = "22"
   NPM_FLAGS = "--legacy-peer-deps"
+  # Supabase URL y anon key son publicas por diseno; Vite las incluye en el bundle.
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,VITE_SUPABASE_URL,SUPABASE_ANON_KEY,VITE_SUPABASE_ANON_KEY"
 
 [dev]
   command = "npm run dev"

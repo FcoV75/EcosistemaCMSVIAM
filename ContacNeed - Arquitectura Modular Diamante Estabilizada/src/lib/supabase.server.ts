@@ -1,15 +1,29 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { getCookies, setCookie } from '@tanstack/react-start/server'
-import {
-  SUPABASE_ANON_KEY,
-  SUPABASE_PROJECT_URL,
-  assertSupabaseConfigured,
-} from './supabase-config'
+
+function getSupabaseEnv() {
+  const url = String(process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim()
+  const key = String(
+    process.env.SUPABASE_ANON_KEY ??
+      process.env.SUPABASE_KEY ??
+      process.env.VITE_SUPABASE_ANON_KEY ??
+      '',
+  ).trim()
+
+  if (!url || !key) {
+    throw new Error(
+      'Faltan variables de Supabase. Configura SUPABASE_URL y SUPABASE_ANON_KEY en Netlify.',
+    )
+  }
+
+  return { url, key }
+}
 
 export function createSupabaseAdminClient() {
-  assertSupabaseConfigured()
-  return createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY, {
+  const { url, key } = getSupabaseEnv()
+
+  return createClient(url, key, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -18,11 +32,9 @@ export function createSupabaseAdminClient() {
 }
 
 export function createSupabaseServerClient() {
-  assertSupabaseConfigured()
-  const supabaseUrl = SUPABASE_PROJECT_URL
-  const supabaseKey = SUPABASE_ANON_KEY
+  const { url, key } = getSupabaseEnv()
 
-  return createServerClient(supabaseUrl, supabaseKey, {
+  return createServerClient(url, key, {
     cookies: {
       getAll() {
         return Object.entries(getCookies()).map(([name, value]) => ({ name, value }))
