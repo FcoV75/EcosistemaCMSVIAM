@@ -2,7 +2,6 @@ import os
 import re
 import sys
 import shutil
-import textwrap
 import cv2
 import numpy as np
 import json
@@ -14,6 +13,9 @@ try:
     PIL_DISPONIBLE = True
 except ImportError:
     PIL_DISPONIBLE = False
+
+WIDTH, HEIGHT = 1920, 1080
+FPS = 30
 
 
 def resolver_ffmpeg():
@@ -41,10 +43,7 @@ def obtener_duracion_audio(ruta_audio, ffmpeg_bin=None):
     ffmpeg_bin = ffmpeg_bin or resolver_ffmpeg()
     if ffmpeg_bin:
         try:
-            resultado = subprocess.run(
-                [ffmpeg_bin, "-i", ruta_audio],
-                capture_output=True, text=True, check=False
-            )
+            resultado = subprocess.run([ffmpeg_bin, "-i", ruta_audio], capture_output=True, text=True, check=False)
             salida = (resultado.stderr or "") + (resultado.stdout or "")
             coincidencia = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", salida)
             if coincidencia:
@@ -55,12 +54,20 @@ def obtener_duracion_audio(ruta_audio, ffmpeg_bin=None):
     return 30.0
 
 
-def ajustar_proporcion_lienzo(img, ancho_objetivo=1280, alto_objetivo=720):
+def cargar_imagen_alta_calidad(ruta):
+    img = cv2.imread(ruta, cv2.IMREAD_COLOR)
+    if img is None:
+        return None
+    return img
+
+
+def ajustar_proporcion_lienzo(img, ancho_objetivo=WIDTH, alto_objetivo=HEIGHT):
     alto_orig, ancho_orig = img.shape[:2]
     escala = min(ancho_objetivo / ancho_orig, alto_objetivo / alto_orig)
     nuevo_ancho = int(ancho_orig * escala)
     nuevo_alto = int(alto_orig * escala)
-    img_redimensionada = cv2.resize(img, (nuevo_ancho, nuevo_alto), interpolation=cv2.INTER_AREA)
+    interp = cv2.INTER_LANCZOS4 if escala > 1.0 else cv2.INTER_AREA
+    img_redimensionada = cv2.resize(img, (nuevo_ancho, nuevo_alto), interpolation=interp)
     lienzo = np.zeros((alto_objetivo, ancho_objetivo, 3), dtype=np.uint8)
     x_offset = (ancho_objetivo - nuevo_ancho) // 2
     y_offset = (alto_objetivo - nuevo_alto) // 2
@@ -103,62 +110,90 @@ def estampar_texto_sombra(img_bgr, texto, posicion, tamano=36, color=(255, 215, 
     return img_bgr
 
 
-def estampar_bloque_subtitulo(img_bgr, texto, width, height, tamano=28):
-    if not texto or not str(texto).strip():
+def estampar_subtitulo_linea(img_bgr, linea, width, height, tamano=34):
+    if not linea or not str(linea).strip():
         return img_bgr
-    lineas = textwrap.wrap(str(texto).strip(), width=48)
-    y_base = height - 30 - (len(lineas) * (tamano + 8))
-    for i, linea in enumerate(lineas):
-        y = y_base + i * (tamano + 8)
-        if PIL_DISPONIBLE:
-            overlay = img_bgr.copy()
-            cv2.rectangle(overlay, (40, y - 8), (width - 40, y + tamano + 8), (0, 0, 0), -1)
-            img_bgr = cv2.addWeighted(overlay, 0.55, img_bgr, 0.45, 0)
-        img_bgr = estampar_texto_sombra(img_bgr, linea, (60, y), tamano=tamano, color=(255, 255, 255))
-    return img_bgr
+    linea = str(linea).strip()
+    y = height - 90
+    if PIL_DISPONIBLE:
+        overlay = img_bgr.copy()
+        cv2.rectangle(overlay, (50, y - 12), (width - 50, y + tamano + 16), (0, 0, 0), -1)
+        img_bgr = cv2.addWeighted(overlay, 0.6, img_bgr, 0.4, 0)
+    return estampar_texto_sombra(img_bgr, linea, (70, y), tamano=tamano, color=(255, 255, 255))
 
 
 def crear_lienzo_portada_cierre(leyenda, width, height):
     lienzo = np.full((height, width, 3), (28, 28, 35), dtype=np.uint8)
+    if leyenda and PIL_DISPONIBLE:
+        img_rgb = cv2.cvtColor(lienzo, cv2.COLOR_BGR2RGB)
+        pil = Image.fromarray(img_rgb)
+        draw = ImageDraw.Draw(pil)
+        font = _fuente_pillow(48)
+        for dx, dy in [(3, 3), (-2, 2)]:
+            draw.multiline_text((width // 2 + dx, height // 2 + dy), leyenda, font=font, fill=(0, 0, 0), anchor="mm", align="center")
+        draw.multiline_text((width // 2, height // 2), leyenda, font=font, fill=(255, 215, 0), anchor="mm", align="center")
+        return cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
     if leyenda:
-        if PIL_DISPONIBLE:
-            img_rgb = cv2.cvtColor(lienzo, cv2.COLOR_BGR2RGB)
-            pil = Image.fromarray(img_rgb)
-            draw = ImageDraw.Draw(pil)
-            font = _fuente_pillow(42)
-            bbox = draw.multiline_textbbox((0, 0), leyenda, font=font, align="center")
-            tw = bbox[2] - bbox[0]
-            th = bbox[3] - bbox[1]
-            tx = (width - tw) // 2
-            ty = (height - th) // 2
-            for dx, dy in [(3, 3), (-2, 2)]:
-                draw.multiline_text((tx + dx, ty + dy), leyenda, font=font, fill=(0, 0, 0), align="center")
-            draw.multiline_text((tx, ty), leyenda, font=font, fill=(255, 215, 0), align="center")
-            return cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
-        lienzo = estampar_texto_sombra(lienzo, leyenda[:80], (80, height // 2), tamano=42)
+        lienzo = estampar_texto_sombra(lienzo, leyenda[:120], (width // 2 - 200, height // 2), tamano=48)
     return lienzo
 
 
-def escribir_frames_imagen(writer, frame_base, frames_totales, texto, letra_global, nombre_pista, frame_contador, fps, height):
-    for _ in range(frames_totales):
-        f_render = frame_base.copy()
-        if texto:
-            f_render = estampar_texto_sombra(f_render, texto, (80, height - 100), tamano=32)
-        if letra_global:
-            f_render = estampar_bloque_subtitulo(f_render, letra_global, 1280, height)
-        if (frame_contador // fps) <= 15:
-            f_render = estampar_texto_sombra(f_render, f"Audio: {nombre_pista}", (40, 50), tamano=24, color=(255, 255, 255))
+def parsear_lineas_letra(letra):
+    if not letra:
+        return []
+    lineas = []
+    for raw in letra.replace("\r", "").split("\n"):
+        t = raw.strip()
+        if t:
+            lineas.append(t)
+    if not lineas and letra.strip():
+        lineas = [s.strip() for s in re.split(r'[.!?]+', letra) if s.strip()]
+    return lineas
+
+
+def subtitulo_para_frame(lineas, segundo_actual, duracion_total):
+    if not lineas or duracion_total <= 0:
+        return ""
+    idx = int((segundo_actual / duracion_total) * len(lineas))
+    idx = min(max(idx, 0), len(lineas) - 1)
+    return lineas[idx]
+
+
+def debe_mostrar_nombre_pista(segundo_actual, duracion_total):
+    if duracion_total <= 0:
+        return segundo_actual <= 15
+    return segundo_actual <= 12 or segundo_actual >= max(0, duracion_total - 12)
+
+
+def aplicar_overlays(frame, segundo_actual, duracion_total, texto_escena, lineas_letra, subtitulos_on, nombre_pista):
+    f = frame.copy()
+    if texto_escena:
+        f = estampar_texto_sombra(f, texto_escena, (80, HEIGHT - 130), tamano=36, color=(255, 215, 0))
+    if subtitulos_on and lineas_letra:
+        linea = subtitulo_para_frame(lineas_letra, segundo_actual, duracion_total)
+        f = estampar_subtitulo_linea(f, linea, WIDTH, HEIGHT)
+    if debe_mostrar_nombre_pista(segundo_actual, duracion_total):
+        etiqueta = f"🎵 {nombre_pista}"
+        f = estampar_texto_sombra(f, etiqueta, (50, 45), tamano=28, color=(255, 255, 255))
+    return f
+
+
+def escribir_frames_imagen(writer, frame_base, frames_totales, texto_escena, lineas_letra, subtitulos_on,
+                           nombre_pista, frame_contador, duracion_total):
+    for i in range(frames_totales):
+        segundo = frame_contador / FPS
+        f_render = aplicar_overlays(frame_base, segundo, duracion_total, texto_escena, lineas_letra, subtitulos_on, nombre_pista)
         writer.write(f_render)
         frame_contador += 1
     return frame_contador
 
 
-def escribir_frames_video(ruta_video, writer, duracion_asignada, texto, letra_global, nombre_pista, frame_contador, fps, width, height, silenciado):
+def escribir_frames_video(ruta_video, writer, duracion_asignada, texto_escena, lineas_letra, subtitulos_on,
+                          nombre_pista, frame_contador, duracion_total):
     cap = cv2.VideoCapture(ruta_video)
     if not cap.isOpened():
         return frame_contador
-    frames_objetivo = max(1, int(round(fps * duracion_asignada)))
-    vfps = cap.get(cv2.CAP_PROP_FPS) or fps
+    frames_objetivo = max(1, int(round(FPS * duracion_asignada)))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
     paso = max(1, total_frames // frames_objetivo) if total_frames > frames_objetivo else 1
     leidos = 0
@@ -168,13 +203,9 @@ def escribir_frames_video(ruta_video, writer, duracion_asignada, texto, letra_gl
         ok, frame = cap.read()
         if not ok:
             break
-        frame = ajustar_proporcion_lienzo(frame, width, height)
-        if texto:
-            frame = estampar_texto_sombra(frame, texto, (80, height - 100), tamano=32)
-        if letra_global:
-            frame = estampar_bloque_subtitulo(frame, letra_global, width, height)
-        if (frame_contador // fps) <= 15:
-            frame = estampar_texto_sombra(frame, f"Audio: {nombre_pista}", (40, 50), tamano=24, color=(255, 255, 255))
+        frame = ajustar_proporcion_lienzo(frame)
+        segundo = frame_contador / FPS
+        frame = aplicar_overlays(frame, segundo, duracion_total, texto_escena, lineas_letra, subtitulos_on, nombre_pista)
         writer.write(frame)
         frame_contador += 1
         leidos += 1
@@ -204,7 +235,7 @@ def generar_video_cloud():
     leyenda_cierre = config.get("leyenda_cierre", "")
     letra_cancion = config.get("letra_cancion", "")
     subtitulos_activos = config.get("subtitulos_activos", False)
-    letra_global = letra_cancion if subtitulos_activos and letra_cancion else ""
+    nombre_pista = config.get("nombre_pista", "") or "Pista VIAM"
 
     ruta_audio = args.audio
     archivo_final = args.output
@@ -215,30 +246,26 @@ def generar_video_cloud():
         except Exception:
             pass
 
-    WIDTH, HEIGHT = 1280, 720
-    FPS = 30
-    DURACION_BASE_FOTO = 5.0
-
     ffmpeg_bin = resolver_ffmpeg()
     if not ffmpeg_bin:
         print("Error crítico: FFmpeg no disponible.")
         sys.exit(1)
 
     duracion_audio = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
-    print(f"Duración audio: {duracion_audio:.2f}s")
+    print(f"Duración audio: {duracion_audio:.2f}s | Pista: {nombre_pista}")
+
+    lineas_letra = parsear_lineas_letra(letra_cancion) if subtitulos_activos else []
 
     segmentos = []
     if leyenda_portada or ruta_portada:
-        segmentos.append({"tipo": "portada"})
+        segmentos.append("portada")
     if isinstance(linea_tiempo, list):
-        for item in linea_tiempo:
-            if isinstance(item, dict):
-                segmentos.append(item)
+        segmentos.extend([x for x in linea_tiempo if isinstance(x, dict)])
     if leyenda_cierre or ruta_cierre:
-        segmentos.append({"tipo": "cierre"})
+        segmentos.append("cierre")
 
     conteo = max(1, len(segmentos))
-    duracion_por_segmento = duracion_audio / conteo if duracion_audio > 0 else DURACION_BASE_FOTO
+    duracion_por_segmento = duracion_audio / conteo if duracion_audio > 0 else 5.0
     if duracion_por_segmento < 2.0:
         duracion_por_segmento = 2.0
 
@@ -251,56 +278,53 @@ def generar_video_cloud():
             pass
 
     video_writer = cv2.VideoWriter(ruta_video_puro, fourcc, FPS, (WIDTH, HEIGHT))
-    nombre_pista = os.path.basename(ruta_audio) if ruta_audio else "VIAM"
     frame_contador = 0
     frames_totales = int(round(FPS * duracion_por_segmento))
 
-    # Portada
+    # Portada — siempre muestra leyenda sobre imagen o lienzo
     if leyenda_portada or ruta_portada:
         if ruta_portada and os.path.exists(ruta_portada):
-            img = cv2.imread(ruta_portada)
-            frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT) if img is not None else crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
+            img = cargar_imagen_alta_calidad(ruta_portada)
+            frame_base = ajustar_proporcion_lienzo(img) if img is not None else crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
         else:
             frame_base = crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
         frame_contador = escribir_frames_imagen(
-            video_writer, frame_base, frames_totales, leyenda_portada if ruta_portada and os.path.exists(ruta_portada) else "",
-            letra_global, nombre_pista, frame_contador, FPS, HEIGHT
+            video_writer, frame_base, frames_totales, leyenda_portada, lineas_letra,
+            subtitulos_activos, nombre_pista, frame_contador, duracion_audio
         )
 
-    # Línea de tiempo
     for item in linea_tiempo:
         if not isinstance(item, dict):
             continue
         tipo = item.get("tipo", "imagen")
         ruta = item.get("ruta", "")
         texto = item.get("texto", "")
-        silenciado = item.get("silenciado", True)
         if not ruta or not os.path.exists(ruta):
             continue
         if tipo == "video":
             frame_contador = escribir_frames_video(
-                ruta, video_writer, duracion_por_segmento, texto, letra_global,
-                nombre_pista, frame_contador, FPS, WIDTH, HEIGHT, silenciado
+                ruta, video_writer, duracion_por_segmento, texto, lineas_letra,
+                subtitulos_activos, nombre_pista, frame_contador, duracion_audio
             )
         else:
-            img = cv2.imread(ruta)
+            img = cargar_imagen_alta_calidad(ruta)
             if img is not None:
-                frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT)
+                frame_base = ajustar_proporcion_lienzo(img)
                 frame_contador = escribir_frames_imagen(
-                    video_writer, frame_base, frames_totales, texto, letra_global,
-                    nombre_pista, frame_contador, FPS, HEIGHT
+                    video_writer, frame_base, frames_totales, texto, lineas_letra,
+                    subtitulos_activos, nombre_pista, frame_contador, duracion_audio
                 )
 
-    # Cierre
+    # Cierre — siempre muestra leyenda
     if leyenda_cierre or ruta_cierre:
         if ruta_cierre and os.path.exists(ruta_cierre):
-            img = cv2.imread(ruta_cierre)
-            frame_base = ajustar_proporcion_lienzo(img, WIDTH, HEIGHT) if img is not None else crear_lienzo_portada_cierre(leyenda_cierre, WIDTH, HEIGHT)
+            img = cargar_imagen_alta_calidad(ruta_cierre)
+            frame_base = ajustar_proporcion_lienzo(img) if img is not None else crear_lienzo_portada_cierre(leyenda_cierre, WIDTH, HEIGHT)
         else:
             frame_base = crear_lienzo_portada_cierre(leyenda_cierre, WIDTH, HEIGHT)
         frame_contador = escribir_frames_imagen(
-            video_writer, frame_base, frames_totales, leyenda_cierre if ruta_cierre and os.path.exists(ruta_cierre) else "",
-            letra_global, nombre_pista, frame_contador, FPS, HEIGHT
+            video_writer, frame_base, frames_totales, leyenda_cierre, lineas_letra,
+            subtitulos_activos, nombre_pista, frame_contador, duracion_audio
         )
 
     video_writer.release()
@@ -309,17 +333,17 @@ def generar_video_cloud():
         print("Error: ningún fotograma generado.")
         sys.exit(1)
 
+    encode_args = [
+        ffmpeg_bin, '-y', '-i', ruta_video_puro,
+        '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium',
+    ]
     if os.path.exists(ruta_audio):
-        subprocess.run([
-            ffmpeg_bin, '-y', '-i', ruta_video_puro, '-i', ruta_audio,
-            '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac',
-            '-shortest', '-map', '0:v:0', '-map', '1:a:0', archivo_final
-        ], capture_output=True, text=True, check=True)
+        encode_args += ['-i', ruta_audio, '-c:a', 'aac', '-b:a', '192k',
+                        '-shortest', '-map', '0:v:0', '-map', '1:a:0', archivo_final]
     else:
-        subprocess.run([
-            ffmpeg_bin, '-y', '-i', ruta_video_puro,
-            '-c:v', 'libx264', '-pix_fmt', 'yuv420p', archivo_final
-        ], capture_output=True, text=True, check=True)
+        encode_args += [archivo_final]
+
+    subprocess.run(encode_args, capture_output=True, text=True, check=True)
 
     if not os.path.exists(archivo_final) or os.path.getsize(archivo_final) < 1000:
         print("Error: MP4 final vacío.")

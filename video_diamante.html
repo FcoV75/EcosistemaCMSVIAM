@@ -285,6 +285,13 @@
         <button type="button" class="btn-premium-plan" onclick="document.getElementById('upgrade-modal').close();document.getElementById('btn-plan-anual').click();">$3,000 / año</button>
     </dialog>
 
+    <dialog id="gracias-modal">
+        <img src="/Assets/Images/Gracias.jpg" alt="Muchas gracias por tu compra" style="width:100%;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:15px;border:2px solid #D4AF37;">
+        <h3 style="color:#D4AF37;margin-bottom:10px;">¡Muchas gracias por tu suscripción!</h3>
+        <p style="color:#DDD;font-size:0.95rem;margin-bottom:18px;">Esperamos verte pronto de nuevo. Tu licencia Premium se activará en un momento.</p>
+        <button type="button" class="btn-viam-subir" style="background:#D4AF37;color:#111;" onclick="document.getElementById('gracias-modal').close()">Continuar</button>
+    </dialog>
+
     <dialog id="premium-modal">
         <h3 style="color:#D4AF37;margin-bottom:12px;">Activar licencia Premium</h3>
         <p style="margin-bottom:12px;font-size:0.9rem;color:#DDD;">Ingresa el ID de sesión de Stripe:</p>

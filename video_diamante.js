@@ -42,6 +42,46 @@ async function enviarRenderizado(formData) {
     return fetch("/.netlify/functions/render-proxy", { method: "POST", body: formData });
 }
 
+async function parseJsonSeguro(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        const limpio = texto.replace(/<[^>]+>/g, " ").trim();
+        throw new Error(limpio.slice(0, 160) || "El servidor respondió con un error interno.");
+    }
+}
+
+async function descargarVideoFinal() {
+    const r = await fetchRailway("/descargar");
+    if (!r.ok) throw new Error("No se pudo descargar el video.");
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "video_diamante.mp4";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function finalizarRenderizadoExitoso() {
+    const statusText = $("#status-text");
+    const loadingBox = $("#loading-box");
+    if (statusText) {
+        statusText.textContent = "✅ ¡Video generado y descargado con éxito!";
+        statusText.style.color = "#00FF66";
+    }
+    if (loadingBox) loadingBox.style.display = "none";
+    window.renderInterval = null;
+}
+
+function mostrarGraciasCompra() {
+    const modal = $("#gracias-modal");
+    if (modal) modal.showModal();
+}
+
 function limitesActuales() {
     return isPremium ? LIMITES.premium : LIMITES.gratuito;
 }
@@ -346,10 +386,17 @@ window.verificarEstatusRenderizado = function () {
                 if (statusText) statusText.textContent = `Renderizando: ${d.detalle || "..."}`;
             } else if (["listo", "success", "completed"].includes(estado)) {
                 clearInterval(window.renderInterval);
+                window.renderInterval = null;
                 incrementarRenders();
                 if (statusText) statusText.textContent = "¡Video listo! Descargando...";
-                window.location.href = `${RAILWAY_API}/descargar`;
-                setTimeout(() => { if (loadingBox) loadingBox.style.display = "none"; }, 5000);
+                try {
+                    await descargarVideoFinal();
+                    finalizarRenderizadoExitoso();
+                } catch (err) {
+                    if (statusText) statusText.textContent = "Video listo. Abriendo descarga alternativa...";
+                    window.location.href = `${RAILWAY_API}/descargar`;
+                    setTimeout(finalizarRenderizadoExitoso, 3000);
+                }
             } else if (estado === "error") {
                 clearInterval(window.renderInterval);
                 alert("Error: " + (d.detalle || "Motor detenido"));
@@ -388,6 +435,7 @@ window.generarVideo = async function () {
         formData.append("leyenda_cierre", $("#texto-cierre")?.value || "");
         formData.append("letra_cancion", letra);
         formData.append("subtitulos_activos", subtitulosOn ? "true" : "false");
+        formData.append("nombre_pista", audioFile ? audioFile.name.replace(/\.[^.]+$/, "") : "Pista VIAM");
 
         if (portadaFile) formData.append("portada_file", portadaFile);
         if (cierreFile) formData.append("cierre_file", cierreFile);
@@ -398,7 +446,7 @@ window.generarVideo = async function () {
         });
 
         const respuesta = await enviarRenderizado(formData);
-        const resultado = await respuesta.json();
+        const resultado = await parseJsonSeguro(respuesta);
         const estado = String(resultado.status || "").toLowerCase();
 
         if (respuesta.ok && (estado === "procesando" || respuesta.status === 202)) {
@@ -485,6 +533,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 verificationStatus.style.color = "#00FF66";
                 actualizarIndicadorPlan();
                 premiumModal?.close();
+                mostrarGraciasCompra();
             } else {
                 verificationStatus.textContent = d.error || "ID inválido";
                 verificationStatus.style.color = "#FF3333";
@@ -496,10 +545,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("payment_success") === "true" && urlParams.get("session_id")) {
+        mostrarGraciasCompra();
         premiumModal?.showModal();
         if (stripeSessionCode) stripeSessionCode.value = urlParams.get("session_id");
         history.replaceState({}, "", window.location.pathname);
-        setTimeout(() => btnVerificarStripe?.click(), 1000);
+        setTimeout(() => btnVerificarStripe?.click(), 1500);
     } else if (urlParams.get("payment_cancelled") === "true") {
         alert("Pago cancelado.");
         history.replaceState({}, "", window.location.pathname);

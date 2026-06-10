@@ -119,6 +119,9 @@ def renderizar():
         leyenda_cierre = request.form.get('leyenda_cierre', '')
         letra_cancion = request.form.get('letra_cancion', '')
         subtitulos_activos = request.form.get('subtitulos_activos', 'false').lower() == 'true'
+        nombre_pista = request.form.get('nombre_pista', '')
+        if not nombre_pista and audio_file and audio_file.filename:
+            nombre_pista = os.path.splitext(os.path.basename(audio_file.filename))[0]
 
         config_data = {
             "linea_tiempo": linea_tiempo_procesada,
@@ -127,7 +130,8 @@ def renderizar():
             "leyenda_portada": leyenda_portada,
             "leyenda_cierre": leyenda_cierre,
             "letra_cancion": letra_cancion,
-            "subtitulos_activos": subtitulos_activos
+            "subtitulos_activos": subtitulos_activos,
+            "nombre_pista": nombre_pista
         }
 
         def guardar_archivo(file_storage, prefijo, extension_default):
