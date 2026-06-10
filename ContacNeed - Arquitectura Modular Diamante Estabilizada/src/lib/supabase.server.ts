@@ -1,9 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { getCookies, setCookie } from '@tanstack/react-start/server'
-import { SUPABASE_ANON_KEY, SUPABASE_PROJECT_URL } from './supabase-config'
+import {
+  SUPABASE_ANON_KEY,
+  SUPABASE_PROJECT_URL,
+  assertSupabaseConfigured,
+} from './supabase-config'
 
 export function createSupabaseAdminClient() {
+  assertSupabaseConfigured()
   return createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: false,
@@ -13,6 +18,7 @@ export function createSupabaseAdminClient() {
 }
 
 export function createSupabaseServerClient() {
+  assertSupabaseConfigured()
   const supabaseUrl = SUPABASE_PROJECT_URL
   const supabaseKey = SUPABASE_ANON_KEY
 
