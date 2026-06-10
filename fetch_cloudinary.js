@@ -1,8 +1,21 @@
-// 1. Declaración de variables globales (Aseguran que el script recuerde tus archivos)
+const RAILWAY_API = "https://ecosistemacmsviam-production.up.railway.app";
+
+async function fetchRailway(endpoint, options = {}) {
+    const headers = { Accept: "application/json", ...(options.headers || {}) };
+    if (options.body && !(options.body instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+    }
+    return fetch(`${RAILWAY_API}${endpoint}`, {
+        ...options,
+        headers,
+        mode: "cors",
+        credentials: "omit"
+    });
+}
+
 let audioFile = audioFile || null;
 let selectedImages = selectedImages || [];
 
-// Capturamos el contenedor de estatus de tu propia interfaz para actualizar los mensajes
 const statusText = document.getElementById("status-text");
 
 async function generarVideo() {
@@ -63,7 +76,7 @@ async function generarVideo() {
     try {
         // 3. Hacemos la petición inicial al backend de Railway
         statusText.innerText = "Transmitiendo datos al servidor de VIAM...";
-        const respuesta = await fetch("https://ecosistemacmsviam-production.up.railway.app/renderizar", {
+        const respuesta = await fetchRailway("/renderizar", {
             method: "POST",
             body: formData
         });
@@ -99,26 +112,24 @@ function verificarEstatusRenderizado() {
     // Bajamos el intervalo a 4 segundos para que sea mucho más ágil y reactiva la respuesta
     window.renderInterval = setInterval(async () => {
         try {
-            const respuesta = await fetch("https://ecosistemacmsviam-production.up.railway.app/status");
+            const respuesta = await fetchRailway("/status");
             const datos = await respuesta.json();
+            const estado = String(datos.status || "").toLowerCase();
 
-            console.log("Estatus actual del renderizado:", datos.status);
+            console.log("Estatus actual del renderizado:", estado);
 
-            if (datos.status === "procesando") {
+            if (estado === "procesando") {
                 statusText.innerText = `Renderizando: ${datos.detalle || 'Compilando transiciones fluidas y subtítulos...'}`;
-            } 
-            else if (datos.status === "listo") {
+            }
+            else if (estado === "listo" || estado === "success" || estado === "completed") {
                 clearInterval(window.renderInterval);
                 statusText.innerText = "¡Video Diamante procesado con éxito! Iniciando descarga nativa...";
-                
-                // Redirecciona al usuario al archivo final generado para su descarga inmediata
-                window.location.href = "https://ecosistemacmsviam-production.up.railway.app/descargar";
-                
+                window.location.href = `${RAILWAY_API}/descargar`;
                 setTimeout(() => {
                     document.getElementById("loading-box").style.display = "none";
                 }, 5000);
-            } 
-            else if (datos.status === "error") {
+            }
+            else if (estado === "error") {
                 clearInterval(window.renderInterval);
                 statusText.innerText = `Error en el renderizador: ${datos.detalle}`;
                 alert("El motor de renderizado de fondo se detuvo: " + datos.detalle);

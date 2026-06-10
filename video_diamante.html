@@ -294,18 +294,35 @@
 
     <script>
         // ==========================================
+        // CONFIGURACIÓN API RAILWAY + CORS
+        // ==========================================
+        const RAILWAY_API = "https://ecosistemacmsviam-production.up.railway.app";
+
+        // Sin credentials: el backend usa Access-Control-Allow-Origin: *
+        async function fetchRailway(endpoint, options = {}) {
+            const headers = { Accept: "application/json", ...(options.headers || {}) };
+            if (options.body && !(options.body instanceof FormData)) {
+                headers["Content-Type"] = "application/json";
+            }
+            return fetch(`${RAILWAY_API}${endpoint}`, {
+                ...options,
+                headers,
+                mode: "cors",
+                credentials: "omit"
+            });
+        }
+
+        // ==========================================
         // VARIABLES GLOBALES DEL SISTEMA
         // ==========================================
         let audioFile = null;
         let selectedImages = [];
-        let objectUrls = []; // Control estricto de memoria para URLs de previsualización
-        let isPremiumActive = true; 
+        let objectUrls = [];
+        let isPremiumActive = true;
 
-        // Capturas seguras del DOM
         const statusText = document.getElementById("status-text");
         const contenedorLineaTiempo = document.getElementById("contenedor-linea-tiempo");
         const loadingBox = document.getElementById("loading-box");
-        const botonDisparador = document.querySelector('.btn-disparador-motor');
 
         // ==========================================
         // MANEJADORES DE EVENTOS DE ARCHIVOS
@@ -319,27 +336,22 @@
 
         document.getElementById("input-imagenes-multiples").addEventListener("change", function(e) {
             if (e.target.files.length > 0) {
-                Array.from(e.target.files).forEach(file => {
-                    selectedImages.push(file);
-                });
+                Array.from(e.target.files).forEach(file => selectedImages.push(file));
                 renderizarInterfazLineaTiempo();
             }
         });
 
-        // Renders e inyección limpia de elementos al DOM
         function renderizarInterfazLineaTiempo() {
             if (!contenedorLineaTiempo) return;
-            
-            // Liberar memoria previa de URLs temporales
+
             objectUrls.forEach(url => URL.revokeObjectURL(url));
             objectUrls = [];
-            
             contenedorLineaTiempo.innerHTML = "";
-            
+
             selectedImages.forEach((file, index) => {
                 const urlTemporal = URL.createObjectURL(file);
-                objectUrls.push(urlTemporal); // Guardamos tracking
-                
+                objectUrls.push(urlTemporal);
+
                 const celda = document.createElement("div");
                 celda.className = "celda-imagen";
                 celda.innerHTML = `
@@ -350,11 +362,9 @@
                 contenedorLineaTiempo.appendChild(celda);
             });
 
-            // Asignación de eliminación delegada de forma estricta (evita onclick global obsoleto)
             document.querySelectorAll('.btn-eliminar-celda').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const idx = parseInt(this.getAttribute('data-index'));
-                    removerImagenDeLineaTiempo(idx);
+                    removerImagenDeLineaTiempo(parseInt(this.getAttribute('data-index'), 10));
                 });
             });
         }
@@ -365,73 +375,113 @@
         }
 
         // ==========================================
-        // MOTOR DE CORE: RENDERIZADO / DESPACHO 
+        // MONITOREO DE ESTATUS (normalizado)
+        // ==========================================
+        window.verificarEstatusRenderizado = function() {
+            if (window.renderInterval) {
+                clearInterval(window.renderInterval);
+            }
+
+            window.renderInterval = setInterval(async () => {
+                try {
+                    const respuesta = await fetchRailway("/status");
+                    if (!respuesta.ok) return;
+
+                    const datos = await respuesta.json();
+                    const estado = String(datos.status || "").toLowerCase();
+
+                    if (estado === "procesando") {
+                        if (statusText) {
+                            statusText.innerText = `Renderizando: ${datos.detalle || "Compilando transiciones y subtítulos..."}`;
+                            statusText.style.color = "#D4AF37";
+                        }
+                    } else if (estado === "listo" || estado === "success" || estado === "completed") {
+                        clearInterval(window.renderInterval);
+                        if (statusText) {
+                            statusText.innerText = "¡Video Diamante procesado con éxito! Iniciando descarga...";
+                            statusText.style.color = "#00FFCC";
+                        }
+                        window.location.href = `${RAILWAY_API}/descargar`;
+                        setTimeout(() => {
+                            if (loadingBox) loadingBox.style.display = "none";
+                        }, 5000);
+                    } else if (estado === "error") {
+                        clearInterval(window.renderInterval);
+                        if (statusText) {
+                            statusText.innerText = `Error en el renderizador: ${datos.detalle || "Error desconocido"}`;
+                            statusText.style.color = "#FF3333";
+                        }
+                        alert("El motor de renderizado se detuvo: " + (datos.detalle || "Error desconocido"));
+                        if (loadingBox) loadingBox.style.display = "none";
+                    }
+                } catch (error) {
+                    console.error("Error consultando el estatus:", error);
+                    if (statusText) {
+                        statusText.innerText = "Sincronizando con el servidor de fondo de VIAM...";
+                    }
+                }
+            }, 4000);
+        };
+
+        // ==========================================
+        // MOTOR DE CORE: RENDERIZADO / DESPACHO
         // ==========================================
         window.generarVideo = async function() {
-            // Validaciones preventivas del motor
             if (!audioFile) {
                 alert("Por favor, carga una pista de audio (MP3) antes de continuar.");
                 return;
             }
-
             if (selectedImages.length === 0) {
                 alert("La línea de tiempo está vacía. Añade al menos una imagen para renderizar.");
                 return;
             }
 
-            // Muestra el contenedor de carga
-            if (loadingBox) {
-                loadingBox.style.display = "block";
-            }
+            if (loadingBox) loadingBox.style.display = "block";
             if (statusText) {
                 statusText.innerText = "Iniciando conexión con el nodo de Railway...";
                 statusText.style.color = "cyan";
             }
 
             try {
-                // Recolección y mapeo dinámico de subtítulos
                 const inputsSubtitulos = document.querySelectorAll(".input-subtitulo");
-                const datosLineaTiempo = [];
+                const listaLineaTiempo = [];
 
                 selectedImages.forEach((file, index) => {
                     const textoSub = inputsSubtitulos[index] ? inputsSubtitulos[index].value : "";
-                    datosLineaTiempo.push({
-                        nombre_archivo: file.name,
-                        texto: textoSub
+                    listaLineaTiempo.push({
+                        id: index,
+                        texto: textoSub,
+                        duracion: 5.0
                     });
                 });
 
-                // Empaquetado estricto en FormData
                 const formData = new FormData();
                 formData.append("audio", audioFile);
-                formData.append("linea_tiempo", JSON.stringify(datosLineaTiempo));
-                
-                // Textos adicionales opcionales (por si tu backend en Railway los requiere)
-                formData.append("texto_portada", document.getElementById("texto-portada").value);
-                formData.append("texto_cierre", document.getElementById("texto-cierre").value);
+                formData.append("linea_tiempo", JSON.stringify(listaLineaTiempo));
+                formData.append("leyenda_portada", document.getElementById("texto-portada").value);
+                formData.append("leyenda_cierre", document.getElementById("texto-cierre").value);
 
-                console.log("Despachando paquete multimedia hacia Railway...");
-                
-                const respuesta = await fetch("https://ecosistemacmsviam-production.up.railway.app/render", {
+                selectedImages.forEach((file, index) => {
+                    formData.append(`imagen_${index}`, file);
+                });
+
+                const respuesta = await fetchRailway("/renderizar", {
                     method: "POST",
                     body: formData
                 });
 
                 const resultado = await respuesta.json();
+                const estado = String(resultado.status || "").toLowerCase();
 
-                if (respuesta.ok && (resultado.status === "procesando" || resultado.status === "success")) {
-                    console.log("Híbrido de renderizado aceptado en la nube. Activando monitoreo...");
+                if (respuesta.ok && (estado === "procesando" || estado === "success" || respuesta.status === 202)) {
                     if (statusText) {
                         statusText.innerText = "¡Procesamiento iniciado con éxito en la nube!";
                         statusText.style.color = "#00FFCC";
                     }
-                    if (typeof verificarEstatusRenderizado === "function") {
-                        verificarEstatusRenderizado();
-                    }
+                    window.verificarEstatusRenderizado();
                 } else {
-                    throw new Error(resultado.detalle || "Respuesta inválida del servidor.");
+                    throw new Error(resultado.detalle || resultado.error || "Respuesta inválida del servidor.");
                 }
-
             } catch (error) {
                 console.error("Error crítico en el despacho:", error);
                 if (statusText) {
@@ -439,72 +489,98 @@
                     statusText.style.color = "#FF3333";
                 }
                 alert("No se pudo iniciar el renderizado: " + error.message);
-                if (loadingBox) {
-                    loadingBox.style.display = "none";
-                }
+                if (loadingBox) loadingBox.style.display = "none";
             }
         };
-
-        // Mock preventivo por si no existe la función externa de chequeo de estatus
-        if (typeof window.verificarEstatusRenderizado !== "function") {
-            window.verificarEstatusRenderizado = function() {
-                console.log("Monitoreando cola de renderizado remota...");
-            };
-        }
 
         // ==========================================
         // CONTROL DE FLUJO DEL DOM (STRIPE E INTERFAZ)
         // ==========================================
         document.addEventListener("DOMContentLoaded", function() {
-            // Vincular el botón disparador una vez el DOM esté listo
-            if (botonDisparador) {
-                botonDisparador.addEventListener('click', window.generarVideo);
-            }
-
-            // Inicialización de la UI del plan
             const lblPlanIndicator = document.getElementById("plan-indicator");
+            const stripeSessionCode = document.getElementById("stripe-session-code");
+            const verificationStatus = document.getElementById("verification-status");
+            const btnVerificarStripe = document.getElementById("btn-verificar-stripe");
+            const premiumModal = document.getElementById("premium-modal");
+
             if (lblPlanIndicator) {
                 lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo";
             }
 
-            // Captura y lectura limpia de parámetros de Stripe en la URL
+            const savedCode = localStorage.getItem("video_diamante_premium_code");
+            if (savedCode) {
+                isPremiumActive = true;
+            }
+
+            if (btnVerificarStripe && stripeSessionCode && verificationStatus) {
+                btnVerificarStripe.addEventListener("click", async function() {
+                    const val = stripeSessionCode.value.trim();
+                    if (!val) {
+                        alert("Por favor ingresa el ID de sesión de Stripe.");
+                        return;
+                    }
+
+                    verificationStatus.textContent = "Verificando pago en Sincronía Nexus...";
+                    verificationStatus.style.color = "cyan";
+
+                    try {
+                        const response = await fetch("/.netlify/functions/verify-payment", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ transactionId: val })
+                        });
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            isPremiumActive = true;
+                            localStorage.setItem("video_diamante_premium_code", data.code || val);
+                            verificationStatus.textContent = "¡Licencia Nivel Diamante activada con éxito!";
+                            verificationStatus.style.color = "#00FF66";
+                            if (lblPlanIndicator) {
+                                lblPlanIndicator.textContent = "💎 Plan: Nivel Diamante Activo";
+                            }
+                            if (premiumModal && premiumModal.open) {
+                                premiumModal.close();
+                            }
+                        } else {
+                            verificationStatus.textContent = "Error al verificar: " + (data.error || "ID inválido.");
+                            verificationStatus.style.color = "#FF3333";
+                        }
+                    } catch (err) {
+                        verificationStatus.textContent = "Error de conexión al servidor.";
+                        verificationStatus.style.color = "#FF3333";
+                        console.error(err);
+                    }
+                });
+            }
+
             const urlParams = new URLSearchParams(window.location.search);
-            const isSuccess = urlParams.get('payment_success');
-            const isCancelled = urlParams.get('payment_cancelled');
-            const sessionId = urlParams.get('session_id');
+            const isSuccess = urlParams.get("payment_success");
+            const isCancelled = urlParams.get("payment_cancelled");
+            const sessionId = urlParams.get("session_id");
 
-            // Evaluación de pasarela de Stripe con Dialog Nativo
-            if (isSuccess === 'true' && sessionId) {
-                const modal = document.getElementById('premium-modal');
-                const campoCodigo = document.getElementById('stripe-session-code');
-                const statusVerificacion = document.getElementById('verification-status');
-                const btnVerificar = document.getElementById('btn-verificar-stripe');
-
-                if (modal && campoCodigo) {
-                    modal.showModal();
-                    campoCodigo.value = sessionId;
-                    
-                    if (statusVerificacion) {
-                        statusVerificacion.textContent = "Reanudando verificación automatizada...";
-                        statusVerificacion.style.color = "cyan";
-                    }
-                    
-                    // Limpieza estética de Query Params en la barra de direcciones del navegador
-                    window.history.replaceState({}, document.title, window.location.pathname);
-
-                    // Autoejecución del click de validación
-                    if (btnVerificar) {
-                        setTimeout(() => {
-                            btnVerificar.click();
-                        }, 1000);
-                    }
+            if (isSuccess === "true" && sessionId && stripeSessionCode && premiumModal) {
+                premiumModal.showModal();
+                stripeSessionCode.value = sessionId;
+                if (verificationStatus) {
+                    verificationStatus.textContent = "Reanudando verificación automatizada...";
+                    verificationStatus.style.color = "cyan";
                 }
-            } 
-            else if (isCancelled === 'true') {
+                window.history.replaceState({}, document.title, window.location.pathname);
+                if (btnVerificarStripe) {
+                    setTimeout(() => btnVerificarStripe.click(), 1000);
+                }
+            } else if (isCancelled === "true") {
                 alert("La suscripción ha sido cancelada.");
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         });
+
+        // Event listener del disparador — al final del script (evita ReferenceError)
+        const botonDisparador = document.querySelector(".btn-disparador-motor");
+        if (botonDisparador) {
+            botonDisparador.addEventListener("click", window.generarVideo);
+        }
     </script>
 </body>
 </html>

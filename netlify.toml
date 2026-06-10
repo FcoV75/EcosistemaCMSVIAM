@@ -1,0 +1,16 @@
+[build]
+  publish = "."
+  command = "echo Static VIAM CMS"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/video_diamante"
+  to = "/video_diamante.html"
+  status = 200
+
+[[redirects]]
+  from = "/musica"
+  to = "/musica.html"
+  status = 200
