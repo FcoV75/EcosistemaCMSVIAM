@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { PostCard } from './PostCard'
-import { createPostFn, getPosts } from '../server/posts.functions'
+import { fetchPublicPosts } from '../lib/posts-client'
+import { createPostFn } from '../server/posts.functions'
 import type { MexicoState } from '../lib/mexico-states'
 
 type FeedProps = {
@@ -13,12 +14,7 @@ export function Feed({ selectedState }: FeedProps) {
 
   const postsQuery = useQuery({
     queryKey: ['posts', selectedState],
-    queryFn: () =>
-      getPosts({
-        data: {
-          estado: selectedState || undefined,
-        },
-      }),
+    queryFn: () => fetchPublicPosts(selectedState || undefined),
     refetchInterval: false,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
