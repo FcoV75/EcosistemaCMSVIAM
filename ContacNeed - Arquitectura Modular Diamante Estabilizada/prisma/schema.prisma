@@ -23,15 +23,17 @@ model publicaciones {
 }
 
 model perfiles {
-  id            String          @id @db.Uuid
-  full_name     String?
-  specialty     String?
-  estado        String?
-  es_pro        Boolean?        @default(false)
-  is_premium    Boolean?        @default(false)
-  is_admin      Boolean?        @default(false)
-  created_at    DateTime?       @default(now()) @db.Timestamptz(6)
-  publicaciones publicaciones[]
+  id                    String          @id @db.Uuid
+  nombre                String?
+  descripcion_profesion String?
+  estado                String?
+  es_pro                Boolean?        @default(false)
+  es_fundador           Boolean?        @default(false)
+  verificado            Boolean?        @default(false)
+  is_admin              Boolean?        @default(false)
+  correo                String?
+  fecha_registro        DateTime?       @default(now()) @db.Timestamptz(6)
+  publicaciones         publicaciones[]
 
   @@map("perfiles")
 }

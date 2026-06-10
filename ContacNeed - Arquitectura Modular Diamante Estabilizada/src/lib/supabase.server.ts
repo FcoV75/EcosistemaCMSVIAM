@@ -1,9 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { getCookies, setCookie } from '@tanstack/react-start/server'
+import { SUPABASE_ANON_KEY, SUPABASE_PROJECT_URL } from './supabase-config'
 
 export function createSupabaseServerClient() {
-  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? ''
-  const supabaseKey = process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? ''
+  const supabaseUrl = SUPABASE_PROJECT_URL
+  const supabaseKey = SUPABASE_ANON_KEY
 
   return createServerClient(supabaseUrl, supabaseKey, {
     cookies: {

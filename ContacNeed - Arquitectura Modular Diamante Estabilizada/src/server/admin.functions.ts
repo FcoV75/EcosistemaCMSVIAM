@@ -16,10 +16,10 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
     prisma.publicaciones.findMany({
       orderBy: { fecha_creacion: 'desc' },
       take: 100,
-      include: { perfiles: { select: { full_name: true, specialty: true } } },
+      include: { perfiles: { select: { nombre: true, descripcion_profesion: true } } },
     }),
     prisma.perfiles.findMany({
-      orderBy: { created_at: 'desc' },
+      orderBy: { fecha_registro: 'desc' },
       take: 100,
     }),
     prisma.perfiles.groupBy({
@@ -62,7 +62,7 @@ export const deletePostAdminFn = createServerFn({ method: 'POST' })
 
 export const updateUserAdminFn = createServerFn({ method: 'POST' })
   .inputValidator(
-    (d: { id: string; es_pro?: boolean; is_premium?: boolean; is_admin?: boolean }) => d,
+    (d: { id: string; es_pro?: boolean; is_admin?: boolean }) => d,
   )
   .handler(async ({ data }) => {
     await assertAdmin()
@@ -71,7 +71,6 @@ export const updateUserAdminFn = createServerFn({ method: 'POST' })
       where: { id: data.id },
       data: {
         es_pro: data.es_pro,
-        is_premium: data.is_premium,
         is_admin: data.is_admin,
       },
     })

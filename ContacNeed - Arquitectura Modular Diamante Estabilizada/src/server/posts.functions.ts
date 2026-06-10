@@ -21,8 +21,8 @@ type PublicacionRow = {
 
 type PerfilRow = {
   id: string
-  full_name?: string | null
-  specialty?: string | null
+  nombre?: string | null
+  descripcion_profesion?: string | null
 }
 
 async function attachProfiles(
@@ -34,10 +34,12 @@ async function attachProfiles(
 
   const { data: profiles, error } = await supabase
     .from('perfiles')
-    .select('id, full_name, specialty')
+    .select('id, nombre, descripcion_profesion')
     .in('id', userIds)
 
-  if (error) throw error
+  if (error) {
+    return posts.map((post) => ({ ...post, perfiles: null }))
+  }
 
   const profileById = new Map((profiles ?? []).map((profile: PerfilRow) => [profile.id, profile]))
 
@@ -52,7 +54,10 @@ function toMappedPost(post: PublicacionRow & { perfiles?: PerfilRow | null }) {
     ...post,
     fecha_creacion: post.fecha_creacion ? new Date(post.fecha_creacion) : null,
     perfiles: post.perfiles
-      ? { full_name: post.perfiles.full_name, specialty: post.perfiles.specialty }
+      ? {
+          nombre: post.perfiles.nombre,
+          descripcion_profesion: post.perfiles.descripcion_profesion,
+        }
       : null,
   })
 }
@@ -103,7 +108,7 @@ export const createPostFn = createServerFn({ method: 'POST' })
 
     const { data: profile } = await supabase
       .from('perfiles')
-      .select('estado, full_name, specialty')
+      .select('estado, nombre, descripcion_profesion')
       .eq('id', authData.user.id)
       .maybeSingle()
 
@@ -127,7 +132,11 @@ export const createPostFn = createServerFn({ method: 'POST' })
     return toMappedPost({
       ...post,
       perfiles: profile
-        ? { id: authData.user.id, full_name: profile.full_name, specialty: profile.specialty }
+        ? {
+            id: authData.user.id,
+            nombre: profile.nombre,
+            descripcion_profesion: profile.descripcion_profesion,
+          }
         : null,
     })
   })

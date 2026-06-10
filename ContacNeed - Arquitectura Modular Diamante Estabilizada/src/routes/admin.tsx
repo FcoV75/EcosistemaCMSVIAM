@@ -138,10 +138,10 @@ function AdminDashboard() {
               <tbody>
                 {(data?.users ?? []).map((user: any) => (
                   <tr key={user.id} className="border-b border-slate-800/80">
-                    <td className="px-3 py-3">{user.full_name || 'Sin nombre'}</td>
+                    <td className="px-3 py-3">{user.nombre || 'Sin nombre'}</td>
                     <td className="px-3 py-3">{user.id.slice(0, 8)}...</td>
                     <td className="px-3 py-3">{user.estado || '—'}</td>
-                    <td className="px-3 py-3">{user.es_pro || user.is_premium ? 'Sí' : 'No'}</td>
+                    <td className="px-3 py-3">{user.es_pro ? 'Sí' : 'No'}</td>
                     <td className="px-3 py-3">
                       <div className="flex flex-wrap gap-2">
                         <button
@@ -150,7 +150,6 @@ function AdminDashboard() {
                             userMutation.mutate({
                               id: user.id,
                               es_pro: true,
-                              is_premium: true,
                             })
                           }
                           className="rounded-lg bg-purple-600 px-2 py-1 text-xs font-semibold"

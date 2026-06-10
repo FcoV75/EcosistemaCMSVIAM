@@ -40,7 +40,10 @@ export function mapPublicacionToPost(post: {
   usuario_id?: string | null
   estado?: string | null
   estatus?: string | null
-  perfiles?: { full_name?: string | null; specialty?: string | null } | null
+  perfiles?: {
+    nombre?: string | null
+    descripcion_profesion?: string | null
+  } | null
 }): MappedPost {
   const media = toMediaFields(post.url_multimedia)
   const userId = post.usuario_id ?? 'anon'
@@ -57,9 +60,9 @@ export function mapPublicacionToPost(post: {
     comments: 0,
     commentList: [],
     authorData: {
-      name: post.perfiles?.full_name ?? 'Usuario',
+      name: post.perfiles?.nombre ?? 'Usuario',
       avatar: `https://i.pravatar.cc/150?u=${userId}`,
-      title: post.perfiles?.specialty ?? 'Profesional',
+      title: post.perfiles?.descripcion_profesion ?? 'Profesional',
       verified: false,
       isFounder: false,
     },

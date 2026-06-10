@@ -63,9 +63,8 @@ export const confirmStripeSessionFn = createServerFn({ method: 'POST' })
       where: { id: user.id },
       data: {
         es_pro: true,
-        is_premium: true,
       },
     })
 
-    return { success: true, es_pro: true, is_premium: true }
+    return { success: true, es_pro: true }
   })
