@@ -321,14 +321,22 @@ async function transcribirAudio() {
     try {
         const fd = new FormData();
         fd.append("audio", audioFile);
-        const r = await fetch("/.netlify/functions/transcribe-audio", { method: "POST", body: fd });
-        const d = await r.json();
+
+        let r;
+        try {
+            r = await fetchRailway("/transcribir", { method: "POST", body: fd });
+        } catch (e) {
+            console.warn("Railway transcribir falló, probando Netlify:", e.message);
+            r = await fetch("/.netlify/functions/transcribe-audio", { method: "POST", body: fd });
+        }
+
+        const d = await parseJsonSeguro(r);
         if (r.ok && d.texto) {
             if (area) area.value = d.texto;
             letraGuardada = d.texto;
             if (status) status.textContent = "Letra lista — edítala y pulsa Guardar.";
         } else {
-            throw new Error(d.error || "Transcripción fallida");
+            throw new Error(d.error || d.detalle || "Transcripción fallida");
         }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;

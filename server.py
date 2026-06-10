@@ -68,10 +68,57 @@ def hilo_renderizador(config_path, audio_path, output_path):
     except subprocess.CalledProcessError as e:
         ESTADO_RENDER["status"] = "error"
         detalle = (e.stderr or e.stdout or str(e)).strip()
-        ESTADO_RENDER["detalle"] = f"Error en el motor: {detalle[:500]}"
+        ESTADO_RENDER["detalle"] = f"Error en el motor: {detalle[:900]}"
     except Exception as e:
         ESTADO_RENDER["status"] = "error"
         ESTADO_RENDER["detalle"] = f"Fallo inesperado: {str(e)}"
+
+@app.route('/transcribir', methods=['POST', 'OPTIONS'])
+def transcribir_audio():
+    if request.method == 'OPTIONS':
+        return '', 200
+    import requests as http_requests
+
+    audio = request.files.get('audio')
+    if not audio or not audio.filename:
+        return jsonify({"error": "No se recibió archivo de audio."}), 400
+
+    groq_key = os.environ.get('GROQ_API_KEY')
+    if not groq_key:
+        return jsonify({
+            "error": "GROQ_API_KEY no está configurada en Railway.",
+            "detalle": "Agrégala en Variables del servicio ecosistemacmsviam."
+        }), 500
+
+    temp_path = os.path.join(UPLOAD_FOLDER, "transcribe_temp.mp3")
+    audio.save(temp_path)
+
+    try:
+        with open(temp_path, 'rb') as f:
+            resp = http_requests.post(
+                "https://api.groq.com/openai/v1/audio/transcriptions",
+                headers={"Authorization": f"Bearer {groq_key}"},
+                files={"file": (audio.filename, f, audio.content_type or "audio/mpeg")},
+                data={
+                    "model": "whisper-large-v3",
+                    "language": "es",
+                    "response_format": "json",
+                    "temperature": "0"
+                },
+                timeout=300
+            )
+        data = resp.json()
+        if not resp.ok:
+            msg = data.get("error", {}).get("message", str(data))
+            return jsonify({"error": f"Groq: {msg}"}), resp.status_code
+        return jsonify({"success": True, "texto": data.get("text", "")})
+    except Exception as e:
+        return jsonify({"error": "Error transcribiendo", "detalle": str(e)}), 500
+    finally:
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
 
 @app.route('/renderizar', methods=['POST', 'OPTIONS'])
 def renderizar():

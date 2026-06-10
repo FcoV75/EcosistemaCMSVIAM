@@ -14,7 +14,7 @@ try:
 except ImportError:
     PIL_DISPONIBLE = False
 
-WIDTH, HEIGHT = 1920, 1080
+WIDTH, HEIGHT = 1280, 720  # Estable en Railway; CRF 18 mantiene buena calidad
 FPS = 30
 
 
@@ -333,17 +333,7 @@ def generar_video_cloud():
         print("Error: ningún fotograma generado.")
         sys.exit(1)
 
-    encode_args = [
-        ffmpeg_bin, '-y', '-i', ruta_video_puro,
-        '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'medium',
-    ]
-    if os.path.exists(ruta_audio):
-        encode_args += ['-i', ruta_audio, '-c:a', 'aac', '-b:a', '192k',
-                        '-shortest', '-map', '0:v:0', '-map', '1:a:0', archivo_final]
-    else:
-        encode_args += [archivo_final]
-
-    subprocess.run(encode_args, capture_output=True, text=True, check=True)
+    ensamblar_con_ffmpeg(ffmpeg_bin, ruta_video_puro, ruta_audio, archivo_final)
 
     if not os.path.exists(archivo_final) or os.path.getsize(archivo_final) < 1000:
         print("Error: MP4 final vacío.")
@@ -355,6 +345,52 @@ def generar_video_cloud():
             os.remove(ruta_video_puro)
         except Exception:
             pass
+
+
+def ensamblar_con_ffmpeg(ffmpeg_bin, ruta_video, ruta_audio, salida):
+    """Intenta varias estrategias de FFmpeg; el binario embebido a veces no soporta -preset."""
+    tiene_audio = ruta_audio and os.path.exists(ruta_audio)
+    estrategias = []
+
+    if tiene_audio:
+        estrategias.append([
+            ffmpeg_bin, "-y", "-i", ruta_video, "-i", ruta_audio,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20",
+            "-c:a", "aac", "-b:a", "192k",
+            "-shortest", "-map", "0:v:0", "-map", "1:a:0", "-movflags", "+faststart", salida
+        ])
+        estrategias.append([
+            ffmpeg_bin, "-y", "-i", ruta_video, "-i", ruta_audio,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23",
+            "-c:a", "aac", "-b:a", "128k",
+            "-shortest", salida
+        ])
+    else:
+        estrategias.append([
+            ffmpeg_bin, "-y", "-i", ruta_video,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", salida
+        ])
+
+    estrategias.append([
+        ffmpeg_bin, "-y", "-i", ruta_video,
+        *(["-i", ruta_audio] if tiene_audio else []),
+        "-c:v", "mpeg4", "-q:v", "2",
+        *(["-c:a", "aac", "-shortest"] if tiene_audio else []),
+        salida
+    ])
+
+    ultimo_error = ""
+    for i, args in enumerate(estrategias):
+        print(f"FFmpeg intento {i + 1}/{len(estrategias)}...")
+        result = subprocess.run(args, capture_output=True, text=True, check=False)
+        if result.returncode == 0 and os.path.exists(salida) and os.path.getsize(salida) > 1000:
+            print(f"FFmpeg exitoso en intento {i + 1}")
+            return
+        ultimo_error = (result.stderr or result.stdout or f"código {result.returncode}").strip()
+        print(f"FFmpeg fallo intento {i + 1}: {ultimo_error[:300]}")
+
+    print(f"Error crítico FFmpeg: {ultimo_error[:800]}")
+    sys.exit(1)
 
 
 if __name__ == '__main__':
