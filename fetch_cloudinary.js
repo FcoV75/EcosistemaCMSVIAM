@@ -1,8 +1,17 @@
 const RAILWAY_API = "https://ecosistemacmsviam-production.up.railway.app";
 
 async function fetchRailway(endpoint, options = {}) {
+    const isFormData = options.body instanceof FormData;
+    if (isFormData) {
+        return fetch(`${RAILWAY_API}${endpoint}`, {
+            method: options.method || "POST",
+            body: options.body,
+            mode: "cors",
+            credentials: "omit"
+        });
+    }
     const headers = { Accept: "application/json", ...(options.headers || {}) };
-    if (options.body && !(options.body instanceof FormData)) {
+    if (options.body) {
         headers["Content-Type"] = "application/json";
     }
     return fetch(`${RAILWAY_API}${endpoint}`, {

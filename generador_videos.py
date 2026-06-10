@@ -1,4 +1,5 @@
 import os
+import sys
 import cv2
 import numpy as np
 import json
@@ -36,7 +37,7 @@ def generar_video_cloud():
 
     if not os.path.exists(args.config):
         print(f"Error crítico: No se encontró el archivo de configuración en {args.config}")
-        return
+        sys.exit(1)
 
     with open(args.config, 'r', encoding='utf-8') as f:
         config = json.load(f)
@@ -162,8 +163,15 @@ def generar_video_cloud():
                 video_writer.write(f_render)
                 frame_contador += 1
 
-    # Liberación de recursos de OpenCV
     video_writer.release()
+
+    if frame_contador == 0:
+        print("Error crítico: No se generó ningún fotograma. Verifique que las imágenes sean válidas.")
+        sys.exit(1)
+
+    if not os.path.exists(ruta_video_puro) or os.path.getsize(ruta_video_puro) < 1000:
+        print("Error crítico: El video visual temporal está vacío.")
+        sys.exit(1)
 
     # --- ENSAMBLE DE AUDIO Y VIDEO CON FFMPEG (SOPORTE DE SOBREESCRITURA TOTAL) ---
     if os.path.exists(ruta_audio):
@@ -177,6 +185,7 @@ def generar_video_cloud():
             print("¡Ensamble de alta fidelidad completado exitosamente!")
         except Exception as e:
             print(f"Error ensamblando con audio: {e}")
+            sys.exit(1)
     else:
         try:
             print("Iniciando ensamble de fallback (sin pista de audio)...")
@@ -187,6 +196,11 @@ def generar_video_cloud():
             print("Ensamble de fallback completado.")
         except Exception as e:
             print(f"Error ensamblando video fallback: {e}")
+            sys.exit(1)
+
+    if not os.path.exists(archivo_final) or os.path.getsize(archivo_final) < 1000:
+        print("Error crítico: El archivo MP4 final no se generó correctamente.")
+        sys.exit(1)
 
     # Limpieza absoluta de temporales
     if os.path.exists(ruta_video_puro):

@@ -6,17 +6,31 @@ import os
 import json
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB
 
-# Configuración de CORS total y abierta para producción
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
+
+def _cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Requested-With'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    return response
 
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
+    return _cors_headers(response)
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    resp = jsonify({"error": "Error interno del servidor", "detalle": str(e)})
+    resp.status_code = 500
+    return _cors_headers(resp)
+
+@app.errorhandler(413)
+def handle_payload_too_large(e):
+    resp = jsonify({"error": "Archivos demasiado grandes", "detalle": "El paquete supera el límite de 100 MB."})
+    resp.status_code = 413
+    return _cors_headers(resp)
 
 UPLOAD_FOLDER = "/tmp/viam_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -45,7 +59,8 @@ def hilo_renderizador(config_path, audio_path, output_path):
             
     except subprocess.CalledProcessError as e:
         ESTADO_RENDER["status"] = "error"
-        ESTADO_RENDER["detalle"] = f"Error en el motor: {e.stderr if e.stderr else e.output}"
+        detalle = (e.stderr or e.stdout or str(e)).strip()
+        ESTADO_RENDER["detalle"] = f"Error en el motor: {detalle[:500]}"
     except Exception as e:
         ESTADO_RENDER["status"] = "error"
         ESTADO_RENDER["detalle"] = f"Fallo inesperado: {str(e)}"
@@ -58,6 +73,10 @@ def renderizar():
     global ESTADO_RENDER
     if ESTADO_RENDER["status"] == "procesando":
         return jsonify({"message": "Hay un proceso de renderizado en curso.", "status": "procesando"}), 202
+
+    # Permite reintentar tras un error previo
+    if ESTADO_RENDER["status"] in ("error", "listo"):
+        ESTADO_RENDER = {"status": "libre", "detalle": "Preparando nuevo proyecto..."}
 
     try:
         video_final_path = "/tmp/video_viam_output.mp4"
@@ -105,7 +124,11 @@ def renderizar():
                 try:
                     indice = int(key.split("_")[1])
                     img_file = request.files[key]
-                    img_path = os.path.join(UPLOAD_FOLDER, f"img_{indice}_temp.png")
+                    nombre_orig = img_file.filename or f"img_{indice}.jpg"
+                    extension = os.path.splitext(nombre_orig)[1].lower() or ".jpg"
+                    if extension not in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
+                        extension = ".jpg"
+                    img_path = os.path.join(UPLOAD_FOLDER, f"img_{indice}_temp{extension}")
                     img_file.save(img_path)
                     
                     # BLINDAJE NUEVO: Si el índice no existe en la lista, expandimos dinámicamente para evitar desbordes
