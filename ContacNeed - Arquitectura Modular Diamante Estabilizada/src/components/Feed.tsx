@@ -1,151 +1,513 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw } from 'lucide-react'
+
+import { Camera, ImageIcon, RefreshCw, X } from 'lucide-react'
+
+import { useRef, useState } from 'react'
+
 import { PostCard } from './PostCard'
+
 import { fetchPublicPosts } from '../lib/posts-client'
+
+import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
+
 import { createPostFn } from '../server/posts.functions'
+
 import type { MexicoState } from '../lib/mexico-states'
 
+
+
 type FeedProps = {
+
   selectedState: MexicoState | ''
+
 }
+
+
+
+type MediaPreview = {
+
+  file: File
+
+  url: string
+
+  kind: 'image' | 'video'
+
+}
+
+
 
 export function Feed({ selectedState }: FeedProps) {
+
   const queryClient = useQueryClient()
 
+
+
   const postsQuery = useQuery({
+
     queryKey: ['posts', selectedState],
+
     queryFn: () => fetchPublicPosts(selectedState || undefined),
+
     refetchInterval: false,
+
     refetchIntervalInBackground: false,
+
     refetchOnWindowFocus: false,
+
   })
+
+
 
   const createPostMutation = useMutation({
+
     mutationFn: (payload: { content: string; mediaUrl?: string; imageUrl?: string; videoUrl?: string; estado?: string }) =>
+
       createPostFn({ data: payload }),
+
     onSuccess: () => {
+
       queryClient.invalidateQueries({ queryKey: ['posts'] })
+
     },
+
   })
 
+
+
   return (
-    <section className="space-y-4">
+
+    <section className="space-y-5">
+
       <div className="flex items-center justify-between gap-3">
+
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Pizarra de Servicios</h2>
-          <p className="text-sm text-gray-500">
-            {selectedState ? `Mostrando publicaciones en ${selectedState}` : 'Mostrando todas las publicaciones'}
+
+          <h2 className="text-xl font-black text-white">Pizarra de Servicios</h2>
+
+          <p className="text-sm text-purple-200/70">
+
+            {selectedState ? `Publicaciones en ${selectedState}` : 'Todas las publicaciones de México'}
+
           </p>
+
         </div>
+
         <button
+
           type="button"
+
           onClick={() => postsQuery.refetch()}
-          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-gray-50"
+
+          className="inline-flex items-center gap-2 rounded-xl border border-purple-500/30 bg-purple-950/40 px-3 py-2 text-sm font-medium text-purple-100 transition hover:bg-purple-900/50"
+
         >
+
           <RefreshCw size={16} />
+
           Actualizar
+
         </button>
+
       </div>
+
+
 
       <Composer
+
         selectedState={selectedState}
+
         isSubmitting={createPostMutation.isPending}
+
         onSubmit={(payload) => createPostMutation.mutate(payload)}
+
       />
 
-      {postsQuery.isLoading && <p className="text-sm text-gray-500">Cargando publicaciones...</p>}
-      {postsQuery.isError && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          No se pudo cargar el feed. Usa el botón Actualizar para reintentar.
-          {postsQuery.error instanceof Error && postsQuery.error.message ? (
-            <span className="mt-1 block text-xs opacity-80">{postsQuery.error.message}</span>
-          ) : null}
-        </p>
+
+
+      {postsQuery.isLoading && (
+
+        <p className="text-sm text-purple-200/60">Cargando publicaciones...</p>
+
       )}
+
+      {postsQuery.isError && (
+
+        <p className="rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+
+          No se pudo cargar el feed. Usa el botón Actualizar para reintentar.
+
+          {postsQuery.error instanceof Error && postsQuery.error.message ? (
+
+            <span className="mt-1 block text-xs opacity-80">{postsQuery.error.message}</span>
+
+          ) : null}
+
+        </p>
+
+      )}
+
+
 
       {(postsQuery.data ?? []).length === 0 && !postsQuery.isLoading && !postsQuery.isError && (
-        <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+
+        <p className="rounded-xl border border-purple-500/20 bg-slate-900/50 px-4 py-3 text-sm text-purple-200/70">
+
           No hay publicaciones en este estado todavía. Prueba cambiar el filtro a &quot;Todos los estados&quot; o publica la primera.
+
         </p>
+
       )}
 
-      {(postsQuery.data ?? []).map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          author={{
-            name: post.authorData.name,
-            avatar: post.authorData.avatar,
-            title: post.authorData.title ?? 'Profesional',
-            verified: post.authorData.verified,
-            isFounder: post.authorData.isFounder,
-          }}
-          onChanged={() => queryClient.invalidateQueries({ queryKey: ['posts'] })}
-        />
-      ))}
+
+
+      <div className="space-y-5">
+
+        {(postsQuery.data ?? []).map((post) => (
+
+          <PostCard
+
+            key={post.id}
+
+            post={post}
+
+            author={{
+
+              name: post.authorData.name,
+
+              avatar: post.authorData.avatar,
+
+              title: post.authorData.title ?? 'Profesional',
+
+              verified: post.authorData.verified,
+
+              isFounder: post.authorData.isFounder,
+
+            }}
+
+            onChanged={() => queryClient.invalidateQueries({ queryKey: ['posts'] })}
+
+          />
+
+        ))}
+
+      </div>
+
     </section>
+
   )
+
 }
+
+
 
 function Composer({
+
   selectedState,
+
   isSubmitting,
+
   onSubmit,
+
 }: {
+
   selectedState: MexicoState | ''
+
   isSubmitting: boolean
+
   onSubmit: (payload: {
+
     content: string
+
     mediaUrl?: string
+
     imageUrl?: string
+
     videoUrl?: string
+
     estado?: string
+
   }) => void
+
 }) {
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [content, setContent] = useState('')
+
+  const [mediaUrl, setMediaUrl] = useState('')
+
+  const [preview, setPreview] = useState<MediaPreview | null>(null)
+
+  const [uploading, setUploading] = useState(false)
+
+  const [error, setError] = useState<string | null>(null)
+
+
+
+  const revokePreview = () => {
+    if (preview) URL.revokeObjectURL(preview.url)
+    setPreview(null)
+  }
+
+  const clearPreview = () => {
+    revokePreview()
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    revokePreview()
+    const kind = file.type.startsWith('video/') ? 'video' : 'image'
+    setPreview({ file, url: URL.createObjectURL(file), kind })
+    setError(null)
+  }
+
+
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+
+    event.preventDefault()
+
+    const nextContent = content.trim()
+
+    const nextMediaUrl = mediaUrl.trim()
+
+
+
+    if (!nextContent && !nextMediaUrl && !preview) return
+
+
+
+    setError(null)
+
+    let finalMediaUrl = nextMediaUrl || undefined
+
+
+
+    if (preview) {
+
+      setUploading(true)
+
+      try {
+
+        finalMediaUrl = await uploadFileToCloudinary(preview.file)
+
+      } catch (uploadError) {
+
+        setError(uploadError instanceof Error ? uploadError.message : 'Error al subir archivo')
+
+        setUploading(false)
+
+        return
+
+      }
+
+      setUploading(false)
+
+    }
+
+
+
+    onSubmit({
+
+      content: nextContent,
+
+      mediaUrl: finalMediaUrl,
+
+      imageUrl: finalMediaUrl,
+
+      videoUrl: finalMediaUrl,
+
+      estado: selectedState || undefined,
+
+    })
+
+
+
+    setContent('')
+
+    setMediaUrl('')
+
+    clearPreview()
+
+    event.currentTarget.reset()
+
+  }
+
+
+
+  const busy = isSubmitting || uploading
+
+
+
   return (
+
     <form
-      className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
-      onSubmit={(event) => {
-        event.preventDefault()
-        const form = event.currentTarget
-        const formData = new FormData(form)
-        const nextContent = String(formData.get('content') ?? '').trim()
-        const nextMedia = String(formData.get('mediaUrl') ?? '').trim()
 
-        if (!nextContent && !nextMedia) return
+      className="cn-glass overflow-hidden rounded-2xl border border-purple-500/25 shadow-xl shadow-purple-900/20"
 
-        onSubmit({
-          content: nextContent,
-          mediaUrl: nextMedia || undefined,
-          imageUrl: nextMedia || undefined,
-          videoUrl: nextMedia || undefined,
-          estado: selectedState || undefined,
-        })
+      onSubmit={handleSubmit}
 
-        form.reset()
-      }}
     >
-      <textarea
-        name="content"
-        rows={3}
-        placeholder="Comparte tu trabajo, consejo o servicio..."
-        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-amber-500 focus:ring-amber-500"
-      />
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-        <input
-          name="mediaUrl"
-          type="url"
-          placeholder="URL de imagen, Cloudinary o YouTube"
-          className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-amber-500 focus:ring-amber-500"
-        />
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-xl bg-amber-500 px-5 py-2 text-sm font-bold text-slate-950 hover:bg-amber-600 disabled:opacity-50"
-        >
-          {isSubmitting ? 'Publicando...' : 'Publicar'}
-        </button>
+
+      <div className="border-b border-purple-500/15 bg-gradient-to-r from-purple-900/30 to-amber-900/10 px-4 py-2">
+
+        <p className="text-xs font-semibold uppercase tracking-wider text-amber-300/90">Nueva publicación</p>
+
       </div>
+
+
+
+      <div className="p-4">
+
+        <textarea
+
+          name="content"
+
+          rows={3}
+
+          value={content}
+
+          onChange={(event) => setContent(event.target.value)}
+
+          placeholder="Comparte tu trabajo, consejo o servicio..."
+
+          className="w-full resize-none rounded-xl border border-purple-500/20 bg-slate-900/50 px-3 py-2.5 text-sm text-white placeholder:text-purple-300/40 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+
+        />
+
+
+
+        {preview && (
+
+          <div className="relative mt-3 overflow-hidden rounded-xl border border-purple-500/25 bg-slate-900/60">
+
+            <button
+
+              type="button"
+
+              onClick={clearPreview}
+
+              className="absolute right-2 top-2 z-10 rounded-full bg-slate-950/80 p-1.5 text-white hover:bg-red-600/80"
+
+              aria-label="Quitar archivo"
+
+            >
+
+              <X size={14} />
+
+            </button>
+
+            {preview.kind === 'video' ? (
+
+              <video src={preview.url} controls className="max-h-56 w-full object-contain" />
+
+            ) : (
+
+              <img src={preview.url} alt="Vista previa" className="max-h-56 w-full object-contain" />
+
+            )}
+
+            <p className="px-3 py-1.5 text-[11px] text-purple-200/60">{preview.file.name}</p>
+
+          </div>
+
+        )}
+
+
+
+        {error && (
+
+          <p className="mt-2 text-xs text-red-300">{error}</p>
+
+        )}
+
+
+
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+
+          <input
+
+            ref={fileInputRef}
+
+            type="file"
+
+            accept="image/*,video/*"
+
+            className="hidden"
+
+            onChange={handleFileChange}
+
+          />
+
+
+
+          <button
+
+            type="button"
+
+            onClick={() => fileInputRef.current?.click()}
+
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/20"
+
+          >
+
+            <Camera size={18} />
+
+            Galería / Cámara
+
+          </button>
+
+
+
+          <div className="relative flex flex-1 items-center">
+
+            <ImageIcon size={16} className="pointer-events-none absolute left-3 text-purple-300/40" />
+
+            <input
+
+              name="mediaUrl"
+
+              type="url"
+
+              value={mediaUrl}
+
+              onChange={(event) => setMediaUrl(event.target.value)}
+
+              placeholder="O pega URL de imagen, Cloudinary o YouTube"
+
+              className="w-full rounded-xl border border-purple-500/20 bg-slate-900/50 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-purple-300/40 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+
+            />
+
+          </div>
+
+
+
+          <button
+
+            type="submit"
+
+            disabled={busy}
+
+            className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-amber-500/25 transition hover:brightness-110 disabled:opacity-50"
+
+          >
+
+            {uploading ? 'Subiendo...' : isSubmitting ? 'Publicando...' : 'Publicar'}
+
+          </button>
+
+        </div>
+
+      </div>
+
     </form>
+
   )
+
 }
+
+

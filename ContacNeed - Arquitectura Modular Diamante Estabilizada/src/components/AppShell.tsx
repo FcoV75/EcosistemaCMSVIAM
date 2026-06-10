@@ -1,5 +1,7 @@
-import { Link } from '@tanstack/react-router'
-import { Crown, Shield } from 'lucide-react'
+import { ContacNeedLogo } from './ContacNeedLogo'
+import { ProAdPanel } from './ProAdPanel'
+import { RadioPlayer } from './RadioPlayer'
+import { SidebarNav } from './SidebarNav'
 import { StateSelector } from './StateSelector'
 import { SupportBot } from './SupportBot'
 import { StripeSubscriptionModal } from './StripeSubscriptionModal'
@@ -23,44 +25,46 @@ export function AppShell({
   onCloseStripe,
 }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-amber-50">
-      <header className="sticky top-0 z-30 border-b border-purple-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-white">
+      <div
+        className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.07]"
+        aria-hidden
+      >
+        <ContacNeedLogo className="h-[min(70vw,28rem)] w-[min(70vw,28rem)]" />
+      </div>
+
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(168,85,247,0.15),_transparent_50%)]" />
+
+      <header className="sticky top-0 z-30 border-b border-purple-500/20 bg-slate-950/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4 px-4 py-3 lg:px-6">
+          <div className="flex items-center gap-3">
+            <ContacNeedLogo className="h-10 w-10 shrink-0" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-700">ContacNeed</p>
-              <h1 className="text-2xl font-black text-slate-900">La Red Social de Oficios</h1>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={onOpenStripe}
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-amber-600"
-              >
-                <Crown size={16} />
-                Subir de nivel
-              </button>
-              <Link
-                to="/admin"
-                className="inline-flex items-center gap-2 rounded-xl border border-purple-200 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50"
-              >
-                <Shield size={16} />
-                Admin
-              </Link>
-              <Link
-                to="/profile"
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-gray-50"
-              >
-                Mi Perfil
-              </Link>
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-400">ContacNeed</p>
+              <h1 className="text-lg font-black text-white sm:text-xl">La Red Social de Oficios</h1>
             </div>
           </div>
-
-          <StateSelector value={selectedState} onChange={onStateChange} />
+          <p className="hidden text-xs text-purple-200/60 sm:block">México · Profesionales · Servicios</p>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <div className="relative mx-auto grid max-w-[90rem] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-12 lg:px-6">
+        <aside className="space-y-4 lg:col-span-3 lg:sticky lg:top-24 lg:self-start">
+          <SidebarNav onOpenStripe={onOpenStripe} />
+          <StateSelector value={selectedState} onChange={onStateChange} variant="sidebar" />
+          <RadioPlayer />
+        </aside>
+
+        <main className="min-w-0 lg:col-span-6">{children}</main>
+
+        <div className="hidden lg:col-span-3 lg:block lg:sticky lg:top-24 lg:self-start">
+          <ProAdPanel onOpenStripe={onOpenStripe} />
+        </div>
+      </div>
+
+      <div className="px-4 pb-8 lg:hidden">
+        <ProAdPanel onOpenStripe={onOpenStripe} />
+      </div>
 
       <SupportBot />
       <StripeSubscriptionModal open={showStripeModal} onClose={onCloseStripe} />

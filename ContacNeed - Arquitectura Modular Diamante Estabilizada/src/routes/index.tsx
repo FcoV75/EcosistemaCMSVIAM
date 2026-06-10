@@ -40,7 +40,7 @@ function HomePage() {
       onCloseStripe={() => setShowStripeModal(false)}
     >
       {paymentMessage && (
-        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="mb-4 rounded-xl border border-emerald-400/30 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">
           {paymentMessage}
         </div>
       )}

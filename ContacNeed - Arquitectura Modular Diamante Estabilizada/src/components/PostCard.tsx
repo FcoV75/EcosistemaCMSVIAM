@@ -74,13 +74,17 @@ export function PostCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden break-words mb-6">
-      <div className="p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-        <div className="flex gap-3 items-center sm:items-start">
-          <img src={author.avatar} alt={author.name} className="w-12 h-12 rounded-full object-cover" />
+    <article className="cn-glass overflow-hidden rounded-2xl border border-purple-500/20 break-words shadow-xl shadow-purple-900/15 transition hover:border-purple-400/30">
+      <div className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-start">
+        <div className="flex items-center gap-3 sm:items-start">
+          <img
+            src={author.avatar}
+            alt={author.name}
+            className="h-12 w-12 rounded-full border-2 border-amber-400/30 object-cover"
+          />
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="font-bold text-gray-900 hover:text-slate-800 cursor-pointer">{author.name}</h4>
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="cursor-pointer font-bold text-white hover:text-amber-200">{author.name}</h4>
               {author.verified && (
                 <span title="Identidad Validada">
                   <BadgeCheck size={16} className="text-blue-500" />
@@ -92,7 +96,7 @@ export function PostCard({
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-purple-200/60">
               {author.title} • {post.timestamp || new Date(post.createdAt || Date.now()).toLocaleDateString()}
               {post.estado ? ` • ${post.estado}` : ''}
             </p>
@@ -100,12 +104,12 @@ export function PostCard({
         </div>
 
         <div className="relative">
-          <button onClick={() => setShowMenu(!showMenu)} className="text-gray-400 hover:text-slate-700 p-1">
+          <button onClick={() => setShowMenu(!showMenu)} className="p-1 text-purple-300/60 hover:text-white">
             <MoreHorizontal size={20} />
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-100 shadow-lg rounded-xl z-10 py-1">
+            <div className="absolute right-0 z-10 mt-1 w-48 rounded-xl border border-purple-500/30 bg-slate-900 py-1 shadow-xl">
               {isAuthor ? (
                 <>
                   <button
@@ -113,7 +117,7 @@ export function PostCard({
                       setIsEditing(true)
                       setShowMenu(false)
                     }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-purple-100 transition-colors hover:bg-purple-900/50"
                   >
                     <Edit2 size={16} /> Editar
                   </button>
@@ -165,7 +169,7 @@ export function PostCard({
             </div>
           </div>
         ) : (
-          <p className="text-gray-800 text-sm whitespace-pre-wrap">{post.content}</p>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-purple-50/90">{post.content}</p>
         )}
       </div>
 
@@ -178,30 +182,30 @@ export function PostCard({
         />
       )}
 
-      <div className="px-4 py-3 border-t border-gray-50 flex items-center justify-between">
-        <div className="flex gap-4 w-full">
+      <div className="flex items-center justify-between border-t border-purple-500/15 px-4 py-3">
+        <div className="flex w-full gap-4">
           <button
             onClick={() => setLikes(likes + 1)}
-            className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 transition-colors"
+            className="flex items-center gap-1.5 text-purple-200/60 transition-colors hover:text-sky-400"
           >
             <ThumbsUp size={20} /> <span className="text-sm font-medium">{likes}</span>
           </button>
           <button
             onClick={() => setDislikes(dislikes + 1)}
-            className="flex items-center gap-1.5 text-gray-500 hover:text-red-500 transition-colors"
+            className="flex items-center gap-1.5 text-purple-200/60 transition-colors hover:text-red-400"
           >
             <ThumbsDown size={20} /> <span className="text-sm font-medium">{dislikes > 0 ? dislikes : ''}</span>
           </button>
           <button
             onClick={() => setShowCommentInput(!showCommentInput)}
-            className="flex items-center gap-1.5 text-gray-500 hover:text-slate-700 transition-colors"
+            className="flex items-center gap-1.5 text-purple-200/60 transition-colors hover:text-amber-300"
           >
             <MessageCircle size={20} /> <span className="text-sm font-medium">{comments}</span>
           </button>
           <div className="flex-1"></div>
           <button
             onClick={() => alert('Enlace de la publicación copiado')}
-            className="flex items-center gap-1.5 text-gray-500 hover:text-green-600 transition-colors"
+            className="flex items-center gap-1.5 text-purple-200/60 transition-colors hover:text-emerald-400"
           >
             <Share2 size={20} /> <span className="text-sm font-medium hidden sm:inline">Compartir</span>
           </button>
@@ -209,9 +213,9 @@ export function PostCard({
       </div>
 
       {showCommentInput && (
-        <div className="px-4 pb-4 bg-gray-50 pt-3">
+        <div className="bg-slate-900/40 px-4 pb-4 pt-3">
           {commentList.map((c) => (
-            <div key={c.id} className="mb-2 bg-white p-2 rounded-lg text-sm border border-gray-100 shadow-sm group">
+            <div key={c.id} className="group mb-2 rounded-lg border border-purple-500/15 bg-slate-900/60 p-2 text-sm shadow-sm">
               <div className="flex justify-between items-start gap-2">
                 <div className="flex-1 whitespace-pre-wrap">{c.text}</div>
                 {user?.id === c.user_id && (
@@ -253,7 +257,7 @@ export function PostCard({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Escribe un comentario..."
-              className="flex-1 rounded-full border border-gray-300 px-4 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="flex-1 rounded-full border border-purple-500/30 bg-slate-900/80 px-4 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-400/40"
               onKeyDown={async (e) => {
                 if (e.key === 'Enter' && comment.trim() && user?.id) {
                   const newC = { text: comment.trim(), user_id: user.id }
@@ -293,6 +297,6 @@ export function PostCard({
           </div>
         </div>
       )}
-    </div>
+    </article>
   )
 }

@@ -17,7 +17,7 @@ function SafeCloudinaryImage({ src, alt }: { src: string; alt: string }) {
 
   if (failed) {
     return (
-      <div className="w-full py-10 text-center text-sm text-gray-500 bg-gray-100">
+      <div className="flex w-full items-center justify-center py-12 text-sm text-purple-200/60">
         No se pudo cargar la imagen.
       </div>
     )
@@ -27,10 +27,20 @@ function SafeCloudinaryImage({ src, alt }: { src: string; alt: string }) {
     <img
       src={src}
       alt={alt}
-      className="w-full h-full object-cover"
+      className="h-full w-full object-contain"
       loading="lazy"
       onError={() => setFailed(true)}
     />
+  )
+}
+
+function MediaFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-4 pb-4 pt-1">
+      <div className="overflow-hidden rounded-2xl border border-purple-500/20 bg-slate-900/60 shadow-inner shadow-purple-900/20">
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -44,56 +54,66 @@ export function PostMedia(props: PostMediaProps) {
 
     if (url.endsWith('.mp4') || url.endsWith('.mov') || props.mediaType === 'video') {
       return (
-        <div className="w-full bg-gray-100 max-h-[400px] overflow-hidden flex justify-center items-center">
-          <video src={url} controls className="w-full max-h-[400px] bg-black" />
-        </div>
+        <MediaFrame>
+          <div className="aspect-video w-full bg-black">
+            <video src={url} controls className="h-full w-full object-contain" />
+          </div>
+        </MediaFrame>
       )
     }
 
     if (embedUrl || isYouTubeUrl(url)) {
       return (
-        <div className="w-full bg-gray-100 max-h-[400px] overflow-hidden flex justify-center items-center">
-          <iframe
-            src={embedUrl ?? url}
-            className="w-full aspect-video"
-            title="Video de publicación"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
+        <MediaFrame>
+          <div className="relative aspect-video w-full bg-black">
+            <iframe
+              src={embedUrl ?? url}
+              className="absolute inset-0 h-full w-full border-0"
+              title="Video de publicación"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </MediaFrame>
       )
     }
 
     if (vimeoMatch) {
       return (
-        <div className="w-full bg-gray-100 max-h-[400px] overflow-hidden flex justify-center items-center">
-          <iframe
-            src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
-            className="w-full aspect-video"
-            title="Video Vimeo"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
+        <MediaFrame>
+          <div className="relative aspect-video w-full bg-black">
+            <iframe
+              src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
+              className="absolute inset-0 h-full w-full border-0"
+              title="Video Vimeo"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </MediaFrame>
       )
     }
 
-    if (isCloudinaryUrl(url)) {
+    if (isCloudinaryUrl(url) || url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i)) {
       return (
-        <div className="w-full bg-gray-100 max-h-[400px] overflow-hidden flex justify-center items-center">
-          <SafeCloudinaryImage src={url} alt="Contenido multimedia" />
-        </div>
+        <MediaFrame>
+          <div className="flex max-h-[520px] min-h-[200px] w-full items-center justify-center bg-slate-950/40">
+            <SafeCloudinaryImage src={url} alt="Contenido multimedia" />
+          </div>
+        </MediaFrame>
       )
     }
 
     return (
-      <div className="w-full bg-gray-100 max-h-[400px] overflow-hidden flex justify-center items-center">
-        <SafeCloudinaryImage src={url} alt="Contenido multimedia" />
-      </div>
+      <MediaFrame>
+        <div className="flex max-h-[520px] min-h-[200px] w-full items-center justify-center bg-slate-950/40">
+          <SafeCloudinaryImage src={url} alt="Contenido multimedia" />
+        </div>
+      </MediaFrame>
     )
   } catch {
     return (
-      <div className="w-full py-8 text-center text-sm text-red-500 bg-red-50">
+      <div className="mx-4 mb-4 rounded-xl border border-red-400/30 bg-red-950/30 py-6 text-center text-sm text-red-200">
         Error al renderizar multimedia.
       </div>
     )

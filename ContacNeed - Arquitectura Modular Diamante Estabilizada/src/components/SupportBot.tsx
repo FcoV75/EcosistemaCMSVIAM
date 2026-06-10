@@ -1,5 +1,5 @@
 import { useState, useTransition } from 'react'
-import { MessageCircle, Send, X } from 'lucide-react'
+import { Bot, Send, X } from 'lucide-react'
 import { askSupportBotFn } from '../server/support.functions'
 
 type ChatMessage = {
@@ -59,23 +59,35 @@ export function SupportBot() {
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="Abrir bot de soporte"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-purple-700 text-white shadow-lg hover:bg-purple-800"
-      >
-        <MessageCircle size={22} />
-      </button>
+      {!open && (
+        <button
+          type="button"
+          aria-label="Abrir bot de soporte"
+          onClick={() => setOpen(true)}
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-amber-500 text-white shadow-2xl shadow-purple-900/50 transition hover:scale-105 hover:shadow-amber-500/30"
+        >
+          <Bot size={24} />
+        </button>
+      )}
 
       {open && (
-        <div className="fixed bottom-24 right-4 z-50 flex h-[420px] w-[min(100vw-2rem,360px)] flex-col overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-2xl">
-          <div className="flex items-center justify-between bg-purple-700 px-4 py-3 text-white">
-            <div>
-              <p className="text-sm font-bold">Apoyo ContacNeed</p>
-              <p className="text-xs text-purple-100">FAQ de oficios y soporte</p>
+        <div className="fixed bottom-6 right-6 z-[60] flex h-[min(70vh,480px)] w-[min(100vw-2rem,380px)] flex-col overflow-hidden rounded-2xl border border-purple-500/30 bg-slate-950/95 shadow-2xl shadow-purple-900/40 backdrop-blur-xl">
+          <div className="flex items-center justify-between bg-gradient-to-r from-purple-700 to-purple-900 px-4 py-3 text-white">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20">
+                <Bot size={18} className="text-amber-300" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">Apoyo ContacNeed</p>
+                <p className="text-[11px] text-purple-200/80">IA de oficios y soporte</p>
+              </div>
             </div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar chat">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Cerrar chat"
+              className="rounded-full p-1 hover:bg-white/10"
+            >
               <X size={18} />
             </button>
           </div>
@@ -84,19 +96,19 @@ export function SupportBot() {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm ${
+                className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
                   message.role === 'user'
-                    ? 'ml-auto bg-amber-100 text-slate-900'
-                    : 'bg-gray-100 text-slate-800'
+                    ? 'ml-auto bg-gradient-to-r from-amber-500/90 to-orange-500/90 text-slate-950'
+                    : 'bg-purple-900/50 text-purple-50'
                 }`}
               >
                 {message.text}
               </div>
             ))}
-            {isPending && <p className="text-xs text-gray-500">Escribiendo respuesta...</p>}
+            {isPending && <p className="text-xs text-purple-300/60">Escribiendo respuesta...</p>}
           </div>
 
-          <div className="border-t border-gray-100 p-3">
+          <div className="border-t border-purple-500/20 p-3">
             <div className="flex gap-2">
               <input
                 value={input}
@@ -105,13 +117,13 @@ export function SupportBot() {
                   if (event.key === 'Enter') sendMessage()
                 }}
                 placeholder="Escribe tu pregunta..."
-                className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-sm focus:border-purple-500 focus:ring-purple-500"
+                className="flex-1 rounded-full border border-purple-500/30 bg-slate-900/80 px-4 py-2 text-sm text-white placeholder:text-purple-300/40 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
               />
               <button
                 type="button"
                 onClick={sendMessage}
                 disabled={isPending}
-                className="rounded-full bg-purple-700 p-2 text-white hover:bg-purple-800 disabled:opacity-50"
+                className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 p-2.5 text-slate-950 hover:brightness-110 disabled:opacity-50"
               >
                 <Send size={16} />
               </button>
