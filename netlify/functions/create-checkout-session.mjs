@@ -29,24 +29,32 @@ export default async (req, context) => {
 
     if (planTipo === 'mensual' || planTipo === 'anual') {
       const esAnual = planTipo === 'anual';
+      const priceId = esAnual
+        ? process.env.STRIPE_PRICE_VIDEO_DIAMANTE_ANNUAL
+        : process.env.STRIPE_PRICE_VIDEO_DIAMANTE_MONTHLY;
+
+      const lineItem = priceId
+        ? { price: priceId, quantity: 1 }
+        : {
+            price_data: {
+              currency: 'mxn',
+              product_data: {
+                name: esAnual
+                  ? 'Video Diamante Premium — Anual (2 meses de regalo)'
+                  : 'Video Diamante Premium — Mensual',
+                description: esAnual
+                  ? 'Hasta 1 hora por video, 10 renders/día. 12 meses por el precio de 10.'
+                  : 'Hasta 1 hora por video, 10 renders/día.',
+              },
+              unit_amount: esAnual ? 300000 : 30000,
+              recurring: { interval: esAnual ? 'year' : 'month' },
+            },
+            quantity: 1,
+          };
+
       session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
-        line_items: [{
-          price_data: {
-            currency: 'mxn',
-            product_data: {
-              name: esAnual
-                ? 'Video Diamante Premium — Anual (2 meses de regalo)'
-                : 'Video Diamante Premium — Mensual',
-              description: esAnual
-                ? 'Hasta 1 hora por video, 10 renders/día. 12 meses por el precio de 10.'
-                : 'Hasta 1 hora por video, 10 renders/día.',
-            },
-            unit_amount: esAnual ? 300000 : 30000,
-            recurring: { interval: esAnual ? 'year' : 'month' },
-          },
-          quantity: 1,
-        }],
+        line_items: [lineItem],
         mode: 'subscription',
         success_url: baseSuccess,
         cancel_url: baseCancel,
@@ -72,6 +80,7 @@ export default async (req, context) => {
         mode: 'payment',
         success_url: baseSuccess,
         cancel_url: baseCancel,
+        metadata: { producto: 'ecosistema_cms_compra' },
       });
     }
 

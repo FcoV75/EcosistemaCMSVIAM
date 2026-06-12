@@ -13,6 +13,7 @@ export default async (req) => {
     let provider = 'unknown';
     let transactionId;
     let amount = 0;
+    let sessionMetadata = {};
 
     // Optional: If Stripe Webhook Secret is present, verify the signature.
     // If it's a Stripe webhook, it should always have 'stripe-signature' header.
@@ -46,6 +47,7 @@ export default async (req) => {
         // In verify-payment the user might enter the checkout session id (cs_test_...)
         transactionId = session.id;
         amount = session.amount_total;
+        sessionMetadata = session.metadata || {};
       } else {
         // Unhandled Stripe event
         return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' }});
@@ -69,12 +71,26 @@ export default async (req) => {
     const store = getStore('nexus-payments');
     
     // Registrar el pago en Netlify Blobs como completado y pagado
+    const producto = sessionMetadata?.producto
+      || (provider === 'stripe' ? 'ecosistema_cms_compra' : 'pago_externo');
+    const plan = sessionMetadata?.plan || null;
+
+    // Stripe envía el mismo evento a todos los endpoints: ignorar productos de ContacNeed
+    if (producto === 'contacneed_pro') {
+      return new Response(JSON.stringify({ received: true, ignored: true, producto }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     await store.setJSON(transactionId, {
       status: 'PAID',
       amount: amount,
       currency: 'MXN',
       timestamp: Date.now(),
       provider: provider,
+      producto,
+      plan,
       used: false
     });
 

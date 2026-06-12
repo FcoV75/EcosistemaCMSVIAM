@@ -6,7 +6,7 @@ export default async (req) => {
   }
 
   try {
-    const { code } = await req.json();
+    const { code, productoRequerido } = await req.json();
     if (!code || code.length < 5) {
       return Response.json({ error: 'Código inválido.' }, { status: 400 });
     }
@@ -24,14 +24,16 @@ export default async (req) => {
     const elapsedDays = Math.floor(elapsedMs / msInDay);
     const daysLeft = memberData.durationDays - elapsedDays;
 
+    const base = { producto: memberData.producto || null, plan: memberData.plan || null, daysLeft };
+
     if (daysLeft < 0) {
-      return Response.json({ status: 'expired', daysLeft: 0 });
+      return Response.json({ ...base, status: 'expired', daysLeft: 0 });
     } else if (daysLeft === 0) {
-      return Response.json({ status: 'last_day', daysLeft: 0 });
+      return Response.json({ ...base, status: 'last_day', daysLeft: 0 });
     } else if (daysLeft <= 5) {
-      return Response.json({ status: 'warning', daysLeft });
+      return Response.json({ ...base, status: 'warning', daysLeft });
     } else {
-      return Response.json({ status: 'active', daysLeft });
+      return Response.json({ ...base, status: 'active', daysLeft });
     }
 
   } catch (err) {

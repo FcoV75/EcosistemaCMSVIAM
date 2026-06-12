@@ -142,7 +142,7 @@ async function verificarMembresia(codigo) {
         const r = await fetch("/.netlify/functions/member-status", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: codigo.toUpperCase() })
+            body: JSON.stringify({ code: codigo.toUpperCase(), productoRequerido: "video_diamante_premium" })
         });
         const d = await r.json();
         return r.ok && ["active", "warning", "last_day"].includes(d.status);
@@ -531,7 +531,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const r = await fetch("/.netlify/functions/verify-payment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ transactionId: val })
+                body: JSON.stringify({ transactionId: val, productoRequerido: "video_diamante_premium" })
             });
             const d = await r.json();
             if (r.ok && d.success) {
