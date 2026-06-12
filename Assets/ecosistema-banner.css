@@ -1,5 +1,5 @@
 .ecosistema-gracias-banner {
-  margin: 0 0 1.2rem;
+  margin: 1.2rem 0 0;
   border-radius: 14px;
   overflow: hidden;
   border: 2px solid #d4af37;
@@ -29,5 +29,5 @@
 }
 
 .contenedor-principal .ecosistema-gracias-banner {
-  margin-bottom: 18px;
+  margin-top: 18px;
 }
