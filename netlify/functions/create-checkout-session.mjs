@@ -1,70 +1,70 @@
 import Stripe from 'stripe';
+import { PRODUCTOS, resolverProducto } from './stripe-catalog.mjs';
 
-export default async (req, context) => {
+function lineaSuscripcion(stripe, cfg, planTipo) {
+  const esAnual = planTipo === 'anual';
+  const plan = esAnual ? cfg.anual : cfg.mensual;
+  const priceId = process.env[plan.envPrice];
+  if (priceId) return { price: priceId, quantity: 1 };
+  return {
+    price_data: {
+      currency: 'mxn',
+      product_data: { name: plan.nombre },
+      unit_amount: plan.centavos,
+      recurring: { interval: esAnual ? 'year' : 'month' },
+    },
+    quantity: 1,
+  };
+}
+
+export default async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  // The secret key should be set in Netlify Environment Variables.
-  // We use process.env.STRIPE_SECRET_KEY as required by security policies.
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
   if (!stripeSecret) {
-    return new Response(JSON.stringify({ error: 'Stripe is not configured.' }), {
+    return new Response(JSON.stringify({ error: 'Stripe no configurado en Netlify.' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
   const stripe = new Stripe(stripeSecret);
 
   try {
-    const { montoTotal, nombreProducto, successUrl, cancelUrl, planTipo } = await req.json();
+    const body = await req.json();
+    const {
+      montoTotal,
+      nombreProducto,
+      successUrl,
+      cancelUrl,
+      planTipo,
+      producto: productoRaw,
+      detalle = '',
+    } = body;
 
+    const producto = resolverProducto(productoRaw, planTipo);
+    const cfg = PRODUCTOS[producto];
     const url = new URL(req.url);
     const origin = url.origin;
-    const baseSuccess = successUrl || `${origin}/video_diamante.html?payment_success=true&session_id={CHECKOUT_SESSION_ID}`;
-    const baseCancel = cancelUrl || `${origin}/video_diamante.html?payment_cancelled=true`;
 
     let session;
 
-    if (planTipo === 'mensual' || planTipo === 'anual') {
-      const esAnual = planTipo === 'anual';
-      const priceId = esAnual
-        ? process.env.STRIPE_PRICE_VIDEO_DIAMANTE_ANNUAL
-        : process.env.STRIPE_PRICE_VIDEO_DIAMANTE_MONTHLY;
-
-      const lineItem = priceId
-        ? { price: priceId, quantity: 1 }
-        : {
-            price_data: {
-              currency: 'mxn',
-              product_data: {
-                name: esAnual
-                  ? 'Video Diamante Premium — Anual (2 meses de regalo)'
-                  : 'Video Diamante Premium — Mensual',
-                description: esAnual
-                  ? 'Hasta 1 hora por video, 10 renders/día. 12 meses por el precio de 10.'
-                  : 'Hasta 1 hora por video, 10 renders/día.',
-              },
-              unit_amount: esAnual ? 300000 : 30000,
-              recurring: { interval: esAnual ? 'year' : 'month' },
-            },
-            quantity: 1,
-          };
-
+    if (cfg.tipo === 'subscription' && (planTipo === 'mensual' || planTipo === 'anual')) {
       session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
-        line_items: [lineItem],
+        line_items: [lineaSuscripcion(stripe, cfg, planTipo)],
         mode: 'subscription',
-        success_url: baseSuccess,
-        cancel_url: baseCancel,
-        metadata: { plan: planTipo, producto: 'video_diamante_premium' },
+        success_url: successUrl || `${origin}${cfg.successPath}`,
+        cancel_url: cancelUrl || `${origin}${cfg.cancelPath}`,
+        metadata: { producto, plan: planTipo, detalle: detalle || producto },
       });
-    } else {
+    } else if (cfg.tipo === 'payment' || montoTotal > 0) {
       if (!montoTotal || montoTotal <= 0) {
-        return new Response(JSON.stringify({ error: 'Invalid amount.' }), {
+        return new Response(JSON.stringify({ error: 'Monto inválido.' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
       }
       session = await stripe.checkout.sessions.create({
@@ -72,27 +72,35 @@ export default async (req, context) => {
         line_items: [{
           price_data: {
             currency: 'mxn',
-            product_data: { name: nombreProducto || 'Compra en Ecosistema CMS' },
+            product_data: { name: nombreProducto || cfg.etiqueta || 'Ecosistema CMS VIAM' },
             unit_amount: Math.round(montoTotal * 100),
           },
           quantity: 1,
         }],
         mode: 'payment',
-        success_url: baseSuccess,
-        cancel_url: baseCancel,
-        metadata: { producto: 'ecosistema_cms_compra' },
+        success_url: successUrl || `${origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}#pago-general`,
+        cancel_url: cancelUrl || `${origin}/?payment_cancelled=true`,
+        metadata: {
+          producto: 'ecosistema_cms_compra',
+          detalle: detalle || 'cms_general',
+        },
+      });
+    } else {
+      return new Response(JSON.stringify({ error: 'Falta plan o monto para el checkout.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ url: session.url, producto }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error creating Stripe session:', error);
+    console.error('create-checkout-session:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 };

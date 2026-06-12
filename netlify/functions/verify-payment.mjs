@@ -5,8 +5,8 @@ const PRODUCTOS_VIDEO_DIAMANTE = new Set(['video_diamante_premium']);
 function duracionDias(plan, producto) {
   if (plan === 'anual') return 365;
   if (plan === 'mensual') return 30;
-  // Compras CMS / consultas sin plan recurrente
-  if (producto === 'ecosistema_cms_compra') return 30;
+  if (producto === 'sincronia_nexus') return 30;
+  if (producto === 'video_diamante_premium') return 30;
   return 30;
 }
 

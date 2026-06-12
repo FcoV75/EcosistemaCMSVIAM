@@ -74,6 +74,7 @@ export default async (req) => {
     const producto = sessionMetadata?.producto
       || (provider === 'stripe' ? 'ecosistema_cms_compra' : 'pago_externo');
     const plan = sessionMetadata?.plan || null;
+    const detalle = sessionMetadata?.detalle || null;
 
     // Stripe envía el mismo evento a todos los endpoints: ignorar productos de ContacNeed
     if (producto === 'contacneed_pro') {
@@ -91,6 +92,7 @@ export default async (req) => {
       provider: provider,
       producto,
       plan,
+      detalle,
       used: false
     });
 

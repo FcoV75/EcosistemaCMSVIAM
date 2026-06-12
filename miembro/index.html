@@ -227,7 +227,7 @@
         const res = await fetch('/.netlify/functions/member-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: memberCode })
+          body: JSON.stringify({ code: memberCode, productoRequerido: 'sincronia_nexus' })
         });
         const data = await res.json();
         

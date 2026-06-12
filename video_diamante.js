@@ -296,6 +296,7 @@ async function iniciarStripe(planTipo) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                producto: "video_diamante_premium",
                 planTipo,
                 successUrl: `${origin}/video_diamante.html?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
                 cancelUrl: `${origin}/video_diamante.html?payment_cancelled=true`

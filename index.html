@@ -528,6 +528,39 @@
          setTimeout(() => simulatePayment(window.currentPaymentTotal), 500);
       });
 
+      function buildStripePayload() {
+         const origin = window.location.origin;
+         const hasLibros = itemParams.length > 0;
+         const hasConsulta = !!selectedConsulta;
+         const hasNexus = !!selectedMembresia;
+         const soloServicioNexus = serviceOptions.filter((o) => o.checked).length === 1
+           && serviceOptions.find((o) => o.checked)?.value === 'Membresía Sincronía NEXUS';
+         const soloNexus = hasNexus && soloServicioNexus && !hasLibros && !hasConsulta;
+
+         if (soloNexus) {
+            return {
+               producto: 'sincronia_nexus',
+               planTipo: selectedMembresia.name === 'Anual' ? 'anual' : 'mensual',
+               successUrl: `${origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}#pago-general`,
+               cancelUrl: `${origin}/?payment_cancelled=true`
+            };
+         }
+
+         let detalle = 'cms_general';
+         if (hasLibros && !hasConsulta && !hasNexus) detalle = 'obra_literaria';
+         else if (hasConsulta && !hasLibros && !hasNexus) detalle = 'consulta_cms';
+         else if (hasNexus) detalle = 'sincronia_nexus_mixto';
+
+         return {
+            producto: 'ecosistema_cms_compra',
+            montoTotal: window.currentPaymentTotal,
+            nombreProducto: 'Ecosistema CMS VIAM',
+            detalle,
+            successUrl: `${origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}#pago-general`,
+            cancelUrl: `${origin}/?payment_cancelled=true`
+         };
+      }
+
       stripeBtn.addEventListener('click', async (e) => {
          e.preventDefault();
          if (window.currentPaymentTotal === 0) {
@@ -545,10 +578,7 @@
             const response = await fetch('/.netlify/functions/create-checkout-session', {
                method: 'POST',
                headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({
-                  montoTotal: window.currentPaymentTotal,
-                  nombreProducto: 'Compra en Ecosistema CMS'
-               })
+               body: JSON.stringify(buildStripePayload())
             });
 
             const data = await response.json();
@@ -616,9 +646,11 @@
             document.getElementById('sim-payment-processing').style.display = 'none';
             document.getElementById('sim-payment-success').style.display = 'block';
             
-            // Generate code from the server
             const code = data.code;
             document.getElementById('sim-payment-code').textContent = code;
+            if (data.producto === 'sincronia_nexus') {
+              localStorage.setItem('nexus_member_code', code);
+            }
 
             // Check if we need to generate tickets or membership messages
             let ticketHtml = '';
@@ -685,6 +717,16 @@
       const isSuccess = urlParams.get('payment_success');
       const isCancelled = urlParams.get('payment_cancelled');
       const sessionId = urlParams.get('session_id');
+
+      if (urlParams.get('nexus') === '1') {
+         const membresiaChk = document.querySelector('input[value="Membresía Sincronía NEXUS"]');
+         if (membresiaChk) {
+           membresiaChk.checked = true;
+           document.getElementById('membresia-modal').showModal();
+         }
+         document.getElementById('pago-general')?.scrollIntoView({ behavior: 'smooth' });
+         window.history.replaceState({}, document.title, '/#pago-general');
+      }
 
       if (isSuccess === 'true' && sessionId) {
          // Restore pending services from storage
