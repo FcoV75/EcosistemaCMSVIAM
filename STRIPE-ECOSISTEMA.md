@@ -79,6 +79,30 @@ Usuario → Stripe Checkout (metadata: video_diamante_premium)
        → Plan Premium activo en el generador
 ```
 
+## Estado real de la cuenta (revisión Dashboard, jun 2026)
+
+**Cuenta Stripe:** `acct_1T1bdSQm8x71IzJI`
+
+### Product catalog
+- Solo **1 producto activo** en catálogo: *Pago de Producto o Servicio Otorgado*
+- Video Diamante y ContacNeed crean precios **dinámicos** (`price_data` en código) → en Stripe aparecen muchos productos/precios sueltos no listados aquí
+- **Recomendación:** crear 3 productos fijos y usar Price ID en Netlify (ver tabla arriba)
+
+### Webhooks configurados
+| Nombre | URL | Eventos | Estado |
+|--------|-----|---------|--------|
+| `whimsical-wonder` | `https://ecosistema-cms-viam-nexus.netlify.app/.netlify/functions/payment-webhook` | `checkout.session.completed`, `invoice.payment_succeeded`, `payment_intent.succeeded`, `payment_intent.payment_failed` | Activo |
+
+- La URL `.netlify.app` es el **mismo sitio** que `centromultidisciplinarioags.com` (dominio personalizado).
+- **Falta** un segundo endpoint para ContacNeed: `https://contacneed.com/.netlify/functions/stripe-webhook`
+- El código solo procesa `checkout.session.completed` en `payment-webhook`; los otros 3 eventos se reciben pero se ignoran.
+
+### Pendiente en Stripe Dashboard (manual)
+1. Renombrar `whimsical-wonder` → `VIAM-payment-webhook` (opcional, claridad)
+2. **Add destination** → ContacNeed → URL `contacneed.com/.../stripe-webhook` → solo `checkout.session.completed`
+3. Crear productos: Video Diamante Premium, ContacNeed PRO, Ecosistema CMS
+4. Copiar `price_...` a variables Netlify
+
 ## Errores comunes
 
 | Síntoma | Causa |
