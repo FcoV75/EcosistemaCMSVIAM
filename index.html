@@ -167,6 +167,32 @@
     .selector-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .45rem .9rem; margin-top: .7rem; }
     .selector-grid label { display: flex; align-items: flex-start; gap: .45rem; }
 
+    .gracias-pago-banner {
+      margin: 0 0 1.2rem;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 2px solid var(--accent);
+      box-shadow: var(--shadow);
+      background: rgba(0, 0, 0, 0.35);
+      text-align: center;
+    }
+    .gracias-pago-banner img {
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      display: block;
+    }
+    .gracias-pago-banner figcaption {
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      color: #dbe9ff;
+      background: rgba(0, 0, 0, 0.45);
+    }
+    .gracias-pago-banner.exito {
+      border-color: #4ade80;
+      box-shadow: 0 0 24px rgba(74, 222, 128, 0.25);
+    }
+
     .founder {
       display: grid;
       gap: 1rem;
@@ -292,6 +318,10 @@
     </section>
 
     <section class="panel" id="pago-general" aria-labelledby="pago-title">
+      <figure class="gracias-pago-banner" id="gracias-pago-antes">
+        <img src="/Assets/Images/Gracias_Pago_CMS.png" alt="Muchas gracias, esperamos verte pronto de nuevo." loading="lazy" />
+        <figcaption id="gracias-pago-texto">Bienvenido al pago seguro del Ecosistema CMS — servicios, suscripciones y obras literarias.</figcaption>
+      </figure>
       <h2 id="pago-title">Pago general del CMS</h2>
       <p>Este sistema centraliza la recepción de pagos para servicios, consultas y compras del ecosistema.</p>
       <div class="selector-grid" id="service-selector">
@@ -391,7 +421,8 @@
         <button class="btn" onclick="confirmMembresia()">Confirmar</button>
       </dialog>
 
-      <dialog id="simulated-payment-modal" style="background: var(--panel); color: var(--ink); border: 1px solid var(--edge); border-radius: 12px; padding: 1.5rem; max-width: 500px; text-align: center;">
+      <dialog id="simulated-payment-modal" style="background: var(--panel); color: var(--ink); border: 1px solid var(--edge); border-radius: 12px; padding: 1.5rem; max-width: 520px; text-align: center;">
+        <img src="/Assets/Images/Gracias_Pago_CMS.png" alt="Muchas gracias" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;border:2px solid var(--accent);margin-bottom:12px;">
         <h3 id="sim-payment-title">Procesando Pago</h3>
         <p id="sim-payment-amount" style="font-size: 1.2rem; font-weight: bold;"></p>
         <div id="sim-payment-processing">
@@ -400,7 +431,7 @@
         </div>
         <div id="sim-payment-success" style="display: none;">
           <h2 style="color: #4ade80;">¡Pago Exitoso!</h2>
-          <p>Gracias por tu compra.</p>
+          <p>Muchas gracias, esperamos verte pronto de nuevo.</p>
           <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
             <p style="margin:0;">Código de comprobante:</p>
             <strong id="sim-payment-code" style="font-size: 1.5rem; color: var(--accent); letter-spacing: 2px;"></strong>
@@ -651,6 +682,7 @@
             if (data.producto === 'sincronia_nexus') {
               localStorage.setItem('nexus_member_code', code);
             }
+            mostrarGraciasPagoEnPagina();
 
             // Check if we need to generate tickets or membership messages
             let ticketHtml = '';
@@ -711,6 +743,14 @@
       window.closeSimulatedPayment = function() {
         document.getElementById('simulated-payment-modal').close();
       };
+
+      function mostrarGraciasPagoEnPagina() {
+        const banner = document.getElementById('gracias-pago-antes');
+        const texto = document.getElementById('gracias-pago-texto');
+        if (banner) banner.classList.add('exito');
+        if (texto) texto.textContent = '¡Pago confirmado! Muchas gracias — esperamos verte pronto de nuevo.';
+        document.getElementById('pago-general')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
 
       // Check URL parameters for Stripe callbacks
       const urlParams = new URLSearchParams(window.location.search);
