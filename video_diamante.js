@@ -80,6 +80,9 @@ function finalizarRenderizadoExitoso() {
 function mostrarGraciasCompra() {
     const modal = $("#gracias-modal");
     if (modal) modal.showModal();
+    if (typeof window.mostrarGraciasEcosistema === "function") {
+        window.mostrarGraciasEcosistema();
+    }
 }
 
 function limitesActuales() {

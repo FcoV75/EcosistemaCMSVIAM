@@ -167,32 +167,6 @@
     .selector-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .45rem .9rem; margin-top: .7rem; }
     .selector-grid label { display: flex; align-items: flex-start; gap: .45rem; }
 
-    .gracias-pago-banner {
-      margin: 0 0 1.2rem;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 2px solid var(--accent);
-      box-shadow: var(--shadow);
-      background: rgba(0, 0, 0, 0.35);
-      text-align: center;
-    }
-    .gracias-pago-banner img {
-      width: 100%;
-      max-height: 280px;
-      object-fit: cover;
-      display: block;
-    }
-    .gracias-pago-banner figcaption {
-      padding: 0.75rem 1rem;
-      font-size: 0.95rem;
-      color: #dbe9ff;
-      background: rgba(0, 0, 0, 0.45);
-    }
-    .gracias-pago-banner.exito {
-      border-color: #4ade80;
-      box-shadow: 0 0 24px rgba(74, 222, 128, 0.25);
-    }
-
     .founder {
       display: grid;
       gap: 1rem;
@@ -236,6 +210,7 @@
       .founder img { max-width: 240px; }
     }
   </style>
+  <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
 </head>
 <body>
   <div class="wrap">
@@ -318,10 +293,6 @@
     </section>
 
     <section class="panel" id="pago-general" aria-labelledby="pago-title">
-      <figure class="gracias-pago-banner" id="gracias-pago-antes">
-        <img src="/Assets/Images/Gracias_Pago_CMS.png" alt="Muchas gracias, esperamos verte pronto de nuevo." loading="lazy" />
-        <figcaption id="gracias-pago-texto">Bienvenido al pago seguro del Ecosistema CMS — servicios, suscripciones y obras literarias.</figcaption>
-      </figure>
       <h2 id="pago-title">Pago general del CMS</h2>
       <p>Este sistema centraliza la recepción de pagos para servicios, consultas y compras del ecosistema.</p>
       <div class="selector-grid" id="service-selector">
@@ -745,10 +716,9 @@
       };
 
       function mostrarGraciasPagoEnPagina() {
-        const banner = document.getElementById('gracias-pago-antes');
-        const texto = document.getElementById('gracias-pago-texto');
-        if (banner) banner.classList.add('exito');
-        if (texto) texto.textContent = '¡Pago confirmado! Muchas gracias — esperamos verte pronto de nuevo.';
+        if (typeof window.mostrarGraciasEcosistema === 'function') {
+          window.mostrarGraciasEcosistema();
+        }
         document.getElementById('pago-general')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
@@ -837,5 +807,6 @@
         }
       </script>
 <script src="/Assets/radio.js"></script>
+  <script src="/Assets/ecosistema-banner.js" defer></script>
 </body>
 </html>
