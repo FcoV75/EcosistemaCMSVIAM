@@ -1,8 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useState } from 'react'
-import { Camera, Settings, Star, TrendingUp, HelpCircle, Store, MessageSquare, Image as ImageIcon, Sparkles, X, Plus } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Camera, Settings, Star, TrendingUp, HelpCircle, Store, MessageSquare, Image as ImageIcon, Sparkles, X, Plus, LogOut } from 'lucide-react'
+import { AppShell } from '../components/AppShell'
 import { useUser } from '../store/userContext'
-import { getServerUserFn } from '../server/auth.functions'
+import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
+import { DEFAULT_STATE, type MexicoState } from '../lib/mexico-states'
+import { getServerUserFn, signOutFn } from '../server/auth.functions'
 import { getNegocioFn, updateNegocioFn } from '../server/negocios.functions'
 
 export const Route = createFileRoute('/profile')({
@@ -20,6 +23,23 @@ export const Route = createFileRoute('/profile')({
 
 function ProfilePage() {
   const { negocio } = Route.useLoaderData()
+  const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_STATE)
+  const [showStripeModal, setShowStripeModal] = useState(false)
+
+  return (
+    <AppShell
+      selectedState={selectedState}
+      onStateChange={setSelectedState}
+      showStripeModal={showStripeModal}
+      onOpenStripe={() => setShowStripeModal(true)}
+      onCloseStripe={() => setShowStripeModal(false)}
+    >
+      <ProfileContent negocio={negocio} />
+    </AppShell>
+  )
+}
+
+function ProfileContent({ negocio }: { negocio: Awaited<ReturnType<typeof getNegocioFn>> }) {
   const { userType, setUserType, profileData, setProfileData, saveProfileData } = useUser()
   const [activeTab, setActiveTab] = useState<'perfil' | 'negocio' | 'guia'>('perfil')
   const [storePrompt, setStorePrompt] = useState('')
@@ -27,9 +47,15 @@ function ProfilePage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isSavingStore, setIsSavingStore] = useState(false)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
+  const [uploadingItem, setUploadingItem] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+
+  const bannerInputRef = useRef<HTMLInputElement>(null)
+  const itemInputRef = useRef<HTMLInputElement>(null)
 
   const [bannerUrl, setBannerUrl] = useState(negocio?.banner_url || '')
-  const [items, setItems] = useState<string[]>(Array.isArray(negocio?.items) ? negocio.items as string[] : [])
+  const [items, setItems] = useState<string[]>(Array.isArray(negocio?.items) ? (negocio.items as string[]) : [])
 
   const handleUpdateNegocio = async (newBanner: string, newItems: string[]) => {
     setIsSavingStore(true)
@@ -37,43 +63,53 @@ function ProfilePage() {
       await updateNegocioFn({ data: { banner_url: newBanner, items: newItems } })
     } catch (e) {
       console.error('Error saving negocio:', e)
+      alert('No se pudo guardar la tienda. Intenta de nuevo.')
     } finally {
       setIsSavingStore(false)
     }
   }
 
-  const uploadToCloudinary = (onSuccess: (url: string) => void) => {
-    if (!(window as any).cloudinary) {
-      alert('Cloudinary widget no está cargado');
-      return;
+  const handleBannerFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingBanner(true)
+    try {
+      const url = await uploadFileToCloudinary(file)
+      setBannerUrl(url)
+      await handleUpdateNegocio(url, items)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo subir el banner')
+    } finally {
+      setUploadingBanner(false)
+      if (bannerInputRef.current) bannerInputRef.current.value = ''
     }
-    (window as any).cloudinary.createUploadWidget(
-      {
-        cloudName: 'dgkruw6n7',
-        uploadPreset: 'contacneed_uploads',
-        maxFiles: 1,
-      },
-      (error: any, result: any) => {
-        if (!error && result && result.event === 'success') {
-          onSuccess(result.info.secure_url);
-        }
-      }
-    ).open();
-  };
+  }
+
+  const handleItemFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingItem(true)
+    try {
+      const url = await uploadFileToCloudinary(file)
+      const newItems = [...items, url]
+      setItems(newItems)
+      await handleUpdateNegocio(bannerUrl, newItems)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo subir la imagen')
+    } finally {
+      setUploadingItem(false)
+      if (itemInputRef.current) itemInputRef.current.value = ''
+    }
+  }
 
   const handleBannerUpload = () => {
-    uploadToCloudinary((url) => {
-      setBannerUrl(url);
-      handleUpdateNegocio(url, items);
-    });
+    bannerInputRef.current?.click()
   }
 
   const handleAddItem = () => {
-    uploadToCloudinary((url) => {
-      const newItems = [...items, url];
-      setItems(newItems);
-      handleUpdateNegocio(bannerUrl, newItems);
-    });
+    itemInputRef.current?.click()
   }
 
   const handleRemoveItem = (index: number) => {
@@ -113,7 +149,23 @@ function ProfilePage() {
   };
 
   return (
-    <div className="p-4 flex flex-col md:flex-row gap-6 max-w-6xl mx-auto">
+    <>
+      <input
+        ref={bannerInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleBannerFile}
+      />
+      <input
+        ref={itemInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleItemFile}
+      />
+
+    <div className="flex flex-col gap-6 md:flex-row">
       {/* Menú Lateral */}
       <div className="md:w-64 flex-shrink-0">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
@@ -152,6 +204,24 @@ function ProfilePage() {
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === 'guia' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
             >
               <HelpCircle size={18} /> Guía de Uso (IA)
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setSigningOut(true)
+                try {
+                  await signOutFn()
+                  window.location.href = '/'
+                } catch {
+                  setSigningOut(false)
+                  alert('No se pudo cerrar la sesión')
+                }
+              }}
+              disabled={signingOut}
+              className="mt-2 flex w-full items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+            >
+              <LogOut size={18} />
+              {signingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
             </button>
           </div>
         </div>
@@ -253,7 +323,7 @@ function ProfilePage() {
                   <div onClick={handleBannerUpload} className="h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors">
                     <div className="flex flex-col items-center">
                       <ImageIcon size={24} className="mb-2" />
-                      <span>Subir imagen de portada</span>
+                      <span>{uploadingBanner ? 'Subiendo banner...' : 'Subir imagen de portada'}</span>
                     </div>
                   </div>
                 )}
@@ -274,7 +344,9 @@ function ProfilePage() {
                     <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-2">
                       <Plus size={20} />
                     </div>
-                    <span className="text-sm font-medium text-slate-700">Agregar Item</span>
+                    <span className="text-sm font-medium text-slate-700">
+                      {uploadingItem ? 'Subiendo...' : 'Agregar Item'}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-8">
@@ -330,5 +402,6 @@ function ProfilePage() {
         )}
       </div>
     </div>
+    </>
   )
 }

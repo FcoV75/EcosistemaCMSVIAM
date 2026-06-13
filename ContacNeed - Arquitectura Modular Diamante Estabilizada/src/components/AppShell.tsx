@@ -1,12 +1,19 @@
 import { Link } from '@tanstack/react-router'
+import { LogOut } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { AuthModal, type AuthTab } from './AuthModal'
 import { ContacNeedLogo } from './ContacNeedLogo'
+import { GuestBrowseGate } from './GuestBrowseGate'
+import { HeaderSearchBar } from './HeaderSearchBar'
 import { ProAdPanel } from './ProAdPanel'
 import { RadioPlayer } from './RadioPlayer'
 import { SidebarNav } from './SidebarNav'
 import { StateSelector } from './StateSelector'
 import { SupportBot } from './SupportBot'
 import { StripeSubscriptionModal } from './StripeSubscriptionModal'
+import { BrowseProvider } from '../lib/browse-context'
 import { useIdentity } from '../lib/identity-context'
+import { signOutFn } from '../server/auth.functions'
 import type { MexicoState } from '../lib/mexico-states'
 
 type AppShellProps = {
@@ -27,83 +34,147 @@ export function AppShell({
   onCloseStripe,
 }: AppShellProps) {
   const { user, isAdmin } = useIdentity()
+  const [signingOut, setSigningOut] = useState(false)
+  const [authModal, setAuthModal] = useState<{ open: boolean; tab: AuthTab; required: boolean }>({
+    open: false,
+    tab: 'login',
+    required: false,
+  })
+
+  const openAuth = (tab: AuthTab, required = false) => {
+    setAuthModal({ open: true, tab, required })
+  }
+
+  const handleGateOpen = useCallback(() => {
+    openAuth('login', true)
+  }, [])
+
+  const handleSignOut = async () => {
+    setSigningOut(true)
+    try {
+      await signOutFn()
+      window.location.href = '/'
+    } catch {
+      setSigningOut(false)
+      alert('No se pudo cerrar la sesión. Intenta de nuevo.')
+    }
+  }
 
   return (
-    <div className="cn-metallic-bg relative min-h-screen overflow-x-hidden text-white">
-      <div
-        className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.04]"
-        aria-hidden
-      >
-        <ContacNeedLogo className="h-[min(75vw,32rem)] w-auto max-w-[90vw]" />
-      </div>
+    <BrowseProvider>
+      <div className="cn-metallic-bg relative min-h-screen overflow-x-hidden text-white">
+        <div
+          className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.04]"
+          aria-hidden
+        >
+          <ContacNeedLogo className="h-[min(75vw,32rem)] w-auto max-w-[90vw]" />
+        </div>
 
-      <header className="cn-metallic-header sticky top-0 z-30 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-6">
-          <div className="flex items-center gap-3">
-            <ContacNeedLogo className="h-11 w-auto max-w-[130px] shrink-0 sm:h-12 sm:max-w-[150px]" />
-            <div className="hidden sm:block">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-300/90">
-                La Red Social de Oficios
-              </p>
-              <p className="text-xs text-slate-400">México · Profesionales · Servicios</p>
-            </div>
-          </div>
+        <header className="cn-metallic-header sticky top-0 z-30 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-[90rem] flex-col gap-3 px-4 py-3 lg:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Link to="/" className="flex min-w-0 shrink-0 items-center gap-3">
+                <ContacNeedLogo className="h-11 w-auto max-w-[130px] shrink-0 sm:h-12 sm:max-w-[150px]" />
+                <div className="hidden min-w-0 lg:block">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-300/90">
+                    La Red Social de Oficios
+                  </p>
+                  <p className="text-xs text-slate-400">México · Profesionales · Servicios</p>
+                </div>
+              </Link>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {user ? (
-              <>
-                <Link
-                  to="/profile"
-                  className="cn-btn-metallic-outline rounded-xl px-3 py-2 text-xs font-semibold text-amber-100 hover:text-white"
-                >
-                  Mi Perfil
-                </Link>
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    className="rounded-xl border border-purple-400/40 bg-purple-900/40 px-3 py-2 text-xs font-semibold text-purple-100 hover:bg-purple-800/50"
-                  >
-                    Panel Admin
-                  </Link>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {user ? (
+                  <>
+                    <span className="hidden max-w-[160px] truncate text-xs text-purple-200/70 xl:inline">
+                      {user.email}
+                    </span>
+                    <Link
+                      to="/profile"
+                      className="cn-btn-metallic-outline rounded-xl px-3 py-2 text-xs font-semibold text-amber-100 hover:text-white"
+                    >
+                      Mi Perfil
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        className="rounded-xl border border-purple-400/40 bg-purple-900/40 px-3 py-2 text-xs font-semibold text-purple-100 hover:bg-purple-800/50"
+                      >
+                        Panel Admin
+                      </Link>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      disabled={signingOut}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/45 bg-red-900/50 px-3 py-2 text-xs font-bold text-red-100 hover:bg-red-800/60 disabled:opacity-50"
+                    >
+                      <LogOut size={14} />
+                      {signingOut ? 'Saliendo...' : 'Cerrar sesión'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => openAuth('login')}
+                      className="cn-btn-metallic-outline rounded-xl px-4 py-2.5 text-xs font-bold text-amber-100 sm:text-sm"
+                    >
+                      Iniciar sesión
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openAuth('register')}
+                      className="cn-btn-metallic rounded-xl px-4 py-2.5 text-xs font-bold text-slate-950 sm:text-sm"
+                    >
+                      Registrarse
+                    </button>
+                  </>
                 )}
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="cn-btn-metallic-outline rounded-xl px-3 py-2 text-xs font-semibold text-amber-100"
-                >
-                  Iniciar sesión
-                </Link>
-                <Link to="/registro" className="cn-btn-metallic rounded-xl px-3 py-2 text-xs font-bold text-slate-950">
-                  Registrarse
-                </Link>
-              </>
-            )}
+              </div>
+            </div>
+
+            <HeaderSearchBar />
+          </div>
+        </header>
+
+        <div className="relative mx-auto grid max-w-[90rem] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-12 lg:px-6">
+          <aside className="space-y-4 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
+            <SidebarNav
+              onOpenStripe={onOpenStripe}
+              isLoggedIn={Boolean(user)}
+              onSignOut={user ? handleSignOut : undefined}
+              signingOut={signingOut}
+              onOpenAuth={openAuth}
+            />
+            <StateSelector value={selectedState} onChange={onStateChange} variant="sidebar" />
+            <RadioPlayer />
+          </aside>
+
+          <main className="min-w-0 lg:col-span-6">{children}</main>
+
+          <div className="hidden lg:col-span-3 lg:block lg:sticky lg:top-28 lg:self-start">
+            <ProAdPanel onOpenStripe={onOpenStripe} />
           </div>
         </div>
-      </header>
 
-      <div className="relative mx-auto grid max-w-[90rem] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-12 lg:px-6">
-        <aside className="space-y-4 lg:col-span-3 lg:sticky lg:top-24 lg:self-start">
-          <SidebarNav onOpenStripe={onOpenStripe} isLoggedIn={Boolean(user)} />
-          <StateSelector value={selectedState} onChange={onStateChange} variant="sidebar" />
-          <RadioPlayer />
-        </aside>
-
-        <main className="min-w-0 lg:col-span-6">{children}</main>
-
-        <div className="hidden lg:col-span-3 lg:block lg:sticky lg:top-24 lg:self-start">
+        <div className="px-4 pb-8 lg:hidden">
           <ProAdPanel onOpenStripe={onOpenStripe} />
         </div>
-      </div>
 
-      <div className="px-4 pb-8 lg:hidden">
-        <ProAdPanel onOpenStripe={onOpenStripe} />
+        <SupportBot />
+        <StripeSubscriptionModal open={showStripeModal} onClose={onCloseStripe} />
+        <AuthModal
+          open={authModal.open}
+          initialTab={authModal.tab}
+          required={authModal.required}
+          onClose={() => setAuthModal((prev) => ({ ...prev, open: false, required: false }))}
+        />
+        <GuestBrowseGate onGateOpen={handleGateOpen} />
+        {authModal.required && authModal.open && (
+          <div className="fixed inset-0 z-[54] bg-black/40 backdrop-blur-[1px]" aria-hidden />
+        )}
       </div>
-
-      <SupportBot />
-      <StripeSubscriptionModal open={showStripeModal} onClose={onCloseStripe} />
-    </div>
+    </BrowseProvider>
   )
 }

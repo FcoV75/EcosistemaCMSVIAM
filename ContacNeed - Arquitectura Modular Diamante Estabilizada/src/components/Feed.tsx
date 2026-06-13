@@ -2,9 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Camera, ImageIcon, RefreshCw, X } from 'lucide-react'
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import { PostCard } from './PostCard'
+
+import { useBrowseSearch } from '../lib/browse-context'
 
 import { fetchPublicPosts } from '../lib/posts-client'
 
@@ -39,6 +41,7 @@ type MediaPreview = {
 export function Feed({ selectedState }: FeedProps) {
 
   const queryClient = useQueryClient()
+  const { searchQuery } = useBrowseSearch()
 
 
 
@@ -55,6 +58,25 @@ export function Feed({ selectedState }: FeedProps) {
     refetchOnWindowFocus: false,
 
   })
+
+  const filteredPosts = useMemo(() => {
+    const posts = postsQuery.data ?? []
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return posts
+
+    return posts.filter((post) => {
+      const haystack = [
+        post.content,
+        post.authorData.name,
+        post.authorData.title,
+        post.estado,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [postsQuery.data, searchQuery])
 
 
 
@@ -87,6 +109,8 @@ export function Feed({ selectedState }: FeedProps) {
           <p className="text-sm text-purple-200/70">
 
             {selectedState ? `Publicaciones en ${selectedState}` : 'Todas las publicaciones de México'}
+
+            {searchQuery.trim() ? ` · Buscando “${searchQuery.trim()}”` : ''}
 
           </p>
 
@@ -148,11 +172,13 @@ export function Feed({ selectedState }: FeedProps) {
 
 
 
-      {(postsQuery.data ?? []).length === 0 && !postsQuery.isLoading && !postsQuery.isError && (
+      {filteredPosts.length === 0 && !postsQuery.isLoading && !postsQuery.isError && (
 
         <p className="rounded-xl border border-purple-500/20 bg-slate-900/50 px-4 py-3 text-sm text-purple-200/70">
 
-          No hay publicaciones en este estado todavía. Prueba cambiar el filtro a &quot;Todos los estados&quot; o publica la primera.
+          {searchQuery.trim()
+            ? `No hay resultados para "${searchQuery.trim()}". Prueba otro término o cambia el estado.`
+            : 'No hay publicaciones en este estado todavía. Prueba cambiar el filtro a "Todos los estados" o publica la primera.'}
 
         </p>
 
@@ -162,7 +188,7 @@ export function Feed({ selectedState }: FeedProps) {
 
       <div className="space-y-5">
 
-        {(postsQuery.data ?? []).map((post) => (
+        {filteredPosts.map((post) => (
 
           <PostCard
 
