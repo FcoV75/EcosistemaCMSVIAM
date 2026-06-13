@@ -282,6 +282,13 @@ function configurarReorden(contenedor) {
     });
 }
 
+function formatoDuracion(seg) {
+    const s = Math.ceil(seg);
+    const min = Math.floor(s / 60);
+    const resto = s % 60;
+    return `${min}:${String(resto).padStart(2, "0")}`;
+}
+
 function mostrarUpgrade(mensaje) {
     const modal = $("#upgrade-modal");
     const txt = $("#upgrade-mensaje");
@@ -315,6 +322,36 @@ async function iniciarStripe(planTipo) {
     }
 }
 
+async function transcribirConGroq(audio) {
+    const fd = new FormData();
+    fd.append("audio", audio);
+
+    let r;
+    try {
+        r = await fetchRailway("/transcribir", { method: "POST", body: fd });
+    } catch (e) {
+        console.warn("Railway transcribir no disponible:", e.message);
+        r = null;
+    }
+
+    if (r) {
+        const d = await parseJsonSeguro(r);
+        if (r.ok && d.texto) return d;
+        const err = String(d.error || d.detalle || "");
+        if (!err.includes("GROQ") && r.ok) {
+            throw new Error(err || "Transcripción fallida");
+        }
+        console.warn("Railway transcribir falló, probando Netlify:", err);
+    }
+
+    const fdNetlify = new FormData();
+    fdNetlify.append("audio", audio);
+    const r2 = await fetch("/.netlify/functions/transcribe-audio", { method: "POST", body: fdNetlify });
+    const d2 = await parseJsonSeguro(r2);
+    if (r2.ok && d2.texto) return d2;
+    throw new Error(d2.error || d2.detalle || "Transcripción fallida");
+}
+
 async function transcribirAudio() {
     if (!audioFile) { alert("Carga audio primero."); return; }
     const btn = $("#btn-transcribir");
@@ -323,25 +360,10 @@ async function transcribirAudio() {
     if (btn) { btn.disabled = true; btn.textContent = "IA escuchando..."; }
     if (status) status.textContent = "Transcribiendo con IA (español estricto)...";
     try {
-        const fd = new FormData();
-        fd.append("audio", audioFile);
-
-        let r;
-        try {
-            r = await fetchRailway("/transcribir", { method: "POST", body: fd });
-        } catch (e) {
-            console.warn("Railway transcribir falló, probando Netlify:", e.message);
-            r = await fetch("/.netlify/functions/transcribe-audio", { method: "POST", body: fd });
-        }
-
-        const d = await parseJsonSeguro(r);
-        if (r.ok && d.texto) {
-            if (area) area.value = d.texto;
-            letraGuardada = d.texto;
-            if (status) status.textContent = "Letra lista — edítala y pulsa Guardar.";
-        } else {
-            throw new Error(d.error || d.detalle || "Transcripción fallida");
-        }
+        const d = await transcribirConGroq(audioFile);
+        if (area) area.value = d.texto;
+        letraGuardada = d.texto;
+        if (status) status.textContent = "Letra lista — edítala y pulsa Guardar.";
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
         alert("No se pudo transcribir: " + e.message);
@@ -365,10 +387,20 @@ function validarProyecto() {
         return false;
     }
     if (!isPremium) {
-        if (imgs.length > lim.maxImg) { mostrarUpgrade("Máximo 3 imágenes en plan gratuito."); return false; }
-        if (vids.length > lim.maxVid) { mostrarUpgrade("Máximo 2 videos en plan gratuito."); return false; }
+        if (imgs.length > lim.maxImg) {
+            alert("Máximo 3 imágenes en plan gratuito. Elimina algunas o suscríbete a Premium.");
+            mostrarUpgrade("Máximo 3 imágenes en plan gratuito.");
+            return false;
+        }
+        if (vids.length > lim.maxVid) {
+            alert("Máximo 2 videos en plan gratuito. Elimina algunos o suscríbete a Premium.");
+            mostrarUpgrade("Máximo 2 videos en plan gratuito.");
+            return false;
+        }
         if (audioDuracionEst > lim.maxSeg) {
-            mostrarUpgrade(`Audio de ${Math.ceil(audioDuracionEst / 60)} min — el gratuito permite máximo 4 minutos.`);
+            const msg = `Tu audio dura ${formatoDuracion(audioDuracionEst)} min. El plan gratuito permite hasta ${formatoDuracion(lim.maxSeg)} min. Usa un audio más corto o suscríbete a Premium para videos largos.`;
+            alert(msg);
+            mostrarUpgrade(msg);
             return false;
         }
     } else {
@@ -473,11 +505,25 @@ window.generarVideo = async function () {
     }
 };
 
+function actualizarAvisoAudio() {
+    const st = $("#status-audio");
+    if (!st || !audioFile) return;
+    const lim = limitesActuales();
+    const seg = Math.ceil(audioDuracionEst);
+    let texto = `🎵 ${audioFile.name} (${seg}s · ${formatoDuracion(audioDuracionEst)} min)`;
+    if (!isPremium && audioDuracionEst > lim.maxSeg) {
+        texto += ` — supera el límite gratuito (${formatoDuracion(lim.maxSeg)} min)`;
+        st.style.color = "#FF6B6B";
+    } else {
+        st.style.color = "";
+    }
+    st.textContent = texto;
+}
+
 async function cargarAudio(file) {
     audioFile = file;
     audioDuracionEst = await estimarDuracionAudio(file);
-    const st = $("#status-audio");
-    if (st) st.textContent = `🎵 ${file.name} (${Math.ceil(audioDuracionEst)}s)`;
+    actualizarAvisoAudio();
     const sec = $("#seccion-subtitulos");
     if (sec) sec.style.display = "block";
 }
@@ -544,6 +590,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 verificationStatus.textContent = "¡Premium activado!";
                 verificationStatus.style.color = "#00FF66";
                 actualizarIndicadorPlan();
+                actualizarAvisoAudio();
                 premiumModal?.close();
                 mostrarGraciasCompra();
             } else {
