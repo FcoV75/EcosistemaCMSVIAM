@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { ContacNeedLogo } from '../components/ContacNeedLogo'
+import { clearGuestBrowseTimer } from '../components/GuestBrowseGate'
 import { RegistroForm } from '../components/RegistroForm'
 
 export const Route = createFileRoute('/registro')({
@@ -8,9 +8,6 @@ export const Route = createFileRoute('/registro')({
 })
 
 function RegistroPage() {
-  const navigate = useNavigate()
-  const [done, setDone] = useState(false)
-
   return (
     <div className="cn-metallic-bg relative min-h-screen px-4 py-10">
       <div
@@ -28,19 +25,15 @@ function RegistroPage() {
         </div>
 
         <div className="cn-glass rounded-2xl border border-amber-500/20 p-6">
-          {done ? (
-            <div className="space-y-4 text-center">
-              <p className="text-emerald-200">¡Cuenta creada! Ya puedes iniciar sesión.</p>
-              <Link to="/login" className="cn-btn-metallic inline-block rounded-xl px-6 py-3 text-sm font-bold text-slate-950">
-                Ir a iniciar sesión
-              </Link>
-            </div>
-          ) : (
-            <RegistroForm
-              onSuccess={() => setDone(true)}
-              onSwitchToLogin={() => navigate({ to: '/login' })}
-            />
-          )}
+          <RegistroForm
+            onSuccess={() => {
+              clearGuestBrowseTimer()
+              window.location.href = '/'
+            }}
+            onSwitchToLogin={() => {
+              window.location.href = '/login'
+            }}
+          />
         </div>
 
         <Link to="/" className="mt-4 block text-center text-xs text-purple-300/60 hover:text-white">

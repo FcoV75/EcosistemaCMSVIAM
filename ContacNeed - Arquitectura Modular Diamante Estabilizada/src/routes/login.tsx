@@ -1,6 +1,7 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ContacNeedLogo } from '../components/ContacNeedLogo'
+import { clearGuestBrowseTimer } from '../components/GuestBrowseGate'
 import { signInFn } from '../server/auth.functions'
 
 export const Route = createFileRoute('/login')({
@@ -8,7 +9,6 @@ export const Route = createFileRoute('/login')({
 })
 
 function LoginPage() {
-  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -38,8 +38,8 @@ function LoginPage() {
             setError(null)
             try {
               await signInFn({ data: { email, password } })
-              navigate({ to: '/' })
-              window.location.reload()
+              clearGuestBrowseTimer()
+              window.location.href = '/'
             } catch (err) {
               setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión')
             } finally {
