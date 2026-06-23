@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { requireAdminUser } from '../lib/auth'
+import { askLlm } from '../lib/llm'
 import { mapPublicacionToPost } from '../lib/posts-mapper'
 
 async function assertAdmin() {
@@ -247,37 +248,14 @@ export const askAdminBotFn = createServerFn({ method: 'POST' })
       `Top estados: ${stateCounts.map((s) => `${s.label} (${s.count})`).join(', ') || 'sin datos'}`,
     ].join('\n')
 
-    const apiKey = process.env.GEMINI_API_KEY
-    if (apiKey) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `Eres el asistente de administración de ContacNeed (red de oficios en México). Responde en español, con datos concretos y acciones sugeridas para moderación, crecimiento por estado/oficio y membresías PRO.\n\nDatos actuales:\n${context}\n\nPregunta del admin: ${data.question}`,
-                    },
-                  ],
-                },
-              ],
-            }),
-          },
-        )
+    const answer = await askLlm({
+      system:
+        'Eres el asistente de administración de ContacNeed (red de oficios en México). Responde en español, con datos concretos y acciones sugeridas para moderación, crecimiento por estado/oficio y membresías PRO.',
+      user: `Datos actuales:\n${context}\n\nPregunta del admin: ${data.question}`,
+      maxSentences: 8,
+    })
 
-        if (response.ok) {
-          const payload = await response.json()
-          const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text
-          if (text) return { answer: String(text) }
-        }
-      } catch {
-        // fallback below
-      }
-    }
+    if (answer) return { answer }
 
     return {
       answer: `Resumen rápido:\n${context}\n\nPara moderar: usa Aprobar/Banear en la tabla. Tras aprobar, la publicación vuelve al feed con estatus "aprobado".`,

@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { askLlm } from '../lib/llm'
 
 const SYSTEM_CONTEXT = `ContacNeed es una red social mexicana que conecta oficios, profesiones y especialidades por estado.
 Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin.
@@ -51,38 +52,13 @@ export const askSupportBotFn = createServerFn({ method: 'POST' })
     const question = data.question.trim()
     if (!question) return { answer: 'Escribe tu pregunta y te ayudo con ContacNeed.' }
 
-    const apiKey = process.env.GEMINI_API_KEY
+    const answer = await askLlm({
+      system: `${SYSTEM_CONTEXT}\n\nResponde en español, máximo 4 oraciones, tono cercano y profesional. Si no sabes algo, indica cómo contactar soporte.`,
+      user: question,
+      maxSentences: 4,
+    })
 
-    if (apiKey) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `${SYSTEM_CONTEXT}\n\nResponde en español, máximo 4 oraciones, tono cercano y profesional. Si no sabes algo, indica cómo contactar soporte.\n\nUsuario: ${question}`,
-                    },
-                  ],
-                },
-              ],
-            }),
-          },
-        )
-
-        if (response.ok) {
-          const payload = await response.json()
-          const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text
-          if (text) return { answer: String(text) }
-        }
-      } catch {
-        // fallback local FAQ
-      }
-    }
+    if (answer) return { answer }
 
     return { answer: matchFaq(question) }
   })
