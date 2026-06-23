@@ -1,16 +1,20 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { ArrowLeft, Ban, CheckCircle2, MessageSquare, Send, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, Megaphone, MessageSquare, Send, Shield, Trash2, Users } from 'lucide-react'
 import { requireAdminUserFn } from '../server/auth.functions'
 import {
+  approveProRequestFn,
   askAdminBotFn,
   banUserAdminFn,
+  blockUserAdminFn,
   deletePostAdminFn,
   getAdminDashboardFn,
   moderatePostFn,
+  rejectProRequestFn,
   updateUserAdminFn,
 } from '../server/admin.functions'
+import { deleteAdFn, getAdminAdsFn, saveAdFn } from '../server/ads.functions'
 
 export const Route = createFileRoute('/admin')({
   beforeLoad: async () => {
@@ -25,6 +29,16 @@ function AdminDashboard() {
   const queryClient = useQueryClient()
   const [botQuestion, setBotQuestion] = useState('')
   const [botAnswer, setBotAnswer] = useState<string | null>(null)
+  const [adForm, setAdForm] = useState({
+    titulo: '',
+    cuerpo: '',
+    imagen_url: '',
+    enlace_url: '',
+    estado: '',
+    tipo: 'banner',
+    activo: true,
+    prioridad: 0,
+  })
 
   const dashboardQuery = useQuery({
     queryKey: ['admin-dashboard'],
@@ -32,9 +46,17 @@ function AdminDashboard() {
     refetchInterval: false,
   })
 
+  const adsQuery = useQuery({
+    queryKey: ['admin-ads'],
+    queryFn: () => getAdminAdsFn(),
+  })
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+    queryClient.invalidateQueries({ queryKey: ['admin-ads'] })
     queryClient.invalidateQueries({ queryKey: ['posts'] })
+    queryClient.invalidateQueries({ queryKey: ['banner-ads'] })
+    queryClient.invalidateQueries({ queryKey: ['pro-panel'] })
   }
 
   const moderateMutation = useMutation({
@@ -56,6 +78,43 @@ function AdminDashboard() {
 
   const banUserMutation = useMutation({
     mutationFn: (payload: { id: string }) => banUserAdminFn({ data: payload }),
+    onSuccess: invalidateAll,
+  })
+
+  const blockUserMutation = useMutation({
+    mutationFn: (payload: { id: string; bloqueado: boolean }) => blockUserAdminFn({ data: payload }),
+    onSuccess: invalidateAll,
+  })
+
+  const approveProMutation = useMutation({
+    mutationFn: (payload: { id: string }) => approveProRequestFn({ data: payload }),
+    onSuccess: invalidateAll,
+  })
+
+  const rejectProMutation = useMutation({
+    mutationFn: (payload: { id: string }) => rejectProRequestFn({ data: payload }),
+    onSuccess: invalidateAll,
+  })
+
+  const saveAdMutation = useMutation({
+    mutationFn: (payload: typeof adForm) => saveAdFn({ data: payload }),
+    onSuccess: () => {
+      invalidateAll()
+      setAdForm({
+        titulo: '',
+        cuerpo: '',
+        imagen_url: '',
+        enlace_url: '',
+        estado: '',
+        tipo: 'banner',
+        activo: true,
+        prioridad: 0,
+      })
+    },
+  })
+
+  const deleteAdMutation = useMutation({
+    mutationFn: (payload: { id: string }) => deleteAdFn({ data: payload }),
     onSuccess: invalidateAll,
   })
 
@@ -86,10 +145,12 @@ function AdminDashboard() {
           </Link>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <MetricCard label="Publicaciones visibles" value={data?.totals.posts ?? 0} />
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <MetricCard label="Publicaciones totales" value={data?.totals.posts ?? 0} />
           <MetricCard label="Usuarios registrados" value={data?.totals.users ?? 0} />
-          <MetricCard label="Estados con actividad" value={data?.statsByState?.length ?? 0} />
+          <MetricCard label="Usuarios PRO" value={data?.totals.proUsers ?? 0} />
+          <MetricCard label="Pendientes moderación" value={data?.totals.pendingPosts ?? 0} />
+          <MetricCard label="Pagos PayPal pendientes" value={data?.totals.pendingPro ?? 0} />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -133,55 +194,150 @@ function AdminDashboard() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <h2 className="mb-4 text-lg font-bold">Publicaciones</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-800 text-slate-400">
-                <tr>
-                  <th className="px-3 py-2">Contenido</th>
-                  <th className="px-3 py-2">Estado</th>
-                  <th className="px-3 py-2">Estatus</th>
-                  <th className="px-3 py-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data?.posts ?? []).map((post) => (
-                  <tr key={post.id} className="border-b border-slate-800/80">
-                    <td className="max-w-md px-3 py-3">{post.content.slice(0, 120)}</td>
-                    <td className="px-3 py-3">{post.estado || '—'}</td>
-                    <td className="px-3 py-3">{post.estatus}</td>
-                    <td className="px-3 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => moderateMutation.mutate({ id: post.id, estatus: 'aprobado' })}
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold"
-                        >
-                          <CheckCircle2 size={14} /> Aprobar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moderateMutation.mutate({ id: post.id, estatus: 'baneado' })}
-                          className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-2 py-1 text-xs font-semibold"
-                        >
-                          <Ban size={14} /> Banear
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteMutation.mutate({ id: post.id })}
-                          className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-2 py-1 text-xs font-semibold"
-                        >
-                          <Trash2 size={14} /> Eliminar
-                        </button>
-                      </div>
-                    </td>
+        {(data?.pendingPosts?.length ?? 0) > 0 && (
+          <ModerationTable
+            title="Publicaciones reportadas / pendientes"
+            posts={data?.pendingPosts ?? []}
+            moderateMutation={moderateMutation}
+            deleteMutation={deleteMutation}
+          />
+        )}
+
+        {(data?.pendingProRequests?.length ?? 0) > 0 && (
+          <section className="rounded-2xl border border-amber-500/30 bg-slate-900 p-4">
+            <h2 className="mb-4 text-lg font-bold">Solicitudes PRO (PayPal)</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="border-b border-slate-800 text-slate-400">
+                  <tr>
+                    <th className="px-3 py-2">Usuario</th>
+                    <th className="px-3 py-2">Monto</th>
+                    <th className="px-3 py-2">Notas</th>
+                    <th className="px-3 py-2">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data?.pendingProRequests?.map((req: any) => (
+                    <tr key={req.id} className="border-b border-slate-800/80">
+                      <td className="px-3 py-3">
+                        {req.perfiles?.nombre || req.usuario_id}
+                        {req.perfiles?.correo ? (
+                          <span className="block text-xs text-slate-400">{req.perfiles.correo}</span>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-3">${req.monto ?? '—'} MXN</td>
+                      <td className="px-3 py-3">{req.notas || '—'}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => approveProMutation.mutate({ id: req.id })}
+                            className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold"
+                          >
+                            Aprobar PRO
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => rejectProMutation.mutate({ id: req.id })}
+                            className="rounded-lg bg-red-700 px-2 py-1 text-xs font-semibold"
+                          >
+                            Rechazar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        <section className="rounded-2xl border border-purple-500/25 bg-slate-900/80 p-4">
+          <div className="mb-4 flex items-center gap-2">
+            <Megaphone size={18} className="text-amber-400" />
+            <h2 className="text-lg font-bold">Anuncios y banners</h2>
           </div>
+
+          <form
+            className="mb-4 grid gap-3 md:grid-cols-2"
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (!adForm.titulo.trim()) return
+              saveAdMutation.mutate(adForm)
+            }}
+          >
+            <input
+              value={adForm.titulo}
+              onChange={(e) => setAdForm({ ...adForm, titulo: e.target.value })}
+              placeholder="Título del anuncio"
+              className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            />
+            <input
+              value={adForm.estado}
+              onChange={(e) => setAdForm({ ...adForm, estado: e.target.value })}
+              placeholder="Estado (vacío = nacional)"
+              className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            />
+            <input
+              value={adForm.cuerpo}
+              onChange={(e) => setAdForm({ ...adForm, cuerpo: e.target.value })}
+              placeholder="Texto / descripción"
+              className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm md:col-span-2"
+            />
+            <input
+              value={adForm.enlace_url}
+              onChange={(e) => setAdForm({ ...adForm, enlace_url: e.target.value })}
+              placeholder="URL de enlace (opcional)"
+              className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            />
+            <select
+              value={adForm.tipo}
+              onChange={(e) => setAdForm({ ...adForm, tipo: e.target.value })}
+              className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+            >
+              <option value="banner">Banner superior</option>
+              <option value="pro">Panel PRO</option>
+            </select>
+            <button
+              type="submit"
+              disabled={saveAdMutation.isPending}
+              className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 md:col-span-2"
+            >
+              {saveAdMutation.isPending ? 'Guardando...' : 'Publicar anuncio'}
+            </button>
+          </form>
+
+          <ul className="space-y-2 text-sm">
+            {(adsQuery.data ?? []).map((ad: any) => (
+              <li
+                key={ad.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2"
+              >
+                <div>
+                  <span className="font-semibold text-amber-300">{ad.titulo}</span>
+                  <span className="ml-2 text-xs text-slate-400">
+                    {ad.tipo} · {ad.estado || 'Nacional'} · {ad.activo ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => deleteAdMutation.mutate({ id: ad.id })}
+                  className="rounded-lg bg-red-700 px-2 py-1 text-xs font-semibold"
+                >
+                  Eliminar
+                </button>
+              </li>
+            ))}
+          </ul>
         </section>
+
+        <ModerationTable
+          title="Publicaciones recientes"
+          posts={data?.posts ?? []}
+          moderateMutation={moderateMutation}
+          deleteMutation={deleteMutation}
+        />
 
         <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
           <div className="mb-4 flex items-center gap-2">
@@ -196,6 +352,7 @@ function AdminDashboard() {
                   <th className="px-3 py-2">Oficio</th>
                   <th className="px-3 py-2">Estado</th>
                   <th className="px-3 py-2">PRO</th>
+                  <th className="px-3 py-2">Estado cuenta</th>
                   <th className="px-3 py-2">Acciones</th>
                 </tr>
               </thead>
@@ -206,6 +363,7 @@ function AdminDashboard() {
                     <td className="px-3 py-3">{user.habilidad_empirica || '—'}</td>
                     <td className="px-3 py-3">{user.estado || '—'}</td>
                     <td className="px-3 py-3">{user.es_pro ? 'Sí' : 'No'}</td>
+                    <td className="px-3 py-3">{user.bloqueado ? 'Suspendido' : 'Activo'}</td>
                     <td className="px-3 py-3">
                       <div className="flex flex-wrap gap-2">
                         <button
@@ -223,9 +381,19 @@ function AdminDashboard() {
                         <button
                           type="button"
                           onClick={() => banUserMutation.mutate({ id: user.id })}
-                          className="rounded-lg bg-red-700 px-2 py-1 text-xs font-semibold"
+                          className="rounded-lg bg-amber-700 px-2 py-1 text-xs font-semibold"
                         >
-                          Banear publicaciones
+                          Banear posts
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            blockUserMutation.mutate({ id: user.id, bloqueado: !user.bloqueado })
+                          }
+                          className="inline-flex items-center gap-1 rounded-lg bg-red-700 px-2 py-1 text-xs font-semibold"
+                        >
+                          <Shield size={12} />
+                          {user.bloqueado ? 'Reactivar' : 'Suspender'}
                         </button>
                       </div>
                     </td>
@@ -268,6 +436,72 @@ function StatsPanel({
           </li>
         ))}
       </ul>
+    </section>
+  )
+}
+
+function ModerationTable({
+  title,
+  posts,
+  moderateMutation,
+  deleteMutation,
+}: {
+  title: string
+  posts: { id: string; content: string; estado?: string | null; estatus?: string | null }[]
+  moderateMutation: { mutate: (payload: { id: string; estatus: 'aprobado' | 'baneado' | 'pendiente' }) => void }
+  deleteMutation: { mutate: (payload: { id: string }) => void }
+}) {
+  if (posts.length === 0) return null
+
+  return (
+    <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+      <h2 className="mb-4 text-lg font-bold">{title}</h2>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-slate-800 text-slate-400">
+            <tr>
+              <th className="px-3 py-2">Contenido</th>
+              <th className="px-3 py-2">Estado</th>
+              <th className="px-3 py-2">Estatus</th>
+              <th className="px-3 py-2">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {posts.map((post) => (
+              <tr key={post.id} className="border-b border-slate-800/80">
+                <td className="max-w-md px-3 py-3">{post.content.slice(0, 120)}</td>
+                <td className="px-3 py-3">{post.estado || '—'}</td>
+                <td className="px-3 py-3">{post.estatus}</td>
+                <td className="px-3 py-3">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => moderateMutation.mutate({ id: post.id, estatus: 'aprobado' })}
+                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-semibold"
+                    >
+                      <CheckCircle2 size={14} /> Aprobar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moderateMutation.mutate({ id: post.id, estatus: 'baneado' })}
+                      className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-2 py-1 text-xs font-semibold"
+                    >
+                      <Ban size={14} /> Banear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteMutation.mutate({ id: post.id })}
+                      className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-2 py-1 text-xs font-semibold"
+                    >
+                      <Trash2 size={14} /> Eliminar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   )
 }

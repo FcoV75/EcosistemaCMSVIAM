@@ -16,15 +16,13 @@ export const Route = createRootRoute({
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
-  beforeLoad: async () => {
-    return getSessionContextFn()
-  },
+  beforeLoad: async () => getSessionContextFn(),
   component: RootLayout,
 })
 
 function RootLayout() {
   const queryClient = useMemo(() => createAppQueryClient(), [])
-  const { user, isAdmin } = Route.useRouteContext()
+  const { user, profile, isAdmin } = Route.useRouteContext()
 
   return (
     <html lang="es">
@@ -33,7 +31,7 @@ function RootLayout() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <IdentityProvider user={user} isAdmin={isAdmin}>
+          <IdentityProvider user={user} profile={profile} isAdmin={isAdmin}>
             <UserProvider>
               <Outlet />
             </UserProvider>

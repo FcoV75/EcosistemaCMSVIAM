@@ -1,29 +1,34 @@
 import { createServerFn } from '@tanstack/react-start'
-import { prisma } from '../lib/prisma.server'
-import { getServerUser } from '../lib/auth'
+import { createSupabaseAdminClient } from '../lib/supabase.server'
+import { requireProUser } from '../lib/auth'
 
 export const getNegocioFn = createServerFn({ method: 'GET' })
   .inputValidator((d: string) => d)
   .handler(async ({ data: userId }) => {
-    return prisma.negocios.findUnique({ where: { id: userId } })
+    const supabase = createSupabaseAdminClient()
+    const { data, error } = await supabase.from('negocios').select('*').eq('id', userId).maybeSingle()
+    if (error) throw error
+    return data
   })
 
 export const updateNegocioFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { banner_url?: string; items?: string[] }) => d)
   .handler(async ({ data }) => {
-    const user = await getServerUser()
-    if (!user) throw new Error('Not authenticated')
+    const { user } = await requireProUser()
+    const supabase = createSupabaseAdminClient()
 
-    return prisma.negocios.upsert({
-      where: { id: user.id },
-      update: {
-        banner_url: data.banner_url,
-        items: data.items ?? [],
-      },
-      create: {
-        id: user.id,
-        banner_url: data.banner_url,
-        items: data.items ?? [],
-      },
-    })
+    const payload = {
+      id: user.id,
+      banner_url: data.banner_url ?? null,
+      items: data.items ?? [],
+    }
+
+    const { data: row, error } = await supabase
+      .from('negocios')
+      .upsert(payload, { onConflict: 'id' })
+      .select('*')
+      .single()
+
+    if (error) throw error
+    return row
   })

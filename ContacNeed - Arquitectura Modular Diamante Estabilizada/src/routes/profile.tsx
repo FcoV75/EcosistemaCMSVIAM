@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Camera, Settings, Star, TrendingUp, HelpCircle, Store, MessageSquare, Image as ImageIcon, Sparkles, X, Plus, LogOut } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { useUser } from '../store/userContext'
+import { useIdentity } from '../lib/identity-context'
 import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
 import { DEFAULT_STATE, type MexicoState } from '../lib/mexico-states'
 import { getServerUserFn, signOutFn } from '../server/auth.functions'
@@ -34,13 +35,20 @@ function ProfilePage() {
       onOpenStripe={() => setShowStripeModal(true)}
       onCloseStripe={() => setShowStripeModal(false)}
     >
-      <ProfileContent negocio={negocio} />
+      <ProfileContent negocio={negocio} onOpenStripe={() => setShowStripeModal(true)} />
     </AppShell>
   )
 }
 
-function ProfileContent({ negocio }: { negocio: Awaited<ReturnType<typeof getNegocioFn>> }) {
-  const { userType, setUserType, profileData, setProfileData, saveProfileData } = useUser()
+function ProfileContent({
+  negocio,
+  onOpenStripe,
+}: {
+  negocio: Awaited<ReturnType<typeof getNegocioFn>>
+  onOpenStripe: () => void
+}) {
+  const { profileData, setProfileData, saveProfileData } = useUser()
+  const { isPro } = useIdentity()
   const [activeTab, setActiveTab] = useState<'perfil' | 'negocio' | 'guia'>('perfil')
   const [storePrompt, setStorePrompt] = useState('')
   const [aiSuggestions, setAiSuggestions] = useState<string | null>(null)
@@ -49,6 +57,7 @@ function ProfileContent({ negocio }: { negocio: Awaited<ReturnType<typeof getNeg
   const [isSavingStore, setIsSavingStore] = useState(false)
   const [uploadingBanner, setUploadingBanner] = useState(false)
   const [uploadingItem, setUploadingItem] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
   const bannerInputRef = useRef<HTMLInputElement>(null)
@@ -137,16 +146,23 @@ function ProfileContent({ negocio }: { negocio: Awaited<ReturnType<typeof getNeg
 
   }
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileData({ ...profileData, avatar: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingAvatar(true)
+    try {
+      const url = await uploadFileToCloudinary(file)
+      const next = { ...profileData, avatar: url }
+      setProfileData(next)
+      await saveProfileData(next)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo subir el avatar')
+    } finally {
+      setUploadingAvatar(false)
+      e.target.value = ''
     }
-  };
+  }
 
   return (
     <>
@@ -174,17 +190,25 @@ function ProfileContent({ negocio }: { negocio: Awaited<ReturnType<typeof getNeg
               <img src={profileData.avatar || "https://i.pravatar.cc/150?u=current"} alt="Mi Perfil" className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover" />
               <label className="absolute bottom-0 right-0 bg-amber-500 text-slate-950 p-1.5 rounded-full shadow-lg hover:bg-amber-600 transition-colors cursor-pointer">
                 <Camera size={16} />
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
               </label>
+              {uploadingAvatar && (
+                <p className="absolute -bottom-6 left-0 right-0 text-center text-[10px] text-gray-500">Subiendo...</p>
+              )}
             </div>
             <h3 className="font-bold text-lg text-slate-900">{profileData.name}</h3>
-            <p className="text-sm text-gray-500">Usuario {userType === 'pro' ? 'Pro' : 'Gratuito'}</p>
-            <button 
-              onClick={() => setUserType(userType === 'pro' ? 'free' : 'pro')}
-              className="mt-2 text-xs bg-slate-100 px-2 py-1 rounded hover:bg-slate-200 transition-colors"
-            >
-              Cambiar a {userType === 'pro' ? 'Gratuito' : 'Pro'} (Test)
-            </button>
+            <p className="text-sm text-gray-500">
+              {isPro ? 'Usuario PRO' : 'Plan gratuito'}
+            </p>
+            {!isPro && (
+              <button
+                type="button"
+                onClick={onOpenStripe}
+                className="mt-2 rounded-lg bg-amber-500 px-3 py-1 text-xs font-bold text-slate-950 hover:bg-amber-600"
+              >
+                Activar PRO
+              </button>
+            )}
           </div>
           <div className="p-2 space-y-1">
             <button 
@@ -193,11 +217,18 @@ function ProfileContent({ negocio }: { negocio: Awaited<ReturnType<typeof getNeg
             >
               <Settings size={18} /> Configurar Perfil
             </button>
-            <button 
-              onClick={() => setActiveTab('negocio')}
+            <button
+              type="button"
+              onClick={() => {
+                if (!isPro) {
+                  onOpenStripe()
+                  return
+                }
+                setActiveTab('negocio')
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === 'negocio' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
             >
-              <Store size={18} /> Mi Negocio / Tienda
+              <Store size={18} /> Mi Negocio / Tienda {!isPro && '🔒'}
             </button>
             <button 
               onClick={() => setActiveTab('guia')}
@@ -273,7 +304,24 @@ function ProfileContent({ negocio }: { negocio: Awaited<ReturnType<typeof getNeg
           </div>
         )}
 
-        {activeTab === 'negocio' && (
+        {activeTab === 'negocio' && !isPro && (
+          <div className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
+            <Store size={48} className="mb-4 text-amber-500" />
+            <h2 className="text-2xl font-bold text-slate-900">Tienda exclusiva PRO</h2>
+            <p className="mt-2 max-w-md text-gray-500">
+              Activa ContacNeed PRO para diseñar tu mini tienda con banner, galería y mayor visibilidad.
+            </p>
+            <button
+              type="button"
+              onClick={onOpenStripe}
+              className="mt-6 rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-600"
+            >
+              Ver planes PRO
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'negocio' && isPro && (
           <div className="p-6 md:p-8 animate-in fade-in">
             <div className="flex items-start justify-between mb-8">
               <div>

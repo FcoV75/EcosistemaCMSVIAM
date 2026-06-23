@@ -10,6 +10,7 @@ import { RadioPlayer } from './RadioPlayer'
 import { SidebarNav } from './SidebarNav'
 import { StateSelector } from './StateSelector'
 import { SupportBot } from './SupportBot'
+import { TopBannerBar } from './TopBannerBar'
 import { StripeSubscriptionModal } from './StripeSubscriptionModal'
 import { BrowseProvider } from '../lib/browse-context'
 import { useIdentity } from '../lib/identity-context'
@@ -138,6 +139,8 @@ export function AppShell({
           </div>
         </header>
 
+        <TopBannerBar selectedState={selectedState} />
+
         <div className="relative mx-auto grid max-w-[90rem] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-12 lg:px-6">
           <aside className="space-y-4 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
             <SidebarNav
@@ -154,16 +157,20 @@ export function AppShell({
           <main className="min-w-0 lg:col-span-6">{children}</main>
 
           <div className="hidden lg:col-span-3 lg:block lg:sticky lg:top-28 lg:self-start">
-            <ProAdPanel onOpenStripe={onOpenStripe} />
+            <ProAdPanel selectedState={selectedState} onOpenStripe={onOpenStripe} />
           </div>
         </div>
 
         <div className="px-4 pb-8 lg:hidden">
-          <ProAdPanel onOpenStripe={onOpenStripe} />
+          <ProAdPanel selectedState={selectedState} onOpenStripe={onOpenStripe} />
         </div>
 
         <SupportBot />
-        <StripeSubscriptionModal open={showStripeModal} onClose={onCloseStripe} />
+        <StripeSubscriptionModal
+          open={showStripeModal}
+          onClose={onCloseStripe}
+          onOpenAuth={(tab) => openAuth(tab)}
+        />
         <AuthModal
           open={authModal.open}
           initialTab={authModal.tab}

@@ -6,7 +6,9 @@ import { useMemo, useRef, useState } from 'react'
 
 import { PostCard } from './PostCard'
 
-import { useBrowseSearch } from '../lib/browse-context'
+import { Link } from '@tanstack/react-router'
+
+import { useIdentity } from '../lib/identity-context'
 
 import { fetchPublicPosts } from '../lib/posts-client'
 
@@ -256,6 +258,7 @@ function Composer({
 
 }) {
 
+  const { user } = useIdentity()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [content, setContent] = useState('')
@@ -368,7 +371,30 @@ function Composer({
 
   const busy = isSubmitting || uploading
 
-
+  if (!user) {
+    return (
+      <div className="cn-glass overflow-hidden rounded-2xl border border-purple-500/25 p-5 text-center shadow-xl shadow-purple-900/20">
+        <p className="text-sm font-semibold text-white">Inicia sesión para publicar en la pizarra</p>
+        <p className="mt-1 text-xs text-purple-200/70">
+          Comparte tu oficio, servicio o experiencia con la comunidad de tu estado.
+        </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <Link
+            to="/login"
+            className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-2 text-sm font-bold text-slate-950"
+          >
+            Iniciar sesión
+          </Link>
+          <Link
+            to="/registro"
+            className="rounded-xl border border-amber-400/40 px-5 py-2 text-sm font-semibold text-amber-300"
+          >
+            Crear cuenta
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
 

@@ -1,28 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
-import { BadgeCheck, Crown, Sparkles } from 'lucide-react'
-import { fetchProProfiles } from '../lib/pro-ads-client'
+import { BadgeCheck, Crown, ExternalLink, Sparkles } from 'lucide-react'
+import { fetchProPanelItems } from '../lib/pro-ads-client'
+import type { MexicoState } from '../lib/mexico-states'
 
 type ProAdPanelProps = {
+  selectedState: MexicoState | ''
   onOpenStripe: () => void
 }
 
-const spotlightAds = [
-  {
-    title: 'Visibilidad Premium',
-    body: 'Aparece en el panel PRO y destaca tus servicios con brillo dorado.',
-    tag: 'Destacado',
-  },
-  {
-    title: 'Tienda sin límites',
-    body: 'Sube más imágenes y videos en tu perfil de negocio.',
-    tag: 'Exclusivo',
-  },
-]
-
-export function ProAdPanel({ onOpenStripe }: ProAdPanelProps) {
+export function ProAdPanel({ selectedState, onOpenStripe }: ProAdPanelProps) {
   const prosQuery = useQuery({
-    queryKey: ['pro-profiles'],
-    queryFn: fetchProProfiles,
+    queryKey: ['pro-panel', selectedState],
+    queryFn: () => fetchProPanelItems(selectedState || undefined),
     staleTime: 60_000,
   })
 
@@ -37,60 +26,14 @@ export function ProAdPanel({ onOpenStripe }: ProAdPanelProps) {
           <Sparkles className="ml-auto text-amber-300/80" size={16} />
         </div>
         <p className="text-xs leading-relaxed text-purple-100/80">
-          Anuncios destacados de especialistas premium en ContacNeed.
+          {selectedState
+            ? `Especialistas premium en ${selectedState}.`
+            : 'Anuncios destacados de especialistas premium en ContacNeed.'}
         </p>
       </div>
 
-      {spotlightAds.map((ad) => (
-        <div
-          key={ad.title}
-          className="cn-pro-card group cursor-pointer rounded-2xl border border-amber-400/40 bg-gradient-to-br from-purple-950/80 via-slate-900/90 to-amber-950/40 p-4 shadow-lg shadow-amber-500/10 transition hover:border-amber-300/60 hover:shadow-amber-500/25"
-          onClick={onOpenStripe}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') onOpenStripe()
-          }}
-          role="button"
-          tabIndex={0}
-        >
-          <span className="inline-block rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">
-            {ad.tag}
-          </span>
-          <h3 className="mt-2 text-sm font-bold text-white group-hover:text-amber-200">{ad.title}</h3>
-          <p className="mt-1 text-xs text-purple-100/70">{ad.body}</p>
-        </div>
-      ))}
-
       {pros.map((pro) => (
-        <div
-          key={pro.id}
-          className="cn-pro-card rounded-2xl border border-purple-400/30 bg-gradient-to-br from-purple-900/50 to-slate-900/80 p-4 shadow-lg shadow-purple-500/10"
-        >
-          <div className="flex items-start gap-3">
-            <img
-              src={`https://i.pravatar.cc/80?u=${pro.id}`}
-              alt={pro.nombre ?? 'Profesional PRO'}
-              className="h-11 w-11 rounded-full border-2 border-amber-400/50 object-cover"
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="truncate text-sm font-bold text-white">{pro.nombre ?? 'Profesional PRO'}</p>
-                {pro.verificado && <BadgeCheck size={14} className="shrink-0 text-sky-400" />}
-              </div>
-              <p className="line-clamp-2 text-xs text-purple-100/70">
-                {pro.descripcion_profesion ?? 'Especialista verificado en ContacNeed'}
-              </p>
-              {pro.estado && (
-                <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-300/90">
-                  {pro.estado}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="mt-3 flex items-center gap-1">
-            <Crown size={12} className="text-amber-400" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300">Miembro PRO</span>
-          </div>
-        </div>
+        <ProCard key={pro.id} pro={pro} />
       ))}
 
       {pros.length === 0 && !prosQuery.isLoading && (
@@ -108,4 +51,61 @@ export function ProAdPanel({ onOpenStripe }: ProAdPanelProps) {
       </button>
     </aside>
   )
+}
+
+function ProCard({
+  pro,
+}: {
+  pro: {
+    id: string
+    nombre?: string | null
+    descripcion_profesion?: string | null
+    estado?: string | null
+    verificado?: boolean | null
+    avatar_url?: string | null
+    imagen_url?: string | null
+    enlace_url?: string | null
+  }
+}) {
+  const avatar = pro.imagen_url || pro.avatar_url || `https://i.pravatar.cc/80?u=${pro.id}`
+  const body = (
+    <div className="cn-pro-card rounded-2xl border border-purple-400/30 bg-gradient-to-br from-purple-900/50 to-slate-900/80 p-4 shadow-lg shadow-purple-500/10 transition hover:border-amber-400/40">
+      <div className="flex items-start gap-3">
+        <img
+          src={avatar}
+          alt={pro.nombre ?? 'Profesional PRO'}
+          className="h-11 w-11 rounded-full border-2 border-amber-400/50 object-cover"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-sm font-bold text-white">{pro.nombre ?? 'Profesional PRO'}</p>
+            {pro.verificado && <BadgeCheck size={14} className="shrink-0 text-sky-400" />}
+          </div>
+          <p className="line-clamp-2 text-xs text-purple-100/70">
+            {pro.descripcion_profesion ?? 'Especialista verificado en ContacNeed'}
+          </p>
+          {pro.estado && (
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-300/90">
+              {pro.estado}
+            </p>
+          )}
+        </div>
+        {pro.enlace_url && <ExternalLink size={14} className="shrink-0 text-amber-300/70" />}
+      </div>
+      <div className="mt-3 flex items-center gap-1">
+        <Crown size={12} className="text-amber-400" />
+        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300">Miembro PRO</span>
+      </div>
+    </div>
+  )
+
+  if (pro.enlace_url) {
+    return (
+      <a href={pro.enlace_url} target="_blank" rel="noopener noreferrer" className="block">
+        {body}
+      </a>
+    )
+  }
+
+  return body
 }

@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useIdentity } from '../lib/identity-context'
+import { updateProfileFn } from '../server/auth.functions'
 
 type ProfileData = {
   name: string
@@ -9,8 +11,6 @@ type ProfileData = {
 }
 
 type UserContextValue = {
-  userType: 'free' | 'pro'
-  setUserType: (type: 'free' | 'pro') => void
   profileData: ProfileData
   setProfileData: (data: ProfileData) => void
   saveProfileData: (data: ProfileData) => Promise<void>
@@ -18,30 +18,48 @@ type UserContextValue = {
 
 const UserContext = createContext<UserContextValue | null>(null)
 
+const emptyProfile: ProfileData = {
+  name: '',
+  title: '',
+  location: '',
+  description: '',
+  avatar: '',
+}
+
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [userType, setUserType] = useState<'free' | 'pro'>('free')
-  const [profileData, setProfileData] = useState<ProfileData>({
-    name: 'Usuario ContacNeed',
-    title: '',
-    location: '',
-    description: '',
-    avatar: '',
-  })
+  const { user, profile } = useIdentity()
+  const [profileData, setProfileData] = useState<ProfileData>(emptyProfile)
+
+  useEffect(() => {
+    if (!user || !profile) {
+      setProfileData(emptyProfile)
+      return
+    }
+
+    setProfileData({
+      name: profile.nombre?.trim() || user.email?.split('@')[0] || 'Usuario',
+      title: profile.habilidad_empirica?.trim() || '',
+      location: [profile.municipio, profile.estado].filter(Boolean).join(', '),
+      description: profile.descripcion_profesion?.trim() || '',
+      avatar: profile.avatar_url?.trim() || `https://i.pravatar.cc/150?u=${user.id}`,
+    })
+  }, [user, profile])
 
   const saveProfileData = async (data: ProfileData) => {
+    await updateProfileFn({
+      data: {
+        nombre: data.name,
+        habilidad_empirica: data.title,
+        descripcion_profesion: data.description,
+        estado: data.location.split(',').pop()?.trim() || profile?.estado || undefined,
+        avatar_url: data.avatar.startsWith('http') ? data.avatar : undefined,
+      },
+    })
     setProfileData(data)
   }
 
   return (
-    <UserContext.Provider
-      value={{
-        userType,
-        setUserType,
-        profileData,
-        setProfileData,
-        saveProfileData,
-      }}
-    >
+    <UserContext.Provider value={{ profileData, setProfileData, saveProfileData }}>
       {children}
     </UserContext.Provider>
   )

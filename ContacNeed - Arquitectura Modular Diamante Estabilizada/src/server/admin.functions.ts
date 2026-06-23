@@ -24,7 +24,16 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
   await assertAdmin()
   const supabase = createSupabaseAdminClient()
 
-  const [postsRes, usersRes, profilesRes] = await Promise.all([
+  const [
+    postsRes,
+    usersRes,
+    profilesRes,
+    postsCountRes,
+    usersCountRes,
+    proCountRes,
+    pendingPostsRes,
+    pendingProRes,
+  ] = await Promise.all([
     supabase
       .from('publicaciones')
       .select(
@@ -34,35 +43,66 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
       .limit(100),
     supabase
       .from('perfiles')
-      .select('id, nombre, estado, habilidad_empirica, es_pro, is_admin, fecha_registro')
+      .select('id, nombre, estado, habilidad_empirica, es_pro, is_admin, bloqueado, fecha_registro')
       .order('fecha_registro', { ascending: false })
       .limit(100),
     supabase.from('perfiles').select('estado, habilidad_empirica'),
+    supabase.from('publicaciones').select('*', { count: 'exact', head: true }),
+    supabase.from('perfiles').select('*', { count: 'exact', head: true }),
+    supabase.from('perfiles').select('*', { count: 'exact', head: true }).eq('es_pro', true),
+    supabase
+      .from('publicaciones')
+      .select(
+        'id, contenido, url_multimedia, estado, estatus, fecha_creacion, usuario_id, perfiles(nombre, habilidad_empirica, descripcion_profesion, verificado, es_fundador)',
+      )
+      .eq('estatus', 'pendiente')
+      .order('fecha_creacion', { ascending: false })
+      .limit(50),
+    supabase
+      .from('solicitudes_pro')
+      .select('id, usuario_id, metodo, monto, estatus, notas, created_at, perfiles(nombre, correo, estado)')
+      .eq('estatus', 'pendiente')
+      .order('created_at', { ascending: false })
+      .limit(50),
   ])
 
   if (postsRes.error) throw postsRes.error
   if (usersRes.error) throw usersRes.error
   if (profilesRes.error) throw profilesRes.error
 
-  const posts = (postsRes.data ?? []).map((post) =>
+  const mapPost = (post: (typeof postsRes.data)[number]) =>
     mapPublicacionToPost({
       ...post,
       fecha_creacion: post.fecha_creacion ? new Date(post.fecha_creacion) : null,
       perfiles: post.perfiles,
-    }),
-  )
+    })
+
+  const posts = (postsRes.data ?? []).map(mapPost)
+  const pendingPosts =
+    pendingPostsRes.error && pendingPostsRes.error.message.includes('does not exist')
+      ? []
+      : (pendingPostsRes.data ?? []).map(mapPost)
+  const pendingProRequests =
+    pendingProRes.error && pendingProRes.error.message.includes('does not exist')
+      ? []
+      : (pendingProRes.data ?? [])
 
   const users = usersRes.data ?? []
   const allProfiles = profilesRes.data ?? []
 
   return {
     posts,
+    pendingPosts,
+    pendingProRequests,
     users,
     statsByState: countByField(allProfiles.map((p) => ({ value: p.estado }))),
     statsByProfession: countByField(allProfiles.map((p) => ({ value: p.habilidad_empirica }))),
     totals: {
-      posts: posts.length,
-      users: users.length,
+      posts: postsCountRes.count ?? posts.length,
+      users: usersCountRes.count ?? users.length,
+      proUsers: proCountRes.count ?? 0,
+      pendingPosts: pendingPosts.length,
+      pendingPro: pendingProRequests.length,
     },
   }
 })
@@ -93,17 +133,77 @@ export const deletePostAdminFn = createServerFn({ method: 'POST' })
   })
 
 export const updateUserAdminFn = createServerFn({ method: 'POST' })
-  .inputValidator((d: { id: string; es_pro?: boolean; is_admin?: boolean }) => d)
+  .inputValidator((d: { id: string; es_pro?: boolean; is_admin?: boolean; bloqueado?: boolean }) => d)
+  .handler(async ({ data }) => {
+    await assertAdmin()
+    const supabase = createSupabaseAdminClient()
+
+    const patch: Record<string, boolean> = {}
+    if (typeof data.es_pro === 'boolean') patch.es_pro = data.es_pro
+    if (typeof data.is_admin === 'boolean') patch.is_admin = data.is_admin
+    if (typeof data.bloqueado === 'boolean') patch.bloqueado = data.bloqueado
+
+    const { error } = await supabase.from('perfiles').update(patch).eq('id', data.id)
+
+    if (error) throw error
+    return { success: true }
+  })
+
+export const blockUserAdminFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string; bloqueado: boolean }) => d)
   .handler(async ({ data }) => {
     await assertAdmin()
     const supabase = createSupabaseAdminClient()
 
     const { error } = await supabase
       .from('perfiles')
-      .update({
-        es_pro: data.es_pro,
-        is_admin: data.is_admin,
-      })
+      .update({ bloqueado: data.bloqueado })
+      .eq('id', data.id)
+
+    if (error) throw error
+    return { success: true }
+  })
+
+export const approveProRequestFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    await assertAdmin()
+    const supabase = createSupabaseAdminClient()
+
+    const { data: request, error: fetchError } = await supabase
+      .from('solicitudes_pro')
+      .select('id, usuario_id, estatus')
+      .eq('id', data.id)
+      .maybeSingle()
+
+    if (fetchError) throw fetchError
+    if (!request) throw new Error('Solicitud no encontrada')
+
+    const { error: proError } = await supabase
+      .from('perfiles')
+      .update({ es_pro: true })
+      .eq('id', request.usuario_id)
+
+    if (proError) throw proError
+
+    const { error: updateError } = await supabase
+      .from('solicitudes_pro')
+      .update({ estatus: 'aprobado' })
+      .eq('id', data.id)
+
+    if (updateError) throw updateError
+    return { success: true }
+  })
+
+export const rejectProRequestFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    await assertAdmin()
+    const supabase = createSupabaseAdminClient()
+
+    const { error } = await supabase
+      .from('solicitudes_pro')
+      .update({ estatus: 'rechazado' })
       .eq('id', data.id)
 
     if (error) throw error

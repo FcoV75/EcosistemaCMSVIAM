@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient, createSupabaseServerClient } from '../lib/supabase.server'
+import { requireActiveUser } from '../lib/auth'
 import { mapPublicacionToPost } from '../lib/posts-mapper'
 import { toYouTubeEmbedUrl } from '../lib/youtube'
 
@@ -51,8 +52,32 @@ async function attachProfiles(
   }))
 }
 
-function toMappedPost(post: PublicacionRow & { perfiles?: PerfilRow | null }) {
-  return mapPublicacionToPost({
+async function attachCommentCounts(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  posts: PublicacionRow[],
+) {
+  const ids = posts.map((post) => post.id)
+  if (ids.length === 0) return new Map<string, number>()
+
+  const { data, error } = await supabase
+    .from('comentarios')
+    .select('publicacion_id')
+    .in('publicacion_id', ids)
+
+  if (error) return new Map<string, number>()
+
+  const counts = new Map<string, number>()
+  for (const row of data ?? []) {
+    counts.set(row.publicacion_id, (counts.get(row.publicacion_id) ?? 0) + 1)
+  }
+  return counts
+}
+
+function toMappedPost(
+  post: PublicacionRow & { perfiles?: PerfilRow | null },
+  commentCount = 0,
+) {
+  const mapped = mapPublicacionToPost({
     ...post,
     fecha_creacion: post.fecha_creacion ? new Date(post.fecha_creacion) : null,
     perfiles: post.perfiles
@@ -65,6 +90,7 @@ function toMappedPost(post: PublicacionRow & { perfiles?: PerfilRow | null }) {
         }
       : null,
   })
+  return { ...mapped, comments: commentCount }
 }
 
 export const getPosts = createServerFn({ method: 'GET' })
@@ -93,15 +119,14 @@ export const getPosts = createServerFn({ method: 'GET' })
     if (error) throw error
 
     const postsWithProfiles = await attachProfiles(supabase, posts ?? [])
-    return postsWithProfiles.map(toMappedPost)
+    const commentCounts = await attachCommentCounts(supabase, postsWithProfiles)
+    return postsWithProfiles.map((post) => toMappedPost(post, commentCounts.get(post.id) ?? 0))
   })
 
 export const createPostFn = createServerFn({ method: 'POST' })
   .inputValidator((d: any) => d)
   .handler(async ({ data }) => {
-    const supabase = createSupabaseServerClient()
-    const { data: authData } = await supabase.auth.getUser()
-    if (!authData?.user) throw new Error('Not authenticated')
+    const { user, profile } = await requireActiveUser()
 
     const content = data.content ?? ''
     const incomingMedia = data.mediaUrl || data.imageUrl || data.videoUrl || null
@@ -111,16 +136,15 @@ export const createPostFn = createServerFn({ method: 'POST' })
       mediaUrl = toYouTubeEmbedUrl(mediaUrl) ?? mediaUrl
     }
 
-    const { data: profile } = await createSupabaseAdminClient()
-      .from('perfiles')
-      .select('estado, nombre, habilidad_empirica, descripcion_profesion, verificado, es_fundador')
-      .eq('id', authData.user.id)
-      .maybeSingle()
+    if (!content.trim() && !mediaUrl) {
+      throw new Error('Escribe contenido o adjunta multimedia')
+    }
 
-    const { data: post, error } = await createSupabaseAdminClient()
+    const supabase = createSupabaseAdminClient()
+    const { data: post, error } = await supabase
       .from('publicaciones')
       .insert({
-        usuario_id: authData.user.id,
+        usuario_id: user.id,
         contenido: content,
         url_multimedia: mediaUrl,
         estado: data.estado ?? profile?.estado ?? null,
@@ -137,7 +161,7 @@ export const createPostFn = createServerFn({ method: 'POST' })
       ...post,
       perfiles: profile
         ? {
-            id: authData.user.id,
+            id: user.id,
             nombre: profile.nombre,
             habilidad_empirica: profile.habilidad_empirica,
             descripcion_profesion: profile.descripcion_profesion,
@@ -182,7 +206,56 @@ export const reportContentFn = createServerFn({ method: 'POST' })
   })
 
 export const addCommentFn = createServerFn({ method: 'POST' })
-  .inputValidator((d: any) => d)
-  .handler(async () => {
-    return { success: true }
+  .inputValidator((d: { postId: string; comment: { text: string } | string }) => d)
+  .handler(async ({ data }) => {
+    const { user } = await requireActiveUser()
+    const supabase = createSupabaseAdminClient()
+    const text =
+      typeof data.comment === 'string' ? data.comment.trim() : data.comment.text?.trim() ?? ''
+
+    if (!text) throw new Error('El comentario está vacío')
+
+    const { data: row, error } = await supabase
+      .from('comentarios')
+      .insert({
+        publicacion_id: data.postId,
+        usuario_id: user.id,
+        contenido: text,
+      })
+      .select('id, contenido, usuario_id')
+      .single()
+
+    if (error) {
+      if (error.message.includes('does not exist')) {
+        throw new Error('Comentarios en configuración. Ejecuta la migración SQL en Supabase.')
+      }
+      throw error
+    }
+
+    return {
+      success: true,
+      comment: { id: row.id, text: row.contenido, user_id: row.usuario_id },
+    }
+  })
+
+export const getCommentsFn = createServerFn({ method: 'GET' })
+  .inputValidator((d: { postId: string }) => d)
+  .handler(async ({ data }) => {
+    const supabase = createSupabaseAdminClient()
+    const { data: rows, error } = await supabase
+      .from('comentarios')
+      .select('id, contenido, usuario_id, fecha_creacion')
+      .eq('publicacion_id', data.postId)
+      .order('fecha_creacion', { ascending: true })
+
+    if (error) {
+      if (error.message.includes('does not exist')) return []
+      throw error
+    }
+
+    return (rows ?? []).map((row) => ({
+      id: row.id,
+      text: row.contenido,
+      user_id: row.usuario_id,
+    }))
   })

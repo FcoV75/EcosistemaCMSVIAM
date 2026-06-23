@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ThumbsUp, ThumbsDown, MessageCircle, Share2, BadgeCheck, MoreHorizontal, Trash2, Edit2, ShieldAlert } from 'lucide-react'
 import { useIdentity } from '../lib/identity-context'
-import { updatePostFn, deletePostFn, addCommentFn, reportContentFn } from '../server/posts.functions'
+import { updatePostFn, deletePostFn, addCommentFn, reportContentFn, getCommentsFn } from '../server/posts.functions'
 import { hasPostMedia, PostMedia } from './PostMedia'
 
 export function PostCard({
@@ -21,6 +21,31 @@ export function PostCard({
   const [commentList, setCommentList] = useState<{ id: string; text: string; user_id: string }[]>(
     post.commentList || [],
   )
+  const [loadingComments, setLoadingComments] = useState(false)
+
+  useEffect(() => {
+    if (!showCommentInput || commentList.length > 0) return
+
+    let cancelled = false
+    setLoadingComments(true)
+    getCommentsFn({ data: { postId: post.id } })
+      .then((rows) => {
+        if (!cancelled) {
+          setCommentList(rows)
+          setComments(rows.length)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCommentList([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingComments(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [showCommentInput, post.id, commentList.length])
 
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -214,6 +239,9 @@ export function PostCard({
 
       {showCommentInput && (
         <div className="bg-slate-900/40 px-4 pb-4 pt-3">
+          {loadingComments && (
+            <p className="mb-2 text-xs text-purple-200/50">Cargando comentarios...</p>
+          )}
           {commentList.map((c) => (
             <div key={c.id} className="group mb-2 rounded-lg border border-purple-500/15 bg-slate-900/60 p-2 text-sm shadow-sm">
               <div className="flex justify-between items-start gap-2">
@@ -260,14 +288,18 @@ export function PostCard({
               className="flex-1 rounded-full border border-purple-500/30 bg-slate-900/80 px-4 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-400/40"
               onKeyDown={async (e) => {
                 if (e.key === 'Enter' && comment.trim() && user?.id) {
-                  const newC = { text: comment.trim(), user_id: user.id }
                   try {
-                    await addCommentFn({ data: { postId: post.id, comment: newC } })
-                    setCommentList([...commentList, { id: Math.random().toString(), ...newC }])
+                    const result = await addCommentFn({ data: { postId: post.id, comment: { text: comment.trim() } } })
+                    const newC = {
+                      id: result.comment.id,
+                      text: result.comment.text,
+                      user_id: result.comment.user_id,
+                    }
+                    setCommentList([...commentList, newC])
                     setComments((prev: number) => prev + 1)
                     setComment('')
-                  } catch {
-                    alert('Error al comentar')
+                  } catch (err) {
+                    alert(err instanceof Error ? err.message : 'Error al comentar')
                   }
                 }
               }}
@@ -279,14 +311,18 @@ export function PostCard({
                   return
                 }
                 if (comment.trim() && user.id) {
-                  const newC = { text: comment.trim(), user_id: user.id }
                   try {
-                    await addCommentFn({ data: { postId: post.id, comment: newC } })
-                    setCommentList([...commentList, { id: Math.random().toString(), ...newC }])
+                    const result = await addCommentFn({ data: { postId: post.id, comment: { text: comment.trim() } } })
+                    const newC = {
+                      id: result.comment.id,
+                      text: result.comment.text,
+                      user_id: result.comment.user_id,
+                    }
+                    setCommentList([...commentList, newC])
                     setComments((prev: number) => prev + 1)
                     setComment('')
-                  } catch {
-                    alert('Error al comentar')
+                  } catch (err) {
+                    alert(err instanceof Error ? err.message : 'Error al comentar')
                   }
                 }
               }}
