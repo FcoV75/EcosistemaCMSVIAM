@@ -8,6 +8,7 @@ import { PostCard } from './PostCard'
 
 import { Link } from '@tanstack/react-router'
 
+import { useBrowseSearch } from '../lib/browse-context'
 import { useIdentity } from '../lib/identity-context'
 
 import { fetchPublicPosts } from '../lib/posts-client'
