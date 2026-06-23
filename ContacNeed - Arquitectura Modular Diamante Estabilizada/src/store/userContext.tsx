@@ -58,7 +58,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         descripcion_profesion: data.description,
         estado: estado || profile?.estado || undefined,
         municipio: municipio || profile?.municipio || undefined,
-        avatar_url: data.avatar.startsWith('http') ? data.avatar : undefined,
+        avatar_url: data.avatar.startsWith('http') ? data.avatar : profile?.avatar_url || undefined,
       },
     })
     setProfileData(data)

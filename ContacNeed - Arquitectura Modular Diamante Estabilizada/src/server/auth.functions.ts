@@ -100,40 +100,71 @@ export const signUpFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const supabase = createSupabaseServerClient()
     const admin = createSupabaseAdminClient()
+    const email = data.email.trim()
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email.trim(),
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email,
       password: data.password,
+      email_confirm: true,
+      user_metadata: { nombre: data.nombre.trim() },
     })
 
-    if (authError) throw new Error(authError.message)
-    if (!authData.user) throw new Error('No se pudo crear la cuenta')
+    if (createError) {
+      const msg = createError.message
+      if (msg.includes('already been registered') || msg.includes('already exists')) {
+        throw new Error('Este correo ya está registrado. Inicia sesión.')
+      }
+      if (msg.includes('Database error')) {
+        throw new Error(
+          'Error en Supabase al crear la cuenta. Ejecuta el SQL 002 (fix signup) en el SQL Editor y vuelve a intentar.',
+        )
+      }
+      throw new Error(msg)
+    }
+
+    const userId = created.user?.id
+    if (!userId) throw new Error('No se pudo crear la cuenta')
 
     const needsCedula = data.tipo_miembro === 'Profesion' || data.tipo_miembro === 'Especialidad'
 
-    const { error: profileError } = await admin.from('perfiles').upsert({
-      id: authData.user.id,
-      nombre: data.nombre.trim(),
-      correo: data.email.trim(),
-      tipo_miembro: data.tipo_miembro,
-      direccion: data.direccion ?? null,
-      cp: data.cp ?? null,
-      celular: data.celular ?? data.telefono ?? null,
-      estado: data.estado ?? null,
-      municipio: data.municipio ?? null,
-      comunidad: data.comunidad ?? null,
-      sexo: data.sexo ?? null,
-      fecha_nacimiento: data.fecha_nacimiento ?? null,
-      habilidad_empirica: data.habilidad_empirica ?? null,
-      descripcion_profesion: data.descripcion_profesion ?? null,
-      cedula: needsCedula ? data.cedula ?? null : null,
-      verificado: false,
-      es_pro: false,
-      is_admin: false,
-      bloqueado: false,
+    const { error: profileError } = await admin.from('perfiles').upsert(
+      {
+        id: userId,
+        nombre: data.nombre.trim(),
+        correo: email,
+        tipo_miembro: data.tipo_miembro,
+        direccion: data.direccion ?? null,
+        cp: data.cp ?? null,
+        celular: data.celular ?? data.telefono ?? null,
+        estado: data.estado ?? null,
+        municipio: data.municipio ?? null,
+        comunidad: data.comunidad ?? null,
+        sexo: data.sexo ?? null,
+        fecha_nacimiento: data.fecha_nacimiento || null,
+        habilidad_empirica: data.habilidad_empirica ?? null,
+        descripcion_profesion: data.descripcion_profesion ?? null,
+        cedula: needsCedula ? data.cedula ?? null : null,
+        verificado: false,
+        es_pro: false,
+        is_admin: false,
+        bloqueado: false,
+      },
+      { onConflict: 'id' },
+    )
+
+    if (profileError) {
+      throw new Error(`No se pudo guardar el perfil: ${profileError.message}`)
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: data.password,
     })
 
-    if (profileError) throw new Error(profileError.message)
+    if (signInError) {
+      throw new Error(`Cuenta creada. Inicia sesión manualmente: ${signInError.message}`)
+    }
+
     return { success: true }
   })
 
@@ -158,19 +189,20 @@ export const updateProfileFn = createServerFn({ method: 'POST' })
     const { user } = await requireActiveUser()
     const supabase = createSupabaseAdminClient()
 
-    const { error } = await supabase
-      .from('perfiles')
-      .update({
+    const { error } = await supabase.from('perfiles').upsert(
+      {
+        id: user.id,
         nombre: data.nombre,
         habilidad_empirica: data.habilidad_empirica,
         descripcion_profesion: data.descripcion_profesion,
         estado: data.estado,
         municipio: data.municipio,
         avatar_url: data.avatar_url,
-      })
-      .eq('id', user.id)
+      },
+      { onConflict: 'id' },
+    )
 
-    if (error) throw error
+    if (error) throw new Error(`No se pudo guardar el perfil: ${error.message}`)
     return { success: true }
   })
 

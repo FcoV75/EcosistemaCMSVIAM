@@ -72,7 +72,7 @@ function ProfileContent({
       await updateNegocioFn({ data: { banner_url: newBanner, items: newItems } })
     } catch (e) {
       console.error('Error saving negocio:', e)
-      alert('No se pudo guardar la tienda. Intenta de nuevo.')
+      alert(e instanceof Error ? e.message : 'No se pudo guardar la tienda. Intenta de nuevo.')
     } finally {
       setIsSavingStore(false)
     }
@@ -273,8 +273,8 @@ function ProfileContent({
                 await saveProfileData(profileData);
                 alert('Perfil actualizado con éxito');
               } catch (e) {
-                console.error('Error detallado capturado en el frontend:', e);
-                alert('Error al actualizar el perfil');
+                console.error('Error detallado capturado en el frontend:', e)
+                alert(e instanceof Error ? e.message : 'Error al actualizar el perfil')
               } finally {
                 setIsSaving(false);
               }

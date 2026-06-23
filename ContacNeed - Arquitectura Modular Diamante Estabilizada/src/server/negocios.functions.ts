@@ -29,6 +29,6 @@ export const updateNegocioFn = createServerFn({ method: 'POST' })
       .select('*')
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(`No se pudo guardar la tienda: ${error.message}`)
     return row
   })
