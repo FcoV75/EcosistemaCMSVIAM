@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useRouter } from '@tanstack/react-router'
 import { useIdentity } from '../lib/identity-context'
 import { updateProfileFn } from '../server/auth.functions'
-
 type ProfileData = {
   name: string
   title: string
@@ -27,6 +27,7 @@ const emptyProfile: ProfileData = {
 }
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const router = useRouter()
   const { user, profile } = useIdentity()
   const [profileData, setProfileData] = useState<ProfileData>(emptyProfile)
 
@@ -46,16 +47,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [user, profile])
 
   const saveProfileData = async (data: ProfileData) => {
+    const locationParts = data.location.split(',').map((part) => part.trim()).filter(Boolean)
+    const estado = locationParts.length > 1 ? locationParts.at(-1) : locationParts[0]
+    const municipio = locationParts.length > 1 ? locationParts.slice(0, -1).join(', ') : undefined
+
     await updateProfileFn({
       data: {
         nombre: data.name,
         habilidad_empirica: data.title,
         descripcion_profesion: data.description,
-        estado: data.location.split(',').pop()?.trim() || profile?.estado || undefined,
+        estado: estado || profile?.estado || undefined,
+        municipio: municipio || profile?.municipio || undefined,
         avatar_url: data.avatar.startsWith('http') ? data.avatar : undefined,
       },
     })
     setProfileData(data)
+    await router.invalidate()
   }
 
   return (

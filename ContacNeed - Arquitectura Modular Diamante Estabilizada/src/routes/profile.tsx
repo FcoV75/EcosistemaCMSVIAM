@@ -184,7 +184,7 @@ function ProfileContent({
     <div className="flex flex-col gap-6 md:flex-row">
       {/* Menú Lateral */}
       <div className="md:w-64 flex-shrink-0">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
+        <div className="sticky top-24 overflow-hidden rounded-2xl border border-gray-100 bg-white text-slate-900 shadow-sm">
           <div className="p-6 flex flex-col items-center border-b border-gray-100">
             <div className="relative mb-4">
               <img src={profileData.avatar || "https://i.pravatar.cc/150?u=current"} alt="Mi Perfil" className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover" />
@@ -259,7 +259,7 @@ function ProfileContent({
       </div>
 
       {/* Contenido Principal */}
-      <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 min-h-[600px] overflow-hidden">
+      <div className="flex-1 rounded-2xl border border-gray-100 bg-white text-slate-900 shadow-sm min-h-[600px] overflow-hidden">
         {activeTab === 'perfil' && (
           <div className="p-6 md:p-8 animate-in fade-in">
             <div className="mb-8">
@@ -282,19 +282,19 @@ function ProfileContent({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-                  <input type="text" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} className="w-full border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500" />
+                  <input type="text" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-amber-500 focus:ring-amber-500" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Título o Especialidad</label>
-                  <input type="text" value={profileData.title} onChange={e => setProfileData({...profileData, title: e.target.value})} placeholder="Ej. Maestro Plomero" className="w-full border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500" />
+                  <input type="text" value={profileData.title} onChange={e => setProfileData({...profileData, title: e.target.value})} placeholder="Ej. Maestro Plomero" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-amber-500 focus:ring-amber-500" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación (Ciudad, Estado)</label>
-                  <input type="text" value={profileData.location} onChange={e => setProfileData({...profileData, location: e.target.value})} placeholder="Ej. Guadalajara, Jalisco" className="w-full border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500" />
+                  <input type="text" value={profileData.location} onChange={e => setProfileData({...profileData, location: e.target.value})} placeholder="Ej. Guadalajara, Jalisco" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-amber-500 focus:ring-amber-500" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Descripción Breve</label>
-                  <textarea rows={4} value={profileData.description} onChange={e => setProfileData({...profileData, description: e.target.value})} placeholder="Describe tus habilidades..." className="w-full border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500"></textarea>
+                  <textarea rows={4} value={profileData.description} onChange={e => setProfileData({...profileData, description: e.target.value})} placeholder="Describe tus habilidades..." className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-amber-500 focus:ring-amber-500"></textarea>
                 </div>
               </div>
               <button type="submit" disabled={isSaving} className="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-slate-800 transition-colors disabled:opacity-50">
@@ -342,7 +342,7 @@ function ProfileContent({
                   value={storePrompt}
                   onChange={(e) => setStorePrompt(e.target.value)}
                   placeholder="Ej. Soy carpintero y quiero destacar mis servicios 24/7..." 
-                  className="flex-1 border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500 text-sm"
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-amber-500 focus:ring-amber-500"
                 />
                 <button 
                   onClick={handleGenerateStoreIdeas}

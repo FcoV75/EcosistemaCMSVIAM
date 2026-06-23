@@ -90,11 +90,11 @@ export function Feed({ selectedState }: FeedProps) {
       createPostFn({ data: payload }),
 
     onSuccess: () => {
-
       queryClient.invalidateQueries({ queryKey: ['posts'] })
-
     },
-
+    onError: (error) => {
+      alert(error instanceof Error ? error.message : 'No se pudo publicar. Verifica tu sesión e intenta de nuevo.')
+    },
   })
 
 

@@ -44,7 +44,7 @@ VITE_SUPABASE_URL=          # obligatorio: el feed lee publicaciones desde el cl
 VITE_SUPABASE_ANON_KEY=     # obligatorio: sin estas dos el feed no carga
 VITE_CLOUDINARY_CLOUD_NAME=
 VITE_CLOUDINARY_UPLOAD_PRESET=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=     # OBLIGATORIO: guardar posts, perfil, tienda y comentarios
 ```
 
 ## Webhook Stripe
