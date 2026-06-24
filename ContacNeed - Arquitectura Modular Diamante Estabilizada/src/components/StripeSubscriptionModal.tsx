@@ -28,7 +28,7 @@ const PAYPAL_USER = 'JValdezOsorio'
 
 export function StripeSubscriptionModal({ open, onClose, onOpenAuth }: StripeSubscriptionModalProps) {
 
-  const { user } = useIdentity()
+  const { user, isPro } = useIdentity()
 
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'annual' | null>(null)
 
@@ -214,6 +214,21 @@ export function StripeSubscriptionModal({ open, onClose, onOpenAuth }: StripeSub
 
         <div className="space-y-4 px-6 py-5">
 
+          {isPro ? (
+            <>
+              <p className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-100">
+                Ya tienes ContacNeed PRO activo. Usa &quot;Mi anuncio PRO&quot; en el menú lateral para publicar en el Espacio PRO.
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 text-sm font-bold text-slate-950"
+              >
+                Entendido
+              </button>
+            </>
+          ) : (
+          <>
           <p className="text-sm text-purple-200/80">
 
             Desbloquea tienda personalizada, mayor visibilidad y multimedia ampliada.
@@ -298,6 +313,8 @@ export function StripeSubscriptionModal({ open, onClose, onOpenAuth }: StripeSub
 
             </p>
 
+          )}
+          </>
           )}
 
         </div>

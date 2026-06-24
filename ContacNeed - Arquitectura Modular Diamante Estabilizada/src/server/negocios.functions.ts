@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
-import { requireProUser } from '../lib/auth'
+import { requireActiveUser } from '../lib/auth'
+import { FREE_TIENDA_MAX_ITEMS } from '../lib/plan-limits'
 
 export const getNegocioFn = createServerFn({ method: 'GET' })
   .inputValidator((d: string) => d)
@@ -14,13 +15,22 @@ export const getNegocioFn = createServerFn({ method: 'GET' })
 export const updateNegocioFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { banner_url?: string; items?: string[] }) => d)
   .handler(async ({ data }) => {
-    const { user } = await requireProUser()
+    const { user, profile } = await requireActiveUser()
+    const isPro = Boolean(profile?.es_pro)
+    const items = data.items ?? []
+
+    if (!isPro && items.length > FREE_TIENDA_MAX_ITEMS) {
+      throw new Error(
+        `Plan gratuito: máximo ${FREE_TIENDA_MAX_ITEMS} productos en tu tienda. Activa PRO para agregar más.`,
+      )
+    }
+
     const supabase = createSupabaseAdminClient()
 
     const payload = {
       id: user.id,
       banner_url: data.banner_url ?? null,
-      items: data.items ?? [],
+      items,
     }
 
     const { data: row, error } = await supabase

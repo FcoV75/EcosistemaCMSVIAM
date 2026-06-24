@@ -7,6 +7,7 @@ import { useIdentity } from '../lib/identity-context'
 import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
 import { DEFAULT_STATE, type MexicoState } from '../lib/mexico-states'
 import { getServerUserFn, signOutFn } from '../server/auth.functions'
+import { FREE_TIENDA_MAX_ITEMS } from '../lib/plan-limits'
 import { getNegocioFn, updateNegocioFn } from '../server/negocios.functions'
 
 export const Route = createFileRoute('/profile')({
@@ -118,6 +119,12 @@ function ProfileContent({
   }
 
   const handleAddItem = () => {
+    if (!isPro && items.length >= FREE_TIENDA_MAX_ITEMS) {
+      alert(
+        `Plan gratuito: máximo ${FREE_TIENDA_MAX_ITEMS} productos. Activa PRO para una tienda completa.`,
+      )
+      return
+    }
     itemInputRef.current?.click()
   }
 
@@ -219,16 +226,10 @@ function ProfileContent({
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (!isPro) {
-                  onOpenStripe()
-                  return
-                }
-                setActiveTab('negocio')
-              }}
+              onClick={() => setActiveTab('negocio')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === 'negocio' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
             >
-              <Store size={18} /> Mi Negocio / Tienda {!isPro && '🔒'}
+              <Store size={18} /> Mi Negocio / Tienda
             </button>
             <button 
               onClick={() => setActiveTab('guia')}
@@ -304,33 +305,42 @@ function ProfileContent({
           </div>
         )}
 
-        {activeTab === 'negocio' && !isPro && (
-          <div className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
-            <Store size={48} className="mb-4 text-amber-500" />
-            <h2 className="text-2xl font-bold text-slate-900">Tienda exclusiva PRO</h2>
-            <p className="mt-2 max-w-md text-gray-500">
-              Activa ContacNeed PRO para diseñar tu mini tienda con banner, galería y mayor visibilidad.
-            </p>
-            <button
-              type="button"
-              onClick={onOpenStripe}
-              className="mt-6 rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-600"
-            >
-              Ver planes PRO
-            </button>
-          </div>
-        )}
-
-        {activeTab === 'negocio' && isPro && (
+        {activeTab === 'negocio' && (
           <div className="p-6 md:p-8 animate-in fade-in">
             <div className="flex items-start justify-between mb-8">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">Diseña tu Tienda / Negocio</h2>
-                <p className="text-gray-500">Personaliza tu mini página web. Exclusivo para usuarios Pro.</p>
+                <p className="text-gray-500">
+                  {isPro
+                    ? 'Personaliza tu mini página web con banner, galería y asistente IA.'
+                    : `Plan gratuito: 1 banner y hasta ${FREE_TIENDA_MAX_ITEMS} productos. Activa PRO para tienda completa.`}
+                </p>
               </div>
-              <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Pro</span>
+              <span
+                className={`text-xs font-bold px-3 py-1 rounded-full uppercase ${
+                  isPro ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {isPro ? 'Pro' : 'Gratis'}
+              </span>
             </div>
-            
+
+            {!isPro && (
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm text-amber-900">
+                  Ya puedes usar tu tienda básica gratis. PRO desbloquea productos ilimitados y asistente IA.
+                </p>
+                <button
+                  type="button"
+                  onClick={onOpenStripe}
+                  className="shrink-0 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-600"
+                >
+                  Activar PRO
+                </button>
+              </div>
+            )}
+
+            {isPro && (
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-8">
               <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-3">
                 <Sparkles className="text-amber-500" size={20} /> Asistente de Diseño IA
@@ -356,6 +366,7 @@ function ProfileContent({
                 <div className="mt-6 bg-white p-4 rounded-lg border border-amber-100 shadow-sm" dangerouslySetInnerHTML={{ __html: aiSuggestions }}></div>
               )}
             </div>
+            )}
 
             <div className="space-y-6">
               <div>
@@ -388,6 +399,7 @@ function ProfileContent({
                       </button>
                     </div>
                   ))}
+                  {(isPro || items.length < FREE_TIENDA_MAX_ITEMS) && (
                   <div onClick={handleAddItem} className="border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center h-32 bg-white hover:border-amber-500 cursor-pointer transition-colors">
                     <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-2">
                       <Plus size={20} />
@@ -396,6 +408,7 @@ function ProfileContent({
                       {uploadingItem ? 'Subiendo...' : 'Agregar Item'}
                     </span>
                   </div>
+                  )}
                 </div>
                 <div className="mt-8">
                   <button 

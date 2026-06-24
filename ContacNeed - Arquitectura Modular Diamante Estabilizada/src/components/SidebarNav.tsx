@@ -4,6 +4,8 @@ import type { AuthTab } from './AuthModal'
 
 type SidebarNavProps = {
   onOpenStripe: () => void
+  onPublishProAd?: () => void
+  isPro?: boolean
   isLoggedIn?: boolean
   onSignOut?: () => void | Promise<void>
   signingOut?: boolean
@@ -12,6 +14,8 @@ type SidebarNavProps = {
 
 export function SidebarNav({
   onOpenStripe,
+  onPublishProAd,
+  isPro,
   isLoggedIn,
   onSignOut,
   signingOut,
@@ -81,14 +85,25 @@ export function SidebarNav({
         )}
       </ul>
 
-      <button
-        type="button"
-        onClick={onOpenStripe}
-        className="cn-btn-metallic mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-950"
-      >
-        <Crown size={16} />
-        Subir a PRO
-      </button>
+      {isPro ? (
+        <button
+          type="button"
+          onClick={() => onPublishProAd?.()}
+          className="cn-btn-metallic mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-950"
+        >
+          <Crown size={16} />
+          Mi anuncio PRO
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onOpenStripe}
+          className="cn-btn-metallic mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-950"
+        >
+          <Crown size={16} />
+          Subir a PRO
+        </button>
+      )}
     </nav>
   )
 }

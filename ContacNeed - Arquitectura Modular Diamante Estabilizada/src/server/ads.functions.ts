@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
-import { requireAdminUser } from '../lib/auth'
+import { requireAdminUser, requireProUser } from '../lib/auth'
 
 export type AnuncioRow = {
   id: string
@@ -117,6 +117,40 @@ export const deleteAdFn = createServerFn({ method: 'POST' })
     const { error } = await supabase.from('anuncios').delete().eq('id', data.id)
     if (error) throw error
     return { success: true }
+  })
+
+export const publishMyProAdFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (d: { titulo?: string; cuerpo?: string; imagen_url?: string; enlace_url?: string }) => d ?? {},
+  )
+  .handler(async ({ data }) => {
+    const { user, profile } = await requireProUser()
+    const supabase = createSupabaseAdminClient()
+
+    await supabase
+      .from('anuncios')
+      .update({ activo: false })
+      .eq('usuario_id', user.id)
+      .eq('tipo', 'pro')
+
+    const { data: row, error } = await supabase
+      .from('anuncios')
+      .insert({
+        titulo: data.titulo?.trim() || profile?.nombre?.trim() || 'Profesional PRO',
+        cuerpo: data.cuerpo?.trim() || profile?.descripcion_profesion || profile?.habilidad_empirica || null,
+        imagen_url: data.imagen_url?.trim() || profile?.avatar_url || null,
+        enlace_url: data.enlace_url?.trim() || null,
+        usuario_id: user.id,
+        estado: profile?.estado ?? null,
+        tipo: 'pro',
+        activo: true,
+        prioridad: 10,
+      })
+      .select('id')
+      .single()
+
+    if (error) throw new Error(`No se pudo publicar tu anuncio PRO: ${error.message}`)
+    return { success: true, id: row.id }
   })
 
 export const createProAdFromProfileFn = createServerFn({ method: 'POST' })

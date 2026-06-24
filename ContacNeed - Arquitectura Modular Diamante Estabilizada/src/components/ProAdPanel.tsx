@@ -1,14 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { BadgeCheck, Crown, ExternalLink, Sparkles } from 'lucide-react'
+import { useIdentity } from '../lib/identity-context'
 import { fetchProPanelItems } from '../lib/pro-ads-client'
 import type { MexicoState } from '../lib/mexico-states'
 
 type ProAdPanelProps = {
   selectedState: MexicoState | ''
   onOpenStripe: () => void
+  onPublishProAd: () => void
 }
 
-export function ProAdPanel({ selectedState, onOpenStripe }: ProAdPanelProps) {
+export function ProAdPanel({ selectedState, onOpenStripe, onPublishProAd }: ProAdPanelProps) {
+  const { isPro } = useIdentity()
   const prosQuery = useQuery({
     queryKey: ['pro-panel', selectedState],
     queryFn: () => fetchProPanelItems(selectedState || undefined),
@@ -44,10 +47,10 @@ export function ProAdPanel({ selectedState, onOpenStripe }: ProAdPanelProps) {
 
       <button
         type="button"
-        onClick={onOpenStripe}
+        onClick={isPro ? onPublishProAd : onOpenStripe}
         className="w-full rounded-xl border border-dashed border-amber-400/40 py-3 text-xs font-semibold text-amber-300 transition hover:border-amber-300 hover:bg-amber-500/10"
       >
-        + Publicar mi anuncio PRO
+        {isPro ? '+ Publicar mi anuncio PRO' : '+ Activar PRO para anunciar'}
       </button>
     </aside>
   )

@@ -158,6 +158,7 @@ export const signUpFn = createServerFn({ method: 'POST' })
         es_pro: false,
         is_admin: false,
         bloqueado: false,
+        fecha_registro: new Date().toISOString(),
       },
       { onConflict: 'id' },
     )

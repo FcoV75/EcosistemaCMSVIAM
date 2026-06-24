@@ -44,9 +44,10 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
       .limit(100),
     supabase
       .from('perfiles')
-      .select('id, nombre, estado, habilidad_empirica, es_pro, is_admin, bloqueado, fecha_registro')
-      .order('fecha_registro', { ascending: false })
-      .limit(100),
+      .select('id, nombre, correo, estado, habilidad_empirica, es_pro, is_admin, bloqueado, fecha_registro')
+      .order('fecha_registro', { ascending: false, nullsFirst: false })
+      .order('id', { ascending: false })
+      .limit(200),
     supabase.from('perfiles').select('estado, habilidad_empirica'),
     supabase.from('publicaciones').select('*', { count: 'exact', head: true }),
     supabase.from('perfiles').select('*', { count: 'exact', head: true }),

@@ -5,6 +5,7 @@ import { AuthModal, type AuthTab } from './AuthModal'
 import { ContacNeedLogo } from './ContacNeedLogo'
 import { GuestBrowseGate } from './GuestBrowseGate'
 import { HeaderSearchBar } from './HeaderSearchBar'
+import { ProAdModal } from './ProAdModal'
 import { ProAdPanel } from './ProAdPanel'
 import { RadioPlayer } from './RadioPlayer'
 import { SidebarNav } from './SidebarNav'
@@ -34,8 +35,9 @@ export function AppShell({
   onOpenStripe,
   onCloseStripe,
 }: AppShellProps) {
-  const { user, isAdmin } = useIdentity()
+  const { user, isAdmin, isPro } = useIdentity()
   const [signingOut, setSigningOut] = useState(false)
+  const [showProAdModal, setShowProAdModal] = useState(false)
   const [authModal, setAuthModal] = useState<{ open: boolean; tab: AuthTab; required: boolean }>({
     open: false,
     tab: 'login',
@@ -145,6 +147,8 @@ export function AppShell({
           <aside className="space-y-4 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
             <SidebarNav
               onOpenStripe={onOpenStripe}
+              onPublishProAd={() => setShowProAdModal(true)}
+              isPro={isPro}
               isLoggedIn={Boolean(user)}
               onSignOut={user ? handleSignOut : undefined}
               signingOut={signingOut}
@@ -157,12 +161,20 @@ export function AppShell({
           <main className="min-w-0 lg:col-span-6">{children}</main>
 
           <div className="hidden lg:col-span-3 lg:block lg:sticky lg:top-28 lg:self-start">
-            <ProAdPanel selectedState={selectedState} onOpenStripe={onOpenStripe} />
+            <ProAdPanel
+              selectedState={selectedState}
+              onOpenStripe={onOpenStripe}
+              onPublishProAd={() => setShowProAdModal(true)}
+            />
           </div>
         </div>
 
         <div className="px-4 pb-8 lg:hidden">
-          <ProAdPanel selectedState={selectedState} onOpenStripe={onOpenStripe} />
+          <ProAdPanel
+            selectedState={selectedState}
+            onOpenStripe={onOpenStripe}
+            onPublishProAd={() => setShowProAdModal(true)}
+          />
         </div>
 
         <SupportBot />
@@ -171,6 +183,7 @@ export function AppShell({
           onClose={onCloseStripe}
           onOpenAuth={(tab) => openAuth(tab)}
         />
+        <ProAdModal open={showProAdModal} onClose={() => setShowProAdModal(false)} />
         <AuthModal
           open={authModal.open}
           initialTab={authModal.tab}

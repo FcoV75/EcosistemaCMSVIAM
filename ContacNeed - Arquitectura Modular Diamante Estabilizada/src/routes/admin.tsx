@@ -1,7 +1,7 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { ArrowLeft, Ban, CheckCircle2, Megaphone, MessageSquare, Send, Shield, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, Megaphone, MessageSquare, RefreshCw, Send, Shield, Trash2, Users } from 'lucide-react'
 import { requireAdminUserFn } from '../server/auth.functions'
 import {
   approveProRequestFn,
@@ -143,6 +143,15 @@ function AdminDashboard() {
             <ArrowLeft size={16} />
             Volver a la pizarra
           </Link>
+          <button
+            type="button"
+            onClick={() => dashboardQuery.refetch()}
+            disabled={dashboardQuery.isFetching}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={dashboardQuery.isFetching ? 'animate-spin' : ''} />
+            {dashboardQuery.isFetching ? 'Actualizando...' : 'Actualizar datos'}
+          </button>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
@@ -340,17 +349,30 @@ function AdminDashboard() {
         />
 
         <section className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <Users size={18} />
-            <h2 className="text-lg font-bold">Usuarios</h2>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Users size={18} />
+              <h2 className="text-lg font-bold">Usuarios</h2>
+              <span className="text-xs text-slate-400">(últimos 200 registrados)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => dashboardQuery.refetch()}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+            >
+              <RefreshCw size={14} />
+              Refrescar lista
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-slate-800 text-slate-400">
                 <tr>
                   <th className="px-3 py-2">Nombre</th>
+                  <th className="px-3 py-2">Correo</th>
                   <th className="px-3 py-2">Oficio</th>
                   <th className="px-3 py-2">Estado</th>
+                  <th className="px-3 py-2">Registro</th>
                   <th className="px-3 py-2">PRO</th>
                   <th className="px-3 py-2">Estado cuenta</th>
                   <th className="px-3 py-2">Acciones</th>
@@ -360,8 +382,14 @@ function AdminDashboard() {
                 {(data?.users ?? []).map((user: any) => (
                   <tr key={user.id} className="border-b border-slate-800/80">
                     <td className="px-3 py-3">{user.nombre || 'Sin nombre'}</td>
+                    <td className="px-3 py-3 text-xs text-slate-400">{user.correo || '—'}</td>
                     <td className="px-3 py-3">{user.habilidad_empirica || '—'}</td>
                     <td className="px-3 py-3">{user.estado || '—'}</td>
+                    <td className="px-3 py-3 text-xs text-slate-400">
+                      {user.fecha_registro
+                        ? new Date(user.fecha_registro).toLocaleDateString('es-MX')
+                        : '—'}
+                    </td>
                     <td className="px-3 py-3">{user.es_pro ? 'Sí' : 'No'}</td>
                     <td className="px-3 py-3">{user.bloqueado ? 'Suspendido' : 'Activo'}</td>
                     <td className="px-3 py-3">
