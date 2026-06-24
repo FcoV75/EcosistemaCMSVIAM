@@ -154,17 +154,32 @@ function AdminDashboard() {
           </button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        {dashboardQuery.isError && (
+          <p className="rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+            No se pudo cargar el panel:{' '}
+            {dashboardQuery.error instanceof Error ? dashboardQuery.error.message : 'Error desconocido'}
+          </p>
+        )}
+
+        {(data?.warnings?.length ?? 0) > 0 && (
+          <p className="rounded-xl border border-amber-400/30 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
+            Avisos: {data?.warnings?.join(' · ')}
+          </p>
+        )}
+
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
           <MetricCard label="Publicaciones totales" value={data?.totals.posts ?? 0} />
           <MetricCard label="Usuarios registrados" value={data?.totals.users ?? 0} />
+          <MetricCard label="Correos confirmados" value={data?.totals.verifiedUsers ?? 0} />
           <MetricCard label="Usuarios PRO" value={data?.totals.proUsers ?? 0} />
           <MetricCard label="Pendientes moderación" value={data?.totals.pendingPosts ?? 0} />
           <MetricCard label="Pagos PayPal pendientes" value={data?.totals.pendingPro ?? 0} />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-3">
           <StatsPanel title="Usuarios por estado" items={data?.statsByState ?? []} />
           <StatsPanel title="Usuarios por oficio/profesión" items={data?.statsByProfession ?? []} />
+          <StatsPanel title="Usuarios por tipo de miembro" items={data?.statsByMemberType ?? []} />
         </div>
 
         <section className="rounded-2xl border border-purple-500/25 bg-slate-900/80 p-4">
@@ -373,6 +388,7 @@ function AdminDashboard() {
                   <th className="px-3 py-2">Oficio</th>
                   <th className="px-3 py-2">Estado</th>
                   <th className="px-3 py-2">Registro</th>
+                  <th className="px-3 py-2">Correo OK</th>
                   <th className="px-3 py-2">PRO</th>
                   <th className="px-3 py-2">Estado cuenta</th>
                   <th className="px-3 py-2">Acciones</th>
@@ -390,6 +406,7 @@ function AdminDashboard() {
                         ? new Date(user.fecha_registro).toLocaleDateString('es-MX')
                         : '—'}
                     </td>
+                    <td className="px-3 py-3">{user.verificado ? 'Sí' : 'Pendiente'}</td>
                     <td className="px-3 py-3">{user.es_pro ? 'Sí' : 'No'}</td>
                     <td className="px-3 py-3">{user.bloqueado ? 'Suspendido' : 'Activo'}</td>
                     <td className="px-3 py-3">

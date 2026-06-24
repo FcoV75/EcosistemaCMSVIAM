@@ -21,9 +21,41 @@ function countByField(rows: { value: string | null }[]) {
     .sort((a, b) => b.count - a.count)
 }
 
+const PROFILE_STATS_SELECT =
+  'id, nombre, correo, estado, habilidad_empirica, tipo_miembro, es_pro, is_admin, bloqueado, verificado, fecha_registro'
+
+const POST_SELECT =
+  'id, contenido, url_multimedia, estado, estatus, fecha_creacion, usuario_id, perfiles(nombre, habilidad_empirica, descripcion_profesion, verificado)'
+
+async function fetchRecentUsers(supabase: ReturnType<typeof createSupabaseAdminClient>) {
+  const ordered = await supabase
+    .from('perfiles')
+    .select(PROFILE_STATS_SELECT)
+    .order('id', { ascending: false })
+    .limit(200)
+
+  if (!ordered.error) return ordered
+
+  const fallback = await supabase
+    .from('perfiles')
+    .select('id, nombre, correo, estado, habilidad_empirica, es_pro, is_admin, bloqueado, verificado')
+    .order('id', { ascending: false })
+    .limit(200)
+
+  return fallback
+}
+
+async function fetchAllProfilesForStats(supabase: ReturnType<typeof createSupabaseAdminClient>) {
+  const full = await supabase.from('perfiles').select('estado, habilidad_empirica, tipo_miembro, verificado, es_pro')
+  if (!full.error) return full
+
+  return supabase.from('perfiles').select('estado, habilidad_empirica, es_pro')
+}
+
 export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(async () => {
   await assertAdmin()
   const supabase = createSupabaseAdminClient()
+  const warnings: string[] = []
 
   const [
     postsRes,
@@ -32,31 +64,20 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
     postsCountRes,
     usersCountRes,
     proCountRes,
+    verifiedCountRes,
     pendingPostsRes,
     pendingProRes,
   ] = await Promise.all([
-    supabase
-      .from('publicaciones')
-      .select(
-        'id, contenido, url_multimedia, estado, estatus, fecha_creacion, usuario_id, perfiles(nombre, habilidad_empirica, descripcion_profesion, verificado, es_fundador)',
-      )
-      .order('fecha_creacion', { ascending: false })
-      .limit(100),
-    supabase
-      .from('perfiles')
-      .select('id, nombre, correo, estado, habilidad_empirica, es_pro, is_admin, bloqueado, fecha_registro')
-      .order('fecha_registro', { ascending: false, nullsFirst: false })
-      .order('id', { ascending: false })
-      .limit(200),
-    supabase.from('perfiles').select('estado, habilidad_empirica'),
+    supabase.from('publicaciones').select(POST_SELECT).order('fecha_creacion', { ascending: false }).limit(100),
+    fetchRecentUsers(supabase),
+    fetchAllProfilesForStats(supabase),
     supabase.from('publicaciones').select('*', { count: 'exact', head: true }),
     supabase.from('perfiles').select('*', { count: 'exact', head: true }),
     supabase.from('perfiles').select('*', { count: 'exact', head: true }).eq('es_pro', true),
+    supabase.from('perfiles').select('*', { count: 'exact', head: true }).eq('verificado', true),
     supabase
       .from('publicaciones')
-      .select(
-        'id, contenido, url_multimedia, estado, estatus, fecha_creacion, usuario_id, perfiles(nombre, habilidad_empirica, descripcion_profesion, verificado, es_fundador)',
-      )
+      .select(POST_SELECT)
       .eq('estatus', 'pendiente')
       .order('fecha_creacion', { ascending: false })
       .limit(50),
@@ -68,41 +89,62 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
       .limit(50),
   ])
 
-  if (postsRes.error) throw postsRes.error
-  if (usersRes.error) throw usersRes.error
-  if (profilesRes.error) throw profilesRes.error
+  if (postsRes.error) warnings.push(`Publicaciones: ${postsRes.error.message}`)
+  if (usersRes.error) warnings.push(`Usuarios: ${usersRes.error.message}`)
+  if (profilesRes.error) warnings.push(`Estadísticas: ${profilesRes.error.message}`)
+  if (usersCountRes.error) warnings.push(`Conteo usuarios: ${usersCountRes.error.message}`)
+  if (postsCountRes.error) warnings.push(`Conteo publicaciones: ${postsCountRes.error.message}`)
 
-  const mapPost = (post: (typeof postsRes.data)[number]) =>
+  const mapPost = (post: {
+    id: string
+    contenido?: string | null
+    url_multimedia?: string | null
+    estado?: string | null
+    estatus?: string | null
+    fecha_creacion?: string | null
+    usuario_id?: string | null
+    perfiles?: unknown
+  }) =>
     mapPublicacionToPost({
       ...post,
       fecha_creacion: post.fecha_creacion ? new Date(post.fecha_creacion) : null,
-      perfiles: post.perfiles,
+      perfiles: post.perfiles as Parameters<typeof mapPublicacionToPost>[0]['perfiles'],
     })
 
-  const posts = (postsRes.data ?? []).map(mapPost)
+  const posts = postsRes.error ? [] : (postsRes.data ?? []).map(mapPost)
   const pendingPosts =
     pendingPostsRes.error && pendingPostsRes.error.message.includes('does not exist')
       ? []
-      : (pendingPostsRes.data ?? []).map(mapPost)
+      : pendingPostsRes.error
+        ? []
+        : (pendingPostsRes.data ?? []).map(mapPost)
   const pendingProRequests =
     pendingProRes.error && pendingProRes.error.message.includes('does not exist')
       ? []
       : (pendingProRes.data ?? [])
 
-  const users = usersRes.data ?? []
-  const allProfiles = profilesRes.data ?? []
+  const users = usersRes.error ? [] : (usersRes.data ?? [])
+  const allProfiles = profilesRes.error ? users : (profilesRes.data ?? [])
+
+  const proFromProfiles = allProfiles.filter((p) => Boolean(p.es_pro)).length
+  const verifiedFromProfiles = allProfiles.filter((p) => Boolean(p.verificado)).length
 
   return {
     posts,
     pendingPosts,
     pendingProRequests,
     users,
-    statsByState: countByField(allProfiles.map((p) => ({ value: p.estado }))),
-    statsByProfession: countByField(allProfiles.map((p) => ({ value: p.habilidad_empirica }))),
+    warnings,
+    statsByState: countByField(allProfiles.map((p) => ({ value: p.estado ?? null }))),
+    statsByProfession: countByField(allProfiles.map((p) => ({ value: p.habilidad_empirica ?? null }))),
+    statsByMemberType: countByField(
+      allProfiles.map((p) => ({ value: 'tipo_miembro' in p ? (p.tipo_miembro as string | null) : null })),
+    ),
     totals: {
       posts: postsCountRes.count ?? posts.length,
       users: usersCountRes.count ?? users.length,
-      proUsers: proCountRes.count ?? 0,
+      proUsers: proCountRes.count ?? proFromProfiles,
+      verifiedUsers: verifiedCountRes.count ?? verifiedFromProfiles,
       pendingPosts: pendingPosts.length,
       pendingPro: pendingProRequests.length,
     },

@@ -50,6 +50,12 @@ export async function requireActiveUser() {
   const user = await getServerUser()
   if (!user) throw new Error('Debes iniciar sesión')
 
+  if (!user.email_confirmed_at) {
+    throw new Error(
+      'Confirma tu correo electrónico antes de continuar. Revisa tu bandeja de entrada y spam.',
+    )
+  }
+
   const profile = await getServerProfile(user.id)
   if (profile?.bloqueado) throw new Error('Tu cuenta está suspendida. Contacta soporte.')
 

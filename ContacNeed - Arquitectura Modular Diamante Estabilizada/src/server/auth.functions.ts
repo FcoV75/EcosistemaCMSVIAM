@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient, createSupabaseServerClient } from '../lib/supabase.server'
+import { getSiteUrl } from '../lib/site-url'
 import {
   getServerProfile,
   getServerUser,
@@ -75,7 +76,15 @@ export const signInFn = createServerFn({ method: 'POST' })
       email: data.email.trim(),
       password: data.password,
     })
-    if (error) throw new Error(error.message)
+    if (error) {
+      const msg = error.message
+      if (msg.toLowerCase().includes('email not confirmed')) {
+        throw new Error(
+          'Debes confirmar tu correo antes de entrar. Revisa tu bandeja de entrada y la carpeta de spam.',
+        )
+      }
+      throw new Error(msg)
+    }
 
     const profile = authData.user ? await getServerProfile(authData.user.id) : null
     if (profile?.bloqueado) {
@@ -112,27 +121,24 @@ export const signUpFn = createServerFn({ method: 'POST' })
     const admin = createSupabaseAdminClient()
     const email = data.email.trim()
 
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password: data.password,
-      email_confirm: true,
-      user_metadata: { nombre: data.nombre.trim() },
+      options: {
+        emailRedirectTo: `${getSiteUrl()}/auth/confirm`,
+        data: { nombre: data.nombre.trim() },
+      },
     })
 
-    if (createError) {
-      const msg = createError.message
+    if (signUpError) {
+      const msg = signUpError.message
       if (msg.includes('already been registered') || msg.includes('already exists')) {
         throw new Error('Este correo ya está registrado. Inicia sesión.')
-      }
-      if (msg.includes('Database error')) {
-        throw new Error(
-          'Error en Supabase al crear la cuenta. Ejecuta el SQL 002 (fix signup) en el SQL Editor y vuelve a intentar.',
-        )
       }
       throw new Error(msg)
     }
 
-    const userId = created.user?.id
+    const userId = signUpData.user?.id
     if (!userId) throw new Error('No se pudo crear la cuenta')
 
     const needsCedula = data.tipo_miembro === 'Profesion' || data.tipo_miembro === 'Especialidad'
@@ -154,7 +160,7 @@ export const signUpFn = createServerFn({ method: 'POST' })
         habilidad_empirica: data.habilidad_empirica ?? null,
         descripcion_profesion: data.descripcion_profesion ?? null,
         cedula: needsCedula ? data.cedula ?? null : null,
-        verificado: false,
+        verificado: Boolean(signUpData.user?.email_confirmed_at),
         es_pro: false,
         is_admin: false,
         bloqueado: false,
@@ -167,13 +173,44 @@ export const signUpFn = createServerFn({ method: 'POST' })
       throw new Error(`No se pudo guardar el perfil: ${profileError.message}`)
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password: data.password,
-    })
+    const needsEmailConfirmation = !signUpData.session
 
-    if (signInError) {
-      throw new Error(`Cuenta creada. Inicia sesión manualmente: ${signInError.message}`)
+    if (!needsEmailConfirmation) {
+      return {
+        success: true,
+        needsEmailConfirmation: false,
+        message: 'Cuenta creada correctamente.',
+      }
+    }
+
+    return {
+      success: true,
+      needsEmailConfirmation: true,
+      message:
+        'Te enviamos un correo de confirmación. Abre el enlace para activar tu cuenta y luego inicia sesión.',
+    }
+  })
+
+export const confirmEmailFromLinkFn = createServerFn({ method: 'GET' })
+  .inputValidator((search: string) => search)
+  .handler(async ({ data: search }) => {
+    const supabase = createSupabaseServerClient()
+    const params = new URLSearchParams(search)
+    const code = params.get('code')
+
+    if (!code) {
+      throw new Error('Enlace de confirmación inválido o expirado.')
+    }
+
+    const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) throw new Error(error.message)
+
+    if (sessionData.user?.id) {
+      const admin = createSupabaseAdminClient()
+      await admin
+        .from('perfiles')
+        .update({ verificado: true })
+        .eq('id', sessionData.user.id)
     }
 
     return { success: true }

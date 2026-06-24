@@ -14,6 +14,7 @@ export function RegistroForm({ onSuccess, onSwitchToLogin, compact }: RegistroFo
   const [tipo, setTipo] = useState<(typeof MEMBER_TYPES)[number]>('Oficio')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const needsCedula = tipo === 'Profesion' || tipo === 'Especialidad'
   const needsProfession = tipo !== 'Observador'
@@ -25,10 +26,11 @@ export function RegistroForm({ onSuccess, onSwitchToLogin, compact }: RegistroFo
         event.preventDefault()
         setLoading(true)
         setError(null)
+        setSuccess(null)
         const form = new FormData(event.currentTarget)
 
         try {
-          await signUpFn({
+          const result = await signUpFn({
             data: {
               email: String(form.get('email')),
               password: String(form.get('password')),
@@ -47,6 +49,12 @@ export function RegistroForm({ onSuccess, onSwitchToLogin, compact }: RegistroFo
               cedula: String(form.get('cedula') ?? ''),
             },
           })
+
+          if (result.needsEmailConfirmation) {
+            setSuccess(result.message)
+            return
+          }
+
           onSuccess?.()
         } catch (err) {
           setError(err instanceof Error ? err.message : 'No se pudo completar el registro')
@@ -130,6 +138,12 @@ export function RegistroForm({ onSuccess, onSwitchToLogin, compact }: RegistroFo
       )}
 
       {needsCedula && <Field label="Cédula profesional" name="cedula" required />}
+
+      {success && (
+        <p className="rounded-xl border border-emerald-400/30 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-200">
+          {success}
+        </p>
+      )}
 
       {error && (
         <p className="rounded-xl border border-red-400/30 bg-red-950/40 px-3 py-2 text-sm text-red-200">
