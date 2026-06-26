@@ -25,7 +25,40 @@ const PROFILE_STATS_SELECT =
   'id, nombre, correo, estado, habilidad_empirica, tipo_miembro, es_pro, is_admin, bloqueado, verificado, fecha_registro'
 
 const POST_SELECT =
-  'id, contenido, url_multimedia, estado, estatus, fecha_creacion, usuario_id, perfiles(nombre, habilidad_empirica, descripcion_profesion, verificado)'
+  'id, contenido, url_multimedia, estado, estatus, fecha_creacion, usuario_id'
+
+async function attachProfilesToPosts(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  posts: {
+    id: string
+    contenido?: string | null
+    url_multimedia?: string | null
+    estado?: string | null
+    estatus?: string | null
+    fecha_creacion?: string | null
+    usuario_id?: string | null
+  }[],
+) {
+  const userIds = [...new Set(posts.map((post) => post.usuario_id).filter(Boolean))] as string[]
+  if (userIds.length === 0) {
+    return posts.map((post) => ({ ...post, perfiles: null }))
+  }
+
+  const { data: profiles, error } = await supabase
+    .from('perfiles')
+    .select('id, nombre, habilidad_empirica, descripcion_profesion, verificado')
+    .in('id', userIds)
+
+  if (error) {
+    return posts.map((post) => ({ ...post, perfiles: null }))
+  }
+
+  const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]))
+  return posts.map((post) => ({
+    ...post,
+    perfiles: post.usuario_id ? profileById.get(post.usuario_id) ?? null : null,
+  }))
+}
 
 async function fetchRecentUsers(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   const ordered = await supabase
@@ -95,6 +128,19 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
   if (usersCountRes.error) warnings.push(`Conteo usuarios: ${usersCountRes.error.message}`)
   if (postsCountRes.error) warnings.push(`Conteo publicaciones: ${postsCountRes.error.message}`)
 
+  const rawPosts = postsRes.error ? [] : postsRes.data ?? []
+  const rawPendingPosts =
+    pendingPostsRes.error && pendingPostsRes.error.message.includes('does not exist')
+      ? []
+      : pendingPostsRes.error
+        ? []
+        : pendingPostsRes.data ?? []
+
+  const [postsWithProfiles, pendingWithProfiles] = await Promise.all([
+    attachProfilesToPosts(supabase, rawPosts),
+    attachProfilesToPosts(supabase, rawPendingPosts),
+  ])
+
   const mapPost = (post: {
     id: string
     contenido?: string | null
@@ -111,13 +157,8 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
       perfiles: post.perfiles as Parameters<typeof mapPublicacionToPost>[0]['perfiles'],
     })
 
-  const posts = postsRes.error ? [] : (postsRes.data ?? []).map(mapPost)
-  const pendingPosts =
-    pendingPostsRes.error && pendingPostsRes.error.message.includes('does not exist')
-      ? []
-      : pendingPostsRes.error
-        ? []
-        : (pendingPostsRes.data ?? []).map(mapPost)
+  const posts = postsWithProfiles.map(mapPost)
+  const pendingPosts = pendingWithProfiles.map(mapPost)
   const pendingProRequests =
     pendingProRes.error && pendingProRes.error.message.includes('does not exist')
       ? []

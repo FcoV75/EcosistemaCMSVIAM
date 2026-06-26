@@ -3,6 +3,7 @@ import { ArrowLeft, Send, Wifi, WifiOff } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { chatRoomId, getSupabaseBrowserClient } from '../lib/supabase.browser'
+import { getSupabaseBrowserSessionFn } from '../server/auth.functions'
 import {
   getConversationFn,
   markMessageReadFn,
@@ -69,71 +70,111 @@ export function RealtimeChat({
   }, [messages])
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient()
-    const room = chatRoomId(myUserId, peerId)
+    let cancelled = false
+    let channel: ReturnType<ReturnType<typeof getSupabaseBrowserClient>['channel']> | null = null
 
-    const channel = supabase
-      .channel(`chat:${room}`, { config: { presence: { key: myUserId } } })
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'mensajes' },
-        (payload) => {
-          const row = payload.new as {
-            id: string
-            remitente_id: string
-            destinatario_id: string
-            asunto: string | null
-            cuerpo: string
-            tipo: string
-            leido: boolean
-            created_at: string
+    async function connectRealtime() {
+      const supabase = getSupabaseBrowserClient()
+      const session = await getSupabaseBrowserSessionFn()
+      if (session) {
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        })
+      }
+
+      if (cancelled) return
+
+      const room = chatRoomId(myUserId, peerId)
+      channel = supabase
+        .channel(`chat:${room}`, { config: { presence: { key: myUserId } } })
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'mensajes' },
+          (payload) => {
+            const row = payload.new as {
+              id: string
+              remitente_id: string
+              destinatario_id: string
+              asunto: string | null
+              cuerpo: string
+              tipo: string
+              leido: boolean
+              created_at: string
+            }
+
+            if (!isConversationMessage(row, myUserId, peerId)) return
+
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === row.id)) return prev
+              return [
+                ...prev,
+                {
+                  id: row.id,
+                  remitente_id: row.remitente_id,
+                  destinatario_id: row.destinatario_id,
+                  asunto: row.asunto,
+                  cuerpo: row.cuerpo,
+                  tipo: row.tipo,
+                  leido: row.leido,
+                  created_at: row.created_at,
+                  mine: row.remitente_id === myUserId,
+                },
+              ]
+            })
+
+            if (row.destinatario_id === myUserId) {
+              markMessageReadFn({ data: { id: row.id } }).catch(() => {})
+            }
+          },
+        )
+        .on('presence', { event: 'sync' }, () => {
+          if (!channel) return
+          const state = channel.presenceState()
+          setPeerInChat(Boolean(state[peerId]?.length))
+        })
+        .subscribe(async (status) => {
+          setLiveConnected(status === 'SUBSCRIBED')
+          if (status === 'SUBSCRIBED' && channel) {
+            await channel.track({ online_at: new Date().toISOString() })
           }
+        })
+    }
 
-          if (!isConversationMessage(row, myUserId, peerId)) return
-
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === row.id)) return prev
-            return [
-              ...prev,
-              {
-                id: row.id,
-                remitente_id: row.remitente_id,
-                destinatario_id: row.destinatario_id,
-                asunto: row.asunto,
-                cuerpo: row.cuerpo,
-                tipo: row.tipo,
-                leido: row.leido,
-                created_at: row.created_at,
-                mine: row.remitente_id === myUserId,
-              },
-            ]
-          })
-
-          if (row.destinatario_id === myUserId) {
-            markMessageReadFn({ data: { id: row.id } }).catch(() => {})
-          }
-        },
-      )
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState()
-        setPeerInChat(Boolean(state[peerId]?.length))
-      })
-      .subscribe(async (status) => {
-        setLiveConnected(status === 'SUBSCRIBED')
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ online_at: new Date().toISOString() })
-        }
-      })
+    connectRealtime().catch(() => setLiveConnected(false))
 
     return () => {
-      supabase.removeChannel(channel)
+      cancelled = true
+      if (channel) {
+        getSupabaseBrowserClient().removeChannel(channel)
+      }
     }
   }, [myUserId, peerId])
 
   const sendMutation = useMutation({
     mutationFn: (cuerpo: string) =>
       sendMessageFn({ data: { destinatarioId: peerId, cuerpo, tipo: 'general' } }),
-    onSuccess: () => setText(''),
+    onSuccess: (result, cuerpo) => {
+      setText('')
+      if (!result.id) return
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === result.id)) return prev
+        return [
+          ...prev,
+          {
+            id: result.id,
+            remitente_id: myUserId,
+            destinatario_id: peerId,
+            asunto: null,
+            cuerpo,
+            tipo: 'general',
+            leido: false,
+            created_at: new Date().toISOString(),
+            mine: true,
+          },
+        ]
+      })
+    },
     onError: (error) => alert(error instanceof Error ? error.message : 'No se pudo enviar'),
   })
 

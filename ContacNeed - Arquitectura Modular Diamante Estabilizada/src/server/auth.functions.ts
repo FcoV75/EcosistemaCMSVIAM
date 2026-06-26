@@ -14,6 +14,18 @@ export const getServerUserFn = createServerFn({ method: 'GET' }).handler(async (
   return { id: user.id, email: user.email ?? undefined }
 })
 
+/** Sincroniza la sesión de Supabase en el navegador (necesario para Realtime). */
+export const getSupabaseBrowserSessionFn = createServerFn({ method: 'GET' }).handler(async () => {
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase.auth.getSession()
+  if (error || !data.session) return null
+
+  return {
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+  }
+})
+
 export const getSessionContextFn = createServerFn({ method: 'GET' }).handler(async () => {
   const supabase = createSupabaseServerClient()
   const user = await getServerUser()

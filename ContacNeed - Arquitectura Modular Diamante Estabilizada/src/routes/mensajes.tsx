@@ -1,4 +1,4 @@
-import { Link, createFileRoute, redirect } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute, redirect, useRouterState } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, X } from 'lucide-react'
 import { useState } from 'react'
@@ -24,6 +24,11 @@ export const Route = createFileRoute('/mensajes')({
 })
 
 function MessagesPage() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  if (pathname.startsWith('/mensajes/chat/')) {
+    return <Outlet />
+  }
+
   const queryClient = useQueryClient()
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
