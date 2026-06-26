@@ -17,6 +17,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UUserIdRouteImport } from './routes/u/$userId'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
+import { Route as MensajesChatPeerIdRouteImport } from './routes/mensajes/chat/$peerId'
 
 const RegistroRoute = RegistroRouteImport.update({
   id: '/registro',
@@ -58,37 +59,45 @@ const AuthConfirmRoute = AuthConfirmRouteImport.update({
   path: '/auth/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MensajesChatPeerIdRoute = MensajesChatPeerIdRouteImport.update({
+  id: '/chat/$peerId',
+  path: '/chat/$peerId',
+  getParentRoute: () => MensajesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
-  '/mensajes': typeof MensajesRoute
+  '/mensajes': typeof MensajesRouteWithChildren
   '/profile': typeof ProfileRoute
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/u/$userId': typeof UUserIdRoute
+  '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
-  '/mensajes': typeof MensajesRoute
+  '/mensajes': typeof MensajesRouteWithChildren
   '/profile': typeof ProfileRoute
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/u/$userId': typeof UUserIdRoute
+  '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
-  '/mensajes': typeof MensajesRoute
+  '/mensajes': typeof MensajesRouteWithChildren
   '/profile': typeof ProfileRoute
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/u/$userId': typeof UUserIdRoute
+  '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/auth/confirm'
     | '/u/$userId'
+    | '/mensajes/chat/$peerId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/auth/confirm'
     | '/u/$userId'
+    | '/mensajes/chat/$peerId'
   id:
     | '__root__'
     | '/'
@@ -121,13 +132,14 @@ export interface FileRouteTypes {
     | '/registro'
     | '/auth/confirm'
     | '/u/$userId'
+    | '/mensajes/chat/$peerId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
-  MensajesRoute: typeof MensajesRoute
+  MensajesRoute: typeof MensajesRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   RegistroRoute: typeof RegistroRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
@@ -192,14 +204,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mensajes/chat/$peerId': {
+      id: '/mensajes/chat/$peerId'
+      path: '/chat/$peerId'
+      fullPath: '/mensajes/chat/$peerId'
+      preLoaderRoute: typeof MensajesChatPeerIdRouteImport
+      parentRoute: typeof MensajesRoute
+    }
   }
 }
+
+interface MensajesRouteChildren {
+  MensajesChatPeerIdRoute: typeof MensajesChatPeerIdRoute
+}
+
+const MensajesRouteChildren: MensajesRouteChildren = {
+  MensajesChatPeerIdRoute: MensajesChatPeerIdRoute,
+}
+
+const MensajesRouteWithChildren = MensajesRoute._addFileChildren(
+  MensajesRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
-  MensajesRoute: MensajesRoute,
+  MensajesRoute: MensajesRouteWithChildren,
   ProfileRoute: ProfileRoute,
   RegistroRoute: RegistroRoute,
   AuthConfirmRoute: AuthConfirmRoute,

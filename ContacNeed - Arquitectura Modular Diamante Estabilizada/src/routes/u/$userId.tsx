@@ -131,6 +131,13 @@ function PublicProfilePage() {
                 >
                   {sendMessageMutation.isPending ? 'Enviando...' : 'Enviar a bandeja'}
                 </button>
+                <Link
+                  to="/mensajes/chat/$peerId"
+                  params={{ peerId: userId }}
+                  className="mt-3 inline-flex rounded-xl border border-emerald-400/40 bg-emerald-950/30 px-4 py-2 text-sm font-bold text-emerald-200 hover:bg-emerald-900/40"
+                >
+                  Chat en vivo →
+                </Link>
                 <Link to="/mensajes" className="mt-2 block text-xs text-purple-300 hover:text-white">
                   Ir a mi bandeja →
                 </Link>

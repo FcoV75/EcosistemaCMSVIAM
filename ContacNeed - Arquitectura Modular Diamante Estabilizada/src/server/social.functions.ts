@@ -188,6 +188,123 @@ export const markMessageReadFn = createServerFn({ method: 'POST' })
     return { success: true }
   })
 
+export const getConversationFn = createServerFn({ method: 'GET' })
+  .inputValidator((peerId: string) => peerId)
+  .handler(async ({ data: peerId }) => {
+    const { user } = await requireActiveUser()
+    if (user.id === peerId) throw new Error('Conversación no válida')
+
+    const supabase = createSupabaseAdminClient()
+
+    const [{ data: rows, error }, { data: peerProfile }] = await Promise.all([
+      supabase
+        .from('mensajes')
+        .select('id, remitente_id, destinatario_id, asunto, cuerpo, tipo, leido, created_at')
+        .or(
+          `and(remitente_id.eq.${user.id},destinatario_id.eq.${peerId}),and(remitente_id.eq.${peerId},destinatario_id.eq.${user.id})`,
+        )
+        .order('created_at', { ascending: true })
+        .limit(200),
+      supabase
+        .from('perfiles')
+        .select('id, nombre, avatar_url, ultima_conexion')
+        .eq('id', peerId)
+        .maybeSingle(),
+    ])
+
+    if (error) {
+      if (error.message.includes('does not exist')) {
+        return {
+          peer: {
+            id: peerId,
+            nombre: 'Usuario',
+            avatar_url: null,
+            online: false,
+          },
+          messages: [],
+        }
+      }
+      throw error
+    }
+
+    await supabase
+      .from('mensajes')
+      .update({ leido: true })
+      .eq('destinatario_id', user.id)
+      .eq('remitente_id', peerId)
+      .eq('leido', false)
+
+    const online =
+      peerProfile?.ultima_conexion &&
+      Date.now() - new Date(peerProfile.ultima_conexion).getTime() < ONLINE_WINDOW_MS
+
+    return {
+      peer: {
+        id: peerId,
+        nombre: peerProfile?.nombre ?? 'Usuario',
+        avatar_url: peerProfile?.avatar_url ?? null,
+        online: Boolean(online),
+      },
+      messages: (rows ?? []).map((row) => ({
+        id: row.id,
+        remitente_id: row.remitente_id,
+        destinatario_id: row.destinatario_id,
+        asunto: row.asunto,
+        cuerpo: row.cuerpo,
+        tipo: row.tipo,
+        leido: row.leido,
+        created_at: row.created_at,
+        mine: row.remitente_id === user.id,
+      })),
+    }
+  })
+
+export const getConversationsSummaryFn = createServerFn({ method: 'GET' }).handler(async () => {
+  const { user } = await requireActiveUser()
+
+  try {
+    const messages = await fetchInboxMessages(user.id)
+    const byPeer = new Map<
+      string,
+      {
+        peer: { id: string; nombre: string; avatar_url: string | null }
+        lastMessage: { cuerpo: string; created_at: string; incoming: boolean; leido: boolean }
+        unreadCount: number
+      }
+    >()
+
+    for (const msg of messages) {
+      const existing = byPeer.get(msg.peer.id)
+      if (!existing) {
+        byPeer.set(msg.peer.id, {
+          peer: msg.peer,
+          lastMessage: {
+            cuerpo: msg.cuerpo,
+            created_at: msg.created_at,
+            incoming: msg.incoming,
+            leido: msg.leido,
+          },
+          unreadCount: msg.incoming && !msg.leido ? 1 : 0,
+        })
+        continue
+      }
+
+      if (msg.incoming && !msg.leido) {
+        existing.unreadCount += 1
+      }
+    }
+
+    return [...byPeer.values()].sort(
+      (a, b) =>
+        new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime(),
+    )
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : ''
+    if (msg.includes('does not exist')) return []
+    throw error
+  }
+})
+
 export const sendContactRequestFn = createServerFn({ method: 'POST' })
   .inputValidator(
     (d: { destinatarioId: string; tipo: 'amistad' | 'servicio'; mensaje?: string }) => d,

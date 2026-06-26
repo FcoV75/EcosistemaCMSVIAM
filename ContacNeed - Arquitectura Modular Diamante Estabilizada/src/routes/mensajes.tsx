@@ -7,6 +7,7 @@ import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { getServerUserFn } from '../server/auth.functions'
 import {
   getContactRequestsFn,
+  getConversationsSummaryFn,
   getInboxFn,
   getOnlineUsersFn,
   markMessageReadFn,
@@ -26,9 +27,10 @@ function MessagesPage() {
   const queryClient = useQueryClient()
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
-  const [tab, setTab] = useState<'inbox' | 'requests' | 'online'>('inbox')
+  const [tab, setTab] = useState<'inbox' | 'chats' | 'requests' | 'online'>('chats')
 
   const inboxQuery = useQuery({ queryKey: ['inbox'], queryFn: () => getInboxFn() })
+  const chatsQuery = useQuery({ queryKey: ['conversations'], queryFn: () => getConversationsSummaryFn() })
   const requestsQuery = useQuery({ queryKey: ['contact-requests'], queryFn: () => getContactRequestsFn() })
   const onlineQuery = useQuery({ queryKey: ['online-users'], queryFn: () => getOnlineUsersFn(), refetchInterval: 60000 })
 
@@ -69,6 +71,7 @@ function MessagesPage() {
 
         <div className="mb-4 flex flex-wrap gap-2">
           {[
+            { id: 'chats' as const, label: 'Chats en vivo' },
             { id: 'inbox' as const, label: 'Bandeja' },
             { id: 'requests' as const, label: 'Solicitudes' },
             { id: 'online' as const, label: 'En línea' },
@@ -87,6 +90,47 @@ function MessagesPage() {
             </button>
           ))}
         </div>
+
+        {tab === 'chats' && (
+          <div className="space-y-3">
+            {(chatsQuery.data ?? []).length === 0 && (
+              <p className="text-sm text-purple-200/60">
+                Aún no tienes conversaciones. Visita un perfil y abre un chat en vivo.
+              </p>
+            )}
+            {(chatsQuery.data ?? []).map((conv) => (
+              <Link
+                key={conv.peer.id}
+                to="/mensajes/chat/$peerId"
+                params={{ peerId: conv.peer.id }}
+                className="flex items-center gap-3 rounded-xl border border-purple-500/15 bg-slate-900/40 p-4 transition hover:border-amber-400/35"
+              >
+                <img
+                  src={conv.peer.avatar_url || `https://i.pravatar.cc/80?u=${conv.peer.id}`}
+                  alt=""
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate font-bold text-white">{conv.peer.nombre}</p>
+                    <span className="shrink-0 text-xs text-purple-300/50">
+                      {new Date(conv.lastMessage.created_at).toLocaleDateString('es-MX')}
+                    </span>
+                  </div>
+                  <p className="truncate text-sm text-purple-100/75">
+                    {conv.lastMessage.incoming ? '' : 'Tú: '}
+                    {conv.lastMessage.cuerpo}
+                  </p>
+                </div>
+                {conv.unreadCount > 0 && (
+                  <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-slate-950">
+                    {conv.unreadCount}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </div>
+        )}
 
         {tab === 'inbox' && (
           <div className="space-y-3">
@@ -122,15 +166,24 @@ function MessagesPage() {
                 </div>
                 {msg.asunto && <p className="text-xs font-semibold text-amber-200/80">{msg.asunto}</p>}
                 <p className="mt-2 text-sm text-purple-100/90">{msg.cuerpo}</p>
-                {msg.incoming && !msg.leido && (
-                  <button
-                    type="button"
-                    onClick={() => readMutation.mutate(msg.id)}
-                    className="mt-3 text-xs font-bold text-emerald-300 hover:text-emerald-200"
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <Link
+                    to="/mensajes/chat/$peerId"
+                    params={{ peerId: msg.peer.id }}
+                    className="text-xs font-bold text-amber-300 hover:text-amber-200"
                   >
-                    Marcar como leído
-                  </button>
-                )}
+                    Chat en vivo →
+                  </Link>
+                  {msg.incoming && !msg.leido && (
+                    <button
+                      type="button"
+                      onClick={() => readMutation.mutate(msg.id)}
+                      className="text-xs font-bold text-emerald-300 hover:text-emerald-200"
+                    >
+                      Marcar como leído
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -184,25 +237,36 @@ function MessagesPage() {
               </p>
             )}
             {(onlineQuery.data ?? []).map((person) => (
-              <Link
+              <div
                 key={person.id}
-                to="/u/$userId"
-                params={{ userId: person.id }}
-                className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3 transition hover:border-emerald-400/40"
+                className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3"
               >
-                <img
-                  src={person.avatar_url || `https://i.pravatar.cc/80?u=${person.id}`}
-                  alt=""
-                  className="h-12 w-12 rounded-full object-cover"
-                />
-                <div>
-                  <p className="font-bold text-white">{person.nombre}</p>
-                  <p className="text-xs text-emerald-200/80">
-                    {person.habilidad_empirica ?? 'Profesional'} · {person.estado ?? 'México'}
-                  </p>
-                  <span className="text-[10px] font-bold uppercase text-emerald-400">Disponible</span>
-                </div>
-              </Link>
+                <Link
+                  to="/u/$userId"
+                  params={{ userId: person.id }}
+                  className="flex min-w-0 flex-1 items-center gap-3 transition hover:opacity-90"
+                >
+                  <img
+                    src={person.avatar_url || `https://i.pravatar.cc/80?u=${person.id}`}
+                    alt=""
+                    className="h-12 w-12 rounded-full object-cover"
+                  />
+                  <div>
+                    <p className="font-bold text-white">{person.nombre}</p>
+                    <p className="text-xs text-emerald-200/80">
+                      {person.habilidad_empirica ?? 'Profesional'} · {person.estado ?? 'México'}
+                    </p>
+                    <span className="text-[10px] font-bold uppercase text-emerald-400">Disponible</span>
+                  </div>
+                </Link>
+                <Link
+                  to="/mensajes/chat/$peerId"
+                  params={{ peerId: person.id }}
+                  className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950"
+                >
+                  Chat
+                </Link>
+              </div>
             ))}
           </div>
         )}
