@@ -1,5 +1,5 @@
 import { MapPin, Search } from 'lucide-react'
-import { DEFAULT_STATE, MEXICO_STATES, type MexicoState } from '../lib/mexico-states'
+import { MEXICO_STATES, type MexicoState } from '../lib/mexico-states'
 
 type StateSelectorProps = {
   value: MexicoState | ''
@@ -35,7 +35,9 @@ export function StateSelector({ value, onChange, variant = 'inline' }: StateSele
           </select>
         </div>
         {!value && (
-          <p className="mt-2 text-[11px] text-purple-200/50">Sugerido: {DEFAULT_STATE}</p>
+          <p className="mt-2 text-[11px] text-purple-200/50">
+            Vista general de México. Elige tu estado para ver contenido local.
+          </p>
         )}
       </div>
     )
@@ -63,7 +65,9 @@ export function StateSelector({ value, onChange, variant = 'inline' }: StateSele
           ))}
         </select>
       </div>
-      {!value && <span className="text-xs text-gray-500">Sugerido: {DEFAULT_STATE}</span>}
+      {!value && (
+        <span className="text-xs text-gray-500">Vista general · elige tu estado para filtrar</span>
+      )}
     </div>
   )
 }

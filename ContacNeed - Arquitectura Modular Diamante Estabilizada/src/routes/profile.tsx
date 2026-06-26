@@ -1,11 +1,12 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
-import { Camera, Settings, Star, TrendingUp, HelpCircle, Store, MessageSquare, Image as ImageIcon, Sparkles, X, Plus, LogOut } from 'lucide-react'
+import { Camera, Settings, HelpCircle, Store, Image as ImageIcon, Sparkles, X, Plus, LogOut } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
+import { SmartGuidePanel } from '../components/NewUserGuide'
 import { useUser } from '../store/userContext'
 import { useIdentity } from '../lib/identity-context'
 import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
-import { DEFAULT_STATE, type MexicoState } from '../lib/mexico-states'
+import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { getServerUserFn, signOutFn } from '../server/auth.functions'
 import { FREE_TIENDA_MAX_ITEMS } from '../lib/plan-limits'
 import { getNegocioFn, updateNegocioFn } from '../server/negocios.functions'
@@ -25,7 +26,7 @@ export const Route = createFileRoute('/profile')({
 
 function ProfilePage() {
   const { negocio } = Route.useLoaderData()
-  const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_STATE)
+  const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
 
   return (
@@ -428,37 +429,11 @@ function ProfileContent({
           <div className="p-6 md:p-8 animate-in fade-in">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-900">Guía de Uso Inteligente</h2>
-              <p className="text-gray-500">Consejos personalizados por IA según tu actividad en la red.</p>
+              <p className="text-gray-500">
+                Aprende las funciones básicas de ContacNeed con consejos adaptados a tu perfil.
+              </p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6">
-                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
-                  <TrendingUp size={20} />
-                </div>
-                <h3 className="font-bold text-slate-900 mb-2">Aumenta tu Visibilidad</h3>
-                <p className="text-sm text-slate-700 mb-4">Hemos notado que publicas poco contenido visual. Sube fotos de tus trabajos terminados para conseguir un 40% más de interacciones.</p>
-                <button className="text-sm font-bold text-blue-600 hover:text-blue-700">Crear Publicación</button>
-              </div>
-
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-6">
-                <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
-                  <Star size={20} />
-                </div>
-                <h3 className="font-bold text-slate-900 mb-2">Aprovecha tu Cuenta Pro</h3>
-                <p className="text-sm text-slate-700 mb-4">Aún no has configurado los botones de contacto directo en tu Tienda. Actívalos para que los clientes te llamen al instante.</p>
-                <button onClick={() => setActiveTab('negocio')} className="text-sm font-bold text-amber-700 hover:text-amber-800">Ir a Mi Negocio</button>
-              </div>
-
-              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-6 md:col-span-2">
-                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
-                  <MessageSquare size={20} />
-                </div>
-                <h3 className="font-bold text-slate-900 mb-2">Interactúa con la Comunidad</h3>
-                <p className="text-sm text-slate-700 mb-4">Hay 3 nuevas preguntas sobre Plomería en tu ciudad (Guadalajara). Responderlas te posiciona como experto local.</p>
-                <button className="text-sm font-bold text-emerald-700 hover:text-emerald-800">Ver Preguntas Locales</button>
-              </div>
-            </div>
+            <SmartGuidePanel />
           </div>
         )}
       </div>

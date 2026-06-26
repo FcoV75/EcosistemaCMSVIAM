@@ -1,10 +1,11 @@
-import { Crown, Home, LogIn, LogOut, User, UserPlus } from 'lucide-react'
+import { Crown, HelpCircle, Home, LogIn, LogOut, User, UserPlus } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import type { AuthTab } from './AuthModal'
 
 type SidebarNavProps = {
   onOpenStripe: () => void
   onPublishProAd?: () => void
+  onOpenGuide?: () => void
   isPro?: boolean
   isLoggedIn?: boolean
   onSignOut?: () => void | Promise<void>
@@ -15,6 +16,7 @@ type SidebarNavProps = {
 export function SidebarNav({
   onOpenStripe,
   onPublishProAd,
+  onOpenGuide,
   isPro,
   isLoggedIn,
   onSignOut,
@@ -84,6 +86,15 @@ export function SidebarNav({
           </>
         )}
       </ul>
+
+      <button
+        type="button"
+        onClick={() => onOpenGuide?.()}
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-purple-400/30 bg-purple-900/25 px-4 py-2.5 text-sm font-semibold text-purple-100 transition hover:bg-purple-800/35"
+      >
+        <HelpCircle size={16} className="text-amber-400" />
+        Guía de uso
+      </button>
 
       {isPro ? (
         <button

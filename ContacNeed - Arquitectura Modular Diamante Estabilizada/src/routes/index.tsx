@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { AppShell } from '../components/AppShell'
 import { Feed } from '../components/Feed'
-import { DEFAULT_STATE, type MexicoState } from '../lib/mexico-states'
+import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { confirmStripeSessionFn } from '../server/stripe.functions'
 
 export const Route = createFileRoute('/')({
@@ -10,7 +10,7 @@ export const Route = createFileRoute('/')({
 })
 
 function HomePage() {
-  const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_STATE)
+  const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null)
 

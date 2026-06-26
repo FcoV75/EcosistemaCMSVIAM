@@ -5,6 +5,7 @@ import { AuthModal, type AuthTab } from './AuthModal'
 import { ContacNeedLogo } from './ContacNeedLogo'
 import { GuestBrowseGate } from './GuestBrowseGate'
 import { HeaderSearchBar } from './HeaderSearchBar'
+import { NewUserGuide, useOnboardingGuide } from './NewUserGuide'
 import { ProAdModal } from './ProAdModal'
 import { ProAdPanel } from './ProAdPanel'
 import { RadioPlayer } from './RadioPlayer'
@@ -38,6 +39,7 @@ export function AppShell({
   const { user, isAdmin, isPro } = useIdentity()
   const [signingOut, setSigningOut] = useState(false)
   const [showProAdModal, setShowProAdModal] = useState(false)
+  const onboarding = useOnboardingGuide()
   const [authModal, setAuthModal] = useState<{ open: boolean; tab: AuthTab; required: boolean }>({
     open: false,
     tab: 'login',
@@ -148,6 +150,7 @@ export function AppShell({
             <SidebarNav
               onOpenStripe={onOpenStripe}
               onPublishProAd={() => setShowProAdModal(true)}
+              onOpenGuide={onboarding.openGuide}
               isPro={isPro}
               isLoggedIn={Boolean(user)}
               onSignOut={user ? handleSignOut : undefined}
@@ -184,6 +187,11 @@ export function AppShell({
           onOpenAuth={(tab) => openAuth(tab)}
         />
         <ProAdModal open={showProAdModal} onClose={() => setShowProAdModal(false)} />
+        <NewUserGuide
+          open={onboarding.open}
+          autoOpened={onboarding.autoOpened}
+          onClose={onboarding.closeGuide}
+        />
         <AuthModal
           open={authModal.open}
           initialTab={authModal.tab}
