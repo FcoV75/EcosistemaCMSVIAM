@@ -1,4 +1,5 @@
-import { Crown, HelpCircle, Home, LogIn, LogOut, User, UserPlus } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { Crown, HelpCircle, Home, LogIn, LogOut, Mail, User, UserPlus } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import type { AuthTab } from './AuthModal'
 
@@ -40,6 +41,15 @@ export function SidebarNav({
         </li>
         {isLoggedIn ? (
           <>
+            <li>
+              <Link
+                to="/mensajes"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-purple-100 transition hover:bg-white/10 [&.active]:bg-gradient-to-r [&.active]:from-amber-600/20 [&.active]:to-purple-600/20"
+              >
+                <Mail size={18} className="text-amber-400" />
+                Mensajes
+              </Link>
+            </li>
             <li>
               <Link
                 to="/profile"

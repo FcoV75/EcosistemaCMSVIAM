@@ -1,10 +1,11 @@
 import { Link } from '@tanstack/react-router'
-import { LogOut } from 'lucide-react'
+import { LogOut, Mail } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { AuthModal, type AuthTab } from './AuthModal'
 import { ContacNeedLogo } from './ContacNeedLogo'
 import { GuestBrowseGate } from './GuestBrowseGate'
 import { HeaderSearchBar } from './HeaderSearchBar'
+import { LastSeenPing } from './LastSeenPing'
 import { NewUserGuide, useOnboardingGuide } from './NewUserGuide'
 import { ProAdModal } from './ProAdModal'
 import { ProAdPanel } from './ProAdPanel'
@@ -94,6 +95,13 @@ export function AppShell({
                     <span className="hidden max-w-[160px] truncate text-xs text-purple-200/70 xl:inline">
                       {user.email}
                     </span>
+                    <Link
+                      to="/mensajes"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-purple-400/40 bg-purple-900/40 px-3 py-2 text-xs font-semibold text-purple-100 hover:bg-purple-800/50"
+                    >
+                      <Mail size={14} />
+                      Mensajes
+                    </Link>
                     <Link
                       to="/profile"
                       className="cn-btn-metallic-outline rounded-xl px-3 py-2 text-xs font-semibold text-amber-100 hover:text-white"
@@ -199,6 +207,7 @@ export function AppShell({
           onClose={() => setAuthModal((prev) => ({ ...prev, open: false, required: false }))}
         />
         <GuestBrowseGate onGateOpen={handleGateOpen} />
+        <LastSeenPing />
         {authModal.required && authModal.open && (
           <div className="fixed inset-0 z-[54] bg-black/40 backdrop-blur-[1px]" aria-hidden />
         )}

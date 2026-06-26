@@ -11,6 +11,8 @@ export type MappedPost = {
   createdAt: number
   professionalId: string
   likes: number
+  dislikes: number
+  userReaction: 'like' | 'dislike' | null
   comments: number
   commentList: unknown[]
   authorData: {
@@ -46,6 +48,7 @@ export function mapPublicacionToPost(post: {
     descripcion_profesion?: string | null
     verificado?: boolean | null
     es_fundador?: boolean | null
+    avatar_url?: string | null
   } | null
 }): MappedPost {
   const media = toMediaFields(post.url_multimedia)
@@ -64,11 +67,15 @@ export function mapPublicacionToPost(post: {
     createdAt: post.fecha_creacion?.getTime() ?? Date.now(),
     professionalId: post.usuario_id ?? '',
     likes: 0,
+    dislikes: 0,
+    userReaction: null,
     comments: 0,
     commentList: [],
     authorData: {
       name: post.perfiles?.nombre ?? 'Usuario',
-      avatar: `https://i.pravatar.cc/150?u=${userId}`,
+      avatar:
+        post.perfiles?.avatar_url?.trim() ||
+        `https://i.pravatar.cc/150?u=${userId}`,
       title: profession,
       verified: Boolean(post.perfiles?.verificado),
       isFounder: Boolean(post.perfiles?.es_fundador),

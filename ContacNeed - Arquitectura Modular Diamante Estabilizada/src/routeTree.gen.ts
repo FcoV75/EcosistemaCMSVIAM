@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as MensajesRouteImport } from './routes/mensajes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UUserIdRouteImport } from './routes/u/$userId'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
 
 const RegistroRoute = RegistroRouteImport.update({
@@ -24,6 +26,11 @@ const RegistroRoute = RegistroRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MensajesRoute = MensajesRouteImport.update({
+  id: '/mensajes',
+  path: '/mensajes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -41,6 +48,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UUserIdRoute = UUserIdRouteImport.update({
+  id: '/u/$userId',
+  path: '/u/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthConfirmRoute = AuthConfirmRouteImport.update({
   id: '/auth/confirm',
   path: '/auth/confirm',
@@ -51,26 +63,32 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/mensajes': typeof MensajesRoute
   '/profile': typeof ProfileRoute
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/u/$userId': typeof UUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/mensajes': typeof MensajesRoute
   '/profile': typeof ProfileRoute
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/u/$userId': typeof UUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/mensajes': typeof MensajesRoute
   '/profile': typeof ProfileRoute
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/u/$userId': typeof UUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -78,28 +96,42 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/mensajes'
     | '/profile'
     | '/registro'
     | '/auth/confirm'
+    | '/u/$userId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/login' | '/profile' | '/registro' | '/auth/confirm'
+  to:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/mensajes'
+    | '/profile'
+    | '/registro'
+    | '/auth/confirm'
+    | '/u/$userId'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/login'
+    | '/mensajes'
     | '/profile'
     | '/registro'
     | '/auth/confirm'
+    | '/u/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
+  MensajesRoute: typeof MensajesRoute
   ProfileRoute: typeof ProfileRoute
   RegistroRoute: typeof RegistroRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
+  UUserIdRoute: typeof UUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mensajes': {
+      id: '/mensajes'
+      path: '/mensajes'
+      fullPath: '/mensajes'
+      preLoaderRoute: typeof MensajesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -139,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/u/$userId': {
+      id: '/u/$userId'
+      path: '/u/$userId'
+      fullPath: '/u/$userId'
+      preLoaderRoute: typeof UUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/confirm': {
       id: '/auth/confirm'
       path: '/auth/confirm'
@@ -153,9 +199,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
+  MensajesRoute: MensajesRoute,
   ProfileRoute: ProfileRoute,
   RegistroRoute: RegistroRoute,
   AuthConfirmRoute: AuthConfirmRoute,
+  UUserIdRoute: UUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
