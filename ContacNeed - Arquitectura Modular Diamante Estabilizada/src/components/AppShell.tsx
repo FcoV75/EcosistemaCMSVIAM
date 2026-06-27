@@ -9,7 +9,7 @@ import { LastSeenPing } from './LastSeenPing'
 import { NewUserGuide, useOnboardingGuide } from './NewUserGuide'
 import { ProAdModal } from './ProAdModal'
 import { ProAdPanel } from './ProAdPanel'
-import { RadioPlayer } from './RadioPlayer'
+import { RadioLauncher } from './RadioLauncher'
 import { SidebarNav } from './SidebarNav'
 import { StateSelector } from './StateSelector'
 import { SupportBot } from './SupportBot'
@@ -166,7 +166,7 @@ export function AppShell({
               onOpenAuth={openAuth}
             />
             <StateSelector value={selectedState} onChange={onStateChange} variant="sidebar" />
-            <RadioPlayer />
+            <RadioLauncher />
           </aside>
 
           <main className="min-w-0 lg:col-span-6">{children}</main>
