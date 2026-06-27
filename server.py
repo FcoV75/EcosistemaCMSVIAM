@@ -4,6 +4,7 @@ import subprocess
 import threading
 import os
 import json
+import shutil
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB
@@ -90,41 +91,72 @@ def transcribir_audio():
             "detalle": "Agrégala en Variables del servicio ecosistemacmsviam."
         }), 500
 
-    temp_path = os.path.join(UPLOAD_FOLDER, "transcribe_temp.mp3")
-    audio.save(temp_path)
+    ext = os.path.splitext(audio.filename or "")[1].lower() or ".mp3"
+    temp_entrada = os.path.join(UPLOAD_FOLDER, f"transcribe_in{ext}")
+    temp_wav = os.path.join(UPLOAD_FOLDER, "transcribe_16k.wav")
+    audio.save(temp_entrada)
 
-    try:
-        with open(temp_path, 'rb') as f:
-            resp = http_requests.post(
-                "https://api.groq.com/openai/v1/audio/transcriptions",
-                headers={"Authorization": f"Bearer {groq_key}"},
-                files={"file": (audio.filename, f, audio.content_type or "audio/mpeg")},
-                data={
-                    "model": "whisper-large-v3",
-                    "language": "es",
-                    "response_format": "verbose_json",
-                    "timestamp_granularities[]": "word",
-                    "temperature": "0"
-                },
-                timeout=300
-            )
-        data = resp.json()
-        if not resp.ok:
-            msg = data.get("error", {}).get("message", str(data))
-            return jsonify({"error": f"Groq: {msg}"}), resp.status_code
-        return jsonify({
-            "success": True,
-            "texto": data.get("text", ""),
-            "segmentos": data.get("segments", []),
-            "palabras": data.get("words", [])
-        })
-    except Exception as e:
-        return jsonify({"error": "Error transcribiendo", "detalle": str(e)}), 500
-    finally:
+    ffmpeg_bin = shutil.which("ffmpeg")
+    if not ffmpeg_bin:
         try:
-            os.remove(temp_path)
+            import imageio_ffmpeg
+            ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
         except Exception:
-            pass
+            ffmpeg_bin = None
+
+    archivo_groq = temp_entrada
+    try:
+        if ffmpeg_bin:
+            conv = subprocess.run([
+                ffmpeg_bin, "-y", "-i", temp_entrada,
+                "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", temp_wav
+            ], capture_output=True, text=True, check=False)
+            if conv.returncode == 0 and os.path.exists(temp_wav) and os.path.getsize(temp_wav) > 1000:
+                archivo_groq = temp_wav
+
+        modelos = ["whisper-large-v3", "whisper-large-v3-turbo"]
+        ultimo_error = "Sin respuesta de Groq"
+        for modelo in modelos:
+            for intento in range(3):
+                try:
+                    with open(archivo_groq, 'rb') as f:
+                        resp = http_requests.post(
+                            "https://api.groq.com/openai/v1/audio/transcriptions",
+                            headers={"Authorization": f"Bearer {groq_key}"},
+                            files={"file": ("audio.wav" if archivo_groq == temp_wav else audio.filename, f, "audio/wav" if archivo_groq == temp_wav else (audio.content_type or "audio/mpeg"))},
+                            data=[
+                                ("model", modelo),
+                                ("language", "es"),
+                                ("response_format", "verbose_json"),
+                                ("temperature", "0"),
+                                ("timestamp_granularities[]", "word"),
+                                ("prompt", "Transcripción de letra de canción en español latino. Respeta acentos, tildes y puntuación exactamente."),
+                            ],
+                            timeout=300
+                        )
+                    data = resp.json()
+                    if resp.ok:
+                        texto = data.get("text", "")
+                        return jsonify({
+                            "success": True,
+                            "texto": texto,
+                            "segmentos": data.get("segments", []),
+                            "palabras": data.get("words", [])
+                        })
+                    ultimo_error = data.get("error", {}).get("message", str(data))
+                    if resp.status_code >= 500:
+                        continue
+                    return jsonify({"error": f"Groq ({modelo}): {ultimo_error}"}), resp.status_code
+                except Exception as exc:
+                    ultimo_error = str(exc)
+        return jsonify({"error": f"Transcripción fallida: {ultimo_error}"}), 502
+    finally:
+        for p in (temp_entrada, temp_wav):
+            try:
+                if os.path.exists(p):
+                    os.remove(p)
+            except Exception:
+                pass
 
 @app.route('/renderizar', methods=['POST', 'OPTIONS'])
 def renderizar():

@@ -333,6 +333,13 @@ async function iniciarStripe(planTipo) {
     }
 }
 
+function formatearLetraDesdeSegmentos(segmentos, textoPlano) {
+    if (Array.isArray(segmentos) && segmentos.length) {
+        return segmentos.map((s) => String(s.text || "").trim()).filter(Boolean).join("\n");
+    }
+    return textoPlano || "";
+}
+
 async function transcribirConGroq(audio) {
     const fd = new FormData();
     fd.append("audio", audio);
@@ -349,9 +356,7 @@ async function transcribirConGroq(audio) {
         const d = await parseJsonSeguro(r);
         if (r.ok && d.texto) return d;
         const err = String(d.error || d.detalle || "");
-        if (!err.includes("GROQ") && r.ok) {
-            throw new Error(err || "Transcripción fallida");
-        }
+        if (r.ok) throw new Error(err || "Transcripción fallida");
         console.warn("Railway transcribir falló, probando Netlify:", err);
     }
 
@@ -372,11 +377,16 @@ async function transcribirAudio() {
     if (status) status.textContent = "Transcribiendo con IA (español estricto)...";
     try {
         const d = await transcribirConGroq(audioFile);
-        if (area) area.value = d.texto;
-        letraGuardada = d.texto;
+        const letraFmt = formatearLetraDesdeSegmentos(d.segmentos, d.texto);
+        if (area) area.value = letraFmt;
+        letraGuardada = letraFmt;
         letraSegmentos = Array.isArray(d.segmentos) ? d.segmentos : [];
         letraPalabras = Array.isArray(d.palabras) ? d.palabras : [];
-        if (status) status.textContent = "Letra lista — edítala y pulsa Guardar.";
+        if (status) {
+            status.textContent = letraPalabras.length
+                ? `Letra lista (${letraPalabras.length} palabras sincronizadas) — edítala y pulsa Guardar.`
+                : "Letra lista — edítala y pulsa Guardar.";
+        }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
         alert("No se pudo transcribir: " + e.message);
