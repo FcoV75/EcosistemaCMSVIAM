@@ -102,7 +102,7 @@ def transcribir_audio():
                 data={
                     "model": "whisper-large-v3",
                     "language": "es",
-                    "response_format": "json",
+                    "response_format": "verbose_json",
                     "temperature": "0"
                 },
                 timeout=300
@@ -111,7 +111,11 @@ def transcribir_audio():
         if not resp.ok:
             msg = data.get("error", {}).get("message", str(data))
             return jsonify({"error": f"Groq: {msg}"}), resp.status_code
-        return jsonify({"success": True, "texto": data.get("text", "")})
+        return jsonify({
+            "success": True,
+            "texto": data.get("text", ""),
+            "segmentos": data.get("segments", [])
+        })
     except Exception as e:
         return jsonify({"error": "Error transcribiendo", "detalle": str(e)}), 500
     finally:
@@ -165,6 +169,13 @@ def renderizar():
         leyenda_portada = request.form.get('leyenda_portada', '')
         leyenda_cierre = request.form.get('leyenda_cierre', '')
         letra_cancion = request.form.get('letra_cancion', '')
+        letra_segmentos_raw = request.form.get('letra_segmentos', '[]')
+        try:
+            letra_segmentos = json.loads(letra_segmentos_raw) if isinstance(letra_segmentos_raw, str) else letra_segmentos_raw
+            if not isinstance(letra_segmentos, list):
+                letra_segmentos = []
+        except Exception:
+            letra_segmentos = []
         subtitulos_activos = request.form.get('subtitulos_activos', 'false').lower() == 'true'
         nombre_pista = request.form.get('nombre_pista', '')
         if not nombre_pista and audio_file and audio_file.filename:
@@ -177,6 +188,7 @@ def renderizar():
             "leyenda_portada": leyenda_portada,
             "leyenda_cierre": leyenda_cierre,
             "letra_cancion": letra_cancion,
+            "letra_segmentos": letra_segmentos,
             "subtitulos_activos": subtitulos_activos,
             "nombre_pista": nombre_pista
         }

@@ -14,6 +14,7 @@ let cierreFile = null;
 let mediaItems = [];
 let objectUrls = [];
 let letraGuardada = "";
+let letraSegmentos = [];
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -363,6 +364,7 @@ async function transcribirAudio() {
         const d = await transcribirConGroq(audioFile);
         if (area) area.value = d.texto;
         letraGuardada = d.texto;
+        letraSegmentos = Array.isArray(d.segmentos) ? d.segmentos : [];
         if (status) status.textContent = "Letra lista — edítala y pulsa Guardar.";
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -478,6 +480,7 @@ window.generarVideo = async function () {
         formData.append("leyenda_portada", $("#texto-portada")?.value || "");
         formData.append("leyenda_cierre", $("#texto-cierre")?.value || "");
         formData.append("letra_cancion", letra);
+        formData.append("letra_segmentos", JSON.stringify(letraSegmentos));
         formData.append("subtitulos_activos", subtitulosOn ? "true" : "false");
         formData.append("nombre_pista", audioFile ? audioFile.name.replace(/\.[^.]+$/, "") : "Pista VIAM");
 
@@ -562,6 +565,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#btn-transcribir")?.addEventListener("click", transcribirAudio);
     $("#btn-guardar-letra")?.addEventListener("click", () => {
         letraGuardada = $("#letra-cancion")?.value || "";
+        letraSegmentos = [];
         $("#status-transcripcion").textContent = "Letra guardada correctamente.";
     });
 
