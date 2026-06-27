@@ -24,6 +24,8 @@ TAM_NOMBRE_PISTA = 68
 TAM_TEXTO_ESCENA = 76
 MARGEN_INTRO_LETRA = 15.0
 MARGEN_OUTRO_LETRA = 12.0
+MARCA_AGUA_TEXTO = "IAVIAM VIDEO_DIAMANTE"
+TAM_MARCA_AGUA = 22
 
 
 def resolver_ffmpeg():
@@ -163,6 +165,29 @@ def estampar_subtitulo_linea(img_bgr, linea, width, height, tamano=TAM_SUBTITULO
         draw.text((x, y), linea, font=font, fill=(255, 255, 255))
         return cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
     return estampar_texto_sombra(img_bgr, linea, (70, y), tamano=tamano, color=(255, 255, 255))
+
+
+def estampar_marca_agua(img_bgr, width, height, tamano=TAM_MARCA_AGUA):
+    """Marca de agua discreta — esquina inferior derecha (plan gratuito)."""
+    texto = MARCA_AGUA_TEXTO
+    if PIL_DISPONIBLE:
+        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+        pil = Image.fromarray(img_rgb).convert("RGBA")
+        overlay = Image.new("RGBA", pil.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        font = _fuente_pillow(tamano)
+        bbox = draw.textbbox((0, 0), texto, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        x = width - text_w - 20
+        y = height - text_h - 16
+        draw.text((x + 1, y + 1), texto, font=font, fill=(0, 0, 0, 110))
+        draw.text((x, y), texto, font=font, fill=(210, 210, 210, 150))
+        pil = Image.alpha_composite(pil, overlay)
+        return cv2.cvtColor(np.array(pil.convert("RGB")), cv2.COLOR_RGB2BGR)
+    return estampar_texto_sombra(
+        img_bgr, texto, (width - 340, height - 36), tamano=tamano, color=(180, 180, 180)
+    )
 
 
 def estampar_leyenda_grande(img_bgr, texto, width, height, tamano=TAM_LEYENDA_PORTADA):
@@ -318,7 +343,7 @@ def debe_mostrar_nombre_pista(segundo_actual, duracion_total):
 
 
 def aplicar_overlays(frame, segundo_actual, duracion_total, texto_escena, intervalos_sub, subtitulos_on,
-                     nombre_pista, leyenda_grande=False):
+                     nombre_pista, leyenda_grande=False, mostrar_marca_agua=False):
     f = frame.copy()
     if texto_escena:
         if leyenda_grande:
@@ -348,16 +373,20 @@ def aplicar_overlays(frame, segundo_actual, duracion_total, texto_escena, interv
             f = cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
         else:
             f = estampar_texto_sombra(f, etiqueta, (50, 45), tamano=TAM_NOMBRE_PISTA, color=(255, 255, 255))
+    if mostrar_marca_agua:
+        f = estampar_marca_agua(f, WIDTH, HEIGHT)
     return f
 
 
 def escribir_frames_imagen(writer, frame_base, frames_totales, texto_escena, intervalos_sub, subtitulos_on,
-                           nombre_pista, frame_contador, duracion_total, leyenda_grande=False):
+                           nombre_pista, frame_contador, duracion_total, leyenda_grande=False,
+                           mostrar_marca_agua=False):
     for _ in range(frames_totales):
         segundo = frame_contador / FPS
         f_render = aplicar_overlays(
             frame_base, segundo, duracion_total, texto_escena, intervalos_sub,
-            subtitulos_on, nombre_pista, leyenda_grande=leyenda_grande
+            subtitulos_on, nombre_pista, leyenda_grande=leyenda_grande,
+            mostrar_marca_agua=mostrar_marca_agua
         )
         writer.write(f_render)
         frame_contador += 1
@@ -365,7 +394,7 @@ def escribir_frames_imagen(writer, frame_base, frames_totales, texto_escena, int
 
 
 def escribir_frames_video(ruta_video, writer, duracion_asignada, texto_escena, intervalos_sub, subtitulos_on,
-                          nombre_pista, frame_contador, duracion_total):
+                          nombre_pista, frame_contador, duracion_total, mostrar_marca_agua=False):
     cap = cv2.VideoCapture(ruta_video)
     if not cap.isOpened():
         return frame_contador, None
@@ -382,7 +411,10 @@ def escribir_frames_video(ruta_video, writer, duracion_asignada, texto_escena, i
             break
         frame = ajustar_proporcion_lienzo(frame)
         segundo = frame_contador / FPS
-        frame = aplicar_overlays(frame, segundo, duracion_total, texto_escena, intervalos_sub, subtitulos_on, nombre_pista)
+        frame = aplicar_overlays(
+            frame, segundo, duracion_total, texto_escena, intervalos_sub, subtitulos_on, nombre_pista,
+            mostrar_marca_agua=mostrar_marca_agua
+        )
         writer.write(frame)
         ultimo = frame.copy()
         frame_contador += 1
@@ -390,7 +422,10 @@ def escribir_frames_video(ruta_video, writer, duracion_asignada, texto_escena, i
         idx += paso
     while leidos < frames_objetivo and ultimo is not None:
         segundo = frame_contador / FPS
-        frame = aplicar_overlays(ultimo, segundo, duracion_total, texto_escena, intervalos_sub, subtitulos_on, nombre_pista)
+        frame = aplicar_overlays(
+            ultimo, segundo, duracion_total, texto_escena, intervalos_sub, subtitulos_on, nombre_pista,
+            mostrar_marca_agua=mostrar_marca_agua
+        )
         writer.write(frame)
         frame_contador += 1
         leidos += 1
@@ -422,6 +457,9 @@ def generar_video_cloud():
     letra_palabras = config.get("letra_palabras", [])
     subtitulos_activos = config.get("subtitulos_activos", False)
     nombre_pista = config.get("nombre_pista", "") or "Pista VIAM"
+    es_premium = bool(config.get("es_premium", False))
+    sin_marca_agua = bool(config.get("sin_marca_agua", False))
+    mostrar_marca_agua = not es_premium or not sin_marca_agua
 
     ruta_audio = args.audio
     archivo_final = args.output
@@ -491,7 +529,8 @@ def generar_video_cloud():
         ultimo_frame = frame_base.copy()
         frame_contador = escribir_frames_imagen(
             video_writer, frame_base, frames_totales, leyenda_portada, intervalos_sub,
-            subtitulos_activos, nombre_pista, frame_contador, duracion_audio, leyenda_grande=bool(leyenda_portada)
+            subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
+            leyenda_grande=bool(leyenda_portada), mostrar_marca_agua=mostrar_marca_agua
         )
 
     for item in linea_tiempo:
@@ -505,7 +544,8 @@ def generar_video_cloud():
         if tipo == "video":
             frame_contador, ultimo_vid = escribir_frames_video(
                 ruta, video_writer, duracion_por_segmento, texto, intervalos_sub,
-                subtitulos_activos, nombre_pista, frame_contador, duracion_audio
+                subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
+                mostrar_marca_agua=mostrar_marca_agua
             )
             if ultimo_vid is not None:
                 ultimo_frame = ultimo_vid
@@ -516,7 +556,8 @@ def generar_video_cloud():
                 ultimo_frame = frame_base.copy()
                 frame_contador = escribir_frames_imagen(
                     video_writer, frame_base, frames_totales, texto, intervalos_sub,
-                    subtitulos_activos, nombre_pista, frame_contador, duracion_audio
+                    subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
+                    mostrar_marca_agua=mostrar_marca_agua
                 )
 
     # Cierre — leyenda grande
@@ -529,7 +570,8 @@ def generar_video_cloud():
         ultimo_frame = frame_base.copy()
         frame_contador = escribir_frames_imagen(
             video_writer, frame_base, frames_totales, leyenda_cierre, intervalos_sub,
-            subtitulos_activos, nombre_pista, frame_contador, duracion_audio, leyenda_grande=bool(leyenda_cierre)
+            subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
+            leyenda_grande=bool(leyenda_cierre), mostrar_marca_agua=mostrar_marca_agua
         )
 
     # Rellenar hasta cubrir toda la pista musical (evita corte abrupto del audio)
@@ -539,7 +581,8 @@ def generar_video_cloud():
         print(f"Extendiendo {faltan} fotogramas para igualar audio ({duracion_audio:.2f}s)")
         frame_contador = escribir_frames_imagen(
             video_writer, ultimo_frame, faltan, "", intervalos_sub,
-            subtitulos_activos, nombre_pista, frame_contador, duracion_audio
+            subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
+            mostrar_marca_agua=mostrar_marca_agua
         )
 
     video_writer.release()

@@ -131,6 +131,10 @@ function actualizarIndicadorPlan() {
     const el = $("#plan-indicator");
     const lim = limitesActuales();
     const restantes = lim.maxDia - rendersHoy();
+    const secMarca = $("#seccion-marca-agua");
+    const avisoGratuito = $("#aviso-marca-gratuito");
+    if (secMarca) secMarca.style.display = isPremium ? "block" : "none";
+    if (avisoGratuito) avisoGratuito.style.display = isPremium ? "none" : "block";
     if (!el) return;
     if (isPremium) {
         el.textContent = `💎 Plan Premium — ${restantes} renders hoy (máx. ${lim.maxDia})`;
@@ -490,6 +494,8 @@ window.generarVideo = async function () {
         formData.append("letra_segmentos", JSON.stringify(letraSegmentos));
         formData.append("letra_palabras", JSON.stringify(letraPalabras));
         formData.append("subtitulos_activos", subtitulosOn ? "true" : "false");
+        formData.append("es_premium", isPremium ? "true" : "false");
+        formData.append("sin_marca_agua", (isPremium && $("#chk-sin-marca-agua")?.checked) ? "true" : "false");
         formData.append("nombre_pista", audioFile ? audioFile.name.replace(/\.[^.]+$/, "") : "Pista VIAM");
 
         if (portadaFile) formData.append("portada_file", portadaFile);

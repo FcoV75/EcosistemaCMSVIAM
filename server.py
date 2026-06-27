@@ -186,6 +186,8 @@ def renderizar():
         except Exception:
             letra_palabras = []
         subtitulos_activos = request.form.get('subtitulos_activos', 'false').lower() == 'true'
+        es_premium = request.form.get('es_premium', 'false').lower() == 'true'
+        sin_marca_agua = request.form.get('sin_marca_agua', 'false').lower() == 'true'
         nombre_pista = request.form.get('nombre_pista', '')
         if not nombre_pista and audio_file and audio_file.filename:
             nombre_pista = os.path.splitext(os.path.basename(audio_file.filename))[0]
@@ -200,6 +202,8 @@ def renderizar():
             "letra_segmentos": letra_segmentos,
             "letra_palabras": letra_palabras,
             "subtitulos_activos": subtitulos_activos,
+            "es_premium": es_premium,
+            "sin_marca_agua": sin_marca_agua,
             "nombre_pista": nombre_pista
         }
 
