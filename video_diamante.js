@@ -15,6 +15,7 @@ let mediaItems = [];
 let objectUrls = [];
 let letraGuardada = "";
 let letraSegmentos = [];
+let letraPalabras = [];
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -179,8 +180,8 @@ function agregarMedios(files, tipoForzado) {
     const lim = limitesActuales();
 
     Array.from(files).forEach((file) => {
-        const esVideo = tipoForzado === "video" || file.type.startsWith("video/");
-        const esImagen = tipoForzado === "imagen" || file.type.startsWith("image/");
+        const esVideo = tipoForzado === "video" || (tipoForzado !== "imagen" && file.type.startsWith("video/"));
+        const esImagen = tipoForzado === "imagen" || (tipoForzado !== "video" && file.type.startsWith("image/"));
         if (!esVideo && !esImagen) return;
 
         const imgsActuales = mediaItems.filter((m) => m.tipo === "imagen").length;
@@ -208,19 +209,22 @@ function agregarMedios(files, tipoForzado) {
 
 function renderizarPizarras() {
     revocarUrls();
-    const contImg = $("#pizarra-imagenes");
-    const contVid = $("#pizarra-videos");
-    if (!contImg || !contVid) return;
-    contImg.innerHTML = "";
-    contVid.innerHTML = "";
+    const cont = $("#pizarra-secuencia");
+    if (!cont) return;
+    cont.innerHTML = "";
+
+    if (mediaItems.length === 0) {
+        cont.innerHTML = '<p style="color:#888;font-size:0.9rem;padding:12px;">Arrastra aquí imágenes y videos, o usa los botones de arriba. Luego reordénalos alternando como quieras.</p>';
+        configurarDragZone(cont, (files) => agregarMedios(files, null));
+        return;
+    }
 
     mediaItems.forEach((item, index) => {
-        const cont = item.tipo === "video" ? contVid : contImg;
         const url = URL.createObjectURL(item.file);
         objectUrls.push(url);
 
         const celda = document.createElement("div");
-        celda.className = "celda-media";
+        celda.className = `celda-media tipo-${item.tipo}`;
         celda.draggable = true;
         celda.dataset.index = String(index);
 
@@ -228,12 +232,14 @@ function renderizarPizarras() {
             ? `<video src="${url}" class="miniatura-media" muted playsinline></video>`
             : `<img src="${url}" class="miniatura-media" alt="">`;
 
+        const badge = item.tipo === "video" ? "🎬 Video" : "🖼️ Imagen";
         const muteHtml = item.tipo === "video"
             ? `<label class="chk-silencio"><input type="checkbox" class="chk-mute" data-index="${index}" ${item.silenciado ? "checked" : ""}> Silenciar audio del clip</label>`
             : "";
 
         celda.innerHTML = `
-            <span class="arrastrar-hint">⠿ Arrastrar</span>
+            <span class="tipo-badge">${badge}<span class="orden-badge">#${index + 1}</span></span>
+            <span class="arrastrar-hint">⠿ Arrastrar para reordenar</span>
             ${preview}
             <input type="text" class="input-subtitulo input-texto-premium" data-index="${index}" placeholder="Texto para esta escena..." value="${item.texto.replace(/"/g, "&quot;")}">
             ${muteHtml}
@@ -261,8 +267,8 @@ function renderizarPizarras() {
         });
     });
 
-    configurarReorden(contImg);
-    configurarReorden(contVid);
+    configurarReorden(cont);
+    configurarDragZone(cont, (files) => agregarMedios(files, null));
 }
 
 function configurarReorden(contenedor) {
@@ -365,6 +371,7 @@ async function transcribirAudio() {
         if (area) area.value = d.texto;
         letraGuardada = d.texto;
         letraSegmentos = Array.isArray(d.segmentos) ? d.segmentos : [];
+        letraPalabras = Array.isArray(d.palabras) ? d.palabras : [];
         if (status) status.textContent = "Letra lista — edítala y pulsa Guardar.";
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -481,6 +488,7 @@ window.generarVideo = async function () {
         formData.append("leyenda_cierre", $("#texto-cierre")?.value || "");
         formData.append("letra_cancion", letra);
         formData.append("letra_segmentos", JSON.stringify(letraSegmentos));
+        formData.append("letra_palabras", JSON.stringify(letraPalabras));
         formData.append("subtitulos_activos", subtitulosOn ? "true" : "false");
         formData.append("nombre_pista", audioFile ? audioFile.name.replace(/\.[^.]+$/, "") : "Pista VIAM");
 
@@ -559,14 +567,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     $("#input-imagenes")?.addEventListener("change", (e) => agregarMedios(e.target.files, "imagen"));
     $("#input-videos")?.addEventListener("change", (e) => agregarMedios(e.target.files, "video"));
-    configurarDragZone($("#pizarra-imagenes"), (f) => agregarMedios(f, "imagen"));
-    configurarDragZone($("#pizarra-videos"), (f) => agregarMedios(f, "video"));
+    $("#input-medios")?.addEventListener("change", (e) => agregarMedios(e.target.files, null));
+    configurarDragZone($("#pizarra-secuencia"), (f) => agregarMedios(f, null));
+    renderizarPizarras();
 
     $("#btn-transcribir")?.addEventListener("click", transcribirAudio);
     $("#btn-guardar-letra")?.addEventListener("click", () => {
         letraGuardada = $("#letra-cancion")?.value || "";
         letraSegmentos = [];
-        $("#status-transcripcion").textContent = "Letra guardada correctamente.";
+        letraPalabras = [];
+        $("#status-transcripcion").textContent = "Letra guardada — se sincronizará por renglones con la pista.";
     });
 
     $("#btn-plan-mensual")?.addEventListener("click", () => iniciarStripe("mensual"));

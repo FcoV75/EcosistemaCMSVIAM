@@ -103,6 +103,7 @@ def transcribir_audio():
                     "model": "whisper-large-v3",
                     "language": "es",
                     "response_format": "verbose_json",
+                    "timestamp_granularities[]": "word",
                     "temperature": "0"
                 },
                 timeout=300
@@ -114,7 +115,8 @@ def transcribir_audio():
         return jsonify({
             "success": True,
             "texto": data.get("text", ""),
-            "segmentos": data.get("segments", [])
+            "segmentos": data.get("segments", []),
+            "palabras": data.get("words", [])
         })
     except Exception as e:
         return jsonify({"error": "Error transcribiendo", "detalle": str(e)}), 500
@@ -176,6 +178,13 @@ def renderizar():
                 letra_segmentos = []
         except Exception:
             letra_segmentos = []
+        letra_palabras_raw = request.form.get('letra_palabras', '[]')
+        try:
+            letra_palabras = json.loads(letra_palabras_raw) if isinstance(letra_palabras_raw, str) else letra_palabras_raw
+            if not isinstance(letra_palabras, list):
+                letra_palabras = []
+        except Exception:
+            letra_palabras = []
         subtitulos_activos = request.form.get('subtitulos_activos', 'false').lower() == 'true'
         nombre_pista = request.form.get('nombre_pista', '')
         if not nombre_pista and audio_file and audio_file.filename:
@@ -189,6 +198,7 @@ def renderizar():
             "leyenda_cierre": leyenda_cierre,
             "letra_cancion": letra_cancion,
             "letra_segmentos": letra_segmentos,
+            "letra_palabras": letra_palabras,
             "subtitulos_activos": subtitulos_activos,
             "nombre_pista": nombre_pista
         }

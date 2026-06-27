@@ -17,11 +17,13 @@ except ImportError:
 WIDTH, HEIGHT = 1280, 720  # Estable en Railway; CRF 18 mantiene buena calidad
 FPS = 30
 
-# Tamaños de texto legibles en pantalla completa
-TAM_LEYENDA_PORTADA = 68
-TAM_SUBTITULO = 52
-TAM_NOMBRE_PISTA = 46
-TAM_TEXTO_ESCENA = 40
+# Tamaños de texto legibles en pantalla completa (1280×720)
+TAM_LEYENDA_PORTADA = 96
+TAM_SUBTITULO = 72
+TAM_NOMBRE_PISTA = 68
+TAM_TEXTO_ESCENA = 76
+MARGEN_INTRO_LETRA = 15.0
+MARGEN_OUTRO_LETRA = 12.0
 
 
 def resolver_ffmpeg():
@@ -116,14 +118,38 @@ def estampar_texto_sombra(img_bgr, texto, posicion, tamano=36, color=(255, 215, 
     return img_bgr
 
 
+def estampar_texto_escena(img_bgr, texto, width, height, tamano=TAM_TEXTO_ESCENA):
+    """Leyenda sobre imágenes/videos de la pizarra — grande y centrada abajo."""
+    if not texto or not str(texto).strip():
+        return img_bgr
+    texto = str(texto).strip()
+    y = height - 155
+    if PIL_DISPONIBLE:
+        overlay = img_bgr.copy()
+        cv2.rectangle(overlay, (30, y - 22), (width - 30, y + tamano + 28), (0, 0, 0), -1)
+        img_bgr = cv2.addWeighted(overlay, 0.55, img_bgr, 0.45, 0)
+        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+        pil = Image.fromarray(img_rgb)
+        draw = ImageDraw.Draw(pil)
+        font = _fuente_pillow(tamano)
+        bbox = draw.multiline_textbbox((0, 0), texto, font=font, align="center")
+        text_w = bbox[2] - bbox[0]
+        x = max(40, (width - text_w) // 2)
+        for dx, dy in [(4, 4), (-3, 3), (3, -3)]:
+            draw.multiline_text((x + dx, y + dy), texto, font=font, fill=(0, 0, 0), align="left")
+        draw.multiline_text((x, y), texto, font=font, fill=(255, 215, 0), align="left")
+        return cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
+    return estampar_texto_sombra(img_bgr, texto[:160], (80, y), tamano=tamano)
+
+
 def estampar_subtitulo_linea(img_bgr, linea, width, height, tamano=TAM_SUBTITULO):
     if not linea or not str(linea).strip():
         return img_bgr
     linea = str(linea).strip()
-    y = height - 105
+    y = height - 115
     if PIL_DISPONIBLE:
         overlay = img_bgr.copy()
-        cv2.rectangle(overlay, (40, y - 18), (width - 40, y + tamano + 22), (0, 0, 0), -1)
+        cv2.rectangle(overlay, (30, y - 22), (width - 30, y + tamano + 28), (0, 0, 0), -1)
         img_bgr = cv2.addWeighted(overlay, 0.65, img_bgr, 0.35, 0)
         img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
         pil = Image.fromarray(img_rgb)
@@ -146,8 +172,8 @@ def estampar_leyenda_grande(img_bgr, texto, width, height, tamano=TAM_LEYENDA_PO
     texto = str(texto).strip()
     if PIL_DISPONIBLE:
         overlay = img_bgr.copy()
-        cv2.rectangle(overlay, (60, height // 2 - 90), (width - 60, height // 2 + 90), (0, 0, 0), -1)
-        img_bgr = cv2.addWeighted(overlay, 0.45, img_bgr, 0.55, 0)
+        cv2.rectangle(overlay, (40, height // 2 - 110), (width - 40, height // 2 + 110), (0, 0, 0), -1)
+        img_bgr = cv2.addWeighted(overlay, 0.55, img_bgr, 0.45, 0)
         img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
         pil = Image.fromarray(img_rgb)
         draw = ImageDraw.Draw(pil)
@@ -179,20 +205,76 @@ def parsear_lineas_letra(letra):
     return lineas
 
 
+def contar_palabras(texto):
+    return len(re.findall(r"\w+", texto, flags=re.UNICODE)) or 1
+
+
+def ventana_vocal(duracion_total):
+    inicio = min(MARGEN_INTRO_LETRA, max(0.0, duracion_total * 0.06))
+    fin = max(duracion_total - MARGEN_OUTRO_LETRA, inicio + 1.0)
+    return inicio, fin
+
+
 def construir_intervalos_lineas(lineas, duracion_total):
-    """Distribuye la letra proporcional al largo de cada línea (mejor sync con el canto)."""
+    """Distribuye la letra en la ventana vocal, ponderada por palabras."""
     if not lineas or duracion_total <= 0:
         return []
-    pesos = [max(len(re.sub(r"\s+", " ", ln)), 8) for ln in lineas]
-    total_peso = float(sum(pesos))
+    inicio_vocal, fin_vocal = ventana_vocal(duracion_total)
+    usable = fin_vocal - inicio_vocal
+    pesos = [float(contar_palabras(ln)) for ln in lineas]
+    total_peso = sum(pesos) or float(len(lineas))
     intervalos = []
-    t = 0.0
+    t = inicio_vocal
     for linea, peso in zip(lineas, pesos):
-        dur = (peso / total_peso) * duracion_total
+        dur = (peso / total_peso) * usable
         intervalos.append({"start": t, "end": t + dur, "text": linea})
         t += dur
     if intervalos:
-        intervalos[-1]["end"] = duracion_total
+        intervalos[-1]["end"] = fin_vocal
+    return intervalos
+
+
+def construir_intervalos_desde_palabras(palabras_raw, duracion_total, max_chars=48):
+    """Agrupa timestamps de Whisper en renglones legibles."""
+    palabras = []
+    for item in palabras_raw or []:
+        if not isinstance(item, dict):
+            continue
+        word = str(item.get("word", item.get("text", ""))).strip()
+        if not word:
+            continue
+        try:
+            inicio = max(0.0, float(item.get("start", 0)))
+            fin = min(duracion_total, float(item.get("end", inicio + 0.3)))
+        except (TypeError, ValueError):
+            continue
+        if fin <= inicio:
+            fin = min(duracion_total, inicio + 0.3)
+        palabras.append({"start": inicio, "end": fin, "text": word})
+
+    if not palabras:
+        return []
+
+    intervalos = []
+    renglon = []
+    chars = 0
+    for p in palabras:
+        renglon.append(p)
+        chars += len(p["text"]) + 1
+        if chars >= max_chars:
+            intervalos.append({
+                "start": renglon[0]["start"],
+                "end": renglon[-1]["end"],
+                "text": " ".join(x["text"] for x in renglon)
+            })
+            renglon = []
+            chars = 0
+    if renglon:
+        intervalos.append({
+            "start": renglon[0]["start"],
+            "end": renglon[-1]["end"],
+            "text": " ".join(x["text"] for x in renglon)
+        })
     return intervalos
 
 
@@ -242,20 +324,27 @@ def aplicar_overlays(frame, segundo_actual, duracion_total, texto_escena, interv
         if leyenda_grande:
             f = estampar_leyenda_grande(f, texto_escena, WIDTH, HEIGHT)
         else:
-            f = estampar_texto_sombra(f, texto_escena, (80, HEIGHT - 145), tamano=TAM_TEXTO_ESCENA, color=(255, 215, 0))
+            f = estampar_texto_escena(f, texto_escena, WIDTH, HEIGHT)
     if subtitulos_on and intervalos_sub:
         linea = subtitulo_para_frame(intervalos_sub, segundo_actual)
         f = estampar_subtitulo_linea(f, linea, WIDTH, HEIGHT)
     if debe_mostrar_nombre_pista(segundo_actual, duracion_total):
         etiqueta = f"🎵 {nombre_pista}"
         if PIL_DISPONIBLE:
+            overlay = f.copy()
+            cv2.rectangle(overlay, (36, 28), (WIDTH - 36, 28 + TAM_NOMBRE_PISTA + 34), (0, 0, 0), -1)
+            f = cv2.addWeighted(overlay, 0.55, f, 0.45, 0)
             img_rgb = cv2.cvtColor(f, cv2.COLOR_BGR2RGB)
             pil = Image.fromarray(img_rgb)
             draw = ImageDraw.Draw(pil)
             font = _fuente_pillow(TAM_NOMBRE_PISTA)
-            for dx, dy in [(3, 3), (-2, 2)]:
-                draw.text((52 + dx, 42 + dy), etiqueta, font=font, fill=(0, 0, 0))
-            draw.text((52, 42), etiqueta, font=font, fill=(255, 255, 255))
+            bbox = draw.textbbox((0, 0), etiqueta, font=font)
+            text_w = bbox[2] - bbox[0]
+            x = max(44, (WIDTH - text_w) // 2)
+            y = 42
+            for dx, dy in [(4, 4), (-3, 3), (3, -3)]:
+                draw.text((x + dx, y + dy), etiqueta, font=font, fill=(0, 0, 0))
+            draw.text((x, y), etiqueta, font=font, fill=(255, 255, 255))
             f = cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
         else:
             f = estampar_texto_sombra(f, etiqueta, (50, 45), tamano=TAM_NOMBRE_PISTA, color=(255, 255, 255))
@@ -330,6 +419,7 @@ def generar_video_cloud():
     leyenda_cierre = config.get("leyenda_cierre", "")
     letra_cancion = config.get("letra_cancion", "")
     letra_segmentos = config.get("letra_segmentos", [])
+    letra_palabras = config.get("letra_palabras", [])
     subtitulos_activos = config.get("subtitulos_activos", False)
     nombre_pista = config.get("nombre_pista", "") or "Pista VIAM"
 
@@ -350,12 +440,19 @@ def generar_video_cloud():
     duracion_audio = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
     print(f"Duración audio: {duracion_audio:.2f}s | Pista: {nombre_pista}")
 
-    if subtitulos_activos and letra_segmentos:
-        intervalos_sub = normalizar_segmentos_letra(letra_segmentos, duracion_audio)
-    elif subtitulos_activos:
-        lineas_letra = parsear_lineas_letra(letra_cancion)
-        intervalos_sub = construir_intervalos_lineas(lineas_letra, duracion_audio)
+    if subtitulos_activos and letra_palabras:
+        intervalos_sub = construir_intervalos_desde_palabras(letra_palabras, duracion_audio)
     else:
+        intervalos_sub = []
+    if subtitulos_activos and not intervalos_sub:
+        lineas_letra = parsear_lineas_letra(letra_cancion)
+        if len(lineas_letra) >= 2:
+            intervalos_sub = construir_intervalos_lineas(lineas_letra, duracion_audio)
+        elif letra_segmentos:
+            intervalos_sub = normalizar_segmentos_letra(letra_segmentos, duracion_audio)
+        elif lineas_letra:
+            intervalos_sub = construir_intervalos_lineas(lineas_letra, duracion_audio)
+    if not subtitulos_activos:
         intervalos_sub = []
 
     segmentos = []

@@ -116,7 +116,20 @@
             padding: 10px;
             cursor: grab;
         }
-        .celda-media.arrastrando { opacity: 0.5; }
+        .celda-media.tipo-video { border-color: #A052FF; }
+        .celda-media.tipo-imagen { border-color: var(--color-dorado-cabecera); }
+        .tipo-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #111;
+            background: var(--color-dorado-cabecera);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+        }
+        .celda-media.tipo-video .tipo-badge { background: #A052FF; color: #FFF; }
+        .orden-badge { font-size: 0.7rem; color: #AAA; margin-left: 6px; }
         .arrastrar-hint { font-size: 0.75rem; color: #AAA; }
         .miniatura-media {
             width: 100%;
@@ -257,18 +270,18 @@
         </div>
 
         <div class="seccion-panel">
-            <h2>📸 Pizarra multimedia — Imágenes y Videos</h2>
-            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">Arrastra archivos desde el explorador. Reordena dentro de cada fila. Gratuito: 3 imgs + 2 videos · Premium: sin límite práctico.</p>
+            <h2>📸 Pizarra multimedia — Secuencia del video</h2>
+            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">Arrastra imágenes y videos en el orden que quieras alternarlos. Reordena arrastrando cada tarjeta. Gratuito: 3 imgs + 2 videos · Premium: sin límite práctico.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
                 <label class="btn-viam-subir" for="input-imagenes">+ Imágenes</label>
                 <input type="file" id="input-imagenes" class="input-archivo-oculto" accept="image/*" multiple>
                 <label class="btn-viam-subir" for="input-videos">+ Videos MP4</label>
                 <input type="file" id="input-videos" class="input-archivo-oculto" accept="video/mp4,video/webm,video/quicktime" multiple>
+                <label class="btn-viam-subir" for="input-medios" style="background:#555;">+ Imagen o video</label>
+                <input type="file" id="input-medios" class="input-archivo-oculto" accept="image/*,video/mp4,video/webm,video/quicktime" multiple>
             </div>
-            <p class="pizarra-titulo">🖼️ Línea de imágenes</p>
-            <div id="pizarra-imagenes" class="pizarra-drop rejilla-pizarra"></div>
-            <p class="pizarra-titulo">🎬 Línea de videos (opción silenciar audio del clip)</p>
-            <div id="pizarra-videos" class="pizarra-drop rejilla-pizarra"></div>
+            <p class="pizarra-titulo">🎞️ Orden de aparición — arrastra para alternar imágenes y videos</p>
+            <div id="pizarra-secuencia" class="pizarra-drop rejilla-pizarra"></div>
         </div>
 
         <div class="caja-loading" id="loading-box">
