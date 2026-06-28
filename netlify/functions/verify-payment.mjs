@@ -16,6 +16,15 @@ function stripeSecretKey() {
   return String(process.env.STRIPE_SECRET_KEY || '').trim();
 }
 
+function openBlobStore(name) {
+  const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
+  const token = process.env.NETLIFY_AUTH_TOKEN || process.env.NETLIFY_BLOB_READ_WRITE_TOKEN;
+  if (siteID && token) {
+    return getStore(name, { siteID, token });
+  }
+  return getStore(name);
+}
+
 function duracionDias(plan, producto) {
   if (plan === 'anual') return 365;
   if (plan === 'mensual') return 30;
@@ -93,7 +102,7 @@ async function recuperarPagoDesdeStripe(transactionId) {
   const stripe = new Stripe(stripeSecret);
   try {
     const session = await stripe.checkout.sessions.retrieve(id, {
-      expand: ['line_items.data.price'],
+      expand: ['line_items'],
     });
 
     if (!sesionPagada(session)) {
@@ -197,8 +206,20 @@ export default async (req) => {
     }
 
     const id = transactionId.trim();
-    const store = getStore('nexus-payments');
-    const membersStore = getStore('nexus-members');
+    let store;
+    let membersStore;
+    try {
+      store = openBlobStore('nexus-payments');
+      membersStore = openBlobStore('nexus-members');
+    } catch (blobErr) {
+      console.error('Blob store init:', blobErr);
+      return Response.json({
+        success: false,
+        error: 'Almacén Netlify Blobs no disponible. En Netlify activa Blobs y/o define SITE_ID + NETLIFY_AUTH_TOKEN.',
+        detalle: blobErr.message,
+      }, { status: 503 });
+    }
+
     let payment = await store.get(id, { type: 'json' });
 
     if (!payment) {
@@ -250,6 +271,10 @@ export default async (req) => {
     return Response.json(resultado, { status: 200 });
   } catch (err) {
     console.error('Verify error:', err);
-    return Response.json({ success: false, error: 'Error interno verificando el pago.' }, { status: 500 });
+    return Response.json({
+      success: false,
+      error: 'Error interno verificando el pago.',
+      detalle: err?.message || String(err),
+    }, { status: 500 });
   }
 };

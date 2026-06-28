@@ -1430,7 +1430,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 premiumModal?.close();
                 mostrarGraciasCompra();
             } else {
-                const errMsg = d.error || d.detalle || "ID inválido";
+                const errMsg = [d.error, d.detalle].filter(Boolean).join(" — ") || "ID inválido";
                 verificationStatus.textContent = errMsg;
                 verificationStatus.style.color = "#FF3333";
                 if (/sk_test_|sk_live_|STRIPE_SECRET/i.test(errMsg)) {
