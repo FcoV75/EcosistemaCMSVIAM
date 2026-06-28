@@ -249,17 +249,53 @@ async function fetchRailwayViaProxy(endpoint, options = {}) {
     });
 }
 
+function mensajeErrorMotorRailway(status, detalle) {
+    if (status === 502 || status === 503 || /failed to respond/i.test(String(detalle || ""))) {
+        return "Motor Railway no responde (502). Entra a Railway → EcosistemaCMSVIAM → Deployments → Redeploy. Revisa también que la variable PORT exista.";
+    }
+    if (/failed to fetch/i.test(String(detalle || ""))) {
+        return "No hay conexión con Railway. El servicio puede estar caído o reiniciándose — espera 1 minuto e intenta de nuevo.";
+    }
+    return detalle || `Error del motor (${status || "desconocido"})`;
+}
+
+async function motorRailwayDisponible() {
+    try {
+        const r = await fetchRailwayViaProxy("/health", { method: "GET" });
+        if (r.ok) return true;
+        const d = await r.json().catch(() => ({}));
+        console.warn("Health Railway:", d.message || r.status);
+    } catch (e) {
+        console.warn("Health Railway no disponible:", e.message);
+    }
+    return false;
+}
+
 async function fetchRailwayPreferProxy(endpoint, options = {}) {
     try {
         const r = await fetchRailwayViaProxy(endpoint, options);
         if (r.ok || r.status === 202) return r;
-        const clon = r.clone();
-        const d = await clon.json().catch(() => ({}));
-        console.warn(`Proxy ${endpoint}:`, d.error || d.detalle || r.status);
+        const d = await r.clone().json().catch(() => ({}));
+        const msg = d.error || d.detalle || d.message || r.status;
+        console.warn(`Proxy ${endpoint}:`, msg);
+        if (r.status === 502 || r.status === 503) {
+            throw new Error(mensajeErrorMotorRailway(r.status, msg));
+        }
     } catch (e) {
+        if (/Motor Railway|No hay conexión/i.test(e.message)) throw e;
         console.warn(`Proxy ${endpoint} no disponible:`, e.message);
     }
-    return fetchRailway(endpoint, options);
+    try {
+        const r2 = await fetchRailway(endpoint, options);
+        if (r2.ok || r2.status === 202) return r2;
+        const d2 = await r2.json().catch(() => ({}));
+        if (r2.status === 502 || r2.status === 503) {
+            throw new Error(mensajeErrorMotorRailway(r2.status, d2.message || d2.detalle));
+        }
+        return r2;
+    } catch (e) {
+        throw new Error(mensajeErrorMotorRailway(0, e.message));
+    }
 }
 
 async function comprimirImagenParaRender(file, maxW = 1280, maxH = 720, calidad = 0.85) {
@@ -313,10 +349,16 @@ async function subirArchivoRenderSesion(uploadId, campo, file) {
 }
 
 async function enviarRenderizadoPorPartes(meta, archivos, onProgreso) {
+    if (onProgreso) onProgreso("Verificando motor Railway...");
+    const online = await motorRailwayDisponible();
+    if (!online) {
+        throw new Error(mensajeErrorMotorRailway(502, "Application failed to respond"));
+    }
+
     const rSesion = await fetchRailwayPreferProxy("/renderizar/sesion", { method: "POST" });
     const sesion = await parseJsonSeguro(rSesion);
     if (!rSesion.ok || !sesion.upload_id) {
-        throw new Error(sesion.error || sesion.detalle || "No se pudo abrir sesión de subida.");
+        throw new Error(mensajeErrorMotorRailway(rSesion.status, sesion.error || sesion.detalle || sesion.message));
     }
     const uploadId = sesion.upload_id;
 
@@ -802,12 +844,12 @@ async function transcribirConGroq(audioFile) {
             fn: () => fetch("/.netlify/functions/transcribe-proxy", { method: "POST", body: crearFormData() })
         },
         {
-            nombre: "railway",
-            fn: () => fetchRailway("/transcribir", { method: "POST", body: crearFormData() })
-        },
-        {
             nombre: "netlify-groq",
             fn: () => fetch("/.netlify/functions/transcribe-audio", { method: "POST", body: crearFormData() })
+        },
+        {
+            nombre: "railway",
+            fn: () => fetchRailway("/transcribir", { method: "POST", body: crearFormData() })
         }
     ];
 
@@ -994,7 +1036,8 @@ window.generarVideo = async function () {
             throw new Error(resultado.detalle || resultado.error || "Respuesta inválida");
         }
     } catch (e) {
-        alert("No se pudo iniciar el renderizado: " + e.message);
+        const msg = mensajeErrorMotorRailway(0, e.message);
+        alert("No se pudo iniciar el renderizado: " + msg);
         if (loadingBox) loadingBox.style.display = "none";
     }
 };

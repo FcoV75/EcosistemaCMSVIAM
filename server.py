@@ -628,9 +628,17 @@ def renderizar():
     except Exception as e:
         return jsonify({"error": "No se pudo iniciar el renderizado", "detalle": str(e)}), 500
 
-@app.route('/health', methods=['GET'])
+@app.route('/health', methods=['GET', 'OPTIONS'])
 def health_check():
-    import shutil
+    if request.method == 'OPTIONS':
+        return '', 200
+    return jsonify({"status": "ok", "servicio": "ecosistemacmsviam"})
+
+
+@app.route('/health/detalle', methods=['GET', 'OPTIONS'])
+def health_check_detalle():
+    if request.method == 'OPTIONS':
+        return '', 200
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         try:
@@ -640,7 +648,7 @@ def health_check():
             ffmpeg = None
     return jsonify({
         "status": "ok" if ffmpeg else "degraded",
-        "ffmpeg": ffmpeg or "no disponible"
+        "ffmpeg": ffmpeg or "no disponible",
     })
 
 @app.route('/status', methods=['GET'])
