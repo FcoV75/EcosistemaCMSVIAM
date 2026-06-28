@@ -87,6 +87,25 @@ function pagoDesdeSession(session) {
   };
 }
 
+async function stripeCuentaId(stripe) {
+  try {
+    const acct = await stripe.accounts.retrieve();
+    return acct?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+function errorIdStripeNoEncontrado(tipo, cuentaId) {
+  const cuenta = cuentaId
+    ? ` Netlify consulta la cuenta Stripe ${cuentaId}; debe ser la misma donde ves el pago en el Dashboard.`
+    : '';
+  if (tipo === 'pi') {
+    return `Stripe no encuentra ese Payment Intent (pi_...). Usa el botón copiar en Pagos — no lo escribas a mano (confusión entre l, I y 1).${cuenta}`;
+  }
+  return `Stripe no encuentra esa sesión cs_live_. Copia el ID exacto desde Workbench con el botón copiar (ojo: l vs I vs 1). También puedes pegar el pi_... del pago.${cuenta}`;
+}
+
 async function recuperarDesdePaymentIntent(stripe, id) {
   const pi = await stripe.paymentIntents.retrieve(id);
   if (pi.status !== 'succeeded') {
@@ -154,10 +173,11 @@ async function recuperarPagoDesdeStripe(transactionId) {
     } catch (err) {
       const msg = err?.message || String(err);
       console.error('Stripe PI retrieve failed:', msg);
+      const cuentaId = /no such payment_intent/i.test(msg) ? await stripeCuentaId(stripe) : null;
       return {
         fail: true,
         error: /no such payment_intent/i.test(msg)
-          ? 'Stripe no encuentra ese Payment Intent (pi_...). Cópialo desde Pagos en el Dashboard.'
+          ? errorIdStripeNoEncontrado('pi', cuentaId)
           : `No se pudo consultar Stripe: ${msg}`,
       };
     }
@@ -194,9 +214,10 @@ async function recuperarPagoDesdeStripe(transactionId) {
     const msg = err?.message || String(err);
     console.error('Stripe retrieve failed:', msg);
     if (/no such checkout/i.test(msg)) {
+      const cuentaId = await stripeCuentaId(stripe);
       return {
         fail: true,
-        error: 'Stripe no encuentra esa sesión cs_live_. Copia el ID exacto desde Workbench (ojo: la letra "l" vs el número "1"). También puedes pegar el pi_... del pago.',
+        error: errorIdStripeNoEncontrado('cs', cuentaId),
       };
     }
     return {
