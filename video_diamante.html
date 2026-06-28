@@ -211,6 +211,27 @@
             margin-bottom: 18px;
             font-size: 0.9rem;
         }
+        .btn-miembro-activo {
+            background: transparent;
+            color: var(--color-dorado-cabecera);
+            border: 2px solid var(--color-dorado-cabecera);
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 4px;
+        }
+        .btn-miembro-activo:hover { background: rgba(212, 175, 55, 0.15); }
+        .acceso-premium-bloque {
+            text-align: left;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.35);
+        }
+        .acceso-premium-bloque:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .acceso-premium-bloque h4 { color: #D4AF37; margin: 0 0 8px; font-size: 1rem; }
+        .acceso-premium-bloque p { font-size: 0.85rem; color: #BCB4B4; margin: 0 0 10px; }
+        .acceso-premium-separador { text-align: center; color: #888; font-size: 0.8rem; margin: 12px 0; }
         .tabs-estudio { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
         .tab-estudio {
             background: #403B3B;
@@ -292,6 +313,7 @@
             <strong>💎 Video Diamante Premium</strong> — Videos de 5 min a 1 hora · 10 renders/día<br>
             <button type="button" class="btn-premium-plan" id="btn-plan-mensual">$300 MXN / mes</button>
             <button type="button" class="btn-premium-plan" id="btn-plan-anual">$3,000 MXN / año (2 meses de regalo)</button>
+            <button type="button" class="btn-miembro-activo" id="btn-ya-soy-miembro">🔑 Ya soy miembro Premium</button>
         </div>
 
         <div class="seccion-panel">
@@ -465,11 +487,27 @@
     </dialog>
 
     <dialog id="premium-modal">
-        <h3 style="color:#D4AF37;margin-bottom:12px;">Activar licencia Premium</h3>
-        <p style="margin-bottom:12px;font-size:0.9rem;color:#DDD;">Ingresa el ID de sesión de Stripe:</p>
-        <input type="text" id="stripe-session-code" class="input-texto-premium" style="text-align:center;margin-bottom:12px;" placeholder="cs_live_...">
-        <span id="verification-status" style="display:block;margin-bottom:12px;font-weight:bold;"></span>
-        <button type="button" class="btn-viam-subir" id="btn-verificar-stripe" style="background:#D4AF37;color:#111;">Activar Licencia</button>
+        <h3 style="color:#D4AF37;margin-bottom:14px;text-align:center;">Acceso Premium Video Diamante</h3>
+
+        <div class="acceso-premium-bloque">
+            <h4>🔑 Ya tengo mi código de miembro</h4>
+            <p>Si ya activaste tu suscripción antes, ingresa el código <strong>CMS-XXXXXX</strong> que recibiste al pagar.</p>
+            <input type="text" id="member-code-input" class="input-texto-premium" style="text-align:center;margin-bottom:8px;letter-spacing:1px;" placeholder="CMS-XXXXXX" autocomplete="off">
+            <span id="member-code-status" style="display:block;margin-bottom:10px;font-weight:bold;min-height:1.2em;"></span>
+            <button type="button" class="btn-viam-subir" id="btn-ingresar-codigo" style="background:#7D26CD;color:#fff;width:100%;">Ingresar como miembro</button>
+        </div>
+
+        <p class="acceso-premium-separador">— o —</p>
+
+        <div class="acceso-premium-bloque">
+            <h4>💳 Acabo de pagar en Stripe</h4>
+            <p>Pega el ID de sesión que aparece tras el pago (<code>cs_live_...</code>).</p>
+            <input type="text" id="stripe-session-code" class="input-texto-premium" style="text-align:center;margin-bottom:8px;" placeholder="cs_live_...">
+            <span id="verification-status" style="display:block;margin-bottom:10px;font-weight:bold;min-height:1.2em;"></span>
+            <button type="button" class="btn-viam-subir" id="btn-verificar-stripe" style="background:#D4AF37;color:#111;width:100%;">Activar licencia nueva</button>
+        </div>
+
+        <button type="button" class="btn-miembro-activo" id="btn-cerrar-premium-modal" style="width:100%;margin-top:14px;">Cancelar</button>
     </dialog>
 
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>

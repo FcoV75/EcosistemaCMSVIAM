@@ -492,26 +492,85 @@ function actualizarIndicadorPlan() {
     if (avisoGratuito) avisoGratuito.style.display = isPremium ? "none" : "block";
     if (!el) return;
     if (isPremium) {
-        el.textContent = `💎 Plan Premium — ${restantes} renders hoy (máx. ${lim.maxDia})`;
+        el.textContent = `💎 Plan Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia})`;
         el.style.color = "#FFFD00";
+        el.title = "Clic para ver o cambiar tu membresía";
+        el.style.cursor = "pointer";
     } else {
         el.textContent = `🆓 Plan Gratuito — ${restantes}/${lim.maxDia} renders hoy · máx. 4 min`;
         el.style.color = "#D4AF37";
+        el.title = "";
+        el.style.cursor = "default";
     }
 }
 
-async function verificarMembresia(codigo) {
-    if (!codigo) return false;
+async function verificarMembresiaDetalle(codigo) {
+    if (!codigo || codigo.trim().length < 5) {
+        return { ok: false, error: "Ingresa un código válido (ej. CMS-XXXXXX)." };
+    }
     try {
         const r = await fetch("/.netlify/functions/member-status", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: codigo.toUpperCase(), productoRequerido: "video_diamante_premium" })
+            body: JSON.stringify({ code: codigo.trim().toUpperCase(), productoRequerido: "video_diamante_premium" })
         });
         const d = await r.json();
-        return r.ok && ["active", "warning", "last_day"].includes(d.status);
+        if (!r.ok) return { ok: false, error: d.error || "Código no encontrado." };
+        if (d.status === "expired") return { ok: false, error: "Tu membresía expiró. Renueva tu plan Premium." };
+        if (!["active", "warning", "last_day"].includes(d.status)) {
+            return { ok: false, error: "Membresía no activa para Video Diamante." };
+        }
+        return { ok: true, status: d.status, daysLeft: d.daysLeft };
     } catch {
-        return false;
+        return { ok: false, error: "Error de conexión. Intenta de nuevo." };
+    }
+}
+
+async function verificarMembresia(codigo) {
+    const r = await verificarMembresiaDetalle(codigo);
+    return r.ok;
+}
+
+function abrirModalPremium(foco = "codigo") {
+    const modal = $("#premium-modal");
+    const memberInput = $("#member-code-input");
+    const stripeInput = $("#stripe-session-code");
+    const memberStatus = $("#member-code-status");
+    const stripeStatus = $("#verification-status");
+    if (memberStatus) memberStatus.textContent = "";
+    if (stripeStatus) stripeStatus.textContent = "";
+    const guardado = localStorage.getItem("video_diamante_premium_code");
+    if (memberInput && guardado) memberInput.value = guardado;
+    modal?.showModal();
+    if (foco === "stripe" && stripeInput) stripeInput.focus();
+    else memberInput?.focus();
+}
+
+async function activarConCodigoMiembro() {
+    const input = $("#member-code-input");
+    const status = $("#member-code-status");
+    const codigo = input?.value.trim().toUpperCase();
+    if (!codigo) return alert("Ingresa tu código CMS-XXXXXX.");
+    if (status) { status.textContent = "Verificando..."; status.style.color = "#D4AF37"; }
+    const r = await verificarMembresiaDetalle(codigo);
+    if (r.ok) {
+        isPremium = true;
+        localStorage.setItem("video_diamante_premium_code", codigo);
+        if (status) {
+            const aviso = r.status === "warning"
+                ? `¡Bienvenido! Te quedan ${r.daysLeft} días de membresía.`
+                : r.status === "last_day"
+                    ? "¡Bienvenido! Hoy es el último día de tu membresía."
+                    : `¡Premium activo! Te quedan ${r.daysLeft} días.`;
+            status.textContent = aviso;
+            status.style.color = "#00FF66";
+        }
+        actualizarIndicadorPlan();
+        actualizarAvisoAudio();
+        setTimeout(() => $("#premium-modal")?.close(), 1200);
+    } else if (status) {
+        status.textContent = r.error || "Código inválido";
+        status.style.color = "#FF3333";
     }
 }
 
@@ -1174,6 +1233,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     $("#btn-plan-mensual")?.addEventListener("click", () => iniciarStripe("mensual"));
     $("#btn-plan-anual")?.addEventListener("click", () => iniciarStripe("anual"));
+    $("#btn-ya-soy-miembro")?.addEventListener("click", () => abrirModalPremium("codigo"));
+    $("#plan-indicator")?.addEventListener("click", () => {
+        if (isPremium) abrirModalPremium("codigo");
+    });
+    $("#btn-ingresar-codigo")?.addEventListener("click", activarConCodigoMiembro);
+    $("#member-code-input")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") activarConCodigoMiembro();
+    });
+    $("#btn-cerrar-premium-modal")?.addEventListener("click", () => $("#premium-modal")?.close());
 
     const stripeSessionCode = $("#stripe-session-code");
     const verificationStatus = $("#verification-status");
@@ -1212,7 +1280,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("payment_success") === "true" && urlParams.get("session_id")) {
         mostrarGraciasCompra();
-        premiumModal?.showModal();
+        abrirModalPremium("stripe");
         if (stripeSessionCode) stripeSessionCode.value = urlParams.get("session_id");
         history.replaceState({}, "", window.location.pathname);
         setTimeout(() => btnVerificarStripe?.click(), 1500);
