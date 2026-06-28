@@ -1,15 +1,15 @@
-async function llamarGroq(audio, groqKey, modelo) {
+function esErrorInterno(msg) {
+  return String(msg || "").toLowerCase().includes("internal error");
+}
+
+async function llamarGroq(audio, groqKey, modelo, responseFormat, extras = []) {
   const upstream = new FormData();
-  upstream.append("file", audio, audio.name || "audio.wav");
+  upstream.append("file", audio, audio.name || "audio.mp3");
   upstream.append("model", modelo);
   upstream.append("language", "es");
-  upstream.append("response_format", "verbose_json");
-  upstream.append("timestamp_granularities[]", "word");
+  upstream.append("response_format", responseFormat);
   upstream.append("temperature", "0");
-  upstream.append(
-    "prompt",
-    "Transcripción de letra de canción en español latino. Respeta acentos, tildes y puntuación exactamente."
-  );
+  for (const [k, v] of extras) upstream.append(k, v);
 
   const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
     method: "POST",
@@ -17,8 +17,41 @@ async function llamarGroq(audio, groqKey, modelo) {
     body: upstream
   });
 
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    data = { error: { message: await response.text() } };
+  }
   return { response, data };
+}
+
+function palabrasDesdeTexto(texto, duracion = 180) {
+  const inicio = Math.min(15, duracion * 0.06);
+  const fin = Math.max(duracion - 12, inicio + 1);
+  const tokens = texto.trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return [];
+  const paso = (fin - inicio) / tokens.length;
+  let t = inicio;
+  return tokens.map((word) => {
+    const item = { start: t, end: t + paso, text: word, word };
+    t += paso;
+    return item;
+  });
+}
+
+function segmentosDesdeTexto(texto, duracion = 180) {
+  const lineas = texto.replace(/\r/g, "").split("\n").map((l) => l.trim()).filter(Boolean);
+  if (!lineas.length) return [];
+  const inicio = Math.min(15, duracion * 0.06);
+  const fin = Math.max(duracion - 12, inicio + 1);
+  const paso = (fin - inicio) / lineas.length;
+  let t = inicio;
+  return lineas.map((text) => {
+    const seg = { start: t, end: t + paso, text };
+    t += paso;
+    return seg;
+  });
 }
 
 export default async (req) => {
@@ -54,27 +87,45 @@ export default async (req) => {
       return Response.json({ error: "Archivo de audio no recibido." }, { status: 400 });
     }
 
-    const modelos = ["whisper-large-v3", "whisper-large-v3-turbo"];
+    const estrategias = [
+      ["whisper-large-v3-turbo", "json", []],
+      ["whisper-large-v3-turbo", "verbose_json", []],
+      ["whisper-large-v3", "json", []],
+      ["whisper-large-v3", "verbose_json", []],
+      ["whisper-large-v3", "verbose_json", [["timestamp_granularities[]", "word"]]]
+    ];
+
     let ultimoError = "Sin respuesta de Groq";
 
-    for (const modelo of modelos) {
-      for (let intento = 0; intento < 3; intento++) {
-        const { response, data } = await llamarGroq(audio, groqKey, modelo);
+    for (const [modelo, fmt, extras] of estrategias) {
+      for (let intento = 0; intento < 2; intento++) {
+        const { response, data } = await llamarGroq(audio, groqKey, modelo, fmt, extras);
         if (response.ok) {
+          let texto = (data.text || "").trim();
+          if (!texto && fmt === "verbose_json" && Array.isArray(data.segments)) {
+            texto = data.segments.map((s) => (s.text || "").trim()).filter(Boolean).join(" ");
+          }
+          if (!texto) {
+            ultimoError = "Groq respondió vacío";
+            break;
+          }
+          const palabras = data.words?.length ? data.words : palabrasDesdeTexto(texto);
+          const segmentos = data.segments?.length ? data.segments : segmentosDesdeTexto(texto);
           return Response.json({
             success: true,
-            texto: data.text || "",
-            segmentos: data.segments || [],
-            palabras: data.words || []
+            texto,
+            segmentos,
+            palabras,
+            fuente: `${modelo}/${fmt}`
           });
         }
         ultimoError = data.error?.message || JSON.stringify(data);
-        if (response.status < 500) break;
+        if (!esErrorInterno(ultimoError) && response.status < 500) break;
         await new Promise((r) => setTimeout(r, 1200 * (intento + 1)));
       }
     }
 
-    return Response.json({ error: `Groq: ${ultimoError}` }, { status: 502 });
+    return Response.json({ error: `Transcripción fallida: ${ultimoError}` }, { status: 502 });
   } catch (err) {
     console.error("transcribe-audio:", err);
     return Response.json({ error: "Error interno transcribiendo audio.", detalle: String(err) }, { status: 500 });

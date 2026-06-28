@@ -5,6 +5,8 @@ import threading
 import os
 import json
 import shutil
+import re
+import time
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB
@@ -74,11 +76,164 @@ def hilo_renderizador(config_path, audio_path, output_path):
         ESTADO_RENDER["status"] = "error"
         ESTADO_RENDER["detalle"] = f"Fallo inesperado: {str(e)}"
 
+
+def _resolver_ffmpeg_bin():
+    ffmpeg_bin = shutil.which("ffmpeg")
+    if ffmpeg_bin:
+        return ffmpeg_bin
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
+
+
+def _medir_duracion_audio(ruta, ffmpeg_bin=None):
+    try:
+        from mutagen import File as MutagenFile
+        meta = MutagenFile(ruta)
+        if meta and meta.info and getattr(meta.info, "length", None):
+            return float(meta.info.length)
+    except Exception:
+        pass
+    ffmpeg_bin = ffmpeg_bin or _resolver_ffmpeg_bin()
+    if ffmpeg_bin and os.path.exists(ruta):
+        try:
+            res = subprocess.run([ffmpeg_bin, "-i", ruta], capture_output=True, text=True, check=False)
+            m = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", (res.stderr or "") + (res.stdout or ""))
+            if m:
+                h, mn, s = m.groups()
+                return int(h) * 3600 + int(mn) * 60 + float(s)
+        except Exception:
+            pass
+    return 180.0
+
+
+def _preparar_audio_groq(ruta_entrada):
+    """Normaliza a MP3 mono 16 kHz — formato más estable para Groq Whisper."""
+    ffmpeg_bin = _resolver_ffmpeg_bin()
+    if not ffmpeg_bin or not os.path.exists(ruta_entrada):
+        return ruta_entrada, os.path.basename(ruta_entrada), "audio/mpeg"
+    ruta_salida = os.path.join(UPLOAD_FOLDER, "transcribe_groq.mp3")
+    res = subprocess.run([
+        ffmpeg_bin, "-y", "-i", ruta_entrada,
+        "-ar", "16000", "-ac", "1", "-b:a", "64k", "-map", "a:0", ruta_salida
+    ], capture_output=True, text=True, check=False)
+    if res.returncode == 0 and os.path.exists(ruta_salida) and os.path.getsize(ruta_salida) > 500:
+        return ruta_salida, "audio_groq.mp3", "audio/mpeg"
+    return ruta_entrada, os.path.basename(ruta_entrada), "audio/mpeg"
+
+
+def _palabras_desde_texto(texto, duracion):
+    if not texto or duracion <= 0:
+        return []
+    inicio = min(15.0, duracion * 0.06)
+    fin = max(duracion - 12.0, inicio + 1.0)
+    tokens = re.findall(r"\S+", texto.strip())
+    if not tokens:
+        return []
+    paso = (fin - inicio) / len(tokens)
+    t, palabras = inicio, []
+    for tok in tokens:
+        palabras.append({"start": round(t, 3), "end": round(t + paso, 3), "text": tok, "word": tok})
+        t += paso
+    return palabras
+
+
+def _segmentos_desde_texto(texto, duracion):
+    lineas = [ln.strip() for ln in texto.replace("\r", "").split("\n") if ln.strip()]
+    if not lineas:
+        lineas = [texto.strip()] if texto.strip() else []
+    if not lineas:
+        return []
+    inicio = min(15.0, duracion * 0.06)
+    fin = max(duracion - 12.0, inicio + 1.0)
+    paso = (fin - inicio) / len(lineas)
+    t, segs = inicio, []
+    for ln in lineas:
+        segs.append({"start": round(t, 3), "end": round(t + paso, 3), "text": ln})
+        t += paso
+    if segs:
+        segs[-1]["end"] = round(fin, 3)
+    return segs
+
+
+def _error_groq_es_interno(mensaje):
+    return "internal error" in str(mensaje or "").lower()
+
+
+def _llamar_groq_whisper(groq_key, ruta, nombre, mime, modelo, response_format, extras=None):
+    import requests as http_requests
+    payload = [
+        ("model", modelo),
+        ("language", "es"),
+        ("response_format", response_format),
+        ("temperature", "0"),
+    ]
+    if extras:
+        payload.extend(extras)
+    with open(ruta, "rb") as f:
+        resp = http_requests.post(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            headers={"Authorization": f"Bearer {groq_key}"},
+            files={"file": (nombre, f, mime)},
+            data=payload,
+            timeout=300,
+        )
+    try:
+        data = resp.json()
+    except Exception:
+        data = {"error": {"message": resp.text[:300]}}
+    return resp, data
+
+
+def _transcribir_groq_cascada(groq_key, ruta_audio, nombre, mime, duracion):
+    """Varias estrategias: json simple primero (evita Internal Error de timestamps)."""
+    estrategias = [
+        ("whisper-large-v3-turbo", "json", None),
+        ("whisper-large-v3-turbo", "verbose_json", None),
+        ("whisper-large-v3", "json", None),
+        ("whisper-large-v3", "verbose_json", None),
+        ("whisper-large-v3", "verbose_json", [("timestamp_granularities[]", "word")]),
+    ]
+    ultimo_error = "Sin respuesta de Groq"
+    for modelo, fmt, extras in estrategias:
+        for intento in range(2):
+            resp, data = _llamar_groq_whisper(groq_key, ruta_audio, nombre, mime, modelo, fmt, extras)
+            if resp.ok:
+                texto = (data.get("text") or "").strip()
+                if not texto and fmt == "verbose_json":
+                    texto = " ".join(
+                        str(s.get("text", "")).strip() for s in data.get("segments", []) if s.get("text")
+                    ).strip()
+                if not texto:
+                    ultimo_error = "Groq respondió vacío"
+                    break
+                palabras = data.get("words") or []
+                segmentos = data.get("segments") or []
+                if not palabras:
+                    palabras = _palabras_desde_texto(texto, duracion)
+                if not segmentos:
+                    segmentos = _segmentos_desde_texto(texto, duracion)
+                return {
+                    "success": True,
+                    "texto": texto,
+                    "segmentos": segmentos,
+                    "palabras": palabras,
+                    "fuente": f"{modelo}/{fmt}",
+                }
+            ultimo_error = data.get("error", {}).get("message", str(data))
+            if _error_groq_es_interno(ultimo_error) or resp.status_code >= 500:
+                time.sleep(1.2 * (intento + 1))
+                continue
+            break
+    raise RuntimeError(ultimo_error)
+
+
 @app.route('/transcribir', methods=['POST', 'OPTIONS'])
 def transcribir_audio():
     if request.method == 'OPTIONS':
         return '', 200
-    import requests as http_requests
 
     audio = request.files.get('audio')
     if not audio or not audio.filename:
@@ -93,65 +248,20 @@ def transcribir_audio():
 
     ext = os.path.splitext(audio.filename or "")[1].lower() or ".mp3"
     temp_entrada = os.path.join(UPLOAD_FOLDER, f"transcribe_in{ext}")
-    temp_wav = os.path.join(UPLOAD_FOLDER, "transcribe_16k.wav")
+    temp_groq = os.path.join(UPLOAD_FOLDER, "transcribe_groq.mp3")
     audio.save(temp_entrada)
 
-    ffmpeg_bin = shutil.which("ffmpeg")
-    if not ffmpeg_bin:
-        try:
-            import imageio_ffmpeg
-            ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
-        except Exception:
-            ffmpeg_bin = None
-
-    archivo_groq = temp_entrada
     try:
-        if ffmpeg_bin:
-            conv = subprocess.run([
-                ffmpeg_bin, "-y", "-i", temp_entrada,
-                "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", temp_wav
-            ], capture_output=True, text=True, check=False)
-            if conv.returncode == 0 and os.path.exists(temp_wav) and os.path.getsize(temp_wav) > 1000:
-                archivo_groq = temp_wav
-
-        modelos = ["whisper-large-v3", "whisper-large-v3-turbo"]
-        ultimo_error = "Sin respuesta de Groq"
-        for modelo in modelos:
-            for intento in range(3):
-                try:
-                    with open(archivo_groq, 'rb') as f:
-                        resp = http_requests.post(
-                            "https://api.groq.com/openai/v1/audio/transcriptions",
-                            headers={"Authorization": f"Bearer {groq_key}"},
-                            files={"file": ("audio.wav" if archivo_groq == temp_wav else audio.filename, f, "audio/wav" if archivo_groq == temp_wav else (audio.content_type or "audio/mpeg"))},
-                            data=[
-                                ("model", modelo),
-                                ("language", "es"),
-                                ("response_format", "verbose_json"),
-                                ("temperature", "0"),
-                                ("timestamp_granularities[]", "word"),
-                                ("prompt", "Transcripción de letra de canción en español latino. Respeta acentos, tildes y puntuación exactamente."),
-                            ],
-                            timeout=300
-                        )
-                    data = resp.json()
-                    if resp.ok:
-                        texto = data.get("text", "")
-                        return jsonify({
-                            "success": True,
-                            "texto": texto,
-                            "segmentos": data.get("segments", []),
-                            "palabras": data.get("words", [])
-                        })
-                    ultimo_error = data.get("error", {}).get("message", str(data))
-                    if resp.status_code >= 500:
-                        continue
-                    return jsonify({"error": f"Groq ({modelo}): {ultimo_error}"}), resp.status_code
-                except Exception as exc:
-                    ultimo_error = str(exc)
-        return jsonify({"error": f"Transcripción fallida: {ultimo_error}"}), 502
+        duracion = _medir_duracion_audio(temp_entrada)
+        ruta_groq, nombre_groq, mime_groq = _preparar_audio_groq(temp_entrada)
+        resultado = _transcribir_groq_cascada(groq_key, ruta_groq, nombre_groq, mime_groq, duracion)
+        return jsonify(resultado)
+    except RuntimeError as e:
+        return jsonify({"error": f"Transcripción fallida: {e}"}), 502
+    except Exception as e:
+        return jsonify({"error": "Error transcribiendo", "detalle": str(e)}), 500
     finally:
-        for p in (temp_entrada, temp_wav):
+        for p in (temp_entrada, temp_groq):
             try:
                 if os.path.exists(p):
                     os.remove(p)

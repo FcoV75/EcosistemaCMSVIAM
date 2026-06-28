@@ -356,8 +356,9 @@ async function transcribirConGroq(audio) {
         const d = await parseJsonSeguro(r);
         if (r.ok && d.texto) return d;
         const err = String(d.error || d.detalle || "");
-        if (r.ok) throw new Error(err || "Transcripción fallida");
-        console.warn("Railway transcribir falló, probando Netlify:", err);
+        console.warn("Railway transcribir:", err);
+    } else {
+        console.warn("Railway transcribir no disponible");
     }
 
     const fdNetlify = new FormData();
