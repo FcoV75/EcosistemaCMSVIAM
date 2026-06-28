@@ -540,33 +540,106 @@ function formatearLetraDesdeSegmentos(segmentos, textoPlano) {
     return textoPlano || "";
 }
 
-async function transcribirConGroq(audio) {
-    const fd = new FormData();
-    fd.append("audio", audio);
+function escribirCadenaWav(view, offset, str) {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+}
 
-    let r;
+function codificarWavMono16(samples, sampleRate) {
+    const numSamples = samples.length;
+    const buffer = new ArrayBuffer(44 + numSamples * 2);
+    const view = new DataView(buffer);
+    escribirCadenaWav(view, 0, "RIFF");
+    view.setUint32(4, 36 + numSamples * 2, true);
+    escribirCadenaWav(view, 8, "WAVE");
+    escribirCadenaWav(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    escribirCadenaWav(view, 36, "data");
+    view.setUint32(40, numSamples * 2, true);
+    let offset = 44;
+    for (let i = 0; i < numSamples; i++) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        offset += 2;
+    }
+    return buffer;
+}
+
+async function comprimirAudioParaIA(file) {
+    const esComprimido = /\.(mp3|m4a|ogg|webm)$/i.test(file.name || "");
+    if (esComprimido && file.size <= 4 * 1024 * 1024) return file;
+
+    const arrayBuffer = await file.arrayBuffer();
+    const ctx = new AudioContext();
+    let audioBuffer;
     try {
-        r = await fetchRailway("/transcribir", { method: "POST", body: fd });
-    } catch (e) {
-        console.warn("Railway transcribir no disponible:", e.message);
-        r = null;
+        audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    } finally {
+        await ctx.close();
     }
 
-    if (r) {
-        const d = await parseJsonSeguro(r);
-        if (r.ok && d.texto) return d;
-        const err = String(d.error || d.detalle || "");
-        console.warn("Railway transcribir:", err);
-    } else {
-        console.warn("Railway transcribir no disponible");
+    const targetRate = 16000;
+    const offline = new OfflineAudioContext(
+        1,
+        Math.max(1, Math.ceil(audioBuffer.duration * targetRate)),
+        targetRate
+    );
+    const src = offline.createBufferSource();
+    src.buffer = audioBuffer;
+    src.connect(offline.destination);
+    src.start(0);
+    const rendered = await offline.startRendering();
+    const wavBuffer = codificarWavMono16(rendered.getChannelData(0), targetRate);
+    const mb = (wavBuffer.byteLength / (1024 * 1024)).toFixed(1);
+    console.info(`Audio preparado para IA: ${mb} MB mono 16 kHz`);
+    return new File([wavBuffer], "transcribe_16k.wav", { type: "audio/wav" });
+}
+
+async function transcribirConGroq(audioFile) {
+    const audio = await comprimirAudioParaIA(audioFile);
+
+    const crearFormData = () => {
+        const fd = new FormData();
+        fd.append("audio", audio, audio.name || "transcribe_16k.wav");
+        return fd;
+    };
+
+    const intentos = [
+        {
+            nombre: "proxy",
+            fn: () => fetch("/.netlify/functions/transcribe-proxy", { method: "POST", body: crearFormData() })
+        },
+        {
+            nombre: "railway",
+            fn: () => fetchRailway("/transcribir", { method: "POST", body: crearFormData() })
+        },
+        {
+            nombre: "netlify-groq",
+            fn: () => fetch("/.netlify/functions/transcribe-audio", { method: "POST", body: crearFormData() })
+        }
+    ];
+
+    let ultimoError = "Transcripción fallida";
+
+    for (const intento of intentos) {
+        try {
+            const r = await intento.fn();
+            const d = await parseJsonSeguro(r);
+            if (r.ok && d.texto) return d;
+            ultimoError = d.error || d.detalle || ultimoError;
+            console.warn(`Transcribir ${intento.nombre}:`, ultimoError);
+        } catch (e) {
+            ultimoError = e.message || ultimoError;
+            console.warn(`Transcribir ${intento.nombre} no disponible:`, e.message);
+        }
     }
 
-    const fdNetlify = new FormData();
-    fdNetlify.append("audio", audio);
-    const r2 = await fetch("/.netlify/functions/transcribe-audio", { method: "POST", body: fdNetlify });
-    const d2 = await parseJsonSeguro(r2);
-    if (r2.ok && d2.texto) return d2;
-    throw new Error(d2.error || d2.detalle || "Transcripción fallida");
+    throw new Error(ultimoError);
 }
 
 async function transcribirAudio() {
@@ -575,8 +648,9 @@ async function transcribirAudio() {
     const area = $("#letra-cancion");
     const status = $("#status-transcripcion");
     if (btn) { btn.disabled = true; btn.textContent = "IA escuchando..."; }
-    if (status) status.textContent = "Transcribiendo con IA (español estricto)...";
+    if (status) status.textContent = "Preparando audio (optimizando WAV/MP3)...";
     try {
+        if (status) status.textContent = "Transcribiendo con IA (español estricto)...";
         const d = await transcribirConGroq(audioFile);
         const letraFmt = formatearLetraDesdeSegmentos(d.segmentos, d.texto);
         if (area) area.value = letraFmt;

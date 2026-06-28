@@ -76,13 +76,28 @@ export default async (req) => {
   }
 
   try {
+    let audio = null;
+
     const contentType = req.headers.get("content-type") || "";
-    if (!contentType.includes("multipart/form-data")) {
-      return Response.json({ error: "Se requiere audio en FormData." }, { status: 400 });
+    if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
+      const form = await req.formData();
+      audio = form.get("audio");
+    } else if (contentType.includes("application/json")) {
+      const body = await req.json();
+      if (body.audio_base64) {
+        const bin = Buffer.from(body.audio_base64, "base64");
+        audio = new Blob([bin], { type: body.mime || "audio/wav" });
+        audio.name = body.nombre || "audio_transcribe.wav";
+      }
+    } else {
+      try {
+        const form = await req.formData();
+        audio = form.get("audio");
+      } catch {
+        /* intentar JSON abajo */
+      }
     }
 
-    const form = await req.formData();
-    const audio = form.get("audio");
     if (!audio || typeof audio === "string") {
       return Response.json({ error: "Archivo de audio no recibido." }, { status: 400 });
     }
