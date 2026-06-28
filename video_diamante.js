@@ -715,6 +715,18 @@ function floatAInt16(float32Array) {
     return int16;
 }
 
+function logAudioOk(mensaje) {
+    console.log(`[Video Diamante] ✅ ${mensaje}`);
+}
+
+function logAudioAviso(mensaje) {
+    console.warn(`[Video Diamante] ⚠️ ${mensaje}`);
+}
+
+function logAudioError(mensaje, err) {
+    console.error(`[Video Diamante] ❌ ${mensaje}`, err || "");
+}
+
 function nombreBaseSinExtension(nombre) {
     return String(nombre || "pista").replace(/\.[^.]+$/, "");
 }
@@ -831,7 +843,7 @@ async function comprimirAudioParaIA(file) {
     const rendered = await offline.startRendering();
     const wavBuffer = codificarWavMono16(rendered.getChannelData(0), targetRate);
     const mb = (wavBuffer.byteLength / (1024 * 1024)).toFixed(1);
-    console.info(`Audio preparado para IA: ${mb} MB mono 16 kHz`);
+    logAudioOk(`Audio listo para transcripción IA (${mb} MB mono 16 kHz) — esto no es un error.`);
     return new File([wavBuffer], "transcribe_16k.wav", { type: "audio/wav" });
 }
 
@@ -1082,8 +1094,9 @@ async function cargarAudio(file) {
             finalFile = await convertirAudioAMp3(file);
             const mbSalida = (finalFile.size / (1024 * 1024)).toFixed(1);
             notaConversion = `convertido de ${mbEntrada} MB a MP3 ${mbSalida} MB`;
-            console.info(`WAV/audio pesado → MP3: ${mbEntrada} MB → ${mbSalida} MB`);
+            logAudioOk(`Audio convertido a MP3 (${mbEntrada} MB → ${mbSalida} MB) — conversión exitosa, no es un error.`);
         } catch (e) {
+            logAudioError(`Fallo al convertir ${file.name} a MP3`, e.message);
             alert("No se pudo convertir el audio a MP3: " + e.message);
             if (st) st.textContent = "Error al convertir audio.";
             st.style.color = "#FF6B6B";
@@ -1094,6 +1107,10 @@ async function cargarAudio(file) {
     audioFile = finalFile;
     audioDuracionEst = await estimarDuracionAudio(finalFile);
     actualizarAvisoAudio(notaConversion);
+    if (!necesitaConversionMp3(file)) {
+        const mb = (finalFile.size / (1024 * 1024)).toFixed(1);
+        logAudioOk(`Audio cargado sin conversión (${finalFile.name}, ${mb} MB) — ya es MP3/comprimido.`);
+    }
     const sec = $("#seccion-subtitulos");
     if (sec) sec.style.display = "block";
 }
