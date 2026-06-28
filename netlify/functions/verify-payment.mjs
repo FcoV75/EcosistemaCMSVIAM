@@ -67,6 +67,66 @@ function sesionPagada(session) {
   return false;
 }
 
+function pagoDesdeSession(session) {
+  const inferido = inferirProductoDesdeSesion(session);
+  const metadata = session.metadata || {};
+  const producto = inferido.producto || metadata.producto || 'ecosistema_cms_compra';
+  const plan = inferido.plan || metadata.plan || null;
+  return {
+    status: 'PAID',
+    amount: session.amount_total,
+    currency: (session.currency || 'mxn').toUpperCase(),
+    timestamp: Date.now(),
+    provider: 'stripe',
+    producto,
+    plan,
+    detalle: metadata.detalle || null,
+    used: false,
+    customerEmail: session.customer_details?.email || session.customer_email || null,
+    checkoutSessionId: session.id,
+  };
+}
+
+async function recuperarDesdePaymentIntent(stripe, id) {
+  const pi = await stripe.paymentIntents.retrieve(id);
+  if (pi.status !== 'succeeded') {
+    return {
+      pendiente: true,
+      error: `El pago está en estado "${pi.status}". Si acabas de pagar, espera 1–2 minutos.`,
+    };
+  }
+
+  const sessions = await stripe.checkout.sessions.list({ payment_intent: id, limit: 1 });
+  if (sessions.data?.length) {
+    const session = sessions.data[0];
+    if (sesionPagada(session)) {
+      return pagoDesdeSession(session);
+    }
+  }
+
+  const amount = pi.amount;
+  const metadata = pi.metadata || {};
+  let producto = metadata.producto || null;
+  let plan = metadata.plan || null;
+  if (!producto && amount != null && MONTOS_VIDEO_DIAMANTE.has(amount)) {
+    producto = 'video_diamante_premium';
+    plan = amount >= 100000 ? 'anual' : 'mensual';
+  }
+
+  return {
+    status: 'PAID',
+    amount,
+    currency: (pi.currency || 'mxn').toUpperCase(),
+    timestamp: Date.now(),
+    provider: 'stripe',
+    producto: producto || 'ecosistema_cms_compra',
+    plan,
+    detalle: metadata.detalle || null,
+    used: false,
+    paymentIntentId: id,
+  };
+}
+
 async function recuperarPagoDesdeStripe(transactionId) {
   const stripeSecret = stripeSecretKey();
   const id = transactionId.trim();
@@ -78,20 +138,38 @@ async function recuperarPagoDesdeStripe(transactionId) {
     };
   }
 
-  if (!id.startsWith('cs_')) {
+  const esLiveRef = id.startsWith('cs_live_') || id.startsWith('pi_') && !id.includes('_test_');
+  if (esLiveRef && stripeSecret.startsWith('sk_test_')) {
     return {
       fail: true,
-      error: 'El ID debe ser de Stripe Checkout (cs_live_... o cs_test_...).',
+      error: 'Tu pago es real pero Netlify tiene clave de prueba (sk_test_). Debe ser sk_live_.',
     };
   }
 
-  const esLive = id.startsWith('cs_live_');
-  if (esLive && stripeSecret.startsWith('sk_test_')) {
+  const stripe = new Stripe(stripeSecret);
+
+  if (id.startsWith('pi_')) {
+    try {
+      return await recuperarDesdePaymentIntent(stripe, id);
+    } catch (err) {
+      const msg = err?.message || String(err);
+      console.error('Stripe PI retrieve failed:', msg);
+      return {
+        fail: true,
+        error: /no such payment_intent/i.test(msg)
+          ? 'Stripe no encuentra ese Payment Intent (pi_...). Cópialo desde Pagos en el Dashboard.'
+          : `No se pudo consultar Stripe: ${msg}`,
+      };
+    }
+  }
+
+  if (!id.startsWith('cs_')) {
     return {
       fail: true,
-      error: 'Tu pago es real (cs_live_) pero Netlify tiene clave de prueba (sk_test_). Debe configurarse sk_live_ en Netlify → Environment variables.',
+      error: 'Usa el ID de Checkout (cs_live_...) o el Payment Intent (pi_...) que ves en Stripe → Pagos.',
     };
   }
+
   if (id.startsWith('cs_test_') && stripeSecret.startsWith('sk_live_')) {
     return {
       fail: true,
@@ -99,7 +177,6 @@ async function recuperarPagoDesdeStripe(transactionId) {
     };
   }
 
-  const stripe = new Stripe(stripeSecret);
   try {
     const session = await stripe.checkout.sessions.retrieve(id, {
       expand: ['line_items'],
@@ -112,30 +189,14 @@ async function recuperarPagoDesdeStripe(transactionId) {
       };
     }
 
-    const inferido = inferirProductoDesdeSesion(session);
-    const metadata = session.metadata || {};
-    const producto = inferido.producto || metadata.producto || 'ecosistema_cms_compra';
-    const plan = inferido.plan || metadata.plan || null;
-
-    return {
-      status: 'PAID',
-      amount: session.amount_total,
-      currency: (session.currency || 'mxn').toUpperCase(),
-      timestamp: Date.now(),
-      provider: 'stripe',
-      producto,
-      plan,
-      detalle: metadata.detalle || null,
-      used: false,
-      customerEmail: session.customer_details?.email || session.customer_email || null,
-    };
+    return pagoDesdeSession(session);
   } catch (err) {
     const msg = err?.message || String(err);
     console.error('Stripe retrieve failed:', msg);
     if (/no such checkout/i.test(msg)) {
       return {
         fail: true,
-        error: 'Stripe no encuentra esa sesión. Verifica que copiaste el ID completo y que STRIPE_SECRET_KEY en Netlify sea sk_live_ de la misma cuenta donde pagaste.',
+        error: 'Stripe no encuentra esa sesión cs_live_. Copia el ID exacto desde Workbench (ojo: la letra "l" vs el número "1"). También puedes pegar el pi_... del pago.',
       };
     }
     return {
