@@ -18,6 +18,10 @@ export default async (req) => {
       return Response.json({ error: 'Código de membresía no encontrado.' }, { status: 404 });
     }
 
+    if (productoRequerido && memberData.producto && memberData.producto !== productoRequerido) {
+      return Response.json({ error: 'Este código no corresponde a Video Diamante Premium.' }, { status: 403 });
+    }
+
     const now = Date.now();
     const msInDay = 1000 * 60 * 60 * 24;
     const elapsedMs = now - memberData.startDate;

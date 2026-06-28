@@ -69,6 +69,14 @@ export default async (req) => {
     }
 
     const store = getStore('nexus-payments');
+
+    const existente = await store.get(transactionId, { type: 'json' });
+    if (existente?.status === 'PAID') {
+      return new Response(JSON.stringify({ received: true, duplicate: true, transactionId }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     
     // Registrar el pago en Netlify Blobs como completado y pagado
     const producto = sessionMetadata?.producto
