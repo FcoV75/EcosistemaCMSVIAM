@@ -27,7 +27,7 @@ MARGEN_INTRO_LETRA = 15.0
 MARGEN_OUTRO_LETRA = 12.0
 MARCA_AGUA_TEXTO = "IAVIAM VIDEO_DIAMANTE"
 TAM_MARCA_AGUA = 22
-MAX_PALABRAS_LINEA_KARAOKE = 14
+MAX_PALABRAS_LINEA_KARAOKE = 10
 PADDING_FONDO = 8
 TAM_MINIMO_FUENTE = 72
 
@@ -51,8 +51,11 @@ def _resolver_ruta_fuente():
     global _FUENTE_RUTA
     if _FUENTE_RUTA:
         return _FUENTE_RUTA
-    local = os.path.join(os.path.dirname(__file__), "assets", "fonts", "DejaVuSans-Bold.ttf")
-    candidatos = [local]
+    base = os.path.dirname(os.path.abspath(__file__))
+    candidatos = [
+        os.path.join(base, "assets", "fonts", "DejaVuSans-Bold.ttf"),
+        os.path.join(base, "Assets", "fonts", "DejaVuSans-Bold.ttf"),
+    ]
     for pattern in (
         "/usr/share/fonts/**/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/**/DejaVuSans.ttf",
@@ -67,8 +70,22 @@ def _resolver_ruta_fuente():
             _FUENTE_RUTA = ruta
             print(f"Fuente UTF-8: {ruta}")
             return ruta
-    print("Aviso: fuente TTF no encontrada, acentos pueden fallar.")
+    print("ERROR: fuente TTF no encontrada — el texto saldrá minúsculo y sin acentos.")
     return None
+
+
+def _reparar_mojibake(texto):
+    """UTF-8 mal leído como Latin-1: 'mÃ¡s' → 'más', 'atenciÃ³n' → 'atención'."""
+    if not texto or not re.search(r"[Ãâï¿½]", texto):
+        return texto
+    for codec in ("utf-8", "cp1252"):
+        try:
+            reparado = texto.encode("latin-1").decode(codec)
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            continue
+        if reparado and "\ufffd" not in reparado:
+            return reparado
+    return texto
 
 
 def _normalizar_texto(texto):
@@ -76,6 +93,7 @@ def _normalizar_texto(texto):
         return ""
     if not isinstance(texto, str):
         texto = str(texto)
+    texto = _reparar_mojibake(texto)
     texto = unicodedata.normalize("NFC", texto)
     texto = texto.replace("\ufffd", "")
     texto = re.sub(r"[\u200b-\u200d\ufeff]", "", texto)
@@ -103,21 +121,46 @@ def _fuente_pillow(tamano):
             _FUENTE_CACHE[tamano] = font
             return font
         except Exception as e:
-            print(f"Aviso cargando fuente {ruta}: {e}")
+            print(f"Aviso cargando fuente {ruta} @ {tamano}px: {e}")
+    print(f"Aviso: usando fuente por defecto (pequeña) para tamaño {tamano}px")
     font = ImageFont.load_default()
     _FUENTE_CACHE[tamano] = font
     return font
 
 
-def _ajustar_tamano_fuente(draw, texto, tam_inicial, max_ancho):
+def _partir_texto_en_lineas(texto, draw, tamano, max_ancho, max_lineas=4):
+    palabras = texto.split()
+    if not palabras:
+        return texto
+    font = _fuente_pillow(tamano)
+    lineas, actual = [], []
+    for i, palabra in enumerate(palabras):
+        prueba = " ".join(actual + [palabra])
+        bbox = draw.textbbox((0, 0), prueba, font=font)
+        if bbox[2] - bbox[0] <= max_ancho or not actual:
+            actual.append(palabra)
+            continue
+        lineas.append(" ".join(actual))
+        if len(lineas) >= max_lineas:
+            sobrantes = [palabra] + palabras[i + 1:]
+            lineas[-1] = lineas[-1] + " " + " ".join(sobrantes)
+            return "\n".join(lineas[:max_lineas])
+        actual = [palabra]
+    if actual:
+        lineas.append(" ".join(actual))
+    return "\n".join(lineas[:max_lineas])
+
+
+def _ajustar_tamano_fuente(draw, texto, tam_inicial, max_ancho, min_ratio=0.88):
+    """Reduce como mucho ~12% — antes encogía hasta la mitad y anulaba la escala XXL/L."""
     tam = tam_inicial
-    piso = max(TAM_MINIMO_FUENTE, tam_inicial // 2)
+    piso = max(28, int(tam_inicial * min_ratio))
     while tam >= piso:
         font = _fuente_pillow(tam)
         bbox = draw.textbbox((0, 0), texto, font=font)
         if bbox[2] - bbox[0] <= max_ancho:
             return font, tam
-        tam -= 4
+        tam -= 2
     return _fuente_pillow(piso), piso
 
 
@@ -135,12 +178,27 @@ def _dibujar_texto_fondo_ajustado(img_bgr, texto, x, y, tamano, color_texto, col
     overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
-    if multilinea:
-        font, tam = _ajustar_tamano_fuente(draw, texto.split("\n")[0], tamano, WIDTH - 80)
+    max_ancho = WIDTH - 100
+    if multilinea or anchor_center:
+        if "\n" not in texto:
+            texto = _partir_texto_en_lineas(texto, draw, tamano, max_ancho, max_lineas=5)
+        multilinea = True
+        font, tam = _ajustar_tamano_fuente(draw, texto.split("\n")[0], tamano, max_ancho)
         bbox = draw.multiline_textbbox((0, 0), texto, font=font, align="center")
     else:
-        font, tam = _ajustar_tamano_fuente(draw, texto, tamano, WIDTH - 80)
-        bbox = draw.textbbox((0, 0), texto, font=font)
+        if len(texto) > 28:
+            envuelto = _partir_texto_en_lineas(texto, draw, tamano, max_ancho, max_lineas=3)
+            if "\n" in envuelto:
+                texto = envuelto
+                multilinea = True
+                font, tam = _ajustar_tamano_fuente(draw, texto.split("\n")[0], tamano, max_ancho)
+                bbox = draw.multiline_textbbox((0, 0), texto, font=font, align="center")
+            else:
+                font, tam = _ajustar_tamano_fuente(draw, texto, tamano, max_ancho)
+                bbox = draw.textbbox((0, 0), texto, font=font)
+        else:
+            font, tam = _ajustar_tamano_fuente(draw, texto, tamano, max_ancho)
+            bbox = draw.textbbox((0, 0), texto, font=font)
 
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     if anchor_center:
@@ -197,10 +255,14 @@ def _linea_karaoke_activa(palabras, segundo_actual):
     if not lineas:
         return [], -1
     for linea in lineas:
-        fin_linea = linea[-1]["end"] + 0.35
+        fin_linea = linea[-1]["end"] + 0.25
         if linea[0]["start"] <= segundo_actual <= fin_linea:
             idx = -1
             for i, p in enumerate(linea):
+                fin_palabra = p["end"] + 0.06
+                if p["start"] <= segundo_actual <= fin_palabra:
+                    idx = i
+                    break
                 if segundo_actual >= p["start"]:
                     idx = i
             return linea, idx
@@ -226,7 +288,7 @@ def _dibujar_karaoke(img_bgr, palabras_visibles, palabra_actual_idx, y_base, tam
 
     partes = [_normalizar_texto(p["text"]) for p in palabras_visibles]
     linea = " ".join(partes)
-    font, tam = _ajustar_tamano_fuente(draw, linea, tamano, WIDTH - 60)
+    font, tam = _ajustar_tamano_fuente(draw, linea, tamano, WIDTH - 80)
     bbox = draw.textbbox((0, 0), linea, font=font)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     px = (WIDTH - tw) // 2

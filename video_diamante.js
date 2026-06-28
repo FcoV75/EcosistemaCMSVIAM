@@ -905,9 +905,12 @@ async function transcribirAudio() {
         letraSegmentos = Array.isArray(d.segmentos) ? d.segmentos : [];
         letraPalabras = Array.isArray(d.palabras) ? d.palabras : [];
         if (status) {
-            status.textContent = letraPalabras.length
-                ? `Letra lista (${letraPalabras.length} palabras sincronizadas) — edítala y pulsa Guardar.`
-                : "Letra lista — edítala y pulsa Guardar.";
+            const syncMsg = d.sync_real
+                ? `Letra lista (${letraPalabras.length} palabras con sync real de la voz) — edítala y pulsa Guardar.`
+                : letraPalabras.length
+                    ? `Letra lista (${letraPalabras.length} palabras, sync aproximado) — vuelve a transcribir si el karaoke se desfasa.`
+                    : "Letra lista — edítala y pulsa Guardar.";
+            status.textContent = syncMsg;
         }
     } catch (e) {
         const msg = humanizarErrorTranscripcion(e.message);

@@ -96,6 +96,29 @@ def _parsear_json_form(valor, default):
         return default
 
 
+def _reparar_mojibake(texto):
+    if not texto or not isinstance(texto, str):
+        return texto or ""
+    if not re.search(r"[Ãâï¿½]", texto):
+        return texto
+    for codec in ("utf-8", "cp1252"):
+        try:
+            reparado = texto.encode("latin-1").decode(codec)
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            continue
+        if reparado and "\ufffd" not in reparado:
+            return reparado
+    return texto
+
+
+def _normalizar_campo_texto(texto):
+    if texto is None:
+        return ""
+    if not isinstance(texto, str):
+        texto = str(texto)
+    return _reparar_mojibake(texto).strip()
+
+
 def _construir_config_desde_form(form):
     linea_tiempo = _parsear_json_form(form.get("linea_tiempo", "[]"), [])
     letra_segmentos = _parsear_json_form(form.get("letra_segmentos", "[]"), [])
@@ -110,16 +133,16 @@ def _construir_config_desde_form(form):
         "linea_tiempo": linea_tiempo,
         "ruta_portada": "",
         "ruta_cierre": "",
-        "leyenda_portada": form.get("leyenda_portada", ""),
-        "leyenda_cierre": form.get("leyenda_cierre", ""),
-        "letra_cancion": form.get("letra_cancion", ""),
+        "leyenda_portada": _normalizar_campo_texto(form.get("leyenda_portada", "")),
+        "leyenda_cierre": _normalizar_campo_texto(form.get("leyenda_cierre", "")),
+        "letra_cancion": _normalizar_campo_texto(form.get("letra_cancion", "")),
         "letra_segmentos": letra_segmentos,
         "letra_palabras": letra_palabras,
         "subtitulos_activos": form.get("subtitulos_activos", "false").lower() == "true",
         "es_premium": form.get("es_premium", "false").lower() == "true",
         "sin_marca_agua": form.get("sin_marca_agua", "false").lower() == "true",
         "escala_texto": escala_texto,
-        "nombre_pista": nombre_pista,
+        "nombre_pista": _normalizar_campo_texto(nombre_pista),
     }
 
 
@@ -138,20 +161,29 @@ def _construir_config_desde_json(body):
     except (TypeError, ValueError):
         escala_texto = 6.0
     escala_texto = max(1.0, min(6.0, escala_texto))
+    linea_tiempo_norm = []
+    for item in linea_tiempo:
+        if isinstance(item, dict):
+            copia = dict(item)
+            if "texto" in copia:
+                copia["texto"] = _normalizar_campo_texto(copia.get("texto", ""))
+            linea_tiempo_norm.append(copia)
+        else:
+            linea_tiempo_norm.append(item)
     return {
-        "linea_tiempo": linea_tiempo,
+        "linea_tiempo": linea_tiempo_norm,
         "ruta_portada": "",
         "ruta_cierre": "",
-        "leyenda_portada": body.get("leyenda_portada", ""),
-        "leyenda_cierre": body.get("leyenda_cierre", ""),
-        "letra_cancion": body.get("letra_cancion", ""),
+        "leyenda_portada": _normalizar_campo_texto(body.get("leyenda_portada", "")),
+        "leyenda_cierre": _normalizar_campo_texto(body.get("leyenda_cierre", "")),
+        "letra_cancion": _normalizar_campo_texto(body.get("letra_cancion", "")),
         "letra_segmentos": letra_segmentos,
         "letra_palabras": letra_palabras,
         "subtitulos_activos": _as_bool(body.get("subtitulos_activos")),
         "es_premium": _as_bool(body.get("es_premium")),
         "sin_marca_agua": _as_bool(body.get("sin_marca_agua")),
         "escala_texto": escala_texto,
-        "nombre_pista": body.get("nombre_pista", ""),
+        "nombre_pista": _normalizar_campo_texto(body.get("nombre_pista", "")),
     }
 
 
@@ -260,6 +292,61 @@ def _preparar_audio_groq(ruta_entrada):
     return ruta_entrada, os.path.basename(ruta_entrada), "audio/mpeg"
 
 
+def _normalizar_lista_palabras_groq(palabras):
+    out = []
+    for item in palabras or []:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("word") or item.get("text") or "").strip()
+        if not text:
+            continue
+        try:
+            inicio = float(item.get("start", 0))
+            fin = float(item.get("end", inicio + 0.2))
+        except (TypeError, ValueError):
+            continue
+        if fin <= inicio:
+            fin = inicio + 0.2
+        out.append({"start": round(inicio, 3), "end": round(fin, 3), "text": text, "word": text})
+    return out
+
+
+def _extraer_palabras_de_respuesta_groq(data):
+    directas = _normalizar_lista_palabras_groq(data.get("words"))
+    if directas:
+        return directas
+    anidadas = []
+    for seg in data.get("segments") or []:
+        anidadas.extend(_normalizar_lista_palabras_groq(seg.get("words")))
+    return anidadas
+
+
+def _palabras_desde_segmentos(segmentos):
+    palabras = []
+    for seg in segmentos or []:
+        if not isinstance(seg, dict):
+            continue
+        texto = str(seg.get("text", "")).strip()
+        if not texto:
+            continue
+        try:
+            inicio = float(seg.get("start", 0))
+            fin = float(seg.get("end", inicio + 1))
+        except (TypeError, ValueError):
+            continue
+        if fin <= inicio:
+            fin = inicio + 1.0
+        tokens = re.findall(r"\S+", texto)
+        if not tokens:
+            continue
+        paso = (fin - inicio) / len(tokens)
+        t = inicio
+        for tok in tokens:
+            palabras.append({"start": round(t, 3), "end": round(t + paso, 3), "text": tok, "word": tok})
+            t += paso
+    return palabras
+
+
 def _palabras_desde_texto(texto, duracion):
     if not texto or duracion <= 0:
         return []
@@ -324,13 +411,14 @@ def _llamar_groq_whisper(groq_key, ruta, nombre, mime, modelo, response_format, 
 
 
 def _transcribir_groq_cascada(groq_key, ruta_audio, nombre, mime, duracion):
-    """Varias estrategias: json simple primero (evita Internal Error de timestamps)."""
+    """Prioriza timestamps por palabra (Whisper verbose_json) para karaoke sincronizado."""
     estrategias = [
-        ("whisper-large-v3-turbo", "json", None),
-        ("whisper-large-v3-turbo", "verbose_json", None),
-        ("whisper-large-v3", "json", None),
-        ("whisper-large-v3", "verbose_json", None),
+        ("whisper-large-v3-turbo", "verbose_json", [("timestamp_granularities[]", "word")]),
         ("whisper-large-v3", "verbose_json", [("timestamp_granularities[]", "word")]),
+        ("whisper-large-v3-turbo", "verbose_json", None),
+        ("whisper-large-v3", "verbose_json", None),
+        ("whisper-large-v3-turbo", "json", None),
+        ("whisper-large-v3", "json", None),
     ]
     ultimo_error = "Sin respuesta de Groq"
     for modelo, fmt, extras in estrategias:
@@ -345,18 +433,24 @@ def _transcribir_groq_cascada(groq_key, ruta_audio, nombre, mime, duracion):
                 if not texto:
                     ultimo_error = "Groq respondió vacío"
                     break
-                palabras = data.get("words") or []
                 segmentos = data.get("segments") or []
+                palabras = _extraer_palabras_de_respuesta_groq(data)
+                if not palabras and segmentos:
+                    palabras = _palabras_desde_segmentos(segmentos)
                 if not palabras:
                     palabras = _palabras_desde_texto(texto, duracion)
                 if not segmentos:
                     segmentos = _segmentos_desde_texto(texto, duracion)
+                fuente = f"{modelo}/{fmt}"
+                if extras:
+                    fuente += "+words"
                 return {
                     "success": True,
                     "texto": texto,
                     "segmentos": segmentos,
                     "palabras": palabras,
-                    "fuente": f"{modelo}/{fmt}",
+                    "fuente": fuente,
+                    "sync_real": bool(_extraer_palabras_de_respuesta_groq(data)),
                 }
             ultimo_error = data.get("error", {}).get("message", str(data))
             if _error_groq_es_interno(ultimo_error) or resp.status_code >= 500:
