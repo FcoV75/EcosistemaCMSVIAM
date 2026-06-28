@@ -1408,7 +1408,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnVerificarStripe?.addEventListener("click", async () => {
         const val = stripeSessionCode?.value.trim();
         if (!val) return alert("Ingresa el ID de sesión.");
-        verificationStatus.textContent = "Verificando...";
+        verificationStatus.textContent = "Consultando Stripe...";
+        verificationStatus.style.color = "#D4AF37";
         try {
             const r = await fetch("/.netlify/functions/verify-payment", {
                 method: "POST",
@@ -1429,8 +1430,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 premiumModal?.close();
                 mostrarGraciasCompra();
             } else {
-                verificationStatus.textContent = d.error || "ID inválido";
+                const errMsg = d.error || d.detalle || "ID inválido";
+                verificationStatus.textContent = errMsg;
                 verificationStatus.style.color = "#FF3333";
+                if (/sk_test_|sk_live_|STRIPE_SECRET/i.test(errMsg)) {
+                    console.error("[Video Diamante] Config Stripe:", errMsg);
+                }
             }
         } catch {
             verificationStatus.textContent = "Error de conexión";
