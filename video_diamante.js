@@ -234,12 +234,119 @@ async function fetchRailway(endpoint, options = {}) {
     return fetch(`${RAILWAY_API}${endpoint}`, { ...options, headers, mode: "cors", credentials: "omit" });
 }
 
+async function fetchRailwayViaProxy(endpoint, options = {}) {
+    const proxyUrl = `/.netlify/functions/railway-path-proxy?path=${encodeURIComponent(endpoint)}`;
+    const isFormData = options.body instanceof FormData;
+    if (isFormData) {
+        return fetch(proxyUrl, { method: options.method || "POST", body: options.body });
+    }
+    const headers = { Accept: "application/json", ...(options.headers || {}) };
+    if (options.body) headers["Content-Type"] = "application/json";
+    return fetch(proxyUrl, {
+        method: options.method || "POST",
+        headers,
+        body: options.body
+    });
+}
+
+async function fetchRailwayPreferProxy(endpoint, options = {}) {
+    try {
+        const r = await fetchRailwayViaProxy(endpoint, options);
+        if (r.ok || r.status === 202) return r;
+        const clon = r.clone();
+        const d = await clon.json().catch(() => ({}));
+        console.warn(`Proxy ${endpoint}:`, d.error || d.detalle || r.status);
+    } catch (e) {
+        console.warn(`Proxy ${endpoint} no disponible:`, e.message);
+    }
+    return fetchRailway(endpoint, options);
+}
+
+async function comprimirImagenParaRender(file, maxW = 1280, maxH = 720, calidad = 0.85) {
+    if (!file.type.startsWith("image/")) return file;
+    if (file.size <= 900000) return file;
+    const bitmap = await createImageBitmap(file);
+    const escala = Math.min(1, maxW / bitmap.width, maxH / bitmap.height);
+    const w = Math.max(1, Math.round(bitmap.width * escala));
+    const h = Math.max(1, Math.round(bitmap.height * escala));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", calidad));
+    if (!blob) return file;
+    const nombre = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    console.info(`Imagen optimizada: ${(file.size / 1024).toFixed(0)} KB → ${(blob.size / 1024).toFixed(0)} KB`);
+    return new File([blob], nombre, { type: "image/jpeg" });
+}
+
+async function prepararArchivosRender({ audio, portada, cierre, mediaItems }) {
+    const archivos = [];
+    if (audio) archivos.push({ campo: "audio", file: audio, etiqueta: audio.name });
+    if (portada) {
+        const img = await comprimirImagenParaRender(portada);
+        archivos.push({ campo: "portada_file", file: img, etiqueta: img.name });
+    }
+    if (cierre) {
+        const img = await comprimirImagenParaRender(cierre);
+        archivos.push({ campo: "cierre_file", file: img, etiqueta: img.name });
+    }
+    for (let i = 0; i < mediaItems.length; i++) {
+        const item = mediaItems[i];
+        const campo = item.tipo === "video" ? `video_${i}` : `imagen_${i}`;
+        const file = item.tipo === "imagen" ? await comprimirImagenParaRender(item.file) : item.file;
+        archivos.push({ campo, file, etiqueta: file.name });
+    }
+    return archivos;
+}
+
+async function subirArchivoRenderSesion(uploadId, campo, file) {
+    const fd = new FormData();
+    fd.append("upload_id", uploadId);
+    fd.append("campo", campo);
+    fd.append("archivo", file, file.name || campo);
+    const r = await fetchRailwayPreferProxy("/renderizar/subir", { method: "POST", body: fd });
+    const d = await parseJsonSeguro(r);
+    if (!r.ok || !d.success) throw new Error(d.error || d.detalle || "Fallo al subir " + campo);
+    return d;
+}
+
+async function enviarRenderizadoPorPartes(meta, archivos, onProgreso) {
+    const rSesion = await fetchRailwayPreferProxy("/renderizar/sesion", { method: "POST" });
+    const sesion = await parseJsonSeguro(rSesion);
+    if (!rSesion.ok || !sesion.upload_id) {
+        throw new Error(sesion.error || sesion.detalle || "No se pudo abrir sesión de subida.");
+    }
+    const uploadId = sesion.upload_id;
+
+    for (let i = 0; i < archivos.length; i++) {
+        const { campo, file, etiqueta } = archivos[i];
+        if (onProgreso) onProgreso(`Subiendo ${i + 1}/${archivos.length}: ${etiqueta || campo}...`);
+        await subirArchivoRenderSesion(uploadId, campo, file);
+    }
+
+    if (onProgreso) onProgreso("Iniciando renderizado en Railway...");
+    const body = JSON.stringify({ upload_id: uploadId, ...meta });
+    const rInicio = await fetchRailwayPreferProxy("/renderizar/iniciar", {
+        method: "POST",
+        body
+    });
+    return { respuesta: rInicio, resultado: await parseJsonSeguro(rInicio) };
+}
+
 async function enviarRenderizado(formData) {
+    try {
+        const r = await fetchRailwayViaProxy("/renderizar", { method: "POST", body: formData });
+        if (r.ok || r.status === 202) return r;
+    } catch (e) {
+        console.warn("Proxy render monolítico:", e.message);
+    }
     try {
         const r = await fetchRailway("/renderizar", { method: "POST", body: formData });
         if (r.ok || r.status === 202) return r;
     } catch (e) {
-        console.warn("Proxy Netlify por fallo directo:", e.message);
+        console.warn("Railway render directo:", e.message);
     }
     return fetch("/.netlify/functions/render-proxy", { method: "POST", body: formData });
 }
@@ -837,7 +944,7 @@ window.generarVideo = async function () {
     const loadingBox = $("#loading-box");
     const statusText = $("#status-text");
     if (loadingBox) loadingBox.style.display = "block";
-    if (statusText) statusText.textContent = "Enviando proyecto a Railway...";
+    if (statusText) statusText.textContent = "Preparando archivos para subida...";
 
     try {
         const lista = mediaItems.map((item, index) => ({
@@ -851,30 +958,33 @@ window.generarVideo = async function () {
         const subtitulosOn = $("#chk-subtitulos")?.checked;
         const letra = $("#letra-cancion")?.value || letraGuardada || "";
 
-        const formData = new FormData();
-        formData.append("audio", audioFile);
-        formData.append("linea_tiempo", JSON.stringify(lista));
-        formData.append("leyenda_portada", $("#texto-portada")?.value || "");
-        formData.append("leyenda_cierre", $("#texto-cierre")?.value || "");
-        formData.append("letra_cancion", letra);
-        formData.append("letra_segmentos", JSON.stringify(letraSegmentos));
-        formData.append("letra_palabras", JSON.stringify(letraPalabras));
-        formData.append("subtitulos_activos", subtitulosOn ? "true" : "false");
-        formData.append("es_premium", isPremium ? "true" : "false");
-        formData.append("sin_marca_agua", (isPremium && $("#chk-sin-marca-agua")?.checked) ? "true" : "false");
-        formData.append("escala_texto", String(obtenerEscalaTexto()));
-        formData.append("nombre_pista", audioFile ? audioFile.name.replace(/\.[^.]+$/, "") : "Pista VIAM");
+        const meta = {
+            linea_tiempo: lista,
+            leyenda_portada: $("#texto-portada")?.value || "",
+            leyenda_cierre: $("#texto-cierre")?.value || "",
+            letra_cancion: letra,
+            letra_segmentos: letraSegmentos,
+            letra_palabras: letraPalabras,
+            subtitulos_activos: !!subtitulosOn,
+            es_premium: isPremium,
+            sin_marca_agua: !!(isPremium && $("#chk-sin-marca-agua")?.checked),
+            escala_texto: obtenerEscalaTexto(),
+            nombre_pista: audioFile ? audioFile.name.replace(/\.[^.]+$/, "") : "Pista VIAM"
+        };
 
-        if (portadaFile) formData.append("portada_file", portadaFile);
-        if (cierreFile) formData.append("cierre_file", cierreFile);
-
-        mediaItems.forEach((item, index) => {
-            const key = item.tipo === "video" ? `video_${index}` : `imagen_${index}`;
-            formData.append(key, item.file);
+        if (statusText) statusText.textContent = "Optimizando imágenes y audio...";
+        const archivos = await prepararArchivosRender({
+            audio: audioFile,
+            portada: portadaFile,
+            cierre: cierreFile,
+            mediaItems
         });
 
-        const respuesta = await enviarRenderizado(formData);
-        const resultado = await parseJsonSeguro(respuesta);
+        const { respuesta, resultado } = await enviarRenderizadoPorPartes(
+            meta,
+            archivos,
+            (msg) => { if (statusText) statusText.textContent = msg; }
+        );
         const estado = String(resultado.status || "").toLowerCase();
 
         if (respuesta.ok && (estado === "procesando" || respuesta.status === 202)) {

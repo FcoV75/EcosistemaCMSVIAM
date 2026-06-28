@@ -11,6 +11,12 @@
 [functions.transcribe-proxy]
   timeout = 300
 
+[functions.render-proxy]
+  timeout = 300
+
+[functions.railway-path-proxy]
+  timeout = 300
+
 [[redirects]]
   from = "/video_diamante"
   to = "/video_diamante.html"

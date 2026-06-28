@@ -47,6 +47,142 @@ UPLOAD_FOLDER = "/tmp/viam_uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ESTADO_RENDER = {"status": "libre", "detalle": "Esperando proyecto..."}
+RENDER_SESIONES = {}
+SESION_RENDER_TTL = 3600
+
+
+def _limpiar_sesiones_render():
+    ahora = time.time()
+    for sid in list(RENDER_SESIONES.keys()):
+        if ahora - RENDER_SESIONES[sid].get("created", 0) > SESION_RENDER_TTL:
+            carpeta = RENDER_SESIONES[sid].get("dir")
+            if carpeta and os.path.isdir(carpeta):
+                shutil.rmtree(carpeta, ignore_errors=True)
+            del RENDER_SESIONES[sid]
+
+
+def _iniciar_render_core(config_data, audio_path):
+    global ESTADO_RENDER
+    if ESTADO_RENDER["status"] == "procesando":
+        return {"message": "Hay un proceso de renderizado en curso.", "status": "procesando"}, 202
+
+    if ESTADO_RENDER["status"] in ("error", "listo"):
+        ESTADO_RENDER = {"status": "libre", "detalle": "Preparando nuevo proyecto..."}
+
+    video_final_path = "/tmp/video_viam_output.mp4"
+    if os.path.exists(video_final_path):
+        try:
+            os.remove(video_final_path)
+        except Exception:
+            pass
+
+    config_json_path = os.path.join(UPLOAD_FOLDER, "render_config.json")
+    with open(config_json_path, "w", encoding="utf-8") as f:
+        json.dump(config_data, f, ensure_ascii=False)
+
+    hilo = threading.Thread(target=hilo_renderizador, args=(config_json_path, audio_path, video_final_path))
+    hilo.start()
+    return {"message": "Iniciado correctamente.", "status": "procesando"}, 200
+
+
+def _parsear_json_form(valor, default):
+    try:
+        if isinstance(valor, str):
+            parsed = json.loads(valor)
+        else:
+            parsed = valor
+        return parsed if isinstance(parsed, type(default)) else default
+    except Exception:
+        return default
+
+
+def _construir_config_desde_form(form):
+    linea_tiempo = _parsear_json_form(form.get("linea_tiempo", "[]"), [])
+    letra_segmentos = _parsear_json_form(form.get("letra_segmentos", "[]"), [])
+    letra_palabras = _parsear_json_form(form.get("letra_palabras", "[]"), [])
+    try:
+        escala_texto = float(form.get("escala_texto", "6"))
+    except (TypeError, ValueError):
+        escala_texto = 6.0
+    escala_texto = max(1.0, min(6.0, escala_texto))
+    nombre_pista = form.get("nombre_pista", "")
+    return {
+        "linea_tiempo": linea_tiempo,
+        "ruta_portada": "",
+        "ruta_cierre": "",
+        "leyenda_portada": form.get("leyenda_portada", ""),
+        "leyenda_cierre": form.get("leyenda_cierre", ""),
+        "letra_cancion": form.get("letra_cancion", ""),
+        "letra_segmentos": letra_segmentos,
+        "letra_palabras": letra_palabras,
+        "subtitulos_activos": form.get("subtitulos_activos", "false").lower() == "true",
+        "es_premium": form.get("es_premium", "false").lower() == "true",
+        "sin_marca_agua": form.get("sin_marca_agua", "false").lower() == "true",
+        "escala_texto": escala_texto,
+        "nombre_pista": nombre_pista,
+    }
+
+
+def _as_bool(val):
+    if isinstance(val, bool):
+        return val
+    return str(val).lower() in ("true", "1", "yes")
+
+
+def _construir_config_desde_json(body):
+    linea_tiempo = _parsear_json_form(body.get("linea_tiempo", []), [])
+    letra_segmentos = _parsear_json_form(body.get("letra_segmentos", []), [])
+    letra_palabras = _parsear_json_form(body.get("letra_palabras", []), [])
+    try:
+        escala_texto = float(body.get("escala_texto", 6))
+    except (TypeError, ValueError):
+        escala_texto = 6.0
+    escala_texto = max(1.0, min(6.0, escala_texto))
+    return {
+        "linea_tiempo": linea_tiempo,
+        "ruta_portada": "",
+        "ruta_cierre": "",
+        "leyenda_portada": body.get("leyenda_portada", ""),
+        "leyenda_cierre": body.get("leyenda_cierre", ""),
+        "letra_cancion": body.get("letra_cancion", ""),
+        "letra_segmentos": letra_segmentos,
+        "letra_palabras": letra_palabras,
+        "subtitulos_activos": _as_bool(body.get("subtitulos_activos")),
+        "es_premium": _as_bool(body.get("es_premium")),
+        "sin_marca_agua": _as_bool(body.get("sin_marca_agua")),
+        "escala_texto": escala_texto,
+        "nombre_pista": body.get("nombre_pista", ""),
+    }
+
+
+def _asignar_archivos_a_config(config_data, files_map, audio_path_default=""):
+    audio_path = audio_path_default
+    for campo, ruta in files_map.items():
+        if campo == "audio":
+            audio_path = ruta
+        elif campo == "portada_file":
+            config_data["ruta_portada"] = ruta
+        elif campo == "cierre_file":
+            config_data["ruta_cierre"] = ruta
+        elif campo.startswith("imagen_") or campo.startswith("video_"):
+            try:
+                indice = int(campo.split("_")[1])
+                tipo = "video" if campo.startswith("video_") else "imagen"
+                while len(config_data["linea_tiempo"]) <= indice:
+                    config_data["linea_tiempo"].append({
+                        "id": len(config_data["linea_tiempo"]),
+                        "texto": "",
+                        "duracion": 5.0,
+                        "tipo": "imagen",
+                    })
+                config_data["linea_tiempo"][indice]["ruta"] = ruta
+                config_data["linea_tiempo"][indice]["tipo"] = tipo
+            except Exception as exc:
+                print(f"Aviso asignando {campo}: {exc}")
+    if not config_data.get("nombre_pista") and audio_path:
+        config_data["nombre_pista"] = os.path.splitext(os.path.basename(audio_path))[0]
+    return audio_path
+
 
 def hilo_renderizador(config_path, audio_path, output_path):
     global ESTADO_RENDER
@@ -372,26 +508,71 @@ def estudio_generar_imagen():
     return jsonify({"error": "No se pudo generar la imagen."}), 502
 
 
+@app.route('/renderizar/sesion', methods=['POST', 'OPTIONS'])
+def crear_sesion_render():
+    if request.method == 'OPTIONS':
+        return '', 200
+    import uuid
+    _limpiar_sesiones_render()
+    sid = uuid.uuid4().hex[:16]
+    carpeta = os.path.join(UPLOAD_FOLDER, f"sesion_{sid}")
+    os.makedirs(carpeta, exist_ok=True)
+    RENDER_SESIONES[sid] = {"created": time.time(), "dir": carpeta, "files": {}}
+    return jsonify({"success": True, "upload_id": sid})
+
+
+@app.route('/renderizar/subir', methods=['POST', 'OPTIONS'])
+def subir_archivo_render():
+    if request.method == 'OPTIONS':
+        return '', 200
+    sid = str(request.form.get("upload_id", "")).strip()
+    campo = str(request.form.get("campo", "")).strip()
+    if not sid or sid not in RENDER_SESIONES:
+        return jsonify({"error": "Sesión de subida inválida o expirada."}), 400
+    if not re.match(r"^[a-zA-Z0-9_]+$", campo):
+        return jsonify({"error": "Nombre de campo inválido."}), 400
+    archivo = request.files.get("archivo")
+    if not archivo or not archivo.filename:
+        return jsonify({"error": "No se recibió archivo."}), 400
+
+    sesion = RENDER_SESIONES[sid]
+    ext = os.path.splitext(archivo.filename)[1].lower() or ".bin"
+    ruta = os.path.join(sesion["dir"], f"{campo}{ext}")
+    archivo.save(ruta)
+    sesion["files"][campo] = ruta
+    return jsonify({
+        "success": True,
+        "campo": campo,
+        "bytes": os.path.getsize(ruta),
+    })
+
+
+@app.route('/renderizar/iniciar', methods=['POST', 'OPTIONS'])
+def iniciar_render_sesion():
+    if request.method == 'OPTIONS':
+        return '', 200
+    body = request.get_json(silent=True) or {}
+    sid = str(body.get("upload_id", "")).strip()
+    if not sid or sid not in RENDER_SESIONES:
+        return jsonify({"error": "Sesión inválida o expirada."}), 400
+    try:
+        sesion = RENDER_SESIONES.pop(sid)
+        config_data = _construir_config_desde_json(body)
+        audio_path = _asignar_archivos_a_config(config_data, sesion["files"])
+        if not audio_path or not os.path.exists(audio_path):
+            return jsonify({"error": "Falta el archivo de audio en la sesión."}), 400
+        payload, code = _iniciar_render_core(config_data, audio_path)
+        return jsonify(payload), code
+    except Exception as exc:
+        return jsonify({"error": "No se pudo iniciar el renderizado", "detalle": str(exc)}), 500
+
+
 @app.route('/renderizar', methods=['POST', 'OPTIONS'])
 def renderizar():
     if request.method == 'OPTIONS':
         return '', 200
-        
-    global ESTADO_RENDER
-    if ESTADO_RENDER["status"] == "procesando":
-        return jsonify({"message": "Hay un proceso de renderizado en curso.", "status": "procesando"}), 202
-
-    # Permite reintentar tras un error previo
-    if ESTADO_RENDER["status"] in ("error", "listo"):
-        ESTADO_RENDER = {"status": "libre", "detalle": "Preparando nuevo proyecto..."}
 
     try:
-        video_final_path = "/tmp/video_viam_output.mp4"
-        if os.path.exists(video_final_path):
-            try: os.remove(video_final_path)
-            except: pass
-
-        # 1. Guardar Audio temporal
         audio_file = request.files.get('audio')
         audio_path = os.path.join(UPLOAD_FOLDER, "audio_temp.mp3")
         if audio_file:
@@ -399,65 +580,9 @@ def renderizar():
         else:
             audio_path = ""
 
-        # 2. Capturar y validar la línea de tiempo de forma ultra-segura
-        linea_tiempo_raw = request.form.get('linea_tiempo', '[]')
-        
-        # Procesamos el JSON asegurándonos de que termine como una lista de Python
-        try:
-            if isinstance(linea_tiempo_raw, str):
-                linea_tiempo_procesada = json.loads(linea_tiempo_raw)
-            else:
-                linea_tiempo_procesada = linea_tiempo_raw
-                
-            if not isinstance(linea_tiempo_procesada, list):
-                linea_tiempo_procesada = []
-        except:
-            linea_tiempo_procesada = []
-
-        leyenda_portada = request.form.get('leyenda_portada', '')
-        leyenda_cierre = request.form.get('leyenda_cierre', '')
-        letra_cancion = request.form.get('letra_cancion', '')
-        letra_segmentos_raw = request.form.get('letra_segmentos', '[]')
-        try:
-            letra_segmentos = json.loads(letra_segmentos_raw) if isinstance(letra_segmentos_raw, str) else letra_segmentos_raw
-            if not isinstance(letra_segmentos, list):
-                letra_segmentos = []
-        except Exception:
-            letra_segmentos = []
-        letra_palabras_raw = request.form.get('letra_palabras', '[]')
-        try:
-            letra_palabras = json.loads(letra_palabras_raw) if isinstance(letra_palabras_raw, str) else letra_palabras_raw
-            if not isinstance(letra_palabras, list):
-                letra_palabras = []
-        except Exception:
-            letra_palabras = []
-        subtitulos_activos = request.form.get('subtitulos_activos', 'false').lower() == 'true'
-        es_premium = request.form.get('es_premium', 'false').lower() == 'true'
-        sin_marca_agua = request.form.get('sin_marca_agua', 'false').lower() == 'true'
-        try:
-            escala_texto = float(request.form.get('escala_texto', '6'))
-        except (TypeError, ValueError):
-            escala_texto = 6.0
-        escala_texto = max(1.0, min(6.0, escala_texto))
-        nombre_pista = request.form.get('nombre_pista', '')
-        if not nombre_pista and audio_file and audio_file.filename:
-            nombre_pista = os.path.splitext(os.path.basename(audio_file.filename))[0]
-
-        config_data = {
-            "linea_tiempo": linea_tiempo_procesada,
-            "ruta_portada": "",
-            "ruta_cierre": "",
-            "leyenda_portada": leyenda_portada,
-            "leyenda_cierre": leyenda_cierre,
-            "letra_cancion": letra_cancion,
-            "letra_segmentos": letra_segmentos,
-            "letra_palabras": letra_palabras,
-            "subtitulos_activos": subtitulos_activos,
-            "es_premium": es_premium,
-            "sin_marca_agua": sin_marca_agua,
-            "escala_texto": escala_texto,
-            "nombre_pista": nombre_pista
-        }
+        config_data = _construir_config_desde_form(request.form)
+        if not config_data.get("nombre_pista") and audio_file and audio_file.filename:
+            config_data["nombre_pista"] = os.path.splitext(os.path.basename(audio_file.filename))[0]
 
         def guardar_archivo(file_storage, prefijo, extension_default):
             nombre_orig = file_storage.filename or prefijo
@@ -474,8 +599,12 @@ def renderizar():
         if cierre_file and cierre_file.filename:
             config_data["ruta_cierre"] = guardar_archivo(cierre_file, "cierre_temp", ".jpg")
 
+        files_map = {}
+        if audio_path:
+            files_map["audio"] = audio_path
+
         for key in request.files:
-            if key.startswith("imagen_"):
+            if key.startswith("imagen_") or key.startswith("video_"):
                 try:
                     indice = int(key.split("_")[1])
                     media_file = request.files[key]
@@ -483,50 +612,20 @@ def renderizar():
                     extension = os.path.splitext(nombre_orig)[1].lower() or ".jpg"
                     if extension in (".mp4", ".mov", ".webm", ".avi"):
                         media_path = os.path.join(UPLOAD_FOLDER, f"video_{indice}_temp{extension}")
-                        tipo = "video"
                     else:
                         if extension not in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
                             extension = ".jpg"
                         media_path = os.path.join(UPLOAD_FOLDER, f"img_{indice}_temp{extension}")
-                        tipo = "imagen"
                     media_file.save(media_path)
-                    while len(config_data["linea_tiempo"]) <= indice:
-                        config_data["linea_tiempo"].append({
-                            "id": len(config_data["linea_tiempo"]), "texto": "", "duracion": 5.0, "tipo": "imagen"
-                        })
-                    config_data["linea_tiempo"][indice]["ruta"] = media_path
-                    config_data["linea_tiempo"][indice]["tipo"] = tipo
-                except Exception as error_img:
-                    print(f"Aviso procesando media {key}: {error_img}")
+                    files_map[key] = media_path
+                except Exception as error_media:
+                    print(f"Aviso procesando media {key}: {error_media}")
 
-            elif key.startswith("video_"):
-                try:
-                    indice = int(key.split("_")[1])
-                    media_file = request.files[key]
-                    extension = os.path.splitext(media_file.filename or "")[1].lower() or ".mp4"
-                    media_path = os.path.join(UPLOAD_FOLDER, f"video_{indice}_temp{extension}")
-                    media_file.save(media_path)
-                    while len(config_data["linea_tiempo"]) <= indice:
-                        config_data["linea_tiempo"].append({
-                            "id": len(config_data["linea_tiempo"]), "texto": "", "duracion": 5.0, "tipo": "video"
-                        })
-                    config_data["linea_tiempo"][indice]["ruta"] = media_path
-                    config_data["linea_tiempo"][indice]["tipo"] = "video"
-                except Exception as error_vid:
-                    print(f"Aviso procesando video {key}: {error_vid}")
+        _asignar_archivos_a_config(config_data, files_map, audio_path)
+        payload, code = _iniciar_render_core(config_data, audio_path)
+        return jsonify(payload), code
 
-        config_json_path = os.path.join(UPLOAD_FOLDER, "render_config.json")
-        with open(config_json_path, "w", encoding="utf-8") as f:
-            json.dump(config_data, f, ensure_ascii=False)
-            
-        # Lanzamos el proceso pesado en el hilo de fondo
-        hilo = threading.Thread(target=hilo_renderizador, args=(config_json_path, audio_path, video_final_path))
-        hilo.start()
-        
-        return jsonify({"message": "Iniciado correctamente.", "status": "procesando"}), 200
-        
     except Exception as e:
-        # El servidor responde con un error 500 estructurado en vez de colapsar en silencio
         return jsonify({"error": "No se pudo iniciar el renderizado", "detalle": str(e)}), 500
 
 @app.route('/health', methods=['GET'])
