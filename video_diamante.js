@@ -540,6 +540,93 @@ function formatearLetraDesdeSegmentos(segmentos, textoPlano) {
     return textoPlano || "";
 }
 
+function humanizarErrorTranscripcion(msg) {
+    const m = String(msg || "");
+    if (/GROQ_API_KEY/i.test(m)) {
+        return "El servicio de transcripción IA no está configurado en el servidor (falta GROQ_API_KEY en Railway y Netlify). Contacta al administrador del ecosistema.";
+    }
+    if (/internal error/i.test(m)) {
+        return "El proveedor de IA respondió con error interno. Espera unos segundos e intenta de nuevo. Si persiste, verifica que GROQ_API_KEY esté activa en Railway y Netlify.";
+    }
+    return m || "Transcripción fallida";
+}
+
+function floatAInt16(float32Array) {
+    const int16 = new Int16Array(float32Array.length);
+    for (let i = 0; i < float32Array.length; i++) {
+        const s = Math.max(-1, Math.min(1, float32Array[i]));
+        int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+    }
+    return int16;
+}
+
+function nombreBaseSinExtension(nombre) {
+    return String(nombre || "pista").replace(/\.[^.]+$/, "");
+}
+
+function necesitaConversionMp3(file) {
+    const ext = (file.name || "").split(".").pop().toLowerCase();
+    if (["wav", "wave", "aiff", "aif", "flac"].includes(ext)) return true;
+    if (file.size > 8 * 1024 * 1024) return true;
+    return false;
+}
+
+async function decodificarArchivoAudio(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const ctx = new AudioContext();
+    try {
+        return await ctx.decodeAudioData(arrayBuffer.slice(0));
+    } finally {
+        await ctx.close();
+    }
+}
+
+async function convertirAudioAMp3(file, kbps = 128) {
+    if (typeof lamejs === "undefined" || !lamejs.Mp3Encoder) {
+        throw new Error("Motor MP3 no cargado. Recarga la página (Ctrl+F5).");
+    }
+    const audioBuffer = await decodificarArchivoAudio(file);
+    const sampleRate = 44100;
+    const canales = audioBuffer.numberOfChannels >= 2 ? 2 : 1;
+    const offline = new OfflineAudioContext(
+        canales,
+        Math.max(1, Math.ceil(audioBuffer.duration * sampleRate)),
+        sampleRate
+    );
+    const src = offline.createBufferSource();
+    src.buffer = audioBuffer;
+    src.connect(offline.destination);
+    src.start(0);
+    const rendered = await offline.startRendering();
+
+    const mp3encoder = new lamejs.Mp3Encoder(canales, sampleRate, kbps);
+    const bloque = 1152;
+    const mp3Chunks = [];
+
+    if (canales === 1) {
+        const mono = floatAInt16(rendered.getChannelData(0));
+        for (let i = 0; i < mono.length; i += bloque) {
+            const buf = mp3encoder.encodeBuffer(mono.subarray(i, i + bloque));
+            if (buf.length > 0) mp3Chunks.push(buf);
+        }
+    } else {
+        const izq = floatAInt16(rendered.getChannelData(0));
+        const der = floatAInt16(rendered.getChannelData(1));
+        for (let i = 0; i < izq.length; i += bloque) {
+            const buf = mp3encoder.encodeBuffer(
+                izq.subarray(i, i + bloque),
+                der.subarray(i, i + bloque)
+            );
+            if (buf.length > 0) mp3Chunks.push(buf);
+        }
+    }
+    const fin = mp3encoder.flush();
+    if (fin.length > 0) mp3Chunks.push(fin);
+
+    const blob = new Blob(mp3Chunks, { type: "audio/mpeg" });
+    return new File([blob], `${nombreBaseSinExtension(file.name)}.mp3`, { type: "audio/mpeg" });
+}
+
 function escribirCadenaWav(view, offset, str) {
     for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
 }
@@ -574,14 +661,7 @@ async function comprimirAudioParaIA(file) {
     const esComprimido = /\.(mp3|m4a|ogg|webm)$/i.test(file.name || "");
     if (esComprimido && file.size <= 4 * 1024 * 1024) return file;
 
-    const arrayBuffer = await file.arrayBuffer();
-    const ctx = new AudioContext();
-    let audioBuffer;
-    try {
-        audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-    } finally {
-        await ctx.close();
-    }
+    const audioBuffer = await decodificarArchivoAudio(file);
 
     const targetRate = 16000;
     const offline = new OfflineAudioContext(
@@ -639,7 +719,7 @@ async function transcribirConGroq(audioFile) {
         }
     }
 
-    throw new Error(ultimoError);
+    throw new Error(humanizarErrorTranscripcion(ultimoError));
 }
 
 async function transcribirAudio() {
@@ -663,8 +743,9 @@ async function transcribirAudio() {
                 : "Letra lista — edítala y pulsa Guardar.";
         }
     } catch (e) {
-        if (status) status.textContent = "Error: " + e.message;
-        alert("No se pudo transcribir: " + e.message);
+        const msg = humanizarErrorTranscripcion(e.message);
+        if (status) status.textContent = "Error: " + msg;
+        alert("No se pudo transcribir: " + msg);
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = "🎙️ Transcribir con IA"; }
     }
@@ -808,12 +889,14 @@ window.generarVideo = async function () {
     }
 };
 
-function actualizarAvisoAudio() {
+function actualizarAvisoAudio(extra = "") {
     const st = $("#status-audio");
     if (!st || !audioFile) return;
     const lim = limitesActuales();
     const seg = Math.ceil(audioDuracionEst);
-    let texto = `🎵 ${audioFile.name} (${seg}s · ${formatoDuracion(audioDuracionEst)} min)`;
+    const mb = (audioFile.size / (1024 * 1024)).toFixed(1);
+    let texto = `🎵 ${audioFile.name} (${seg}s · ${formatoDuracion(audioDuracionEst)} min · ${mb} MB)`;
+    if (extra) texto += ` · ${extra}`;
     if (!isPremium && audioDuracionEst > lim.maxSeg) {
         texto += ` — supera el límite gratuito (${formatoDuracion(lim.maxSeg)} min)`;
         st.style.color = "#FF6B6B";
@@ -824,9 +907,34 @@ function actualizarAvisoAudio() {
 }
 
 async function cargarAudio(file) {
-    audioFile = file;
-    audioDuracionEst = await estimarDuracionAudio(file);
-    actualizarAvisoAudio();
+    const st = $("#status-audio");
+    if (st) {
+        st.textContent = "Analizando audio...";
+        st.style.color = "#00FFCC";
+    }
+
+    let finalFile = file;
+    let notaConversion = "";
+
+    if (necesitaConversionMp3(file)) {
+        const mbEntrada = (file.size / (1024 * 1024)).toFixed(1);
+        if (st) st.textContent = `Convirtiendo ${file.name} (${mbEntrada} MB) a MP3...`;
+        try {
+            finalFile = await convertirAudioAMp3(file);
+            const mbSalida = (finalFile.size / (1024 * 1024)).toFixed(1);
+            notaConversion = `convertido de ${mbEntrada} MB a MP3 ${mbSalida} MB`;
+            console.info(`WAV/audio pesado → MP3: ${mbEntrada} MB → ${mbSalida} MB`);
+        } catch (e) {
+            alert("No se pudo convertir el audio a MP3: " + e.message);
+            if (st) st.textContent = "Error al convertir audio.";
+            st.style.color = "#FF6B6B";
+            return;
+        }
+    }
+
+    audioFile = finalFile;
+    audioDuracionEst = await estimarDuracionAudio(finalFile);
+    actualizarAvisoAudio(notaConversion);
     const sec = $("#seccion-subtitulos");
     if (sec) sec.style.display = "block";
 }

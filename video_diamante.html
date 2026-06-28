@@ -266,6 +266,17 @@
         }
         .hint-tipografia { font-size: 0.82rem; color: #BCB4B4; margin-top: 8px; }
         .badge-estudio { font-size: 0.8rem; color: #00FFCC; display: block; margin-top: 6px; }
+        .aviso-formato-audio {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.45);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            color: #E8DDB5;
+            margin-bottom: 10px;
+            line-height: 1.45;
+        }
+        .aviso-formato-audio strong { color: var(--color-dorado-cabecera); }
     </style>
     <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
 </head>
@@ -305,9 +316,14 @@
 
         <div class="seccion-panel">
             <h2>🎵 Audio Principal (arrastra desde tu explorador)</h2>
+            <div class="aviso-formato-audio">
+                <strong>Formato recomendado: MP3</strong> — más ligero y estable para transcripción IA y renderizado.
+                Si subes <strong>WAV, FLAC o AIFF</strong>, Video Diamante lo convierte automáticamente a MP3 en tu navegador
+                (sin subir el archivo pesado tal cual). También aceptamos M4A y OGG.
+            </div>
             <div id="zona-audio" class="zona-drop">
-                <label class="btn-viam-subir" for="input-audio-real">Seleccionar audio (MP3, WAV, M4A, OGG)</label>
-                <input type="file" id="input-audio-real" class="input-archivo-oculto" accept="audio/*">
+                <label class="btn-viam-subir" for="input-audio-real">Seleccionar audio (MP3 recomendado)</label>
+                <input type="file" id="input-audio-real" class="input-archivo-oculto" accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/ogg,audio/*">
                 <span id="status-audio" class="status-archivo">Ningún audio seleccionado</span>
             </div>
         </div>
@@ -456,6 +472,7 @@
         <button type="button" class="btn-viam-subir" id="btn-verificar-stripe" style="background:#D4AF37;color:#111;">Activar Licencia</button>
     </dialog>
 
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
     <script src="/Assets/ecosistema-banner.js" defer></script>
     <script src="video_diamante.js"></script>
 </body>
