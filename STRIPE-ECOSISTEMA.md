@@ -43,7 +43,10 @@
 ```
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...        # del webhook payment-webhook
-VIDEO_DIAMANTE_OWNER_CODES=CMS-XXXXXX  # propietario: acceso Premium permanente (sin caducidad)
+VIDEO_DIAMANTE_OWNER_CODES=CMS-XXXXXX  # propietario Video Diamante (permanente)
+SINCRONIA_NEXUS_OWNER_CODES=CMS-XXXXXX # propietario Santuario Nexus (permanente)
+# Opcional: un solo código para todo el ecosistema
+ECOSISTEMA_OWNER_CODES=CMS-XXXXXX
 ```
 
 Opcional (precios fijos en catálogo Stripe):

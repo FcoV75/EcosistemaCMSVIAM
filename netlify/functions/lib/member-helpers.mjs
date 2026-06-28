@@ -1,13 +1,13 @@
-function envOwnerCodes() {
+function envCodes(varName) {
   let raw = '';
   try {
     if (typeof Netlify !== 'undefined' && Netlify.env?.get) {
-      raw = Netlify.env.get('VIDEO_DIAMANTE_OWNER_CODES') || '';
+      raw = Netlify.env.get(varName) || '';
     }
   } catch {
     /* ignore */
   }
-  if (!raw) raw = process.env.VIDEO_DIAMANTE_OWNER_CODES || '';
+  if (!raw) raw = process.env[varName] || '';
   return new Set(
     String(raw)
       .split(',')
@@ -16,9 +16,39 @@ function envOwnerCodes() {
   );
 }
 
+function allOwnerCodes() {
+  const merged = new Set();
+  for (const code of envCodes('ECOSISTEMA_OWNER_CODES')) merged.add(code);
+  for (const code of envCodes('VIDEO_DIAMANTE_OWNER_CODES')) merged.add(code);
+  for (const code of envCodes('SINCRONIA_NEXUS_OWNER_CODES')) merged.add(code);
+  return merged;
+}
+
+function nexusOwnerCodes() {
+  const merged = new Set(allOwnerCodes());
+  for (const code of envCodes('SINCRONIA_NEXUS_OWNER_CODES')) merged.add(code);
+  return merged;
+}
+
+function videoOwnerCodes() {
+  const merged = new Set(allOwnerCodes());
+  for (const code of envCodes('VIDEO_DIAMANTE_OWNER_CODES')) merged.add(code);
+  return merged;
+}
+
 export function esCodigoPropietario(code) {
   if (!code) return false;
-  return envOwnerCodes().has(String(code).trim().toUpperCase());
+  return allOwnerCodes().has(String(code).trim().toUpperCase());
+}
+
+export function esCodigoPropietarioNexus(code) {
+  if (!code) return false;
+  return nexusOwnerCodes().has(String(code).trim().toUpperCase());
+}
+
+export function esCodigoPropietarioVideoDiamante(code) {
+  if (!code) return false;
+  return videoOwnerCodes().has(String(code).trim().toUpperCase());
 }
 
 export function esMembresiaPermanente(code, memberData) {

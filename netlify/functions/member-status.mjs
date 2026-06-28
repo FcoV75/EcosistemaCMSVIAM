@@ -1,5 +1,14 @@
 import { getStore } from '@netlify/blobs';
-import { esCodigoPropietario, estadoMembresia } from './lib/member-helpers.mjs';
+import {
+  esCodigoPropietarioNexus,
+  esCodigoPropietarioVideoDiamante,
+  estadoMembresia,
+} from './lib/member-helpers.mjs';
+
+const PRODUCTO_ETIQUETA = {
+  sincronia_nexus: 'Sincronía Nexus',
+  video_diamante_premium: 'Video Diamante Premium',
+};
 
 export default async (req) => {
   if (req.method !== 'POST') {
@@ -14,9 +23,12 @@ export default async (req) => {
 
     const normalized = String(code).trim().toUpperCase();
 
-    if (esCodigoPropietario(normalized)) {
-      const estado = estadoMembresia(normalized, { producto: 'video_diamante_premium', plan: 'propietario' });
-      return Response.json(estado);
+    if (productoRequerido === 'sincronia_nexus' && esCodigoPropietarioNexus(normalized)) {
+      return Response.json(estadoMembresia(normalized, { producto: 'sincronia_nexus', plan: 'propietario' }));
+    }
+
+    if (productoRequerido === 'video_diamante_premium' && esCodigoPropietarioVideoDiamante(normalized)) {
+      return Response.json(estadoMembresia(normalized, { producto: 'video_diamante_premium', plan: 'propietario' }));
     }
 
     const store = getStore('nexus-members');
@@ -27,7 +39,8 @@ export default async (req) => {
     }
 
     if (productoRequerido && memberData.producto && memberData.producto !== productoRequerido) {
-      return Response.json({ error: 'Este código no corresponde a Video Diamante Premium.' }, { status: 403 });
+      const esperado = PRODUCTO_ETIQUETA[productoRequerido] || productoRequerido;
+      return Response.json({ error: `Este código no corresponde a ${esperado}.` }, { status: 403 });
     }
 
     return Response.json(estadoMembresia(normalized, memberData));
