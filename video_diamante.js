@@ -1155,9 +1155,8 @@ function validarProyecto() {
             return false;
         }
     } else if (audioDuracionEst > lim.maxSeg) {
-            alert("El audio supera el máximo Premium de 1 hora.");
-            return false;
-        }
+        alert("El audio supera el máximo Premium de 1 hora.");
+        return false;
     }
     return true;
 }
