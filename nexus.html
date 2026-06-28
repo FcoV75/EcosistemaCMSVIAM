@@ -55,7 +55,7 @@
         <img src="/Assets/Images/SincNex_logo.png" alt="Logo temporal Sincronía Nexus" loading="lazy" />
       </div>
       <h1>Sincronía NEXUS</h1>
-      <p class="subtitle">Espacio de membresía y armonización. Incluye frecuencia base 963 Hz, presentación, formulario y vista previa de 25 segundos.</p>
+      <p class="subtitle">Tu espacio de paz interior y armonización con tu entorno. Incluye frecuencia base 963 Hz y similares, presentación, formulario y muestras de pistas con frecuencias de solo dos minutos, aumentando su tiempo ya dentro de la sección de miembros activos.</p>
     </header>
 
     <section class="panel">
@@ -104,7 +104,7 @@
 
     <section class="panel">
       <h2>Formulario de personalización NEXUS</h2>
-      <p>Estructura inicial para preguntas específicas. El resultado genera un discurso persuasivo y una muestra melódica breve.</p>
+      <p>Responde con honestidad y profundidad. Sincronía Nexus escuchará tu verdad para acompañarte con consejo y frecuencia personalizada.</p>
       <form id='nexus-form' method='POST' name='nexus-sincronia' data-netlify="true">
         <input type="hidden" name="form-name" value="nexus-sincronia" />
         <p hidden><label>No completar: <input name="bot-field" /></label></p>
@@ -115,48 +115,43 @@
             <input name="nombre" required />
           </label>
 
-          <label>
-            Objetivo principal
-            <select name="objetivo" required>
-              <option value="">Seleccionar</option>
-              <option>Calma emocional</option>
-              <option>Enfoque y concentración</option>
-              <option>Motivación personal</option>
-              <option>Reconexión interior</option>
-              <option>Fortalecer espiritualidad</option>
-              <option>Encontrar propósito</option>
-              <option>Superar duelo</option>
-              <option>Conexión exterior efectiva</option>
-            </select>
-          </label>
-
           <label style="grid-column: 1 / -1;">
-            ¿Qué situación actual deseas transformar?
+            ¿Qué situación actual te está perturbando o deseas transformar?
             <textarea name="situacion" required></textarea>
           </label>
 
           <label style="grid-column: 1 / -1;">
-            ¿Qué emociones deseas fortalecer?
-            <textarea name="emociones" required></textarea>
+            ¿Qué emoción es la que deseas sentir o cultivar?
+            <textarea name="emocion_desear" required></textarea>
           </label>
 
           <label style="grid-column: 1 / -1;">
-            ¿Tengo el conocimiento preciso para tomar la decisión correcta ante esta situación?
+            ¿Cómo te sientes en este momento?
+            <textarea name="como_te_sientes" required></textarea>
+          </label>
+
+          <label style="grid-column: 1 / -1;">
+            ¿Cuentas con el conocimiento preciso para enfrentar tu situación actual que te hace sentir así ahora?
             <textarea name="conocimiento" required></textarea>
           </label>
 
           <label style="grid-column: 1 / -1;">
-            ¿Tengo la experiencia necesaria para poder realizar los procesos que se requieren para resolver esta situación?
+            ¿Cuentas con la experiencia necesaria para tomar acciones precisas que te ayuden en esta situación que estás pasando ahora?
             <textarea name="experiencia" required></textarea>
           </label>
 
           <label style="grid-column: 1 / -1;">
-            ¿Cuento ahora mismo con los recursos físicos, económicos y habilidades necesarias para que esté en mi mano la solución?
+            ¿Cuentas con los recursos necesarios mentales y físicos para que la solución a tu problema esté en tu mano ahora?
             <textarea name="recursos" required></textarea>
+          </label>
+
+          <label style="grid-column: 1 / -1;">
+            ¿Tienes tu mente abierta y dispuesta para aceptar consejos y sugerencias profundas que te daré para mejorar tu situación?
+            <textarea name="mente_abierta" required></textarea>
           </label>
         </div>
 
-        <p style="font-size: 0.95rem; color: var(--accent2); margin-top: 1.5rem; margin-bottom: 1rem; border: 1px solid var(--line); padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.3);">Si oprimes el botón de <strong>Enviar formulario NEXUS</strong> llegará a nuestro correo (c_multidisciplinariops@outlook.com) para asignarte una cita presencial de Biodescodificación, donde te atenderemos con gusto y te pondremos tus frecuencias generales para ayudarte.<br><br>Y si oprimes el botón de <strong>Activación de nuestra IA NEXUS</strong> entonces podrás disfrutar de una Biodescodificación basada en tu formulario y nuestra IA programada y entrenada por nosotros profesionalmente te dará tus consejos oportunos personalizados y te generará una frecuencia a tu medida exacta personalizada. Déjate sorprender por nuestros avances cuánticos.</p>
+        <p style="font-size: 0.95rem; color: var(--accent2); margin-top: 1.5rem; margin-bottom: 1rem; border: 1px solid var(--line); padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.3); line-height: 1.65;">Ahora que has respondido con honestidad y profundidad a todo esto, prepárate para que Sincronía Nexus transforme tu mente y tu vida como una compañera fiel. Espera tus resultados después de <strong>Activar nuestra IA</strong> y disfruta tu Frecuencia Personalizada. Sanación de mente y cuerpo a tu alcance. Gracias por estar aquí.</p>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
           <button class="btn" type="submit">Enviar formulario NEXUS</button>
           <button class="btn" type="button" onclick="activateIA()" style="background: #a970ff; color: #fff;">Activación de nuestra IA NEXUS</button>
@@ -169,14 +164,17 @@
         <img src="https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2000&auto=format&fit=crop" alt="Universo cuántico y naturaleza relajante" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 12px; opacity: 0.85;" loading="lazy" />
       </div>
       <div id="ia-response-container" style="display: none; background: rgba(169, 112, 255, 0.1); border: 1px solid #a970ff; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
-        <h3 style="color: #a970ff; margin-top: 0;">Consejos Oportunos Personalizados</h3>
+        <h3 style="color: #fff2bf; margin-top: 0; font-family: Cinzel, serif;">Sincronía Nexus te sugiere</h3>
         <div id="ia-response" style="white-space: pre-wrap; font-size: 1.05rem; line-height: 1.6;"></div>
+        <div id="public-freq-badges" style="margin-top: 1rem;"></div>
       </div>
-      <p>Escucha tu muestra de frecuencia cuántica creada con IA basada en las respuestas de tu formulario. Esta pista tiene una duración de 2 minutos.</p>
+      <p>Escucha tu muestra: una pieza instrumental del catálogo con la frecuencia terapéutica en <strong>segundo plano</strong> (bajo volumen) para tu subconsciente. Duración de muestra: <strong>2 minutos</strong>.</p>
       <audio id="custom-frequency-player" controls controlsList="nodownload" preload="none" style="width:min(520px,100%); margin-bottom: 1rem;">
         <source src="/Assets/Audio/muestra-frecuencia.mp3" type="audio/mpeg" />
         Tu navegador no soporta reproducción de audio integrada.
       </audio>
+      <div id="freq-nota-publica" style="display:none; font-size:0.92rem; color:#cbd5e1; line-height:1.6; margin-bottom:1rem; padding:1rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid var(--line);"></div>
+      <script src="/Assets/nexus-santuario.js"></script>
       <script>
         const fp = document.getElementById('custom-frequency-player');
         if (fp) {
@@ -184,12 +182,13 @@
             if (fp.currentTime >= 120) {
               fp.pause();
               fp.currentTime = 0;
-              alert('Haz llegado al límite de los 2 minutos gratuitos. Para disfrutar de tu frecuencia completa, por favor conviértete en miembro de Sincronía Nexus.');
+              NexusSantuario.detenerSintesis();
+              alert('Has llegado al límite de los 2 minutos gratuitos. Dentro del Santuario de miembros disfrutarás la pieza completa con tu frecuencia en segundo plano.');
             }
           });
         }
       </script>
-      <p style="font-size: 0.9rem; color: #a1a1aa;">Para escuchar la totalidad de tu frecuencia (3 a 7 minutos) y acceder a sus beneficios completos, te invitamos a ser miembro de la aplicación.</p>
+      <p style="font-size: 0.9rem; color: #a1a1aa;">Para escuchar la totalidad de tu frecuencia y acceder a consejos ilimitados en el Santuario, conviértete en miembro activo.</p>
       
       <a href="/#pago-general" class="btn" style="background: var(--accent); color: var(--panel); text-decoration: none; padding: 0.6rem 1rem; border-radius: 6px; display: inline-block;">Conviértete en miembro</a>
       <button class="btn" onclick="openMemberModal()" style="background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 0.6rem 1rem; border-radius: 6px; display: inline-block; margin-left: 0.5rem;">Ya soy miembro</button>
@@ -209,18 +208,20 @@
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         
-        if(!data.nombre || !data.situacion) {
-           alert("Por favor llena los datos principales del formulario para que la IA pueda analizarte.");
+        const requeridos = ['nombre','situacion','emocion_desear','como_te_sientes','conocimiento','experiencia','recursos','mente_abierta'];
+        if(requeridos.some(k => !String(data[k] || '').trim())) {
+           alert("Por favor responde todas las preguntas del formulario con honestidad para que Sincronía Nexus pueda acompañarte.");
            return;
         }
 
         const promptMessage = `Nombre: ${data.nombre}
-Objetivo: ${data.objetivo}
-Situación: ${data.situacion}
-Emociones: ${data.emociones}
-Conocimiento: ${data.conocimiento}
-Experiencia: ${data.experiencia}
-Recursos: ${data.recursos}`;
+Situación que desea transformar: ${data.situacion}
+Emoción que desea cultivar: ${data.emocion_desear}
+Cómo se siente ahora: ${data.como_te_sientes}
+Conocimiento para enfrentar la situación: ${data.conocimiento}
+Experiencia para actuar: ${data.experiencia}
+Recursos mentales y físicos: ${data.recursos}
+Mente abierta a consejos: ${data.mente_abierta}`;
 
         const modal = document.getElementById('ia-modal');
         const face = document.getElementById('ia-face');
@@ -260,14 +261,16 @@ Recursos: ${data.recursos}`;
            setTimeout(() => {
               modal.close();
               if (result.reply) {
-                 document.getElementById('ia-response').innerHTML = `<div style="white-space: pre-wrap; font-family: sans-serif; line-height: 1.6;">${result.reply}</div>`;
+                 document.getElementById('ia-response').textContent = result.reply;
               } else {
-                 document.getElementById('ia-response').innerHTML = `<div style="white-space: pre-wrap; font-family: sans-serif; line-height: 1.6; color: red;">No se recibió respuesta válida de la IA.</div>`;
+                 document.getElementById('ia-response').textContent = 'No se recibió respuesta válida. Intenta de nuevo.';
+              }
+              const badges = document.getElementById('public-freq-badges');
+              if (badges && result.frecuenciaHz) {
+                badges.innerHTML = `<span style="display:inline-block;margin:0.25rem;padding:0.35rem 0.75rem;border-radius:999px;background:rgba(169,112,255,0.25);border:1px solid #a970ff;font-size:0.85rem;">${result.frecuenciaHz} Hz · ${result.frecuenciaEtiqueta || 'Frecuencia'} en segundo plano</span>`;
               }
               if (result.audioUrl) {
-                const customAudio = document.getElementById('custom-frequency-player');
-                customAudio.src = result.audioUrl;
-                customAudio.load();
+                NexusSantuario.reproducirExperiencia(result, 'custom-frequency-player', 'freq-nota-publica');
               }
               document.getElementById('ia-response-container').style.display = 'block';
               document.getElementById('tu-frecuencia').scrollIntoView({behavior: 'smooth'});
@@ -293,7 +296,7 @@ Recursos: ${data.recursos}`;
       <div style="background: rgba(15, 10, 30, 0.95); border: 2px solid var(--accent2); border-radius: 20px; padding: 2rem; box-shadow: 0 0 30px rgba(158, 214, 255, 0.3);">
         <h3 style="color: #fff; margin-top: 0;">Acceso a Miembros</h3>
         <p style="color: #dbe9ff; font-size: 0.95rem; margin-bottom: 1.5rem;">Por favor, ingresa tu código de pago comprobado para acceder a tu área exclusiva.</p>
-        <input type="text" id="member-code" placeholder="Ej. NEXUS-XXXX" style="margin-bottom: 1.5rem; text-align: center; letter-spacing: 1px;" />
+        <input type="text" id="member-code" placeholder="Ej. CMS-XXXXXX" style="margin-bottom: 1.5rem; text-align: center; letter-spacing: 1px;" />
         <div style="display: flex; gap: 1rem; justify-content: center;">
           <button class="btn" onclick="document.getElementById('member-modal').close()" style="background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.3);">Cancelar</button>
           <button class="btn" onclick="verifyMemberCode()" style="background: var(--accent2); color: #000;">Ingresar</button>

@@ -138,21 +138,47 @@
     }
 
     .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1rem;
       margin-top: 1.5rem;
     }
-    .gallery img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      border-radius: 12px;
+    .galeria-viva-frame {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
       border: 1px solid var(--line);
-      opacity: 0.8;
-      transition: opacity 0.3s;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
     }
-    .gallery img:hover { opacity: 1; }
+    .galeria-viva-frame img {
+      width: 100%;
+      height: min(420px, 55vh);
+      object-fit: cover;
+      display: block;
+      transition: opacity 0.8s ease;
+    }
+    .galeria-viva-caption {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin: 0;
+      padding: 1rem 1.25rem;
+      background: linear-gradient(transparent, rgba(0,0,0,0.75));
+      font-size: 0.9rem;
+      color: #e8e4ff;
+      font-style: italic;
+    }
+
+    #freq-nota-subconsciente {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      background: rgba(158, 214, 255, 0.12);
+      border: 1px solid var(--accent);
+      color: #dbe9ff;
+      line-height: 1.65;
+      font-size: 0.95rem;
+      text-align: left;
+    }
 
     #ia-response {
       background: rgba(169, 112, 255, 0.1);
@@ -186,11 +212,6 @@
 
     #synth-player-wrap {
       display: none;
-      padding: 1.5rem;
-      border-radius: 12px;
-      background: rgba(88, 34, 155, 0.3);
-      border: 1px dashed var(--accent2);
-      margin-top: 1rem;
     }
   </style>
   <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
@@ -211,13 +232,9 @@
 
     <section class="panel">
       <h2>Música Generativa y Visuales Relajantes</h2>
-      <p>Disfruta sin límites de las frecuencias musicales creadas para ti. Las pistas pueden descargarse y se renovarán periódicamente para optimizar tu experiencia.</p>
+      <p>Un entorno vivo que respira contigo: imágenes del universo, la naturaleza y la paz interior que rotan cada pocos minutos mientras sanas.</p>
       
-      <div class="gallery">
-        <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=600&q=80" alt="Paisaje estrellado" loading="lazy" />
-        <img src="https://images.unsplash.com/photo-1464802686167-b939a6910659?auto=format&fit=crop&w=600&q=80" alt="Galaxia azul" loading="lazy" />
-        <img src="https://images.unsplash.com/photo-1507502707541-f369a3b18502?auto=format&fit=crop&w=600&q=80" alt="Aurora boreal" loading="lazy" />
-      </div>
+      <div class="gallery" id="galeria-viva"></div>
     </section>
 
     <section class="panel">
@@ -243,10 +260,8 @@
           <source src="" type="audio/mpeg" />
           Tu navegador no soporta el reproductor.
         </audio>
-        <div id="synth-player-wrap">
-          <p>🎵 <strong>Pista generada para ti</strong> — melodía instrumental impregnada con la frecuencia que tu alma necesita hoy. Permanece en calma y deja que el sonido te envuelva.</p>
-          <button type="button" class="btn" style="margin-top:0.5rem;font-size:0.9rem;" onclick="NexusSantuario.detenerSintesis()">Detener pista generada</button>
-        </div>
+        <div id="freq-nota-subconsciente"></div>
+        <div id="synth-player-wrap"></div>
       </div>
 
       <p class="argumentative-text">
@@ -268,6 +283,7 @@
     }
 
     NexusMensajesDiarios.aplicar();
+    NexusGaleriaViva.init('galeria-viva');
 
     async function checkMembership() {
       try {
@@ -294,12 +310,14 @@
 
         if (data.permanent) {
           container.innerHTML = `<div class="alert alert-owner">Acceso de <strong>propietario</strong> — Santuario permanente. Todo desbloqueado para ti, sin caducidad.</div>`;
+          NexusBienvenidaMiembro(memberCode, true);
         } else if (data.status === 'warning') {
            container.innerHTML = `<div class="alert alert-warning">Tu membresía termina en <strong>${data.daysLeft} días</strong>. Considera renovarla pronto para no perder tu espacio de sanación.</div>`;
         } else if (data.status === 'last_day') {
            container.innerHTML = `<div class="alert alert-danger"><strong>Último día</strong> de membresía. Renueva para seguir en el Santuario.</div>`;
         } else {
            container.innerHTML = `<div class="alert alert-info">Bienvenido/a a tu santuario. Te quedan <strong>${data.daysLeft} días</strong> de acompañamiento activo.</div>`;
+           NexusBienvenidaMiembro(memberCode, false);
         }
       } catch (e) {
         console.error('Error verificando membresía:', e);
@@ -344,22 +362,16 @@
 
         responseText.textContent = data.reply;
         freqBadges.innerHTML = [
-          `<span class="freq-badge">${data.frecuenciaHz} Hz · ${data.frecuenciaEtiqueta || 'Frecuencia'}</span>`,
+          `<span class="freq-badge">${data.frecuenciaHz} Hz · ${data.frecuenciaEtiqueta || 'Frecuencia'} (segundo plano)</span>`,
           data.ondaEtiqueta ? `<span class="freq-badge">Onda ${data.ondaCerebral}: ${data.ondaEtiqueta}</span>` : '',
-          data.fuenteAudio === 'generada'
-            ? '<span class="freq-badge">Pista generada para ti</span>'
-            : '<span class="freq-badge">Catálogo Instrumentales con Frecuencia</span>',
+          `<span class="freq-badge">Instrumental: catálogo con frecuencia subconsciente</span>`,
         ].filter(Boolean).join('');
         responseBox.style.display = 'block';
 
         playerWrap.style.display = 'block';
-        if (data.fuenteAudio === 'generada') {
-          pistaTitulo.textContent = `Frecuencia ${data.frecuenciaHz} Hz — pieza creada para tu estado emocional`;
-        } else {
-          pistaTitulo.textContent = data.tituloPista
-            ? `Tu pista: ${data.tituloPista}`
-            : 'Tu frecuencia del catálogo';
-        }
+        pistaTitulo.textContent = data.tituloPista
+          ? `Tu pieza: ${data.tituloPista}`
+          : 'Tu pieza instrumental personalizada';
 
         NexusSantuario.reproducirExperiencia(data);
 

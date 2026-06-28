@@ -30,9 +30,7 @@ Proceso:
    - 852 Hz: intuición, despertar interior
    - 963 Hz: conexión espiritual, propósito, unidad
 5. Opcional: onda cerebral complementaria (delta=sueño reparador, theta=meditación, alpha=relajación profunda).
-6. Decide fuente_audio:
-   - "catalogo": pista instrumental ya existente impregnada con la frecuencia elegida
-   - "generada": pieza melódica instrumental creada expresamente para este estado (síntesis personalizada)
+6. Decide fuente_audio ("catalogo" o "generada") según qué capa de frecuencia subconsciente conviene — en ambos casos el usuario escuchará una pieza instrumental del catálogo; la frecuencia va en segundo plano a bajo volumen.
 
 Responde ÚNICAMENTE con JSON válido (sin markdown):
 {
@@ -130,13 +128,9 @@ export default async (req) => {
     const diag = normalizarDiagnostico(parsed);
     const semilla = `${normalized}:${today}:${message.trim().slice(0, 40)}`;
 
-    let audioUrl = null;
-    let tituloPista = null;
-    if (diag.fuenteAudio === 'catalogo') {
-      const pista = elegirPistaCatalogo(diag.frecuenciaHz, semilla);
-      audioUrl = pista.url;
-      tituloPista = pista.titulo;
-    }
+    const pista = elegirPistaCatalogo(diag.frecuenciaHz, semilla);
+    const audioUrl = pista.url;
+    const tituloPista = pista.titulo;
 
     if (!esPermanente && memberData?.startDate != null) {
       memberData.usage[today] = usageToday + 1;
