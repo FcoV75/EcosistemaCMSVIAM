@@ -268,6 +268,110 @@ def transcribir_audio():
             except Exception:
                 pass
 
+
+@app.route('/estudio/letra', methods=['POST', 'OPTIONS'])
+def estudio_generar_letra():
+    if request.method == 'OPTIONS':
+        return '', 200
+    import requests as http_requests
+    groq_key = os.environ.get('GROQ_API_KEY')
+    if not groq_key:
+        return jsonify({"error": "GROQ_API_KEY no configurada."}), 500
+    body = request.get_json(silent=True) or {}
+    tema = str(body.get("tema", "")).strip()
+    genero = str(body.get("genero", "pop")).strip()
+    mood = str(body.get("mood", "romántico")).strip()
+    if not tema:
+        return jsonify({"error": "Indica un tema para la letra."}), 400
+    prompt = (
+        f"Escribe la letra completa de una canción original en español latino.\n"
+        f"Tema: {tema}\nGénero musical: {genero}\nEstado de ánimo: {mood}\n\n"
+        "Reglas estrictas:\n"
+        "- Solo la letra, sin títulos ni explicaciones.\n"
+        "- Usa acentos y tildes correctos (á é í ó ú ñ).\n"
+        "- Estructura clara: versos y estribillo separados por líneas en blanco.\n"
+        "- Rima natural y cantable.\n"
+        "- Entre 16 y 28 líneas."
+    )
+    modelos = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    ultimo = "Sin respuesta"
+    for modelo in modelos:
+        try:
+            resp = http_requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                json={
+                    "model": modelo,
+                    "temperature": 0.75,
+                    "messages": [
+                        {"role": "system", "content": "Eres un compositor latinoamericano experto. Solo devuelves letra de canción."},
+                        {"role": "user", "content": prompt},
+                    ],
+                },
+                timeout=120,
+            )
+            data = resp.json()
+            if resp.ok:
+                letra = (data.get("choices", [{}])[0].get("message", {}).get("content") or "").strip()
+                if letra:
+                    return jsonify({"success": True, "letra": letra, "modelo": modelo})
+            ultimo = data.get("error", {}).get("message", str(data))
+        except Exception as exc:
+            ultimo = str(exc)
+    return jsonify({"error": f"No se pudo generar letra: {ultimo}"}), 502
+
+
+@app.route('/estudio/imagen', methods=['POST', 'OPTIONS'])
+def estudio_generar_imagen():
+    if request.method == 'OPTIONS':
+        return '', 200
+    import requests as http_requests
+    from urllib.parse import quote
+    body = request.get_json(silent=True) or {}
+    prompt = str(body.get("prompt", "")).strip()
+    if not prompt:
+        return jsonify({"error": "Describe la imagen que deseas."}), 400
+    prompt_en = f"{prompt}, cinematic lighting, high quality, 16:9 composition, no text, no watermark"
+    gemini_key = os.environ.get("GEMINI_API_KEY")
+    if gemini_key:
+        try:
+            resp = http_requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key={gemini_key}",
+                json={
+                    "contents": [{"parts": [{"text": f"Genera una imagen fotográfica profesional: {prompt_en}"}]}],
+                    "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]},
+                },
+                timeout=120,
+            )
+            data = resp.json()
+            if resp.ok:
+                for part in data.get("candidates", [{}])[0].get("content", {}).get("parts", []):
+                    inline = part.get("inlineData") or part.get("inline_data")
+                    if inline and inline.get("data"):
+                        return jsonify({
+                            "success": True,
+                            "imagen_base64": inline["data"],
+                            "mime": inline.get("mimeType") or inline.get("mime_type") or "image/png",
+                            "fuente": "gemini",
+                        })
+        except Exception as exc:
+            print(f"Gemini imagen falló: {exc}")
+    url = f"https://image.pollinations.ai/prompt/{quote(prompt_en)}?width=1280&height=720&nologo=true&seed={abs(hash(prompt)) % 99999}"
+    try:
+        img = http_requests.get(url, timeout=90)
+        if img.ok and img.content:
+            import base64
+            return jsonify({
+                "success": True,
+                "imagen_base64": base64.b64encode(img.content).decode("ascii"),
+                "mime": img.headers.get("Content-Type", "image/jpeg"),
+                "fuente": "pollinations",
+            })
+    except Exception as exc:
+        return jsonify({"error": f"Error generando imagen: {exc}"}), 502
+    return jsonify({"error": "No se pudo generar la imagen."}), 502
+
+
 @app.route('/renderizar', methods=['POST', 'OPTIONS'])
 def renderizar():
     if request.method == 'OPTIONS':
@@ -330,6 +434,11 @@ def renderizar():
         subtitulos_activos = request.form.get('subtitulos_activos', 'false').lower() == 'true'
         es_premium = request.form.get('es_premium', 'false').lower() == 'true'
         sin_marca_agua = request.form.get('sin_marca_agua', 'false').lower() == 'true'
+        try:
+            escala_texto = float(request.form.get('escala_texto', '6'))
+        except (TypeError, ValueError):
+            escala_texto = 6.0
+        escala_texto = max(1.0, min(6.0, escala_texto))
         nombre_pista = request.form.get('nombre_pista', '')
         if not nombre_pista and audio_file and audio_file.filename:
             nombre_pista = os.path.splitext(os.path.basename(audio_file.filename))[0]
@@ -346,6 +455,7 @@ def renderizar():
             "subtitulos_activos": subtitulos_activos,
             "es_premium": es_premium,
             "sin_marca_agua": sin_marca_agua,
+            "escala_texto": escala_texto,
             "nombre_pista": nombre_pista
         }
 

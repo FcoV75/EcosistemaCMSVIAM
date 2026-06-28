@@ -19,16 +19,17 @@ except ImportError:
 WIDTH, HEIGHT = 1280, 720
 FPS = 24  # Menos fotogramas = render mucho más rápido, suficiente para slideshow
 
-TAM_LEYENDA_PORTADA = 200
-TAM_SUBTITULO = 210
-TAM_NOMBRE_PISTA = 160
-TAM_TEXTO_ESCENA = 200
+TAM_LEYENDA_PORTADA = 38
+TAM_SUBTITULO = 40
+TAM_NOMBRE_PISTA = 32
+TAM_TEXTO_ESCENA = 36
 MARGEN_INTRO_LETRA = 15.0
 MARGEN_OUTRO_LETRA = 12.0
 MARCA_AGUA_TEXTO = "IAVIAM VIDEO_DIAMANTE"
 TAM_MARCA_AGUA = 22
-MAX_PALABRAS_KARAOKE = 8
+MAX_PALABRAS_LINEA_KARAOKE = 14
 PADDING_FONDO = 8
+TAM_MINIMO_FUENTE = 72
 
 _FUENTE_RUTA = None
 _FUENTE_CACHE = {}
@@ -81,6 +82,17 @@ def _normalizar_texto(texto):
     return texto.strip()
 
 
+def _aplicar_escala_tipografia(escala_texto):
+    global TAM_LEYENDA_PORTADA, TAM_SUBTITULO, TAM_NOMBRE_PISTA, TAM_TEXTO_ESCENA, TAM_MARCA_AGUA
+    escala = max(1.0, min(6.0, float(escala_texto or 6.0)))
+    TAM_LEYENDA_PORTADA = max(TAM_MINIMO_FUENTE, int(38 * escala))
+    TAM_SUBTITULO = max(TAM_MINIMO_FUENTE, int(40 * escala))
+    TAM_NOMBRE_PISTA = max(TAM_MINIMO_FUENTE, int(32 * escala))
+    TAM_TEXTO_ESCENA = max(TAM_MINIMO_FUENTE, int(36 * escala))
+    TAM_MARCA_AGUA = max(18, int(22 * (escala / 2)))
+    print(f"Tipografía escala x{escala}: sub={TAM_SUBTITULO} escena={TAM_TEXTO_ESCENA}")
+
+
 def _fuente_pillow(tamano):
     if tamano in _FUENTE_CACHE:
         return _FUENTE_CACHE[tamano]
@@ -99,13 +111,14 @@ def _fuente_pillow(tamano):
 
 def _ajustar_tamano_fuente(draw, texto, tam_inicial, max_ancho):
     tam = tam_inicial
-    while tam >= 28:
+    piso = max(TAM_MINIMO_FUENTE, tam_inicial // 2)
+    while tam >= piso:
         font = _fuente_pillow(tam)
         bbox = draw.textbbox((0, 0), texto, font=font)
         if bbox[2] - bbox[0] <= max_ancho:
             return font, tam
-        tam -= 6
-    return _fuente_pillow(28), 28
+        tam -= 4
+    return _fuente_pillow(piso), piso
 
 
 def _dibujar_texto_fondo_ajustado(img_bgr, texto, x, y, tamano, color_texto, color_fondo=(0, 0, 0, 170),
@@ -166,6 +179,39 @@ def _dibujar_texto_fondo_ajustado(img_bgr, texto, x, y, tamano, color_texto, col
     return cv2.cvtColor(np.array(result.convert("RGB")), cv2.COLOR_RGB2BGR)
 
 
+def _agrupar_palabras_en_lineas(palabras, gap=0.65):
+    if not palabras:
+        return []
+    lineas = [[palabras[0]]]
+    for p in palabras[1:]:
+        prev = lineas[-1][-1]
+        if p["start"] - prev["end"] > gap or len(lineas[-1]) >= MAX_PALABRAS_LINEA_KARAOKE:
+            lineas.append([p])
+        else:
+            lineas[-1].append(p)
+    return lineas
+
+
+def _linea_karaoke_activa(palabras, segundo_actual):
+    lineas = _agrupar_palabras_en_lineas(palabras)
+    if not lineas:
+        return [], -1
+    for linea in lineas:
+        fin_linea = linea[-1]["end"] + 0.35
+        if linea[0]["start"] <= segundo_actual <= fin_linea:
+            idx = -1
+            for i, p in enumerate(linea):
+                if segundo_actual >= p["start"]:
+                    idx = i
+            return linea, idx
+    iniciadas = [ln for ln in lineas if ln[0]["start"] <= segundo_actual]
+    if iniciadas:
+        linea = iniciadas[-1]
+        idx = len(linea) - 1
+        return linea, idx
+    return [], -1
+
+
 def _dibujar_karaoke(img_bgr, palabras_visibles, palabra_actual_idx, y_base, tamano):
     if not palabras_visibles:
         return img_bgr
@@ -222,15 +268,10 @@ def estampar_texto_escena(img_bgr, texto, width, height, tamano=TAM_TEXTO_ESCENA
 
 
 def estampar_subtitulo_karaoke(img_bgr, palabras, segundo_actual, width, height, tamano=TAM_SUBTITULO):
-    visibles = [p for p in palabras if p["start"] <= segundo_actual]
-    if not visibles:
+    linea, idx = _linea_karaoke_activa(palabras, segundo_actual)
+    if not linea:
         return img_bgr
-    ventana = visibles[-MAX_PALABRAS_KARAOKE:]
-    idx_actual = len(ventana) - 1
-    ult = ventana[-1]
-    if segundo_actual >= ult["end"]:
-        idx_actual = -1
-    return _dibujar_karaoke(img_bgr, ventana, idx_actual, height - 130, tamano)
+    return _dibujar_karaoke(img_bgr, linea, idx, height - 140, tamano)
 
 
 def estampar_marca_agua(img_bgr, width, height, tamano=TAM_MARCA_AGUA):
@@ -567,6 +608,7 @@ def generar_video_cloud():
         sys.exit(1)
 
     _resolver_ruta_fuente()
+    _aplicar_escala_tipografia(config.get("escala_texto", 6.0))
     duracion_audio = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
     print(f"Duración audio: {duracion_audio:.2f}s | FPS: {FPS} | Pista: {nombre_pista}")
 

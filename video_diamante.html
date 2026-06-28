@@ -211,6 +211,61 @@
             margin-bottom: 18px;
             font-size: 0.9rem;
         }
+        .tabs-estudio { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .tab-estudio {
+            background: #403B3B;
+            color: #FDF5E6;
+            border: 2px solid transparent;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .tab-estudio.activo { border-color: var(--color-dorado-cabecera); background: #4A4545; color: var(--color-dorado-cabecera); }
+        .panel-estudio { display: none; }
+        .panel-estudio.activo { display: block; }
+        .preview-estudio {
+            margin-top: 12px;
+            border: 2px solid var(--color-borde-violeta);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #201F1D;
+            min-height: 120px;
+        }
+        .preview-estudio img { width: 100%; max-height: 220px; object-fit: cover; display: block; }
+        .preview-estudio-letra {
+            padding: 14px;
+            background: var(--color-pizarra-crema);
+            color: #201F1D;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .acciones-estudio { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .select-tipografia {
+            width: 100%;
+            background: var(--color-pizarra-crema);
+            color: #201F1D;
+            border: 2px solid var(--color-borde-violeta);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .canvas-preview-tipografia {
+            width: 100%;
+            max-width: 640px;
+            height: 120px;
+            display: block;
+            margin: 12px auto 0;
+            border: 2px solid var(--color-borde-violeta);
+            border-radius: 8px;
+            background: #111;
+        }
+        .hint-tipografia { font-size: 0.82rem; color: #BCB4B4; margin-top: 8px; }
+        .badge-estudio { font-size: 0.8rem; color: #00FFCC; display: block; margin-top: 6px; }
     </style>
     <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
 </head>
@@ -269,6 +324,66 @@
             <textarea id="letra-cancion" class="pizarra-letra" placeholder="La letra transcrita aparecerá aquí para que la edites..."></textarea>
         </div>
 
+        <div class="seccion-panel" id="seccion-estudio-viam">
+            <h2>✨ Estudio VIAM Creativo — Fase 1</h2>
+            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Genera imágenes y letras con IA y úsalas directamente en tu video. Gratuito: 5 generaciones/día · Premium: 20/día.</p>
+            <span id="status-estudio-cuota" class="badge-estudio"></span>
+            <div class="tabs-estudio">
+                <button type="button" class="tab-estudio activo" data-tab="imagen">🖼️ Imagen IA</button>
+                <button type="button" class="tab-estudio" data-tab="letra">🎵 Letra IA</button>
+            </div>
+            <div id="panel-estudio-imagen" class="panel-estudio activo">
+                <div class="grupo-control">
+                    <label for="estudio-prompt-imagen">Describe la escena visual</label>
+                    <textarea id="estudio-prompt-imagen" class="pizarra-letra" style="min-height:80px;" placeholder="Ej: Atardecer dorado sobre el mar de Acapulco, estilo cinematográfico, cálido y nostálgico"></textarea>
+                </div>
+                <button type="button" class="btn-viam-subir" id="btn-generar-imagen">✨ Generar imagen</button>
+                <div id="preview-imagen-estudio" class="preview-estudio" style="display:none;">
+                    <img id="img-preview-estudio" alt="Vista previa generada">
+                </div>
+                <div class="acciones-estudio">
+                    <button type="button" class="btn-viam-subir" id="btn-anadir-imagen-pizarra" style="background:#28A745;display:none;">➕ Añadir a pizarra</button>
+                </div>
+                <span id="status-imagen-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
+            </div>
+            <div id="panel-estudio-letra" class="panel-estudio">
+                <div class="fila-dos">
+                    <div class="grupo-control">
+                        <label for="estudio-tema-letra">Tema de la canción</label>
+                        <input type="text" id="estudio-tema-letra" class="input-texto-premium" placeholder="Ej: Un amor que regresa">
+                    </div>
+                    <div class="grupo-control">
+                        <label for="estudio-genero">Género</label>
+                        <select id="estudio-genero" class="select-tipografia">
+                            <option value="pop">Pop</option>
+                            <option value="balada">Balada</option>
+                            <option value="regional">Regional mexicano</option>
+                            <option value="rock">Rock</option>
+                            <option value="cumbia">Cumbia</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grupo-control">
+                    <label for="estudio-mood">Estado de ánimo</label>
+                    <select id="estudio-mood" class="select-tipografia">
+                        <option value="romántico">Romántico</option>
+                        <option value="alegre">Alegre</option>
+                        <option value="nostálgico">Nostálgico</option>
+                        <option value="épico">Épico</option>
+                        <option value="melancólico">Melancólico</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-viam-subir" id="btn-generar-letra">✨ Generar letra</button>
+                <div id="preview-letra-estudio" class="preview-estudio" style="display:none;">
+                    <div id="texto-preview-letra" class="preview-estudio-letra"></div>
+                </div>
+                <div class="acciones-estudio">
+                    <button type="button" class="btn-viam-subir" id="btn-usar-letra-subtitulos" style="background:#28A745;display:none;">📝 Usar en subtítulos</button>
+                </div>
+                <span id="status-letra-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
+            </div>
+        </div>
+
         <div class="seccion-panel">
             <h2>📸 Pizarra multimedia — Secuencia del video</h2>
             <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">Arrastra imágenes y videos en el orden que quieras alternarlos. Reordena arrastrando cada tarjeta. Gratuito: 3 imgs + 2 videos · Premium: sin límite práctico.</p>
@@ -287,6 +402,23 @@
         <div class="caja-loading" id="loading-box">
             <div class="spinner-viam"></div>
             <p id="status-text" style="font-weight:bold;color:#D4AF37;">Conectando con Railway...</p>
+        </div>
+
+        <div class="seccion-panel" id="seccion-tipografia">
+            <h2>🔤 Tipografía del video</h2>
+            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">Elige el tamaño de leyendas, subtítulos karaoke y textos de escena. XXL es el recomendado para móvil y TV.</p>
+            <div class="grupo-control">
+                <label for="select-escala-texto">Tamaño de texto</label>
+                <select id="select-escala-texto" class="select-tipografia">
+                    <option value="1">S — Compacto (×1)</option>
+                    <option value="2">M — Normal (×2)</option>
+                    <option value="3.5">L — Grande (×3.5)</option>
+                    <option value="5">XL — Muy grande (×5)</option>
+                    <option value="6" selected>XXL — Máximo legible (×6)</option>
+                </select>
+            </div>
+            <canvas id="canvas-preview-tipografia" class="canvas-preview-tipografia" width="640" height="120"></canvas>
+            <p class="hint-tipografia">Vista previa aproximada — el render final usa la misma escala en portada, subtítulos y escenas.</p>
         </div>
 
         <div class="seccion-panel" id="seccion-marca-agua" style="display:none;">

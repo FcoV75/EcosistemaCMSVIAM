@@ -16,8 +16,208 @@ let objectUrls = [];
 let letraGuardada = "";
 let letraSegmentos = [];
 let letraPalabras = [];
+let imagenEstudioBlob = null;
+let letraEstudioGenerada = "";
+
+const LIMITES_ESTUDIO = { gratuito: 5, premium: 20 };
 
 const $ = (sel) => document.querySelector(sel);
+
+function estudioGensHoy() {
+    return parseInt(localStorage.getItem(`vd_estudio_${hoyKey()}`) || "0", 10);
+}
+
+function incrementarEstudioGens() {
+    localStorage.setItem(`vd_estudio_${hoyKey()}`, String(estudioGensHoy() + 1));
+    actualizarCuotaEstudio();
+}
+
+function limiteEstudio() {
+    return isPremium ? LIMITES_ESTUDIO.premium : LIMITES_ESTUDIO.gratuito;
+}
+
+function actualizarCuotaEstudio() {
+    const el = $("#status-estudio-cuota");
+    if (!el) return;
+    const max = limiteEstudio();
+    const rest = Math.max(0, max - estudioGensHoy());
+    el.textContent = `Generaciones IA hoy: ${rest}/${max} disponibles`;
+}
+
+function obtenerEscalaTexto() {
+    const val = parseFloat($("#select-escala-texto")?.value || "6");
+    return Math.max(1, Math.min(6, isNaN(val) ? 6 : val));
+}
+
+function actualizarPreviewTipografia() {
+    const canvas = $("#canvas-preview-tipografia");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const escala = obtenerEscalaTexto();
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.fillStyle = "#1a1a1a";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(20, h - 70, w - 40, 50);
+
+    const tamSub = Math.max(18, Math.round(40 * escala * 0.22));
+    const tamEsc = Math.max(14, Math.round(36 * escala * 0.18));
+    ctx.textAlign = "center";
+    ctx.font = `bold ${tamSub}px Arial, sans-serif`;
+    ctx.fillStyle = "#FFD700";
+    ctx.fillText("Subtítulo karaoke — palabra resaltada", w / 2, h - 38);
+    ctx.font = `${tamEsc}px Arial, sans-serif`;
+    ctx.fillStyle = "#FFF";
+    ctx.fillText("Texto de escena en la parte inferior", w / 2, h - 12);
+
+    ctx.font = `bold ${Math.max(12, Math.round(38 * escala * 0.15))}px Arial`;
+    ctx.fillStyle = "#D4AF37";
+    ctx.fillText(`Escala ×${escala}`, w / 2, 28);
+}
+
+async function fetchEstudio(endpoint, body) {
+    try {
+        const r = await fetchRailway(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        const d = await parseJsonSeguro(r);
+        if (r.ok && (d.success || d.letra || d.imagen_base64)) return { ok: true, data: d };
+    } catch (e) {
+        console.warn("Estudio Railway:", e.message);
+    }
+    const fn = endpoint.includes("letra") ? "estudio-letra" : "estudio-imagen";
+    const r2 = await fetch(`/.netlify/functions/${fn}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
+    const d2 = await parseJsonSeguro(r2);
+    return { ok: r2.ok, data: d2 };
+}
+
+function puedeUsarEstudio() {
+    if (estudioGensHoy() >= limiteEstudio()) {
+        mostrarUpgrade(`Alcanzaste el límite de ${limiteEstudio()} generaciones IA por día.`);
+        return false;
+    }
+    return true;
+}
+
+function agregarMedioDesdeBlob(blob, nombre, tipoForzado) {
+    const file = new File([blob], nombre || "estudio-viam.jpg", { type: blob.type || "image/jpeg" });
+    agregarMedios([file], tipoForzado || "imagen");
+}
+
+async function agregarImagenDesdeBase64(b64, mime) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const blob = new Blob([arr], { type: mime || "image/jpeg" });
+    agregarMedioDesdeBlob(blob, `estudio-${Date.now()}.jpg`, "imagen");
+}
+
+async function generarImagenIA() {
+    if (!puedeUsarEstudio()) return;
+    const prompt = $("#estudio-prompt-imagen")?.value?.trim();
+    if (!prompt) { alert("Describe la imagen que deseas generar."); return; }
+
+    const btn = $("#btn-generar-imagen");
+    const status = $("#status-imagen-estudio");
+    const preview = $("#preview-imagen-estudio");
+    const btnAdd = $("#btn-anadir-imagen-pizarra");
+    if (btn) { btn.disabled = true; btn.textContent = "Generando imagen..."; }
+    if (status) status.textContent = "La IA está creando tu escena visual...";
+
+    try {
+        const { ok, data: d } = await fetchEstudio("/estudio/imagen", { prompt });
+        if (!ok || !d.imagen_base64) throw new Error(d.error || "No se pudo generar la imagen.");
+
+        incrementarEstudioGens();
+        const mime = d.mime || "image/jpeg";
+        const bin = atob(d.imagen_base64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        imagenEstudioBlob = new Blob([arr], { type: mime });
+
+        const url = URL.createObjectURL(imagenEstudioBlob);
+        const img = $("#img-preview-estudio");
+        if (img) img.src = url;
+        if (preview) preview.style.display = "block";
+        if (btnAdd) btnAdd.style.display = "inline-block";
+        if (status) status.textContent = `Imagen lista (${d.fuente || "IA"}) — añádela a la pizarra o genera otra.`;
+    } catch (e) {
+        if (status) status.textContent = "Error: " + e.message;
+        alert("Error generando imagen: " + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "✨ Generar imagen"; }
+    }
+}
+
+async function generarLetraIA() {
+    if (!puedeUsarEstudio()) return;
+    const tema = $("#estudio-tema-letra")?.value?.trim();
+    if (!tema) { alert("Indica el tema de la canción."); return; }
+
+    const btn = $("#btn-generar-letra");
+    const status = $("#status-letra-estudio");
+    const preview = $("#preview-letra-estudio");
+    const btnUsar = $("#btn-usar-letra-subtitulos");
+    const genero = $("#estudio-genero")?.value || "pop";
+    const mood = $("#estudio-mood")?.value || "romántico";
+
+    if (btn) { btn.disabled = true; btn.textContent = "Componiendo letra..."; }
+    if (status) status.textContent = "La IA está escribiendo tu canción...";
+
+    try {
+        const { ok, data: d } = await fetchEstudio("/estudio/letra", { tema, genero, mood });
+        if (!ok || !d.letra) throw new Error(d.error || "No se pudo generar la letra.");
+
+        incrementarEstudioGens();
+        letraEstudioGenerada = d.letra;
+        const txt = $("#texto-preview-letra");
+        if (txt) txt.textContent = letraEstudioGenerada;
+        if (preview) preview.style.display = "block";
+        if (btnUsar) btnUsar.style.display = "inline-block";
+        if (status) status.textContent = `Letra lista (${d.modelo || "IA"}) — úsala en subtítulos o edítala abajo.`;
+    } catch (e) {
+        if (status) status.textContent = "Error: " + e.message;
+        alert("Error generando letra: " + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "✨ Generar letra"; }
+    }
+}
+
+function usarLetraEnSubtitulos() {
+    if (!letraEstudioGenerada) return;
+    const area = $("#letra-cancion");
+    const sec = $("#seccion-subtitulos");
+    if (area) area.value = letraEstudioGenerada;
+    letraGuardada = letraEstudioGenerada;
+    letraSegmentos = [];
+    letraPalabras = [];
+    if (sec) sec.style.display = "block";
+    const chk = $("#chk-subtitulos");
+    if (chk) chk.checked = true;
+    $("#status-transcripcion").textContent = "Letra del Estudio VIAM cargada — se sincronizará por renglones al renderizar.";
+    $("#status-letra-estudio").textContent = "Letra aplicada a subtítulos.";
+}
+
+function configurarTabsEstudio() {
+    document.querySelectorAll(".tab-estudio").forEach((tab) => {
+        tab.addEventListener("click", () => {
+            document.querySelectorAll(".tab-estudio").forEach((t) => t.classList.remove("activo"));
+            document.querySelectorAll(".panel-estudio").forEach((p) => p.classList.remove("activo"));
+            tab.classList.add("activo");
+            const id = tab.dataset.tab;
+            const panel = id === "imagen" ? $("#panel-estudio-imagen") : $("#panel-estudio-letra");
+            if (panel) panel.classList.add("activo");
+        });
+    });
+}
 
 async function fetchRailway(endpoint, options = {}) {
     const isFormData = options.body instanceof FormData;
@@ -507,6 +707,7 @@ window.generarVideo = async function () {
         formData.append("subtitulos_activos", subtitulosOn ? "true" : "false");
         formData.append("es_premium", isPremium ? "true" : "false");
         formData.append("sin_marca_agua", (isPremium && $("#chk-sin-marca-agua")?.checked) ? "true" : "false");
+        formData.append("escala_texto", String(obtenerEscalaTexto()));
         formData.append("nombre_pista", audioFile ? audioFile.name.replace(/\.[^.]+$/, "") : "Pista VIAM");
 
         if (portadaFile) formData.append("portada_file", portadaFile);
@@ -560,6 +761,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     const codigo = localStorage.getItem("video_diamante_premium_code");
     if (codigo) isPremium = await verificarMembresia(codigo);
     actualizarIndicadorPlan();
+    actualizarCuotaEstudio();
+    actualizarPreviewTipografia();
+    configurarTabsEstudio();
+
+    $("#select-escala-texto")?.addEventListener("change", actualizarPreviewTipografia);
+
+    $("#btn-generar-imagen")?.addEventListener("click", generarImagenIA);
+    $("#btn-generar-letra")?.addEventListener("click", generarLetraIA);
+    $("#btn-anadir-imagen-pizarra")?.addEventListener("click", () => {
+        if (!imagenEstudioBlob) return;
+        agregarMedioDesdeBlob(imagenEstudioBlob, `estudio-${Date.now()}.jpg`, "imagen");
+        $("#status-imagen-estudio").textContent = "Imagen añadida a la pizarra.";
+    });
+    $("#btn-usar-letra-subtitulos")?.addEventListener("click", usarLetraEnSubtitulos);
 
     $("#input-audio-real")?.addEventListener("change", (e) => {
         if (e.target.files[0]) cargarAudio(e.target.files[0]);
