@@ -1,5 +1,5 @@
-[build]
-builder = "nixpacks"
+# Sin [build] — Railpack detecta Python (requirements.txt + Procfile).
+# No forzar nixpacks: hay package.json en raíz para Netlify y rompe el build (npm not found).
 
 [deploy]
 startCommand = "gunicorn server:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 600 --graceful-timeout 120"
