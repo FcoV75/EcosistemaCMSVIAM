@@ -1,5 +1,5 @@
 const RAILWAY_API = "https://ecosistemacmsviam-production.up.railway.app";
-const ALLOWED_PREFIXES = ["/renderizar", "/transcribir", "/estudio", "/status", "/descargar"];
+const ALLOWED_PREFIXES = ["/health", "/renderizar", "/transcribir", "/estudio", "/status", "/descargar"];
 
 export default async (req) => {
   if (req.method === "OPTIONS") {

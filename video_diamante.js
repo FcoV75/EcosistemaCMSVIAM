@@ -260,18 +260,34 @@ function mensajeErrorMotorRailway(status, detalle) {
 }
 
 async function motorRailwayDisponible() {
-    try {
-        const r = await fetchRailwayViaProxy("/health", { method: "GET" });
-        if (r.ok) return true;
-        const d = await r.json().catch(() => ({}));
-        console.warn("Health Railway:", d.message || r.status);
-    } catch (e) {
-        console.warn("Health Railway no disponible:", e.message);
+    const intentos = [
+        () => fetchRailway("/health", { method: "GET" }),
+        () => fetchRailwayViaProxy("/health", { method: "GET" })
+    ];
+    for (const intento of intentos) {
+        try {
+            const r = await intento();
+            if (r.ok) return true;
+            console.warn("Health Railway:", r.status);
+        } catch (e) {
+            console.warn("Health Railway no disponible:", e.message);
+        }
     }
     return false;
 }
 
 async function fetchRailwayPreferProxy(endpoint, options = {}) {
+    try {
+        const rDirecto = await fetchRailway(endpoint, options);
+        if (rDirecto.ok || rDirecto.status === 202) return rDirecto;
+        if (rDirecto.status !== 502 && rDirecto.status !== 503) {
+            const d = await rDirecto.clone().json().catch(() => ({}));
+            console.warn(`Railway directo ${endpoint}:`, d.error || d.detalle || rDirecto.status);
+        }
+    } catch (e) {
+        console.warn(`Railway directo ${endpoint}:`, e.message);
+    }
+
     try {
         const r = await fetchRailwayViaProxy(endpoint, options);
         if (r.ok || r.status === 202) return r;
@@ -281,19 +297,9 @@ async function fetchRailwayPreferProxy(endpoint, options = {}) {
         if (r.status === 502 || r.status === 503) {
             throw new Error(mensajeErrorMotorRailway(r.status, msg));
         }
+        return r;
     } catch (e) {
         if (/Motor Railway|No hay conexión/i.test(e.message)) throw e;
-        console.warn(`Proxy ${endpoint} no disponible:`, e.message);
-    }
-    try {
-        const r2 = await fetchRailway(endpoint, options);
-        if (r2.ok || r2.status === 202) return r2;
-        const d2 = await r2.json().catch(() => ({}));
-        if (r2.status === 502 || r2.status === 503) {
-            throw new Error(mensajeErrorMotorRailway(r2.status, d2.message || d2.detalle));
-        }
-        return r2;
-    } catch (e) {
         throw new Error(mensajeErrorMotorRailway(0, e.message));
     }
 }
