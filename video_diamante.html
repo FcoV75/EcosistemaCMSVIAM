@@ -298,6 +298,80 @@
             line-height: 1.45;
         }
         .aviso-formato-audio strong { color: var(--color-dorado-cabecera); }
+        .panel-bienvenida-premium {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(125, 38, 205, 0.12));
+            border: 2px solid var(--color-dorado-cabecera);
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+        .panel-bienvenida-premium h2 {
+            color: var(--color-dorado-cabecera);
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+        }
+        .panel-bienvenida-premium .premium-beneficios {
+            font-size: 0.88rem;
+            color: #E8DDB5;
+            line-height: 1.55;
+            margin: 10px 0 14px;
+        }
+        .premium-acciones {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn-accion-premium {
+            background: linear-gradient(135deg, #7D26CD, #521B8C);
+            color: #fff;
+            border: 1px solid #A052FF;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn-accion-premium.secundario {
+            background: transparent;
+            color: var(--color-dorado-cabecera);
+            border: 2px solid var(--color-dorado-cabecera);
+        }
+        .btn-accion-premium.peligro {
+            background: transparent;
+            color: #FF8888;
+            border: 1px solid #AA4444;
+        }
+        .guia-pasos { text-align: left; font-size: 0.92rem; color: #DDD; line-height: 1.6; }
+        .guia-pasos ol { padding-left: 1.25rem; margin: 10px 0; }
+        .guia-pasos li { margin-bottom: 8px; }
+        .chat-asistente {
+            max-height: 280px;
+            overflow-y: auto;
+            background: #201F1D;
+            border: 2px solid var(--color-borde-violeta);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            text-align: left;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .chat-msg-bot { color: #E8DDB5; margin-bottom: 10px; white-space: pre-wrap; }
+        .chat-msg-user { color: #A052FF; margin-bottom: 10px; text-align: right; }
+        .chat-input-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .chat-input-row textarea {
+            flex: 1;
+            min-width: 200px;
+            min-height: 70px;
+            background: var(--color-pizarra-crema);
+            color: #201F1D;
+            border: 2px solid var(--color-borde-violeta);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 0.95rem;
+            resize: vertical;
+        }
     </style>
     <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
 </head>
@@ -309,11 +383,26 @@
             <span id="plan-indicator" style="display:inline-block;margin-top:10px;font-weight:bold;">Cargando plan...</span>
         </div>
 
-        <div class="banner-upgrade">
+        <div class="banner-upgrade" id="banner-upgrade">
             <strong>💎 Video Diamante Premium</strong> — Videos de 5 min a 1 hora · 10 renders/día<br>
             <button type="button" class="btn-premium-plan" id="btn-plan-mensual">$300 MXN / mes</button>
             <button type="button" class="btn-premium-plan" id="btn-plan-anual">$3,000 MXN / año (2 meses de regalo)</button>
             <button type="button" class="btn-miembro-activo" id="btn-ya-soy-miembro">🔑 Ya soy miembro Premium</button>
+        </div>
+
+        <div class="panel-bienvenida-premium" id="panel-bienvenida-premium" style="display:none;">
+            <h2>💎 Bienvenido a Video Diamante Premium</h2>
+            <p id="premium-welcome-msg" style="color:#FFFD00;font-weight:bold;font-size:0.95rem;"></p>
+            <div class="premium-beneficios" id="premium-beneficios-texto">
+                Tu espacio completo está desbloqueado: videos de <strong>5 min a 1 hora</strong>, hasta <strong>10 renders/día</strong>,
+                pizarra sin límite práctico, <strong>20 generaciones IA/día</strong> en Estudio VIAM, subtítulos karaoke, tipografía XXL y opción sin marca de agua.
+            </div>
+            <div class="premium-acciones">
+                <button type="button" class="btn-accion-premium" id="btn-guia-premium">📖 Guía instructiva</button>
+                <button type="button" class="btn-accion-premium" id="btn-asistente-ia">🤖 Asistente IA VIAM</button>
+                <button type="button" class="btn-accion-premium secundario" id="btn-gestionar-membresia">🔑 Mi código</button>
+                <button type="button" class="btn-accion-premium peligro" id="btn-cerrar-sesion-premium">🚪 Cerrar sesión Premium</button>
+            </div>
         </div>
 
         <div class="seccion-panel">
@@ -352,7 +441,7 @@
 
         <div class="seccion-panel" id="seccion-subtitulos" style="display:none;">
             <h2>🎙️ Subtítulos IA de la canción (opcional)</h2>
-            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">La IA transcribe respetando acentos en español. Puedes corregir la letra antes de renderizar.</p>
+            <p id="hint-subtitulos" style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">La IA transcribe respetando acentos en español. Puedes corregir la letra antes de renderizar.</p>
             <label class="chk-silencio"><input type="checkbox" id="chk-subtitulos"> Incrustar letra en el video (con sombra de fondo)</label>
             <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap;">
                 <button type="button" class="btn-viam-subir" id="btn-transcribir">🎙️ Transcribir con IA</button>
@@ -364,7 +453,7 @@
 
         <div class="seccion-panel" id="seccion-estudio-viam">
             <h2>✨ Estudio VIAM Creativo — Fase 1</h2>
-            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Genera imágenes y letras con IA y úsalas directamente en tu video. Gratuito: 5 generaciones/día · Premium: 20/día.</p>
+            <p id="hint-estudio" style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Genera imágenes y letras con IA y úsalas directamente en tu video. Gratuito: 5 generaciones/día · Premium: 20/día.</p>
             <span id="status-estudio-cuota" class="badge-estudio"></span>
             <div class="tabs-estudio">
                 <button type="button" class="tab-estudio activo" data-tab="imagen">🖼️ Imagen IA</button>
@@ -424,7 +513,7 @@
 
         <div class="seccion-panel">
             <h2>📸 Pizarra multimedia — Secuencia del video</h2>
-            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">Arrastra imágenes y videos en el orden que quieras alternarlos. Reordena arrastrando cada tarjeta. Gratuito: 3 imgs + 2 videos · Premium: sin límite práctico.</p>
+            <p id="hint-pizarra" style="font-size:0.85rem;color:#BCB4B4;margin-bottom:10px;">Arrastra imágenes y videos en el orden que quieras alternarlos. Reordena arrastrando cada tarjeta. Gratuito: 3 imgs + 2 videos · Premium: sin límite práctico.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
                 <label class="btn-viam-subir" for="input-imagenes">+ Imágenes</label>
                 <input type="file" id="input-imagenes" class="input-archivo-oculto" accept="image/*" multiple>
@@ -508,6 +597,39 @@
         </div>
 
         <button type="button" class="btn-miembro-activo" id="btn-cerrar-premium-modal" style="width:100%;margin-top:14px;">Cancelar</button>
+    </dialog>
+
+    <dialog id="guia-premium-modal" style="max-width:560px;">
+        <h3 style="color:#D4AF37;margin-bottom:12px;text-align:center;">📖 Guía Video Diamante Premium</h3>
+        <div class="guia-pasos">
+            <p>Sigue estos pasos para tu primer video profesional:</p>
+            <ol>
+                <li><strong>Audio</strong> — Sube MP3 (5 min a 1 h). WAV se convierte automáticamente.</li>
+                <li><strong>Portada y cierre</strong> — Escribe leyendas y opcionalmente añade imágenes.</li>
+                <li><strong>Subtítulos karaoke</strong> — Pulsa «Transcribir con IA», corrige la letra y activa la casilla de incrustar.</li>
+                <li><strong>Pizarra</strong> — Añade imágenes y videos MP4; arrastra para ordenarlos.</li>
+                <li><strong>Estudio VIAM</strong> — Genera escenas o letras con IA y llévalas a la pizarra o subtítulos.</li>
+                <li><strong>Tipografía XXL</strong> — Recomendado para móvil y TV.</li>
+                <li><strong>Marca de agua</strong> — Puedes desactivarla en la sección Premium.</li>
+                <li><strong>Render</strong> — «Comenzar Renderizado Diamante» y espera la notificación (unos minutos).</li>
+            </ol>
+            <p style="color:#BCB4B4;font-size:0.85rem;">Consejo: vuelve a transcribir si cambias el audio — así el karaoke va al ritmo de la voz.</p>
+        </div>
+        <button type="button" class="btn-viam-subir" style="background:#D4AF37;color:#111;width:100%;margin-top:12px;" onclick="document.getElementById('guia-premium-modal').close()">Entendido, ¡a crear!</button>
+    </dialog>
+
+    <dialog id="asistente-premium-modal" style="max-width:560px;">
+        <h3 style="color:#D4AF37;margin-bottom:8px;text-align:center;">🤖 Asistente IA VIAM</h3>
+        <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;text-align:center;">Pregunta sobre el flujo, subtítulos, render o Estudio Creativo. Hasta 15 consultas/día.</p>
+        <div id="chat-asistente-historial" class="chat-asistente">
+            <div class="chat-msg-bot">¡Hola! Soy tu guía de Video Diamante Premium. ¿En qué paso necesitas ayuda?</div>
+        </div>
+        <div class="chat-input-row">
+            <textarea id="asistente-input" placeholder="Ej: ¿Cómo sincronizo bien los subtítulos karaoke?"></textarea>
+            <button type="button" class="btn-viam-subir" id="btn-enviar-asistente" style="align-self:flex-end;">Enviar</button>
+        </div>
+        <span id="asistente-status" style="display:block;margin-top:8px;font-size:0.82rem;color:#00FFCC;min-height:1.2em;"></span>
+        <button type="button" class="btn-miembro-activo" id="btn-cerrar-asistente" style="width:100%;margin-top:10px;">Cerrar</button>
     </dialog>
 
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>

@@ -7,6 +7,7 @@ const LIMITES = {
 };
 
 let isPremium = false;
+let premiumMeta = { daysLeft: 0, status: "" };
 let audioFile = null;
 let audioDuracionEst = 0;
 let portadaFile = null;
@@ -41,7 +42,9 @@ function actualizarCuotaEstudio() {
     if (!el) return;
     const max = limiteEstudio();
     const rest = Math.max(0, max - estudioGensHoy());
-    el.textContent = `Generaciones IA hoy: ${rest}/${max} disponibles`;
+    el.textContent = isPremium
+        ? `Estudio IA Premium: ${rest}/${max} generaciones disponibles hoy`
+        : `Generaciones IA hoy: ${rest}/${max} disponibles`;
 }
 
 function obtenerEscalaTexto() {
@@ -101,7 +104,11 @@ async function fetchEstudio(endpoint, body) {
 
 function puedeUsarEstudio() {
     if (estudioGensHoy() >= limiteEstudio()) {
-        mostrarUpgrade(`Alcanzaste el límite de ${limiteEstudio()} generaciones IA por día.`);
+        const msg = isPremium
+            ? `Has usado tus ${limiteEstudio()} generaciones IA Premium de hoy. Mañana tendrás más disponibles.`
+            : `Alcanzaste el límite de ${limiteEstudio()} generaciones IA por día en plan gratuito.`;
+        if (isPremium) alert(msg);
+        else mostrarUpgrade(msg);
         return false;
     }
     return true;
@@ -482,6 +489,123 @@ function estimarDuracionAudio(file) {
     });
 }
 
+function aplicarModoPremiumUI() {
+    const banner = $("#banner-upgrade");
+    const panel = $("#panel-bienvenida-premium");
+    const hintEstudio = $("#hint-estudio");
+    const hintPizarra = $("#hint-pizarra");
+    const hintSub = $("#hint-subtitulos");
+    const welcomeMsg = $("#premium-welcome-msg");
+
+    if (banner) banner.style.display = isPremium ? "none" : "block";
+    if (panel) panel.style.display = isPremium ? "block" : "none";
+
+    if (isPremium) {
+        if (welcomeMsg) {
+            if (premiumMeta.status === "warning") {
+                welcomeMsg.textContent = `Membresía activa — te quedan ${premiumMeta.daysLeft} días. Considera renovar pronto.`;
+            } else if (premiumMeta.status === "last_day") {
+                welcomeMsg.textContent = "¡Hoy es el último día de tu membresía Premium! Renueva para no perder beneficios.";
+            } else {
+                welcomeMsg.textContent = `Membresía activa — ${premiumMeta.daysLeft} días restantes. Todo desbloqueado para ti.`;
+            }
+        }
+        if (hintEstudio) {
+            hintEstudio.textContent = "Estudio VIAM Creativo desbloqueado: hasta 20 generaciones IA por día (imágenes y letras para tu video).";
+            hintEstudio.style.color = "#E8DDB5";
+        }
+        if (hintPizarra) {
+            hintPizarra.textContent = "Pizarra Premium sin límite práctico — alterna todas las imágenes y videos MP4 que necesites.";
+            hintPizarra.style.color = "#E8DDB5";
+        }
+        if (hintSub) {
+            hintSub.textContent = "Transcribe con IA, corrige la letra y activa subtítulos karaoke sincronizados con la voz.";
+            hintSub.style.color = "#E8DDB5";
+        }
+    } else {
+        if (hintEstudio) {
+            hintEstudio.textContent = "Genera imágenes y letras con IA y úsalas directamente en tu video. Gratuito: 5 generaciones/día · Premium: 20/día.";
+            hintEstudio.style.color = "#BCB4B4";
+        }
+        if (hintPizarra) {
+            hintPizarra.textContent = "Arrastra imágenes y videos en el orden que quieras alternarlos. Reordena arrastrando cada tarjeta. Gratuito: 3 imgs + 2 videos · Premium: sin límite práctico.";
+            hintPizarra.style.color = "#BCB4B4";
+        }
+        if (hintSub) {
+            hintSub.textContent = "La IA transcribe respetando acentos en español. Puedes corregir la letra antes de renderizar.";
+            hintSub.style.color = "#BCB4B4";
+        }
+    }
+    actualizarCuotaEstudio();
+}
+
+function mostrarBienvenidaPremium(esNuevo = false) {
+    aplicarModoPremiumUI();
+    if (esNuevo) {
+        $("#guia-premium-modal")?.showModal();
+    }
+}
+
+function cerrarSesionPremium() {
+    if (!confirm("¿Cerrar sesión Premium en este dispositivo? Podrás volver a entrar con tu código CMS-XXXXXX.")) return;
+    localStorage.removeItem("video_diamante_premium_code");
+    isPremium = false;
+    premiumMeta = { daysLeft: 0, status: "" };
+    aplicarModoPremiumUI();
+    actualizarIndicadorPlan();
+    actualizarAvisoAudio();
+}
+
+function agregarMensajeChat(rol, texto) {
+    const hist = $("#chat-asistente-historial");
+    if (!hist) return;
+    const div = document.createElement("div");
+    div.className = rol === "user" ? "chat-msg-user" : "chat-msg-bot";
+    div.textContent = texto;
+    hist.appendChild(div);
+    hist.scrollTop = hist.scrollHeight;
+}
+
+async function enviarConsultaAsistente() {
+    if (!isPremium) {
+        alert("El asistente IA está disponible solo para miembros Premium.");
+        return;
+    }
+    const input = $("#asistente-input");
+    const status = $("#asistente-status");
+    const btn = $("#btn-enviar-asistente");
+    const code = localStorage.getItem("video_diamante_premium_code");
+    const msg = input?.value.trim();
+    if (!msg) return alert("Escribe tu pregunta.");
+    if (!code) return alert("No hay código de membresía activo.");
+
+    if (btn) btn.disabled = true;
+    if (status) status.textContent = "El asistente está pensando...";
+    agregarMensajeChat("user", msg);
+    if (input) input.value = "";
+
+    try {
+        const r = await fetch("/.netlify/functions/video-diamante-guia", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code, message: msg })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || "No se pudo obtener respuesta.");
+        agregarMensajeChat("bot", d.reply);
+        if (status) {
+            status.textContent = typeof d.consultasRestantes === "number"
+                ? `Consultas restantes hoy: ${d.consultasRestantes}`
+                : "";
+        }
+    } catch (e) {
+        agregarMensajeChat("bot", "Error: " + e.message);
+        if (status) status.textContent = "";
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
 function actualizarIndicadorPlan() {
     const el = $("#plan-indicator");
     const lim = limitesActuales();
@@ -492,9 +616,10 @@ function actualizarIndicadorPlan() {
     if (avisoGratuito) avisoGratuito.style.display = isPremium ? "none" : "block";
     if (!el) return;
     if (isPremium) {
-        el.textContent = `💎 Plan Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia})`;
+        const dias = premiumMeta.daysLeft > 0 ? ` · ${premiumMeta.daysLeft} días` : "";
+        el.textContent = `💎 Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia})${dias}`;
         el.style.color = "#FFFD00";
-        el.title = "Clic para ver o cambiar tu membresía";
+        el.title = "Clic para gestionar tu membresía Premium";
         el.style.cursor = "pointer";
     } else {
         el.textContent = `🆓 Plan Gratuito — ${restantes}/${lim.maxDia} renders hoy · máx. 4 min`;
@@ -555,6 +680,7 @@ async function activarConCodigoMiembro() {
     const r = await verificarMembresiaDetalle(codigo);
     if (r.ok) {
         isPremium = true;
+        premiumMeta = { daysLeft: r.daysLeft, status: r.status };
         localStorage.setItem("video_diamante_premium_code", codigo);
         if (status) {
             const aviso = r.status === "warning"
@@ -567,6 +693,7 @@ async function activarConCodigoMiembro() {
         }
         actualizarIndicadorPlan();
         actualizarAvisoAudio();
+        mostrarBienvenidaPremium(true);
         setTimeout(() => $("#premium-modal")?.close(), 1200);
     } else if (status) {
         status.textContent = r.error || "Código inválido";
@@ -715,6 +842,10 @@ function formatoDuracion(seg) {
 }
 
 function mostrarUpgrade(mensaje) {
+    if (isPremium) {
+        alert(mensaje);
+        return;
+    }
     const modal = $("#upgrade-modal");
     const txt = $("#upgrade-mensaje");
     if (txt) txt.textContent = mensaje;
@@ -983,7 +1114,11 @@ async function transcribirAudio() {
 function validarProyecto() {
     const lim = limitesActuales();
     if (rendersHoy() >= lim.maxDia) {
-        mostrarUpgrade(`Alcanzaste el límite de ${lim.maxDia} videos por día.`);
+        if (isPremium) {
+            alert(`Has usado tus ${lim.maxDia} renders Premium de hoy. Vuelve mañana para continuar.`);
+        } else {
+            mostrarUpgrade(`Alcanzaste el límite de ${lim.maxDia} videos por día en plan gratuito.`);
+        }
         return false;
     }
     if (!audioFile) { alert("Selecciona o arrastra un archivo de audio."); return false; }
@@ -1133,6 +1268,9 @@ function actualizarAvisoAudio(extra = "") {
     if (!isPremium && audioDuracionEst > lim.maxSeg) {
         texto += ` — supera el límite gratuito (${formatoDuracion(lim.maxSeg)} min)`;
         st.style.color = "#FF6B6B";
+    } else if (isPremium && audioDuracionEst > 0 && audioDuracionEst < lim.minSeg) {
+        texto += ` — mínimo Premium ${formatoDuracion(lim.minSeg)} min`;
+        st.style.color = "#FFD700";
     } else {
         st.style.color = "";
     }
@@ -1179,7 +1317,16 @@ async function cargarAudio(file) {
 
 document.addEventListener("DOMContentLoaded", async () => {
     const codigo = localStorage.getItem("video_diamante_premium_code");
-    if (codigo) isPremium = await verificarMembresia(codigo);
+    if (codigo) {
+        const r = await verificarMembresiaDetalle(codigo);
+        isPremium = r.ok;
+        if (r.ok) {
+            premiumMeta = { daysLeft: r.daysLeft, status: r.status };
+        } else {
+            localStorage.removeItem("video_diamante_premium_code");
+        }
+    }
+    aplicarModoPremiumUI();
     actualizarIndicadorPlan();
     actualizarCuotaEstudio();
     actualizarPreviewTipografia();
@@ -1234,14 +1381,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#btn-plan-mensual")?.addEventListener("click", () => iniciarStripe("mensual"));
     $("#btn-plan-anual")?.addEventListener("click", () => iniciarStripe("anual"));
     $("#btn-ya-soy-miembro")?.addEventListener("click", () => abrirModalPremium("codigo"));
-    $("#plan-indicator")?.addEventListener("click", () => {
-        if (isPremium) abrirModalPremium("codigo");
-    });
+    $("#plan-indicator")?.addEventListener("click", () => abrirModalPremium("codigo"));
     $("#btn-ingresar-codigo")?.addEventListener("click", activarConCodigoMiembro);
     $("#member-code-input")?.addEventListener("keydown", (e) => {
         if (e.key === "Enter") activarConCodigoMiembro();
     });
     $("#btn-cerrar-premium-modal")?.addEventListener("click", () => $("#premium-modal")?.close());
+    $("#btn-guia-premium")?.addEventListener("click", () => $("#guia-premium-modal")?.showModal());
+    $("#btn-asistente-ia")?.addEventListener("click", () => $("#asistente-premium-modal")?.showModal());
+    $("#btn-gestionar-membresia")?.addEventListener("click", () => abrirModalPremium("codigo"));
+    $("#btn-cerrar-sesion-premium")?.addEventListener("click", cerrarSesionPremium);
+    $("#btn-enviar-asistente")?.addEventListener("click", enviarConsultaAsistente);
+    $("#btn-cerrar-asistente")?.addEventListener("click", () => $("#asistente-premium-modal")?.close());
+    $("#asistente-input")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            enviarConsultaAsistente();
+        }
+    });
 
     const stripeSessionCode = $("#stripe-session-code");
     const verificationStatus = $("#verification-status");
@@ -1262,10 +1419,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (r.ok && d.success) {
                 isPremium = true;
                 localStorage.setItem("video_diamante_premium_code", d.code || val);
+                const vr = await verificarMembresiaDetalle(d.code || val);
+                if (vr.ok) premiumMeta = { daysLeft: vr.daysLeft, status: vr.status };
                 verificationStatus.textContent = "¡Premium activado!";
                 verificationStatus.style.color = "#00FF66";
                 actualizarIndicadorPlan();
                 actualizarAvisoAudio();
+                mostrarBienvenidaPremium(true);
                 premiumModal?.close();
                 mostrarGraciasCompra();
             } else {
