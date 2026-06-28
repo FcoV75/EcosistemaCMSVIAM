@@ -7,7 +7,7 @@ const LIMITES = {
 };
 
 let isPremium = false;
-let premiumMeta = { daysLeft: 0, status: "" };
+let premiumMeta = { daysLeft: 0, status: "", permanent: false };
 let audioFile = null;
 let audioDuracionEst = 0;
 let portadaFile = null;
@@ -502,7 +502,9 @@ function aplicarModoPremiumUI() {
 
     if (isPremium) {
         if (welcomeMsg) {
-            if (premiumMeta.status === "warning") {
+            if (premiumMeta.permanent) {
+                welcomeMsg.textContent = "Acceso de propietario — Premium permanente. Todo desbloqueado para ti.";
+            } else if (premiumMeta.status === "warning") {
                 welcomeMsg.textContent = `Membresía activa — te quedan ${premiumMeta.daysLeft} días. Considera renovar pronto.`;
             } else if (premiumMeta.status === "last_day") {
                 welcomeMsg.textContent = "¡Hoy es el último día de tu membresía Premium! Renueva para no perder beneficios.";
@@ -550,7 +552,7 @@ function cerrarSesionPremium() {
     if (!confirm("¿Cerrar sesión Premium en este dispositivo? Podrás volver a entrar con tu código CMS-XXXXXX.")) return;
     localStorage.removeItem("video_diamante_premium_code");
     isPremium = false;
-    premiumMeta = { daysLeft: 0, status: "" };
+    premiumMeta = { daysLeft: 0, status: "", permanent: false };
     aplicarModoPremiumUI();
     actualizarIndicadorPlan();
     actualizarAvisoAudio();
@@ -616,7 +618,11 @@ function actualizarIndicadorPlan() {
     if (avisoGratuito) avisoGratuito.style.display = isPremium ? "none" : "block";
     if (!el) return;
     if (isPremium) {
-        const dias = premiumMeta.daysLeft > 0 ? ` · ${premiumMeta.daysLeft} días` : "";
+        const dias = premiumMeta.permanent
+            ? " · propietario"
+            : premiumMeta.daysLeft > 0
+                ? ` · ${premiumMeta.daysLeft} días`
+                : "";
         el.textContent = `💎 Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia})${dias}`;
         el.style.color = "#FFFD00";
         el.title = "Clic para gestionar tu membresía Premium";
@@ -645,7 +651,7 @@ async function verificarMembresiaDetalle(codigo) {
         if (!["active", "warning", "last_day"].includes(d.status)) {
             return { ok: false, error: "Membresía no activa para Video Diamante." };
         }
-        return { ok: true, status: d.status, daysLeft: d.daysLeft };
+        return { ok: true, status: d.status, daysLeft: d.daysLeft, permanent: !!d.permanent };
     } catch {
         return { ok: false, error: "Error de conexión. Intenta de nuevo." };
     }
@@ -680,10 +686,12 @@ async function activarConCodigoMiembro() {
     const r = await verificarMembresiaDetalle(codigo);
     if (r.ok) {
         isPremium = true;
-        premiumMeta = { daysLeft: r.daysLeft, status: r.status };
+        premiumMeta = { daysLeft: r.daysLeft, status: r.status, permanent: !!r.permanent };
         localStorage.setItem("video_diamante_premium_code", codigo);
         if (status) {
-            const aviso = r.status === "warning"
+            const aviso = r.permanent
+                ? "¡Bienvenido, propietario! Acceso Premium permanente."
+                : r.status === "warning"
                 ? `¡Bienvenido! Te quedan ${r.daysLeft} días de membresía.`
                 : r.status === "last_day"
                     ? "¡Bienvenido! Hoy es el último día de tu membresía."
@@ -1321,7 +1329,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const r = await verificarMembresiaDetalle(codigo);
         isPremium = r.ok;
         if (r.ok) {
-            premiumMeta = { daysLeft: r.daysLeft, status: r.status };
+            premiumMeta = { daysLeft: r.daysLeft, status: r.status, permanent: !!r.permanent };
         } else {
             localStorage.removeItem("video_diamante_premium_code");
         }
@@ -1421,7 +1429,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 isPremium = true;
                 localStorage.setItem("video_diamante_premium_code", d.code || val);
                 const vr = await verificarMembresiaDetalle(d.code || val);
-                if (vr.ok) premiumMeta = { daysLeft: vr.daysLeft, status: vr.status };
+                if (vr.ok) premiumMeta = { daysLeft: vr.daysLeft, status: vr.status, permanent: !!vr.permanent };
                 verificationStatus.textContent = "¡Premium activado!";
                 verificationStatus.style.color = "#00FF66";
                 actualizarIndicadorPlan();

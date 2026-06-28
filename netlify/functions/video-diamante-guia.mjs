@@ -1,4 +1,5 @@
 import { getStore } from '@netlify/blobs';
+import { esCodigoPropietario, esMembresiaPermanente, estadoMembresia } from './lib/member-helpers.mjs';
 
 const SYSTEM_PROMPT = `Eres el Asistente IA VIAM de Video Diamante, experto en producción de videoclips musicales y contenido multimedia del Ecosistema CMS VIAM.
 
@@ -30,27 +31,34 @@ export default async (req) => {
       return Response.json({ error: 'Faltan datos (código o mensaje).' }, { status: 400 });
     }
 
+    const normalized = String(code).trim().toUpperCase();
     const membersStore = getStore('nexus-members');
-    const memberData = await membersStore.get(String(code).trim().toUpperCase(), { type: 'json' });
-    if (!memberData) {
+    let memberData = await membersStore.get(normalized, { type: 'json' });
+
+    if (!memberData && !esCodigoPropietario(normalized)) {
       return Response.json({ error: 'Membresía no encontrada.' }, { status: 404 });
     }
+
+    if (!memberData && esCodigoPropietario(normalized)) {
+      memberData = { producto: 'video_diamante_premium', plan: 'propietario', usage: {} };
+    }
+
     if (memberData.producto && memberData.producto !== 'video_diamante_premium') {
       return Response.json({ error: 'Este código no es de Video Diamante Premium.' }, { status: 403 });
     }
 
-    const now = Date.now();
-    const msInDay = 1000 * 60 * 60 * 24;
-    const daysLeft = memberData.durationDays - Math.floor((now - memberData.startDate) / msInDay);
-    if (daysLeft < 0) {
+    const estado = estadoMembresia(normalized, memberData);
+    if (estado.status === 'expired') {
       return Response.json({ error: 'Tu membresía Premium expiró. Renueva tu plan.' }, { status: 403 });
     }
+
+    const esPermanente = esMembresiaPermanente(normalized, memberData);
 
     const today = new Date().toISOString().split('T')[0];
     if (!memberData.usage) memberData.usage = {};
     const chatKey = `vd_chat_${today}`;
     const usageToday = memberData.usage[chatKey] || 0;
-    if (usageToday >= 15) {
+    if (!esPermanente && usageToday >= 15) {
       return Response.json({
         error: 'Límite diario del asistente alcanzado (15 consultas). Vuelve mañana o revisa la guía instructiva.',
       }, { status: 429 });
@@ -83,12 +91,14 @@ export default async (req) => {
       return Response.json({ error: 'Error al contactar al asistente IA.' }, { status: 502 });
     }
 
-    memberData.usage[chatKey] = usageToday + 1;
-    await membersStore.setJSON(String(code).trim().toUpperCase(), memberData);
+    if (!esPermanente) {
+      memberData.usage[chatKey] = usageToday + 1;
+      await membersStore.setJSON(normalized, memberData);
+    }
 
     return Response.json({
       reply: aiData.choices[0].message.content,
-      consultasRestantes: Math.max(0, 15 - (usageToday + 1)),
+      consultasRestantes: esPermanente ? null : Math.max(0, 15 - (usageToday + 1)),
     });
   } catch (err) {
     console.error('video-diamante-guia:', err);
