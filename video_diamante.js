@@ -3,7 +3,7 @@ const RAILWAY_API = "https://ecosistemacmsviam-production.up.railway.app";
 
 const LIMITES = {
     gratuito: { maxSeg: 240, maxImg: 3, maxVid: 2, maxDia: 3, minSeg: 0, etiqueta: "Gratuito" },
-    premium: { maxSeg: 3600, maxImg: 99, maxVid: 99, maxDia: 10, minSeg: 300, etiqueta: "Premium" }
+    premium: { maxSeg: 3600, maxImg: 99, maxVid: 99, maxDia: 10, minSeg: 0, etiqueta: "Premium" }
 };
 
 let isPremium = false;
@@ -623,7 +623,7 @@ function actualizarIndicadorPlan() {
             : premiumMeta.daysLeft > 0
                 ? ` · ${premiumMeta.daysLeft} días`
                 : "";
-        el.textContent = `💎 Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia})${dias}`;
+        el.textContent = `💎 Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia}) · audio 10 s – 1 h${dias}`;
         el.style.color = "#FFFD00";
         el.title = "Clic para gestionar tu membresía Premium";
         el.style.cursor = "pointer";
@@ -1154,13 +1154,8 @@ function validarProyecto() {
             mostrarUpgrade(msg);
             return false;
         }
-    } else {
-        if (audioDuracionEst > 0 && audioDuracionEst < lim.minSeg) {
-            alert("En Premium el video debe ser de al menos 5 minutos.");
-            return false;
-        }
-        if (audioDuracionEst > lim.maxSeg) {
-            alert("El audio supera el máximo de 1 hora.");
+    } else if (audioDuracionEst > lim.maxSeg) {
+            alert("El audio supera el máximo Premium de 1 hora.");
             return false;
         }
     }
@@ -1276,9 +1271,9 @@ function actualizarAvisoAudio(extra = "") {
     if (!isPremium && audioDuracionEst > lim.maxSeg) {
         texto += ` — supera el límite gratuito (${formatoDuracion(lim.maxSeg)} min)`;
         st.style.color = "#FF6B6B";
-    } else if (isPremium && audioDuracionEst > 0 && audioDuracionEst < lim.minSeg) {
-        texto += ` — mínimo Premium ${formatoDuracion(lim.minSeg)} min`;
-        st.style.color = "#FFD700";
+    } else if (isPremium && audioDuracionEst > lim.maxSeg) {
+        texto += ` — supera el máximo Premium (1 h)`;
+        st.style.color = "#FF6B6B";
     } else {
         st.style.color = "";
     }
