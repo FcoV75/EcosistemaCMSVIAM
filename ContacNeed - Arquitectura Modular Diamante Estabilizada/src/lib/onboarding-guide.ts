@@ -10,7 +10,9 @@ import {
   UserPlus,
 } from 'lucide-react'
 
-export const ONBOARDING_STORAGE_KEY = 'contacneed_onboarding_v1_dismissed'
+export const ONBOARDING_STORAGE_KEY = 'contacneed_onboarding_v2_dismissed'
+export const ONBOARDING_STORAGE_KEY_LEGACY = 'contacneed_onboarding_v1_dismissed'
+export const ONBOARDING_SESSION_KEY = 'contacneed_onboarding_session_seen'
 
 export type OnboardingStep = {
   id: string
@@ -89,10 +91,19 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
 
 export function shouldShowOnboardingAuto(): boolean {
   if (typeof window === 'undefined') return false
-  return window.localStorage.getItem(ONBOARDING_STORAGE_KEY) !== '1'
+  if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === '1') return false
+  if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY_LEGACY) === '1') return false
+  if (window.sessionStorage.getItem(ONBOARDING_SESSION_KEY) === '1') return false
+  return true
+}
+
+export function markOnboardingSeenThisSession() {
+  if (typeof window === 'undefined') return
+  window.sessionStorage.setItem(ONBOARDING_SESSION_KEY, '1')
 }
 
 export function dismissOnboardingForever() {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(ONBOARDING_STORAGE_KEY, '1')
+  markOnboardingSeenThisSession()
 }

@@ -2,6 +2,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-r
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { IdentityProvider } from '../lib/identity-context'
+import { OnboardingProvider } from '../lib/onboarding-context'
 import { UserProvider } from '../store/userContext'
 import { createAppQueryClient } from '../lib/query-client'
 import { getSessionContextFn } from '../server/auth.functions'
@@ -32,9 +33,11 @@ function RootLayout() {
       <body>
         <QueryClientProvider client={queryClient}>
           <IdentityProvider user={user} profile={profile} isAdmin={isAdmin}>
-            <UserProvider>
-              <Outlet />
-            </UserProvider>
+            <OnboardingProvider>
+              <UserProvider>
+                <Outlet />
+              </UserProvider>
+            </OnboardingProvider>
           </IdentityProvider>
         </QueryClientProvider>
         <Scripts />

@@ -1,4 +1,5 @@
 import { toYouTubeEmbedUrl } from './youtube'
+import { resolveAvatarUrl } from './default-avatar'
 
 export type MappedPost = {
   id: string
@@ -73,9 +74,7 @@ export function mapPublicacionToPost(post: {
     commentList: [],
     authorData: {
       name: post.perfiles?.nombre ?? 'Usuario',
-      avatar:
-        post.perfiles?.avatar_url?.trim() ||
-        `https://i.pravatar.cc/150?u=${userId}`,
+      avatar: resolveAvatarUrl(post.perfiles?.avatar_url, userId, post.perfiles?.nombre),
       title: profession,
       verified: Boolean(post.perfiles?.verificado),
       isFounder: Boolean(post.perfiles?.es_fundador),

@@ -6,7 +6,7 @@ import { ContacNeedLogo } from './ContacNeedLogo'
 import { GuestBrowseGate } from './GuestBrowseGate'
 import { HeaderSearchBar } from './HeaderSearchBar'
 import { LastSeenPing } from './LastSeenPing'
-import { NewUserGuide, useOnboardingGuide } from './NewUserGuide'
+import { useOnboardingGuide } from '../lib/onboarding-context'
 import { ProAdModal } from './ProAdModal'
 import { ProAdPanel } from './ProAdPanel'
 import { RadioLauncher } from './RadioLauncher'
@@ -195,11 +195,6 @@ export function AppShell({
           onOpenAuth={(tab) => openAuth(tab)}
         />
         <ProAdModal open={showProAdModal} onClose={() => setShowProAdModal(false)} />
-        <NewUserGuide
-          open={onboarding.open}
-          autoOpened={onboarding.autoOpened}
-          onClose={onboarding.closeGuide}
-        />
         <AuthModal
           open={authModal.open}
           initialTab={authModal.tab}

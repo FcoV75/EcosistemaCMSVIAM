@@ -142,6 +142,7 @@ function toMappedPost(
           descripcion_profesion: post.perfiles.descripcion_profesion,
           verificado: post.perfiles.verificado,
           es_fundador: post.perfiles.es_fundador,
+          avatar_url: post.perfiles.avatar_url,
         }
       : null,
   })
@@ -241,6 +242,7 @@ export const createPostFn = createServerFn({ method: 'POST' })
             descripcion_profesion: profile.descripcion_profesion,
             verificado: profile.verificado,
             es_fundador: profile.es_fundador,
+            avatar_url: profile.avatar_url,
           }
         : null,
     })

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { useIdentity } from '../lib/identity-context'
+import { isPlaceholderAvatarUrl, resolveAvatarUrl } from '../lib/default-avatar'
 import { updateProfileFn } from '../server/auth.functions'
 type ProfileData = {
   name: string
@@ -42,7 +43,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       title: profile.habilidad_empirica?.trim() || '',
       location: [profile.municipio, profile.estado].filter(Boolean).join(', '),
       description: profile.descripcion_profesion?.trim() || '',
-      avatar: profile.avatar_url?.trim() || `https://i.pravatar.cc/150?u=${user.id}`,
+      avatar: resolveAvatarUrl(profile.avatar_url, user.id, profile.nombre),
     })
   }, [user, profile])
 
@@ -58,7 +59,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         descripcion_profesion: data.description,
         estado: estado || profile?.estado || undefined,
         municipio: municipio || profile?.municipio || undefined,
-        avatar_url: data.avatar.startsWith('http') ? data.avatar : profile?.avatar_url || undefined,
+        avatar_url: !isPlaceholderAvatarUrl(data.avatar) ? data.avatar.trim() : profile?.avatar_url || undefined,
       },
     })
     setProfileData(data)

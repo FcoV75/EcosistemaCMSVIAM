@@ -3,15 +3,13 @@ import { ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import {
-  dismissOnboardingForever,
   ONBOARDING_STEPS,
-  shouldShowOnboardingAuto,
 } from '../lib/onboarding-guide'
 import { getPersonalizedGuideFn } from '../server/support.functions'
 
 type NewUserGuideProps = {
   open: boolean
-  onClose: () => void
+  onClose: (remember?: boolean) => void
   autoOpened?: boolean
 }
 
@@ -35,8 +33,7 @@ export function NewUserGuide({ open, onClose, autoOpened }: NewUserGuideProps) {
   if (!open) return null
 
   const handleClose = (remember: boolean) => {
-    if (remember) dismissOnboardingForever()
-    onClose()
+    onClose(remember)
   }
 
   return (
@@ -141,28 +138,6 @@ export function NewUserGuide({ open, onClose, autoOpened }: NewUserGuideProps) {
       </div>
     </div>
   )
-}
-
-export function useOnboardingGuide() {
-  const [open, setOpen] = useState(false)
-  const [autoOpened, setAutoOpened] = useState(false)
-
-  useEffect(() => {
-    if (shouldShowOnboardingAuto()) {
-      setAutoOpened(true)
-      setOpen(true)
-    }
-  }, [])
-
-  return {
-    open,
-    autoOpened,
-    openGuide: () => {
-      setAutoOpened(false)
-      setOpen(true)
-    },
-    closeGuide: () => setOpen(false),
-  }
 }
 
 /** Panel reutilizable para la pestaña Guía del perfil */
