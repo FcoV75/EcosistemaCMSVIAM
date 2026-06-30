@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { Crown, X } from 'lucide-react'
 
+import { PlanComparison } from './PlanComparison'
 import { useIdentity } from '../lib/identity-context'
 
 import { requestPayPalProFn } from '../server/auth.functions'
@@ -230,10 +231,10 @@ export function StripeSubscriptionModal({ open, onClose, onOpenAuth }: StripeSub
           ) : (
           <>
           <p className="text-sm text-purple-200/80">
-
-            Desbloquea tienda personalizada, mayor visibilidad y multimedia ampliada.
-
+            Desbloquea chat en vivo, Google Maps GPS, 30 publicaciones diarias, informes de mercado y anuncio PRO.
           </p>
+
+          <PlanComparison compact />
 
 
 

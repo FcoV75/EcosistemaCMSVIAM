@@ -14,6 +14,9 @@ export type ServerProfile = {
   es_fundador?: boolean | null
   avatar_url?: string | null
   bloqueado?: boolean | null
+  pro_extra_ad_slots?: number | null
+  pro_plan_type?: string | null
+  ultimo_informe_pro?: string | null
 }
 
 export async function getServerUser() {
@@ -27,7 +30,7 @@ export async function getServerProfile(userId: string): Promise<ServerProfile | 
   const { data, error } = await supabase
     .from('perfiles')
     .select(
-      'id, nombre, correo, estado, municipio, habilidad_empirica, descripcion_profesion, es_pro, is_admin, verificado, es_fundador, avatar_url, bloqueado',
+      'id, nombre, correo, estado, municipio, habilidad_empirica, descripcion_profesion, es_pro, is_admin, verificado, es_fundador, avatar_url, bloqueado, pro_extra_ad_slots, pro_plan_type, ultimo_informe_pro',
     )
     .eq('id', userId)
     .maybeSingle()

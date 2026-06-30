@@ -63,9 +63,10 @@ exports.handler = async (event) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey)
+    const planType = session.metadata?.plan === 'annual' ? 'annual' : 'monthly'
     await supabase
       .from('perfiles')
-      .update({ es_pro: true, is_premium: true })
+      .update({ es_pro: true, is_premium: true, pro_plan_type: planType })
       .eq('id', userId)
   }
 

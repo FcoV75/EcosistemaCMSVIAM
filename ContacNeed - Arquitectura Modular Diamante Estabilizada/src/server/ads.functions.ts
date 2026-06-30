@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { requireAdminUser, requireProUser } from '../lib/auth'
+import { getMaxProAds } from '../lib/plan-limits'
 
 export type AnuncioRow = {
   id: string
@@ -126,12 +127,24 @@ export const publishMyProAdFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const { user, profile } = await requireProUser()
     const supabase = createSupabaseAdminClient()
+    const extraSlots = Number(profile?.pro_extra_ad_slots ?? 0)
+    const maxAds = getMaxProAds(extraSlots)
 
-    await supabase
+    const { count, error: countError } = await supabase
       .from('anuncios')
-      .update({ activo: false })
+      .select('*', { count: 'exact', head: true })
       .eq('usuario_id', user.id)
       .eq('tipo', 'pro')
+      .eq('activo', true)
+
+    if (countError) throw countError
+    if ((count ?? 0) >= maxAds) {
+      throw new Error(
+        maxAds <= 1
+          ? 'Ya tienes tu anuncio PRO activo. Solicita el paquete +5 anuncios ($500 MXN) para publicar más.'
+          : `Límite de anuncios PRO alcanzado (${maxAds} activos). Solicita otro paquete extra si lo necesitas.`,
+      )
+    }
 
     const { data: row, error } = await supabase
       .from('anuncios')

@@ -16,6 +16,7 @@ import { fetchPublicPosts } from '../lib/posts-client'
 import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
 
 import { createPostFn } from '../server/posts.functions'
+import { getPlanUsageFn } from '../server/plan.functions'
 
 import type { MexicoState } from '../lib/mexico-states'
 
@@ -45,6 +46,13 @@ export function Feed({ selectedState }: FeedProps) {
 
   const queryClient = useQueryClient()
   const { searchQuery } = useBrowseSearch()
+  const { user } = useIdentity()
+
+  const planQuery = useQuery({
+    queryKey: ['plan-usage'],
+    queryFn: () => getPlanUsageFn(),
+    enabled: Boolean(user),
+  })
 
 
 
@@ -91,6 +99,7 @@ export function Feed({ selectedState }: FeedProps) {
 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] })
+      queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
     },
     onError: (error) => {
       alert(error instanceof Error ? error.message : 'No se pudo publicar. Verifica tu sesión e intenta de nuevo.')
@@ -144,6 +153,9 @@ export function Feed({ selectedState }: FeedProps) {
         selectedState={selectedState}
 
         isSubmitting={createPostMutation.isPending}
+        postsRemaining={planQuery.data?.posts.remaining}
+        postsLabel={planQuery.data?.posts.label}
+        isPro={planQuery.data?.isPro}
 
         onSubmit={(payload) => createPostMutation.mutate(payload)}
 
@@ -234,6 +246,9 @@ function Composer({
   selectedState,
 
   isSubmitting,
+  postsRemaining,
+  postsLabel,
+  isPro,
 
   onSubmit,
 
@@ -242,6 +257,9 @@ function Composer({
   selectedState: MexicoState | ''
 
   isSubmitting: boolean
+  postsRemaining?: number
+  postsLabel?: string
+  isPro?: boolean
 
   onSubmit: (payload: {
 
@@ -410,6 +428,12 @@ function Composer({
       <div className="border-b border-purple-500/15 bg-gradient-to-r from-purple-900/30 to-amber-900/10 px-4 py-2">
 
         <p className="text-xs font-semibold uppercase tracking-wider text-amber-300/90">Nueva publicación</p>
+        {postsLabel && (
+          <p className="mt-1 text-[11px] text-purple-200/70">
+            {postsLabel}
+            {!isPro && typeof postsRemaining === 'number' && postsRemaining <= 3 ? ' · Considera PRO (30/día)' : ''}
+          </p>
+        )}
 
       </div>
 

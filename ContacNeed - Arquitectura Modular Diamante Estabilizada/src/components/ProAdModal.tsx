@@ -1,7 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Crown, X } from 'lucide-react'
 import { useState } from 'react'
 import { useIdentity } from '../lib/identity-context'
+import { PRO_EXTRA_ADS_PACK_PRICE_MXN, PRO_EXTRA_ADS_PACK_SIZE } from '../lib/plan-limits'
 import { publishMyProAdFn } from '../server/ads.functions'
 
 type ProAdModalProps = {
@@ -28,6 +29,7 @@ export function ProAdModal({ open, onClose }: ProAdModalProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pro-panel'] })
       queryClient.invalidateQueries({ queryKey: ['banner-ads'] })
+      queryClient.invalidateQueries({ queryKey: ['plan-usage'] })
       alert('Tu anuncio PRO ya está visible en el panel lateral.')
       onClose()
     },
@@ -59,7 +61,8 @@ export function ProAdModal({ open, onClose }: ProAdModalProps) {
           }}
         >
           <p className="text-sm text-purple-200/80">
-            Aparecerás en el Espacio PRO de tu estado. Solo puedes tener un anuncio activo a la vez.
+            Tu plan incluye 1 anuncio PRO principal en el Espacio PRO de tu estado. Puedes publicar más si
+            contrataste paquetes extra (+{PRO_EXTRA_ADS_PACK_SIZE} por ${PRO_EXTRA_ADS_PACK_PRICE_MXN} MXN).
           </p>
 
           <label className="block text-sm">

@@ -3,6 +3,7 @@ import { createSupabaseAdminClient, createSupabaseServerClient } from '../lib/su
 import { requireActiveUser } from '../lib/auth'
 import { mapPublicacionToPost } from '../lib/posts-mapper'
 import { toYouTubeEmbedUrl } from '../lib/youtube'
+import { getDailyPostLimit, getStartOfTodayIso } from '../lib/plan-limits'
 
 type GetPostsInput = {
   estado?: string
@@ -213,6 +214,24 @@ export const createPostFn = createServerFn({ method: 'POST' })
 
     if (!content.trim() && !mediaUrl) {
       throw new Error('Escribe contenido o adjunta multimedia')
+    }
+
+    const isPro = Boolean(profile?.es_pro)
+    const postLimit = getDailyPostLimit(isPro)
+    const startOfDay = getStartOfTodayIso()
+    const { count: postsToday, error: countError } = await createSupabaseAdminClient()
+      .from('publicaciones')
+      .select('*', { count: 'exact', head: true })
+      .eq('usuario_id', user.id)
+      .gte('fecha_creacion', startOfDay)
+
+    if (countError) throw countError
+    if ((postsToday ?? 0) >= postLimit) {
+      throw new Error(
+        isPro
+          ? `Límite PRO alcanzado: ${postLimit} publicaciones por día. Vuelve mañana.`
+          : `Plan gratuito: máximo ${postLimit} publicaciones al día. Activa PRO para hasta 30 diarias.`,
+      )
     }
 
     const supabase = createSupabaseAdminClient()

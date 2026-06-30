@@ -257,19 +257,37 @@ export const approveProRequestFn = createServerFn({ method: 'POST' })
 
     const { data: request, error: fetchError } = await supabase
       .from('solicitudes_pro')
-      .select('id, usuario_id, estatus')
+      .select('id, usuario_id, estatus, metodo, notas')
       .eq('id', data.id)
       .maybeSingle()
 
     if (fetchError) throw fetchError
     if (!request) throw new Error('Solicitud no encontrada')
 
-    const { error: proError } = await supabase
-      .from('perfiles')
-      .update({ es_pro: true })
-      .eq('id', request.usuario_id)
+    if (request.metodo === 'extra_ads') {
+      const { data: profile, error: profileError } = await supabase
+        .from('perfiles')
+        .select('pro_extra_ad_slots')
+        .eq('id', request.usuario_id)
+        .maybeSingle()
 
-    if (proError) throw proError
+      if (profileError) throw profileError
+
+      const { error: slotsError } = await supabase
+        .from('perfiles')
+        .update({ pro_extra_ad_slots: Number(profile?.pro_extra_ad_slots ?? 0) + 5 })
+        .eq('id', request.usuario_id)
+
+      if (slotsError) throw slotsError
+    } else {
+      const planType = String(request.notas ?? '').toLowerCase().includes('anual') ? 'annual' : 'monthly'
+      const { error: proError } = await supabase
+        .from('perfiles')
+        .update({ es_pro: true, pro_plan_type: planType })
+        .eq('id', request.usuario_id)
+
+      if (proError) throw proError
+    }
 
     const { error: updateError } = await supabase
       .from('solicitudes_pro')

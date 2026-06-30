@@ -30,7 +30,11 @@ export const getPublicProfileFn = createServerFn({ method: 'GET' })
         )
         .eq('id', userId)
         .maybeSingle(),
-      supabase.from('negocios').select('banner_url, items').eq('id', userId).maybeSingle(),
+      supabase
+        .from('negocios')
+        .select('banner_url, items, maps_address, lat, lng')
+        .eq('id', userId)
+        .maybeSingle(),
     ])
 
     if (profileError) throw profileError
@@ -83,12 +87,13 @@ export const getOnlineUsersFn = createServerFn({ method: 'GET' }).handler(async 
 
 export const sendMessageFn = createServerFn({ method: 'POST' })
   .inputValidator(
-    (d: { destinatarioId: string; cuerpo: string; asunto?: string; tipo?: 'general' | 'servicio' | 'amistad' }) =>
+    (d: { destinatarioId: string; cuerpo: string; asunto?: string; tipo?: 'general' | 'servicio' | 'amistad' | 'informe_pro' }) =>
       d,
   )
   .handler(async ({ data }) => {
     const { user } = await requireActiveUser()
     if (user.id === data.destinatarioId) throw new Error('No puedes enviarte mensajes a ti mismo')
+    if (data.tipo === 'informe_pro') throw new Error('Tipo de mensaje no permitido')
 
     const supabase = createSupabaseAdminClient()
     const { data: row, error } = await supabase
@@ -191,7 +196,10 @@ export const markMessageReadFn = createServerFn({ method: 'POST' })
 export const getConversationFn = createServerFn({ method: 'GET' })
   .inputValidator((peerId: string) => peerId)
   .handler(async ({ data: peerId }) => {
-    const { user } = await requireActiveUser()
+    const { user, profile } = await requireActiveUser()
+    if (!profile?.es_pro) {
+      throw new Error('El chat en vivo es exclusivo de ContacNeed PRO. Usa tu bandeja de mensajes en plan gratuito.')
+    }
     if (user.id === peerId) throw new Error('Conversación no válida')
 
     const supabase = createSupabaseAdminClient()

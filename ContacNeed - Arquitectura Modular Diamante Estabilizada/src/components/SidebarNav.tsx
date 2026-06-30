@@ -1,6 +1,5 @@
 import { Link } from '@tanstack/react-router'
 import { Crown, HelpCircle, Home, LogIn, LogOut, Mail, User, UserPlus } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
 import type { AuthTab } from './AuthModal'
 
 type SidebarNavProps = {

@@ -3,15 +3,16 @@ import { useState } from 'react'
 import { AppShell } from '../../../components/AppShell'
 import { RealtimeChat } from '../../../components/RealtimeChat'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../../../lib/mexico-states'
-import { getServerUserFn } from '../../../server/auth.functions'
+import { getSessionContextFn } from '../../../server/auth.functions'
 import { getConversationFn } from '../../../server/social.functions'
 
 export const Route = createFileRoute('/mensajes/chat/$peerId')({
   beforeLoad: async ({ params }) => {
-    const user = await getServerUserFn()
-    if (!user) throw redirect({ to: '/login' })
-    if (user.id === params.peerId) throw redirect({ to: '/mensajes' })
-    return { user }
+    const session = await getSessionContextFn()
+    if (!session.user) throw redirect({ to: '/login' })
+    if (!session.profile?.es_pro) throw redirect({ to: '/mensajes' })
+    if (session.user.id === params.peerId) throw redirect({ to: '/mensajes' })
+    return { user: session.user }
   },
   loader: async ({ params }) => getConversationFn({ data: params.peerId }),
   component: ChatPage,

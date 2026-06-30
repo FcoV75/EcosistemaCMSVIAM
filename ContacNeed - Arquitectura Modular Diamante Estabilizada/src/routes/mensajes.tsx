@@ -4,6 +4,7 @@ import { Check, X } from 'lucide-react'
 import { useState } from 'react'
 import { AppShell } from '../components/AppShell'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
+import { useIdentity } from '../lib/identity-context'
 import { getServerUserFn } from '../server/auth.functions'
 import {
   getContactRequestsFn,
@@ -30,6 +31,7 @@ function MessagesPage() {
   }
 
   const queryClient = useQueryClient()
+  const { isPro } = useIdentity()
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
   const [tab, setTab] = useState<'inbox' | 'chats' | 'requests' | 'online'>('chats')
@@ -98,12 +100,18 @@ function MessagesPage() {
 
         {tab === 'chats' && (
           <div className="space-y-3">
+            {!isPro && (
+              <p className="rounded-xl border border-amber-400/30 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
+                El chat en vivo es exclusivo PRO. En plan gratuito usa la bandeja y las solicitudes de contacto.
+              </p>
+            )}
             {(chatsQuery.data ?? []).length === 0 && (
               <p className="text-sm text-purple-200/60">
                 Aún no tienes conversaciones. Visita un perfil y abre un chat en vivo.
               </p>
             )}
             {(chatsQuery.data ?? []).map((conv) => (
+              isPro ? (
               <Link
                 key={conv.peer.id}
                 to="/mensajes/chat/$peerId"
@@ -133,6 +141,23 @@ function MessagesPage() {
                   </span>
                 )}
               </Link>
+              ) : (
+              <div
+                key={conv.peer.id}
+                className="flex items-center gap-3 rounded-xl border border-purple-500/15 bg-slate-900/40 p-4 opacity-90"
+              >
+                <img
+                  src={conv.peer.avatar_url || `https://i.pravatar.cc/80?u=${conv.peer.id}`}
+                  alt=""
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold text-white">{conv.peer.nombre}</p>
+                  <p className="truncate text-sm text-purple-100/75">{conv.lastMessage.cuerpo}</p>
+                </div>
+                <span className="text-[10px] font-bold uppercase text-amber-300">Solo PRO</span>
+              </div>
+              )
             ))}
           </div>
         )}
@@ -162,7 +187,11 @@ function MessagesPage() {
                       <Link to="/u/$userId" params={{ userId: msg.peer.id }} className="font-bold text-white hover:text-amber-200">
                         {msg.incoming ? msg.peer.nombre : `Para: ${msg.peer.nombre}`}
                       </Link>
-                      <p className="text-[10px] uppercase text-purple-300/60">{msg.tipo}</p>
+                      {msg.tipo === 'informe_pro' ? (
+                        <p className="text-[10px] uppercase text-purple-300/60">Informe PRO</p>
+                      ) : (
+                        <p className="text-[10px] uppercase text-purple-300/60">{msg.tipo}</p>
+                      )}
                     </div>
                   </div>
                   <span className="text-xs text-purple-300/50">
@@ -177,7 +206,7 @@ function MessagesPage() {
                     params={{ peerId: msg.peer.id }}
                     className="text-xs font-bold text-amber-300 hover:text-amber-200"
                   >
-                    Chat en vivo →
+                    {isPro ? 'Chat en vivo →' : 'Chat PRO →'}
                   </Link>
                   {msg.incoming && !msg.leido && (
                     <button
@@ -267,9 +296,13 @@ function MessagesPage() {
                 <Link
                   to="/mensajes/chat/$peerId"
                   params={{ peerId: person.id }}
-                  className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950"
+                  className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold ${
+                    isPro
+                      ? 'bg-amber-500 text-slate-950'
+                      : 'border border-amber-400/40 text-amber-200'
+                  }`}
                 >
-                  Chat
+                  {isPro ? 'Chat' : 'PRO'}
                 </Link>
               </div>
             ))}

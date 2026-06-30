@@ -73,7 +73,11 @@ export const confirmStripeSessionFn = createServerFn({ method: 'POST' })
     }
 
     const supabase = createSupabaseAdminClient()
-    const { error } = await supabase.from('perfiles').update({ es_pro: true }).eq('id', user.id)
+    const planType = session.metadata?.plan === 'annual' ? 'annual' : 'monthly'
+    const { error } = await supabase
+      .from('perfiles')
+      .update({ es_pro: true, pro_plan_type: planType })
+      .eq('id', user.id)
     if (error) throw error
 
     return { success: true, es_pro: true }

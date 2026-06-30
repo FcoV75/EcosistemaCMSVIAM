@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { BadgeCheck, Crown, MapPin, MessageSquare, Phone, Store, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { AppShell } from '../../components/AppShell'
+import { BusinessLocationDisplay } from '../../components/BusinessLocationPanel'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../../lib/mexico-states'
 import { useIdentity } from '../../lib/identity-context'
 import { getPublicProfileFn, sendContactRequestFn, sendMessageFn } from '../../server/social.functions'
@@ -132,12 +133,24 @@ function PublicProfilePage() {
                   {sendMessageMutation.isPending ? 'Enviando...' : 'Enviar a bandeja'}
                 </button>
                 <Link
-                  to="/mensajes/chat/$peerId"
-                  params={{ peerId: userId }}
-                  className="mt-3 inline-flex rounded-xl border border-emerald-400/40 bg-emerald-950/30 px-4 py-2 text-sm font-bold text-emerald-200 hover:bg-emerald-900/40"
+                  to="/mensajes"
+                  className="mt-3 inline-flex rounded-xl border border-purple-400/40 bg-purple-950/30 px-4 py-2 text-sm font-bold text-purple-100 hover:bg-purple-900/40"
                 >
-                  Chat en vivo →
+                  Enviar mensaje a bandeja →
                 </Link>
+                {profile.es_pro ? (
+                  <Link
+                    to="/mensajes/chat/$peerId"
+                    params={{ peerId: userId }}
+                    className="mt-3 inline-flex rounded-xl border border-emerald-400/40 bg-emerald-950/30 px-4 py-2 text-sm font-bold text-emerald-200 hover:bg-emerald-900/40"
+                  >
+                    Chat en vivo PRO →
+                  </Link>
+                ) : (
+                  <p className="mt-2 text-xs text-purple-300/70">
+                    El chat en vivo es exclusivo PRO. Plan gratuito: bandeja de mensajes y solicitudes.
+                  </p>
+                )}
                 <Link to="/mensajes" className="mt-2 block text-xs text-purple-300 hover:text-white">
                   Ir a mi bandeja →
                 </Link>
@@ -183,12 +196,21 @@ function PublicProfilePage() {
             </p>
           )}
 
-          {(negocio?.banner_url || items.length > 0) && (
+          {(negocio?.banner_url || items.length > 0 || (profile.es_pro && negocio)) && (
             <div className="mt-8">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
                 <Store size={18} className="text-amber-400" />
                 Tienda / Portafolio
               </h2>
+              {profile.es_pro && negocio && (
+                <div className="mb-4">
+                  <BusinessLocationDisplay
+                    maps_address={negocio.maps_address as string | null | undefined}
+                    lat={negocio.lat as number | null | undefined}
+                    lng={negocio.lng as number | null | undefined}
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {items.map((item, index) => (
                   <img

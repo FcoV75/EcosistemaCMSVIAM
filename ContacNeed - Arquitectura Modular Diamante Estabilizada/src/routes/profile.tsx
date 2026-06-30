@@ -1,15 +1,20 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
-import { Camera, Settings, HelpCircle, Store, Image as ImageIcon, Sparkles, X, Plus, LogOut } from 'lucide-react'
+import { Camera, Settings, HelpCircle, Store, Image as ImageIcon, Sparkles, X, Plus, LogOut, Crown, BarChart3 } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
+import { BusinessLocationPanel } from '../components/BusinessLocationPanel'
+import { PlanComparison } from '../components/PlanComparison'
 import { SmartGuidePanel } from '../components/NewUserGuide'
 import { useUser } from '../store/userContext'
 import { useIdentity } from '../lib/identity-context'
 import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
-import { getServerUserFn, signOutFn } from '../server/auth.functions'
 import { FREE_TIENDA_MAX_ITEMS } from '../lib/plan-limits'
+import { getServerUserFn, signOutFn } from '../server/auth.functions'
 import { getNegocioFn, updateNegocioFn } from '../server/negocios.functions'
+import { getPlanUsageFn, requestProExtraAdsFn } from '../server/plan.functions'
+import { generateProMarketReportFn } from '../server/pro-reports.functions'
 
 export const Route = createFileRoute('/profile')({
   beforeLoad: async () => {
@@ -51,6 +56,19 @@ function ProfileContent({
 }) {
   const { profileData, setProfileData, saveProfileData } = useUser()
   const { isPro } = useIdentity()
+  const planQuery = useQuery({ queryKey: ['plan-usage'], queryFn: () => getPlanUsageFn() })
+  const reportMutation = useMutation({
+    mutationFn: () => generateProMarketReportFn(),
+    onSuccess: (result) => {
+      alert(`${result.preview}...\n\nInforme completo enviado a tu bandeja en Mensajes.`)
+    },
+    onError: (error) => alert(error instanceof Error ? error.message : 'No se pudo generar el informe'),
+  })
+  const extraAdsMutation = useMutation({
+    mutationFn: () => requestProExtraAdsFn(),
+    onSuccess: (result) => alert(result.message),
+    onError: (error) => alert(error instanceof Error ? error.message : 'No se pudo solicitar'),
+  })
   const [activeTab, setActiveTab] = useState<'perfil' | 'negocio' | 'guia'>('perfil')
   const [storePrompt, setStorePrompt] = useState('')
   const [aiSuggestions, setAiSuggestions] = useState<string | null>(null)
@@ -67,6 +85,13 @@ function ProfileContent({
 
   const [bannerUrl, setBannerUrl] = useState(negocio?.banner_url || '')
   const [items, setItems] = useState<string[]>(Array.isArray(negocio?.items) ? (negocio.items as string[]) : [])
+  const [mapsAddress, setMapsAddress] = useState(negocio?.maps_address || '')
+  const [mapsLat, setMapsLat] = useState(
+    typeof negocio?.lat === 'number' ? negocio.lat : null,
+  )
+  const [mapsLng, setMapsLng] = useState(
+    typeof negocio?.lng === 'number' ? negocio.lng : null,
+  )
 
   const handleUpdateNegocio = async (newBanner: string, newItems: string[]) => {
     setIsSavingStore(true)
@@ -313,8 +338,8 @@ function ProfileContent({
                 <h2 className="text-2xl font-bold text-slate-900">Diseña tu Tienda / Negocio</h2>
                 <p className="text-gray-500">
                   {isPro
-                    ? 'Personaliza tu mini página web con banner, galería y asistente IA.'
-                    : `Plan gratuito: 1 banner y hasta ${FREE_TIENDA_MAX_ITEMS} productos. Activa PRO para tienda completa.`}
+                    ? 'Tienda PRO ampliada, ubicación GPS en Maps, informes de mercado y más visibilidad.'
+                    : `Plan gratuito: 1 banner, hasta ${FREE_TIENDA_MAX_ITEMS} imágenes, IA de tienda, 15 posts/día y bandeja de mensajes.`}
                 </p>
               </div>
               <span
@@ -329,7 +354,8 @@ function ProfileContent({
             {!isPro && (
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <p className="text-sm text-amber-900">
-                  Ya puedes usar tu tienda básica gratis. PRO desbloquea productos ilimitados y asistente IA.
+                  Tu plan gratuito incluye tienda básica, IA de sugerencias, mensajes y 15 publicaciones diarias.
+                  PRO desbloquea chat en vivo, Maps GPS, 30 posts/día e informes de mercado.
                 </p>
                 <button
                   type="button"
@@ -341,12 +367,25 @@ function ProfileContent({
               </div>
             )}
 
-            {isPro && (
+            {planQuery.data && (
+              <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                <p>{planQuery.data.posts.label}</p>
+                <p className="mt-1">
+                  Tienda: {planQuery.data.store.used}/{planQuery.data.store.limit} imágenes
+                  {planQuery.data.isPro
+                    ? ` · Anuncios PRO: ${planQuery.data.proAds.active}/${planQuery.data.proAds.max}`
+                    : ''}
+                </p>
+              </div>
+            )}
+
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-8">
               <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-3">
                 <Sparkles className="text-amber-500" size={20} /> Asistente de Diseño IA
               </h3>
-              <p className="text-sm text-slate-600 mb-4">Describe qué tipo de negocio tienes y la IA te dará recomendaciones de colores, secciones y textos para tu tienda.</p>
+              <p className="text-sm text-slate-600 mb-4">
+                Describe tu negocio y recibe sugerencias de colores, secciones y textos (incluido en plan gratuito).
+              </p>
               <div className="flex gap-3">
                 <input 
                   type="text" 
@@ -367,6 +406,50 @@ function ProfileContent({
                 <div className="mt-6 bg-white p-4 rounded-lg border border-amber-100 shadow-sm" dangerouslySetInnerHTML={{ __html: aiSuggestions }}></div>
               )}
             </div>
+
+            {isPro && (
+              <>
+                <BusinessLocationPanel
+                  initialAddress={mapsAddress}
+                  initialLat={mapsLat}
+                  initialLng={mapsLng}
+                  onSave={async (payload) => {
+                    await updateNegocioFn({
+                      data: {
+                        banner_url: bannerUrl,
+                        items,
+                        maps_address: payload.maps_address,
+                        lat: payload.lat,
+                        lng: payload.lng,
+                      },
+                    })
+                    setMapsAddress(payload.maps_address)
+                    setMapsLat(payload.lat)
+                    setMapsLng(payload.lng)
+                  }}
+                />
+
+                <div className="my-8 grid gap-3 md:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => reportMutation.mutate()}
+                    disabled={reportMutation.isPending}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-purple-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+                  >
+                    <BarChart3 size={18} />
+                    {reportMutation.isPending ? 'Generando informe...' : 'Informe PRO de tendencias'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => extraAdsMutation.mutate()}
+                    disabled={extraAdsMutation.isPending}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900 disabled:opacity-50"
+                  >
+                    <Crown size={18} />
+                    Solicitar +5 anuncios ($500 MXN)
+                  </button>
+                </div>
+              </>
             )}
 
             <div className="space-y-6">
@@ -434,6 +517,9 @@ function ProfileContent({
               </p>
             </div>
             <SmartGuidePanel />
+            <div className="mt-8">
+              <PlanComparison isPro={isPro} />
+            </div>
           </div>
         )}
       </div>
