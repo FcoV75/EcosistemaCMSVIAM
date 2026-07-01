@@ -126,12 +126,67 @@ type SignUpInput = {
   cedula?: string
 }
 
+function mapSignUpError(message: string, email: string) {
+  const msg = message.toLowerCase()
+  if (msg.includes('already been registered') || msg.includes('already exists') || msg.includes('already registered')) {
+    return 'Este correo ya está registrado. Revisa tu bandeja de confirmación o inicia sesión.'
+  }
+  if (msg.includes('database error updating user') || msg.includes('database error saving new user')) {
+    return `No se pudo completar el registro para ${email}. Suele pasar si ya intentaste registrarte antes con este correo, o si falta actualizar Supabase (script 007). Prueba iniciar sesión o usa otro correo; si persiste, contacta soporte.`
+  }
+  if (msg.includes('password')) {
+    return 'La contraseña no cumple los requisitos mínimos de seguridad (mínimo 6 caracteres).'
+  }
+  return message
+}
+
+async function saveSignupProfile(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+  email: string,
+  data: SignUpInput,
+  emailConfirmed: boolean,
+) {
+  const needsCedula = data.tipo_miembro === 'Profesion' || data.tipo_miembro === 'Especialidad'
+
+  const payload: Record<string, unknown> = {
+    id: userId,
+    nombre: data.nombre.trim(),
+    correo: email,
+    tipo_miembro: data.tipo_miembro,
+    direccion: data.direccion?.trim() || null,
+    cp: data.cp?.trim() || null,
+    celular: data.celular?.trim() || data.telefono?.trim() || null,
+    estado: data.estado?.trim() || null,
+    municipio: data.municipio?.trim() || null,
+    comunidad: data.comunidad?.trim() || null,
+    sexo: data.sexo?.trim() || null,
+    fecha_nacimiento: data.fecha_nacimiento?.trim() || null,
+    habilidad_empirica: data.habilidad_empirica?.trim() || null,
+    descripcion_profesion: data.descripcion_profesion?.trim() || null,
+    cedula: needsCedula ? data.cedula?.trim() || null : null,
+    verificado: emailConfirmed,
+    es_pro: false,
+    is_admin: false,
+    bloqueado: false,
+  }
+
+  const full = await admin.from('perfiles').upsert(payload, { onConflict: 'id' })
+  if (!full.error) return
+
+  const { fecha_registro, ...withoutFecha } = payload
+  const fallback = await admin.from('perfiles').upsert(withoutFecha, { onConflict: 'id' })
+  if (fallback.error) {
+    throw new Error(`No se pudo guardar el perfil: ${fallback.error.message}`)
+  }
+}
+
 export const signUpFn = createServerFn({ method: 'POST' })
   .inputValidator((d: SignUpInput) => d)
   .handler(async ({ data }) => {
     const supabase = createSupabaseServerClient()
     const admin = createSupabaseAdminClient()
-    const email = data.email.trim()
+    const email = data.email.trim().toLowerCase()
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -143,47 +198,19 @@ export const signUpFn = createServerFn({ method: 'POST' })
     })
 
     if (signUpError) {
-      const msg = signUpError.message
-      if (msg.includes('already been registered') || msg.includes('already exists')) {
-        throw new Error('Este correo ya está registrado. Inicia sesión.')
-      }
-      throw new Error(msg)
+      throw new Error(mapSignUpError(signUpError.message, email))
     }
 
     const userId = signUpData.user?.id
     if (!userId) throw new Error('No se pudo crear la cuenta')
 
-    const needsCedula = data.tipo_miembro === 'Profesion' || data.tipo_miembro === 'Especialidad'
-
-    const { error: profileError } = await admin.from('perfiles').upsert(
-      {
-        id: userId,
-        nombre: data.nombre.trim(),
-        correo: email,
-        tipo_miembro: data.tipo_miembro,
-        direccion: data.direccion ?? null,
-        cp: data.cp ?? null,
-        celular: data.celular ?? data.telefono ?? null,
-        estado: data.estado ?? null,
-        municipio: data.municipio ?? null,
-        comunidad: data.comunidad ?? null,
-        sexo: data.sexo ?? null,
-        fecha_nacimiento: data.fecha_nacimiento || null,
-        habilidad_empirica: data.habilidad_empirica ?? null,
-        descripcion_profesion: data.descripcion_profesion ?? null,
-        cedula: needsCedula ? data.cedula ?? null : null,
-        verificado: Boolean(signUpData.user?.email_confirmed_at),
-        es_pro: false,
-        is_admin: false,
-        bloqueado: false,
-        fecha_registro: new Date().toISOString(),
-      },
-      { onConflict: 'id' },
+    await saveSignupProfile(
+      admin,
+      userId,
+      email,
+      data,
+      Boolean(signUpData.user?.email_confirmed_at),
     )
-
-    if (profileError) {
-      throw new Error(`No se pudo guardar el perfil: ${profileError.message}`)
-    }
 
     const needsEmailConfirmation = !signUpData.session
 
