@@ -47,6 +47,10 @@ VIDEO_DIAMANTE_OWNER_CODES=CMS-XXXXXX  # propietario Video Diamante (permanente)
 SINCRONIA_NEXUS_OWNER_CODES=CMS-XXXXXX # propietario Santuario Nexus (permanente)
 # Opcional: un solo código para todo el ecosistema
 ECOSISTEMA_OWNER_CODES=CMS-XXXXXX
+
+# Seguridad Fase 1 (mismo valor en Netlify y Railway)
+ECOSISTEMA_SESSION_SECRET=genera_una_cadena_larga_aleatoria_64_chars
+RAILWAY_INTERNAL_SECRET=la_misma_cadena_que_ECOSISTEMA_SESSION_SECRET
 ```
 
 Opcional (precios fijos en catálogo Stripe):
@@ -57,6 +61,16 @@ STRIPE_PRICE_VIDEO_DIAMANTE_ANNUAL=price_...
 STRIPE_PRICE_NEXUS_MONTHLY=price_...
 STRIPE_PRICE_NEXUS_ANNUAL=price_...
 ```
+
+### Servicio Railway (`EcosistemaCMSVIAM`)
+
+```
+GROQ_API_KEY=...
+GEMINI_API_KEY=...
+RAILWAY_INTERNAL_SECRET=la_misma_cadena_que_ECOSISTEMA_SESSION_SECRET_en_Netlify
+```
+
+*(Si `RAILWAY_INTERNAL_SECRET` no está configurado, Railway sigue aceptando peticiones directas — configúralo en producción.)*
 
 ### Sitio `contacneed.com`
 

@@ -1,5 +1,4 @@
 /* Video Diamante — Motor VIAM v2 */
-const RAILWAY_API = "https://ecosistemacmsviam-production.up.railway.app";
 
 const LIMITES = {
     gratuito: { maxSeg: 240, maxImg: 3, maxVid: 2, maxDia: 3, minSeg: 0, etiqueta: "Gratuito" },
@@ -19,10 +18,50 @@ let letraSegmentos = [];
 let letraPalabras = [];
 let imagenEstudioBlob = null;
 let letraEstudioGenerada = "";
+let accessToken = localStorage.getItem("video_diamante_access_token") || "";
 
 const LIMITES_ESTUDIO = { gratuito: 5, premium: 20 };
 
 const $ = (sel) => document.querySelector(sel);
+
+function guardarAccessToken(token) {
+    if (!token) return;
+    accessToken = token;
+    localStorage.setItem("video_diamante_access_token", token);
+}
+
+function authHeaders(extra = {}) {
+    const headers = { ...extra };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    return headers;
+}
+
+function tokenPareceVigente(token) {
+    if (!token) return false;
+    try {
+        const bodyB64 = token.split(".")[0];
+        const json = JSON.parse(atob(bodyB64.replace(/-/g, "+").replace(/_/g, "/")));
+        return json.exp > Math.floor(Date.now() / 1000);
+    } catch {
+        return false;
+    }
+}
+
+async function ensureAccessToken() {
+    if (tokenPareceVigente(accessToken)) return;
+    try {
+        const r = await fetch("/.netlify/functions/access-token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ product: "video_diamante_premium", tier: "free" })
+        });
+        const d = await r.json();
+        if (d.accessToken) guardarAccessToken(d.accessToken);
+        else console.warn("Token de acceso:", d.error || "no disponible");
+    } catch (e) {
+        console.warn("No se pudo obtener token de acceso:", e.message);
+    }
+}
 
 function estudioGensHoy() {
     return parseInt(localStorage.getItem(`vd_estudio_${hoyKey()}`) || "0", 10);
@@ -81,21 +120,11 @@ function actualizarPreviewTipografia() {
 }
 
 async function fetchEstudio(endpoint, body) {
-    try {
-        const r = await fetchRailway(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
-        const d = await parseJsonSeguro(r);
-        if (r.ok && (d.success || d.letra || d.imagen_base64)) return { ok: true, data: d };
-    } catch (e) {
-        console.warn("Estudio Railway:", e.message);
-    }
+    await ensureAccessToken();
     const fn = endpoint.includes("letra") ? "estudio-letra" : "estudio-imagen";
     const r2 = await fetch(`/.netlify/functions/${fn}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(body)
     });
     const d2 = await parseJsonSeguro(r2);
@@ -226,28 +255,18 @@ function configurarTabsEstudio() {
     });
 }
 
-async function fetchRailway(endpoint, options = {}) {
-    const isFormData = options.body instanceof FormData;
-    if (isFormData) {
-        return fetch(`${RAILWAY_API}${endpoint}`, {
-            method: options.method || "POST",
-            body: options.body,
-            mode: "cors",
-            credentials: "omit"
-        });
-    }
-    const headers = { Accept: "application/json", ...(options.headers || {}) };
-    if (options.body) headers["Content-Type"] = "application/json";
-    return fetch(`${RAILWAY_API}${endpoint}`, { ...options, headers, mode: "cors", credentials: "omit" });
-}
-
 async function fetchRailwayViaProxy(endpoint, options = {}) {
+    await ensureAccessToken();
     const proxyUrl = `/.netlify/functions/railway-path-proxy?path=${encodeURIComponent(endpoint)}`;
     const isFormData = options.body instanceof FormData;
     if (isFormData) {
-        return fetch(proxyUrl, { method: options.method || "POST", body: options.body });
+        return fetch(proxyUrl, {
+            method: options.method || "POST",
+            headers: authHeaders(),
+            body: options.body
+        });
     }
-    const headers = { Accept: "application/json", ...(options.headers || {}) };
+    const headers = authHeaders({ Accept: "application/json", ...(options.headers || {}) });
     if (options.body) headers["Content-Type"] = "application/json";
     return fetch(proxyUrl, {
         method: options.method || "POST",
@@ -267,34 +286,17 @@ function mensajeErrorMotorRailway(status, detalle) {
 }
 
 async function motorRailwayDisponible() {
-    const intentos = [
-        () => fetchRailway("/health", { method: "GET" }),
-        () => fetchRailwayViaProxy("/health", { method: "GET" })
-    ];
-    for (const intento of intentos) {
-        try {
-            const r = await intento();
-            if (r.ok) return true;
-            console.warn("Health Railway:", r.status);
-        } catch (e) {
-            console.warn("Health Railway no disponible:", e.message);
-        }
+    try {
+        const r = await fetch("/.netlify/functions/railway-path-proxy?path=%2Fhealth", { method: "GET" });
+        if (r.ok) return true;
+        console.warn("Health Railway:", r.status);
+    } catch (e) {
+        console.warn("Health Railway no disponible:", e.message);
     }
     return false;
 }
 
 async function fetchRailwayPreferProxy(endpoint, options = {}) {
-    try {
-        const rDirecto = await fetchRailway(endpoint, options);
-        if (rDirecto.ok || rDirecto.status === 202) return rDirecto;
-        if (rDirecto.status !== 502 && rDirecto.status !== 503) {
-            const d = await rDirecto.clone().json().catch(() => ({}));
-            console.warn(`Railway directo ${endpoint}:`, d.error || d.detalle || rDirecto.status);
-        }
-    } catch (e) {
-        console.warn(`Railway directo ${endpoint}:`, e.message);
-    }
-
     try {
         const r = await fetchRailwayViaProxy(endpoint, options);
         if (r.ok || r.status === 202) return r;
@@ -391,19 +393,12 @@ async function enviarRenderizadoPorPartes(meta, archivos, onProgreso) {
 }
 
 async function enviarRenderizado(formData) {
-    try {
-        const r = await fetchRailwayViaProxy("/renderizar", { method: "POST", body: formData });
-        if (r.ok || r.status === 202) return r;
-    } catch (e) {
-        console.warn("Proxy render monolítico:", e.message);
-    }
-    try {
-        const r = await fetchRailway("/renderizar", { method: "POST", body: formData });
-        if (r.ok || r.status === 202) return r;
-    } catch (e) {
-        console.warn("Railway render directo:", e.message);
-    }
-    return fetch("/.netlify/functions/render-proxy", { method: "POST", body: formData });
+    await ensureAccessToken();
+    return fetch("/.netlify/functions/render-proxy", {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData
+    });
 }
 
 async function parseJsonSeguro(respuesta) {
@@ -417,7 +412,7 @@ async function parseJsonSeguro(respuesta) {
 }
 
 async function descargarVideoFinal() {
-    const r = await fetchRailway("/descargar");
+    const r = await fetchRailwayViaProxy("/descargar", { method: "GET" });
     if (!r.ok) throw new Error("No se pudo descargar el video.");
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
@@ -551,11 +546,14 @@ function mostrarBienvenidaPremium(esNuevo = false) {
 function cerrarSesionPremium() {
     if (!confirm("¿Cerrar sesión Premium en este dispositivo? Podrás volver a entrar con tu código CMS-XXXXXX.")) return;
     localStorage.removeItem("video_diamante_premium_code");
+    localStorage.removeItem("video_diamante_access_token");
+    accessToken = "";
     isPremium = false;
     premiumMeta = { daysLeft: 0, status: "", permanent: false };
     aplicarModoPremiumUI();
     actualizarIndicadorPlan();
     actualizarAvisoAudio();
+    ensureAccessToken();
 }
 
 function agregarMensajeChat(rol, texto) {
@@ -651,6 +649,7 @@ async function verificarMembresiaDetalle(codigo) {
         if (!["active", "warning", "last_day"].includes(d.status)) {
             return { ok: false, error: "Membresía no activa para Video Diamante." };
         }
+        if (d.accessToken) guardarAccessToken(d.accessToken);
         return { ok: true, status: d.status, daysLeft: d.daysLeft, permanent: !!d.permanent };
     } catch {
         return { ok: false, error: "Error de conexión. Intenta de nuevo." };
@@ -1046,6 +1045,7 @@ async function comprimirAudioParaIA(file) {
 }
 
 async function transcribirConGroq(audioFile) {
+    await ensureAccessToken();
     const audio = await comprimirAudioParaIA(audioFile);
 
     const crearFormData = () => {
@@ -1057,15 +1057,19 @@ async function transcribirConGroq(audioFile) {
     const intentos = [
         {
             nombre: "proxy",
-            fn: () => fetch("/.netlify/functions/transcribe-proxy", { method: "POST", body: crearFormData() })
+            fn: () => fetch("/.netlify/functions/transcribe-proxy", {
+                method: "POST",
+                headers: authHeaders(),
+                body: crearFormData()
+            })
         },
         {
             nombre: "netlify-groq",
-            fn: () => fetch("/.netlify/functions/transcribe-audio", { method: "POST", body: crearFormData() })
-        },
-        {
-            nombre: "railway",
-            fn: () => fetchRailway("/transcribir", { method: "POST", body: crearFormData() })
+            fn: () => fetch("/.netlify/functions/transcribe-audio", {
+                method: "POST",
+                headers: authHeaders(),
+                body: crearFormData()
+            })
         }
     ];
 
@@ -1167,7 +1171,7 @@ window.verificarEstatusRenderizado = function () {
     const loadingBox = $("#loading-box");
     window.renderInterval = setInterval(async () => {
         try {
-            const r = await fetchRailway("/status");
+            const r = await fetchRailwayViaProxy("/status", { method: "GET" });
             if (!r.ok) return;
             const d = await r.json();
             const estado = String(d.status || "").toLowerCase();
@@ -1182,9 +1186,8 @@ window.verificarEstatusRenderizado = function () {
                     await descargarVideoFinal();
                     finalizarRenderizadoExitoso();
                 } catch (err) {
-                    if (statusText) statusText.textContent = "Video listo. Abriendo descarga alternativa...";
-                    window.location.href = `${RAILWAY_API}/descargar`;
-                    setTimeout(finalizarRenderizadoExitoso, 3000);
+                    if (statusText) statusText.textContent = "Video listo pero falló la descarga: " + err.message;
+                    if (loadingBox) loadingBox.style.display = "none";
                 }
             } else if (estado === "error") {
                 clearInterval(window.renderInterval);
@@ -1318,6 +1321,7 @@ async function cargarAudio(file) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+    await ensureAccessToken();
     const codigo = localStorage.getItem("video_diamante_premium_code");
     if (codigo) {
         const r = await verificarMembresiaDetalle(codigo);

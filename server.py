@@ -7,17 +7,40 @@ import json
 import shutil
 import re
 import time
+import hmac
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB
 
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
 
+RAILWAY_INTERNAL_SECRET = os.environ.get('RAILWAY_INTERNAL_SECRET', '').strip()
+RUTAS_PROTEGIDAS_RAILWAY = ('/transcribir', '/renderizar', '/estudio', '/status', '/descargar')
+
 def _cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Requested-With'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Requested-With,X-Ecosistema-Token'
     response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     return response
+
+@app.before_request
+def require_internal_secret():
+    if request.method == 'OPTIONS':
+        return None
+    if not RAILWAY_INTERNAL_SECRET:
+        return None
+    path = request.path or ''
+    if path in ('/health', '/health/detalle') or path.startswith('/health/'):
+        return None
+    if not any(path.startswith(prefix) for prefix in RUTAS_PROTEGIDAS_RAILWAY):
+        return None
+    provided = request.headers.get('X-Ecosistema-Internal', '')
+    if not provided or not hmac.compare_digest(provided, RAILWAY_INTERNAL_SECRET):
+        return jsonify({
+            "error": "No autorizado",
+            "detalle": "Acceso denegado al motor de renderizado."
+        }), 401
+    return None
 
 @app.after_request
 def after_request(response):

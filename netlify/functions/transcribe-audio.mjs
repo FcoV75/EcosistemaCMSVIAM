@@ -1,3 +1,5 @@
+import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
+
 function esErrorInterno(msg) {
   return String(msg || "").toLowerCase().includes("internal error");
 }
@@ -55,16 +57,12 @@ function segmentosDesdeTexto(texto, duracion = 180) {
 }
 
 export default async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      }
-    });
-  }
+  const guard = await guardRailwayRequest(req, {
+    product: 'video_diamante_premium',
+    action: 'transcribe',
+  });
+  if (guard.preflight) return guard.preflight;
+  if (!guard.ok) return jsonResponse({ error: guard.error }, guard.status);
 
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
