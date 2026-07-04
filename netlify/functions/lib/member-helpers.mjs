@@ -67,6 +67,7 @@ export function estadoMembresia(code, memberData) {
       daysLeft: 99999,
       status: 'active',
       permanent: true,
+      entitlements: memberData?.entitlements || [producto],
     };
   }
 
@@ -74,10 +75,23 @@ export function estadoMembresia(code, memberData) {
   const msInDay = 1000 * 60 * 60 * 24;
   const elapsedDays = Math.floor((now - memberData.startDate) / msInDay);
   const daysLeft = memberData.durationDays - elapsedDays;
-  const base = { producto, plan, daysLeft, permanent: false };
+  const base = {
+    producto,
+    plan,
+    daysLeft,
+    permanent: false,
+    entitlements: memberData?.entitlements || [producto],
+  };
 
   if (daysLeft < 0) return { ...base, status: 'expired', daysLeft: 0 };
   if (daysLeft === 0) return { ...base, status: 'last_day', daysLeft: 0 };
   if (daysLeft <= 5) return { ...base, status: 'warning', daysLeft };
   return { ...base, status: 'active', daysLeft };
+}
+
+export function miembroTieneProducto(memberData, productoRequerido) {
+  if (!memberData || !productoRequerido) return false;
+  const ents = memberData.entitlements || [];
+  if (ents.includes(productoRequerido)) return true;
+  return memberData.producto === productoRequerido;
 }

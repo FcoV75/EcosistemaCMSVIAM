@@ -37,8 +37,8 @@ export default async (req) => {
           return new Response(`Webhook Error: ${err.message}`, { status: 400 });
         }
       } else {
-         // Fallback if secret is not set but signature exists (not recommended for production)
-         payload = JSON.parse(rawBody);
+        console.error('STRIPE_WEBHOOK_SECRET no configurado — rechazando webhook sin verificar.');
+        return new Response('Webhook Error: STRIPE_WEBHOOK_SECRET no configurado.', { status: 500 });
       }
       
       // We only care about successful checkouts for now

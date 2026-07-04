@@ -17,9 +17,28 @@
 [functions.railway-path-proxy]
   timeout = 300
 
+[functions.download-libro]
+  included_files = ["Assets/Docs/**"]
+
+[[redirects]]
+  from = "/Assets/Docs/:archivo"
+  to = "/.netlify/functions/download-libro?archivo=:archivo"
+  status = 302
+  force = true
+
 [[redirects]]
   from = "/video_diamante"
   to = "/video_diamante.html"
+  status = 200
+
+[[redirects]]
+  from = "/obras"
+  to = "/obras.html"
+  status = 200
+
+[[redirects]]
+  from = "/nexus"
+  to = "/nexus.html"
   status = 200
 
 [[redirects]]

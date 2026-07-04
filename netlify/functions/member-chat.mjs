@@ -4,6 +4,7 @@ import {
   esMembresiaPermanente,
   estadoMembresia,
 } from './lib/member-helpers.mjs';
+import { tieneAccesoNexus } from './lib/comprobante-helpers.mjs';
 import {
   FRECUENCIAS_SOLFEGGIO,
   ONDAS_CEREBRALES,
@@ -72,11 +73,15 @@ export default async (req) => {
       return Response.json({ error: 'Membresía no encontrada.' }, { status: 404 });
     }
 
+    if (memberData && !tieneAccesoNexus(normalized, memberData) && !esCodigoPropietarioNexus(normalized)) {
+      return Response.json({ error: 'Este código no tiene acceso activo a Sincronía Nexus.' }, { status: 403 });
+    }
+
     if (!memberData && esCodigoPropietarioNexus(normalized)) {
       memberData = { producto: 'sincronia_nexus', plan: 'propietario', usage: {} };
     }
 
-    if (memberData?.producto && memberData.producto !== 'sincronia_nexus' && !esCodigoPropietarioNexus(normalized)) {
+    if (memberData?.producto && memberData.producto !== 'sincronia_nexus' && !esCodigoPropietarioNexus(normalized) && !tieneAccesoNexus(normalized, memberData)) {
       return Response.json({ error: 'Este código no corresponde a Sincronía Nexus.' }, { status: 403 });
     }
 

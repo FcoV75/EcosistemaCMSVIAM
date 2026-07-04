@@ -344,26 +344,38 @@ expresar tus sentimientos mas profundos.'>Ver sinopsis</button>
   <script>
     let readingInterval;
     const pdfMap = {
-      'Memorias Peligrosas': 'Memorias_Peligrosas.pdf',
-      'Programación Fatal': 'Programacion_Fatal.pdf',
-      'Litigio Mortal': 'Litigio_Mortal.pdf',
-      'Búsqueda Impactante (El cuerpo perdido)': 'Busqueda_Impactante.pdf',
-      'Libro Técnico Profesional': 'EBook_ISometricos.pdf',
-      'Poesías del Corazón': 'Poesias_del_Corazon.pdf'
+      'Memorias Peligrosas': 'memorias-peligrosas',
+      'Programación Fatal': 'programacion-fatal',
+      'Litigio Mortal': 'litigio-mortal',
+      'Búsqueda Impactante (El cuerpo perdido)': 'busqueda-impactante',
+      'Libro Técnico Profesional': 'ebook-isometricos',
+      'Poesías del Corazón': 'poesias-del-corazon'
     };
 
-    function openReading(title) {
+    async function openReading(title) {
       const modal = document.getElementById('reading-modal');
       document.getElementById('reading-title').textContent = title + " (5 min de cortesía)";
-      
-      const fileName = pdfMap[title] || '';
-      if (fileName) {
-        document.getElementById('reading-content').innerHTML = `<iframe src="/Assets/Docs/${fileName}#toolbar=0" style="width:100%; height:65vh; border:none; background:#fff;" title="${title}"></iframe>`;
-      } else {
+      const slug = pdfMap[title] || '';
+      if (!slug) {
         document.getElementById('reading-content').innerHTML = "<p>Cortesía de lectura no disponible para esta obra en este momento.</p>";
+        modal.showModal();
+        return;
       }
-      
+      document.getElementById('reading-content').innerHTML = '<p style="text-align:center;">Preparando muestra segura...</p>';
       modal.showModal();
+      try {
+        const r = await fetch('/.netlify/functions/libro-muestra', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ libro: slug })
+        });
+        const d = await r.json();
+        if (!r.ok || !d.previewUrl) throw new Error(d.error || 'Muestra no disponible');
+        document.getElementById('reading-content').innerHTML =
+          `<iframe src="${d.previewUrl}" style="width:100%; height:65vh; border:none; background:#fff;" title="${title}"></iframe>`;
+      } catch (e) {
+        document.getElementById('reading-content').innerHTML = `<p>${e.message}</p>`;
+      }
       
       let timeLeft = 300;
       document.getElementById('reading-timer').textContent = "Tiempo restante: 05:00";

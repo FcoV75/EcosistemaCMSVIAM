@@ -25,12 +25,67 @@ function openBlobStore(name) {
   return getStore(name);
 }
 
-function duracionDias(plan, producto) {
+function duracionDias(plan, producto, entitlements = []) {
   if (plan === 'anual') return 365;
   if (plan === 'mensual') return 30;
-  if (producto === 'sincronia_nexus') return 30;
+  if (entitlements.includes('ecosistema_cms_compra') && !entitlements.includes('sincronia_nexus')) {
+    return 3650;
+  }
+  if (producto === 'sincronia_nexus') return plan === 'anual' ? 365 : 30;
   if (producto === 'video_diamante_premium') return 30;
   return 30;
+}
+
+const TITULO_LIBRO_SLUG = {
+  'Memorias Peligrosas': 'memorias-peligrosas',
+  'Programación Fatal': 'programacion-fatal',
+  'Litigio Mortal': 'litigio-mortal',
+  'Búsqueda Impactante (El cuerpo perdido)': 'busqueda-impactante',
+  'Libro Técnico Profesional': 'ebook-isometricos',
+  'Ejercicios Isotónicos e Isométricos para Fortalecer tu Cuerpo en Casa': 'ebook-isometricos',
+  'Poesías del Corazón': 'poesias-del-corazon',
+};
+
+function slugDesdeTituloLibro(titulo) {
+  return TITULO_LIBRO_SLUG[String(titulo || '').trim()] || null;
+}
+
+function construirEntitlements(payment, pendingServices = []) {
+  const entitlements = new Set();
+  const librosComprados = new Set();
+  let nexusPlan = payment.plan || null;
+
+  const producto = payment.producto || 'ecosistema_cms_compra';
+  if (producto === 'sincronia_nexus') entitlements.add('sincronia_nexus');
+  if (producto === 'ecosistema_cms_compra') entitlements.add('ecosistema_cms_compra');
+  if (producto === 'video_diamante_premium') entitlements.add('video_diamante_premium');
+
+  if (payment.detalle === 'obra_literaria') entitlements.add('ecosistema_cms_compra');
+  if (payment.detalle === 'consulta_cms') entitlements.add('consulta_cms');
+  if (payment.detalle === 'sincronia_nexus_mixto') {
+    entitlements.add('sincronia_nexus');
+    entitlements.add('ecosistema_cms_compra');
+  }
+  if (payment.detalle === 'cms_general') entitlements.add('ecosistema_cms_compra');
+
+  for (const item of pendingServices) {
+    if (item?.type === 'membresia') {
+      entitlements.add('sincronia_nexus');
+      nexusPlan = item.name === 'Anual' ? 'anual' : 'mensual';
+    }
+    if (item?.type === 'consulta') entitlements.add('consulta_cms');
+    if (item?.type === 'libro') {
+      entitlements.add('ecosistema_cms_compra');
+      const slug = item.slug || slugDesdeTituloLibro(item.name);
+      if (slug) librosComprados.add(slug);
+    }
+  }
+
+  return {
+    entitlements: [...entitlements],
+    librosComprados: [...librosComprados],
+    nexusPlan,
+  };
 }
 
 function inferirProductoDesdeSesion(session) {
@@ -246,17 +301,25 @@ function productoCoincide(payment, productoRequerido) {
   return null;
 }
 
-async function emitirLicencia(store, membersStore, transactionId, payment) {
-  const producto = payment.producto || 'ecosistema_cms_compra';
-  const plan = payment.plan || null;
+async function emitirLicencia(store, membersStore, transactionId, payment, context = {}) {
+  const { pendingServices = [] } = context;
+  const productoBase = payment.producto || 'ecosistema_cms_compra';
+  const { entitlements, librosComprados, nexusPlan } = construirEntitlements(payment, pendingServices);
+  const plan = nexusPlan || payment.plan || null;
+  const productoPrincipal = entitlements.includes('sincronia_nexus')
+    ? 'sincronia_nexus'
+    : productoBase;
   const generatedCode = 'CMS-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  const durationDays = duracionDias(plan, producto);
+  const durationDays = duracionDias(plan, productoPrincipal, entitlements);
 
   await membersStore.setJSON(generatedCode, {
     startDate: Date.now(),
     durationDays,
-    producto,
+    producto: productoPrincipal,
     plan,
+    entitlements,
+    librosComprados: librosComprados.length ? librosComprados : null,
+    detalle: payment.detalle || null,
     transactionId: transactionId.trim(),
     usage: {},
   });
@@ -268,10 +331,13 @@ async function emitirLicencia(store, membersStore, transactionId, payment) {
   return {
     success: true,
     code: generatedCode,
-    producto,
+    producto: productoPrincipal,
     plan,
     durationDays,
-    esVideoDiamante: PRODUCTOS_VIDEO_DIAMANTE.has(producto),
+    entitlements,
+    tieneNexus: entitlements.includes('sincronia_nexus'),
+    tieneLibros: entitlements.includes('ecosistema_cms_compra'),
+    esVideoDiamante: PRODUCTOS_VIDEO_DIAMANTE.has(productoBase),
   };
 }
 
@@ -281,7 +347,7 @@ export default async (req) => {
   }
 
   try {
-    const { transactionId, productoRequerido } = await req.json();
+    const { transactionId, productoRequerido, pendingServices } = await req.json();
 
     if (!transactionId || transactionId.trim() === '') {
       return Response.json({ success: false, error: 'Debe proporcionar un ID de Transacción.' }, { status: 400 });
@@ -340,7 +406,7 @@ export default async (req) => {
             code: payment.issuedCode,
             producto: payment.producto,
             plan: payment.plan,
-            durationDays: duracionDias(payment.plan, payment.producto),
+            durationDays: duracionDias(payment.plan, payment.producto, []),
             esVideoDiamante: PRODUCTOS_VIDEO_DIAMANTE.has(payment.producto),
             reutilizado: true,
           }, { status: 200 });
@@ -349,7 +415,7 @@ export default async (req) => {
       return Response.json({ success: false, error: 'Este ID de transacción ya fue utilizado para generar un comprobante.' }, { status: 400 });
     }
 
-    const resultado = await emitirLicencia(store, membersStore, id, payment);
+    const resultado = await emitirLicencia(store, membersStore, id, payment, { pendingServices: pendingServices || [] });
     return Response.json(resultado, { status: 200 });
   } catch (err) {
     console.error('Verify error:', err);

@@ -320,12 +320,12 @@
       <h3 id="descargas-title">Descarga de novelas y libros comprados</h3>
       <p>Después del pago, el cliente puede usar estos enlaces directos para descargar su compra.</p>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Memorias_Peligrosas.pdf', 'Memorias_Peligrosas.pdf')">Memorias Peligrosas</a>
-        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Programacion_Fatal.pdf', 'Programacion_Fatal.pdf')">Programación Fatal</a>
-        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Litigio_Mortal.pdf', 'Litigio_Mortal.pdf')">Litigio Mortal</a>
-        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Busqueda_Impactante.pdf', 'Busqueda_Impactante.pdf')">Búsqueda Impactante</a>
-        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/EBook_ISometricos.pdf', 'EBook_ISometricos.pdf')">Libro Técnico Profesional</a>
-        <a class="btn btn-outline" href="#" onclick="openPaymentModal('/Assets/Docs/Poesias_del_Corazon.pdf', 'Poesias_del_Corazon.pdf')">Poesías del Corazón</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('memorias-peligrosas', 'Memorias Peligrosas')">Memorias Peligrosas</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('programacion-fatal', 'Programación Fatal')">Programación Fatal</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('litigio-mortal', 'Litigio Mortal')">Litigio Mortal</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('busqueda-impactante', 'Búsqueda Impactante')">Búsqueda Impactante</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('ebook-isometricos', 'Libro Técnico Profesional')">Libro Técnico Profesional</a>
+        <a class="btn btn-outline" href="#" onclick="openPaymentModal('poesias-del-corazon', 'Poesías del Corazón')">Poesías del Corazón</a>
       </div>
     </section>
 
@@ -421,6 +421,20 @@
       let selectedConsulta = null;
       let selectedMembresia = null;
 
+      const LIBRO_SLUGS = {
+        'Memorias Peligrosas': 'memorias-peligrosas',
+        'Programación Fatal': 'programacion-fatal',
+        'Litigio Mortal': 'litigio-mortal',
+        'Búsqueda Impactante (El cuerpo perdido)': 'busqueda-impactante',
+        'Libro Técnico Profesional': 'ebook-isometricos',
+        'Ejercicios Isotónicos e Isométricos para Fortalecer tu Cuerpo en Casa': 'ebook-isometricos',
+        'Poesías del Corazón': 'poesias-del-corazon'
+      };
+
+      function slugLibro(titulo) {
+        return LIBRO_SLUGS[String(titulo || '').trim()] || null;
+      }
+
       function renderTotal() {
         selectedItemsList.innerHTML = '';
         let total = 0;
@@ -432,6 +446,12 @@
           const li = document.createElement('li');
           li.textContent = `${name} - MXN ${currentPrice.toFixed(2)}`;
           selectedItemsList.appendChild(li);
+          window.pendingServices.push({
+            type: 'libro',
+            name,
+            price: currentPrice,
+            slug: slugLibro(name)
+          });
         });
 
         serviceOptions.forEach((option) => {
@@ -642,7 +662,10 @@
         fetch('/.netlify/functions/verify-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transactionId: transId })
+          body: JSON.stringify({
+            transactionId: transId,
+            pendingServices: window.pendingServices || []
+          })
         })
         .then(res => res.json())
         .then(data => {
@@ -652,9 +675,10 @@
             
             const code = data.code;
             document.getElementById('sim-payment-code').textContent = code;
-            if (data.producto === 'sincronia_nexus') {
+            if (data.producto === 'sincronia_nexus' || data.tieneNexus) {
               localStorage.setItem('nexus_member_code', code);
             }
+            localStorage.setItem('cms_comprobante_code', code);
             mostrarGraciasPagoEnPagina();
 
             // Check if we need to generate tickets or membership messages
@@ -785,22 +809,49 @@
         const downloadOptions = document.getElementById('download-options');
         const btnView = document.getElementById('btn-view');
         const btnDownload = document.getElementById('btn-download');
+        let currentLibroSlug = '';
 
-        function openPaymentModal(url, name) {
+        function openPaymentModal(slug, titulo) {
           event.preventDefault();
-          btnView.href = url;
-          btnDownload.href = url;
-          btnDownload.setAttribute('download', name);
-          codeInput.value = '';
+          currentLibroSlug = slug;
+          document.getElementById('payment-modal').querySelector('h4').textContent =
+            `Verificación — ${titulo || 'Obra literaria'}`;
+          codeInput.value = localStorage.getItem('cms_comprobante_code') || '';
           downloadOptions.style.display = 'none';
+          btnView.href = '#';
+          btnDownload.href = '#';
           modal.showModal();
         }
 
-        function verifyPayment() {
-          if (codeInput.value.trim().length > 3) {
-            downloadOptions.style.display = 'flex';
-          } else {
-            alert('Por favor, ingresa un código válido de tu comprobante.');
+        async function verifyPayment() {
+          const code = codeInput.value.trim();
+          if (code.length < 5) {
+            alert('Por favor, ingresa tu código CMS-XXXXXX de comprobante.');
+            return;
+          }
+          const btn = document.querySelector('#payment-modal .btn-primary');
+          const oldText = btn?.textContent;
+          if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
+          try {
+            const r = await fetch('/.netlify/functions/verify-comprobante', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code, libro: currentLibroSlug, tipo: 'libro' })
+            });
+            const d = await r.json();
+            if (r.ok && d.valid && d.downloadUrl) {
+              btnView.href = d.downloadUrl + '&inline=1';
+              btnDownload.href = d.downloadUrl;
+              btnDownload.setAttribute('download', '');
+              downloadOptions.style.display = 'flex';
+              localStorage.setItem('cms_comprobante_code', code);
+            } else {
+              alert(d.error || 'Código no válido para esta obra.');
+            }
+          } catch {
+            alert('Error de conexión al verificar el comprobante.');
+          } finally {
+            if (btn) { btn.disabled = false; btn.textContent = oldText || 'Verificar Pago'; }
           }
         }
 

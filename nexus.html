@@ -307,13 +307,32 @@ Mente abierta a consejos: ${data.mente_abierta}`;
       function openMemberModal() {
         document.getElementById('member-modal').showModal();
       }
-      function verifyMemberCode() {
-        const code = document.getElementById('member-code').value.trim();
-        if(code.length > 4) {
-          localStorage.setItem('nexus_member_code', code);
-          window.location.href = '/miembro/';
-        } else {
-          alert('Por favor, ingresa un código válido.');
+      async function verifyMemberCode() {
+        const code = document.getElementById('member-code').value.trim().toUpperCase();
+        if (code.length < 5) {
+          alert('Por favor, ingresa un código CMS-XXXXXX válido.');
+          return;
+        }
+        const btn = document.querySelector('#member-modal .btn:last-child');
+        const oldText = btn?.textContent;
+        if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
+        try {
+          const r = await fetch('/.netlify/functions/verify-comprobante', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, tipo: 'nexus' })
+          });
+          const d = await r.json();
+          if (r.ok && d.valid) {
+            localStorage.setItem('nexus_member_code', code);
+            window.location.href = '/miembro/';
+          } else {
+            alert(d.error || 'Código no válido para Sincronía Nexus.');
+          }
+        } catch {
+          alert('Error de conexión. Intenta de nuevo.');
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = oldText || 'Ingresar'; }
         }
       }
     </script>

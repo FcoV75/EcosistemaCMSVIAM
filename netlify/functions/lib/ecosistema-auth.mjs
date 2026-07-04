@@ -42,6 +42,25 @@ export function verifyAccessToken(token, secret) {
     return null;
   }
   if (!body?.exp || body.exp < Math.floor(Date.now() / 1000)) return null;
-  if (!body.sub || !body.tier || !body.product) return null;
+  return body;
+}
+
+export function createDownloadToken(payload, secret, ttlSec = 900) {
+  const now = Math.floor(Date.now() / 1000);
+  const body = {
+    typ: 'download',
+    ...payload,
+    iat: now,
+    exp: now + ttlSec,
+  };
+  const bodyB64 = Buffer.from(JSON.stringify(body)).toString('base64url');
+  const sig = createHmac('sha256', secret).update(bodyB64).digest('base64url');
+  return `${bodyB64}.${sig}`;
+}
+
+export function verifyDownloadToken(token, secret) {
+  const body = verifyAccessToken(token, secret);
+  if (!body || body.typ !== 'download') return null;
+  if (!body.archivo && !body.libro) return null;
   return body;
 }

@@ -72,6 +72,12 @@ RAILWAY_INTERNAL_SECRET=la_misma_cadena_que_ECOSISTEMA_SESSION_SECRET_en_Netlify
 
 *(Si `RAILWAY_INTERNAL_SECRET` no está configurado, Railway sigue aceptando peticiones directas — configúralo en producción.)*
 
+### Descargas de libros (Fase 2)
+
+- Los PDF en `/Assets/Docs/` redirigen a `download-libro` (requieren token firmado).
+- Tras pagar, el código `CMS-XXXXXX` se valida en `verify-comprobante` antes de descargar.
+- Muestra gratuita de 5 min en Obras Literarias vía `libro-muestra` (límite por IP).
+
 ### Sitio `contacneed.com`
 
 ```
