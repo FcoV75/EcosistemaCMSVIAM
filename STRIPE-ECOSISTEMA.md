@@ -51,6 +51,12 @@ ECOSISTEMA_OWNER_CODES=CMS-XXXXXX
 # Seguridad Fase 1 (mismo valor en Netlify y Railway)
 ECOSISTEMA_SESSION_SECRET=genera_una_cadena_larga_aleatoria_64_chars
 RAILWAY_INTERNAL_SECRET=la_misma_cadena_que_ECOSISTEMA_SESSION_SECRET
+
+# Unificación Fase 3 (mismo proyecto Supabase que ContacNeed)
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=eyJ...   # obligatorio para login en CMS
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+ECOSISTEMA_OWNER_CODES=CMS-8INFW3
 ```
 
 Opcional (precios fijos en catálogo Stripe):
@@ -77,6 +83,21 @@ RAILWAY_INTERNAL_SECRET=la_misma_cadena_que_ECOSISTEMA_SESSION_SECRET_en_Netlify
 - Los PDF en `/Assets/Docs/` redirigen a `download-libro` (requieren token firmado).
 - Tras pagar, el código `CMS-XXXXXX` se valida en `verify-comprobante` antes de descargar.
 - Muestra gratuita de 5 min en Obras Literarias vía `libro-muestra` (límite por IP).
+
+### Unificación Fase 3A (Supabase entitlements)
+
+1. Ejecuta en Supabase SQL Editor el archivo `supabase/migrations/008_ecosistema_entitlements.sql`.
+2. Asegura `SUPABASE_ANON_KEY` en Netlify CMS (además de URL y SERVICE_ROLE).
+3. Tras deploy, semilla propietario (una vez):
+
+```bash
+curl -X POST https://centromultidisciplinarioags.com/.netlify/functions/ecosistema-seed \
+  -H "Authorization: Bearer TU_ECOSISTEMA_SESSION_SECRET" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\":\"CMS-8INFW3\"}"
+```
+
+4. Panel unificado: `/mi-ecosistema` (misma cuenta que ContacNeed).
 
 ### Sitio `contacneed.com`
 

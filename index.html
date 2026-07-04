@@ -226,6 +226,7 @@
         <a class="tab-btn" href="/nexus" rel="noreferrer" target="_blank">Sincronía Nexus</a>
         <a class="tab-btn" href="/video_diamante" rel="noreferrer" target="_blank">Video Diamante</a>
         <a class="tab-btn" href="https://contacneed.com" rel="noreferrer" target="_blank">ContacNeed</a>
+        <a class="tab-btn" href="/mi-ecosistema">Mi Ecosistema</a>
       </nav>
     </header>
 
@@ -646,7 +647,7 @@
         simulatePayment(window.currentPaymentTotal);
       };
 
-      window.confirmUserPayment = function() {
+      window.confirmUserPayment = async function() {
         const transId = document.getElementById('transaction-id-input').value.trim();
         if (!transId) {
           alert('Por favor, ingresa el ID de Transacción de tu pago.');
@@ -661,7 +662,9 @@
         
         fetch('/.netlify/functions/verify-payment', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: window.EcosistemaCuenta
+            ? await window.EcosistemaCuenta.authHeaders({ 'Content-Type': 'application/json' })
+            : { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             transactionId: transId,
             pendingServices: window.pendingServices || []
@@ -859,6 +862,7 @@
           modal.close();
         }
       </script>
+<script src="/Assets/ecosistema-cuenta.js" defer></script>
 <script src="/Assets/radio.js"></script>
   <script src="/Assets/ecosistema-banner.js" defer></script>
 </body>

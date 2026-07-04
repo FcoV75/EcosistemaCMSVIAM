@@ -4,6 +4,7 @@ import {
   esCodigoPropietarioNexus,
   estadoMembresia,
 } from './member-helpers.mjs';
+import { resolverMiembroDual } from './entitlements-db.mjs';
 
 function openBlobStore(name) {
   const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
@@ -12,14 +13,20 @@ function openBlobStore(name) {
   return getStore(name);
 }
 
-export async function obtenerMiembro(code) {
+export async function obtenerMiembro(code, userId = null) {
   const normalized = String(code || '').trim().toUpperCase();
-  if (!normalized || normalized.length < 5) return { normalized, memberData: null };
+  if ((!normalized || normalized.length < 5) && !userId) {
+    return { normalized: normalized || null, memberData: null };
+  }
+
+  const dual = await resolverMiembroDual(normalized, userId);
+  if (dual.memberData) return dual;
+
+  if (!normalized || normalized.length < 5) return { normalized: null, memberData: null };
   const store = openBlobStore('nexus-members');
   const memberData = await store.get(normalized, { type: 'json' });
   return { normalized, memberData };
 }
-
 export function entitlementsDe(memberData) {
   const list = Array.isArray(memberData?.entitlements) ? [...memberData.entitlements] : [];
   if (memberData?.producto && !list.includes(memberData.producto)) {

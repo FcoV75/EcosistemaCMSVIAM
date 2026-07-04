@@ -1,6 +1,7 @@
 import { getStore } from '@netlify/blobs';
 import Stripe from 'stripe';
-
+import { syncEntitlementsFromMember } from './lib/entitlements-db.mjs';
+import { getUserFromBearer } from './lib/supabase-admin.mjs';
 const PRODUCTOS_VIDEO_DIAMANTE = new Set(['video_diamante_premium']);
 const MONTOS_VIDEO_DIAMANTE = new Set([30000, 300000]);
 
@@ -312,7 +313,7 @@ async function emitirLicencia(store, membersStore, transactionId, payment, conte
   const generatedCode = 'CMS-' + Math.random().toString(36).substring(2, 8).toUpperCase();
   const durationDays = duracionDias(plan, productoPrincipal, entitlements);
 
-  await membersStore.setJSON(generatedCode, {
+  const memberRecord = {
     startDate: Date.now(),
     durationDays,
     producto: productoPrincipal,
@@ -322,7 +323,9 @@ async function emitirLicencia(store, membersStore, transactionId, payment, conte
     detalle: payment.detalle || null,
     transactionId: transactionId.trim(),
     usage: {},
-  });
+  };
+
+  await membersStore.setJSON(generatedCode, memberRecord);
 
   payment.used = true;
   payment.issuedCode = generatedCode;
@@ -331,6 +334,7 @@ async function emitirLicencia(store, membersStore, transactionId, payment, conte
   return {
     success: true,
     code: generatedCode,
+    memberRecord,
     producto: productoPrincipal,
     plan,
     durationDays,
@@ -416,7 +420,15 @@ export default async (req) => {
     }
 
     const resultado = await emitirLicencia(store, membersStore, id, payment, { pendingServices: pendingServices || [] });
-    return Response.json(resultado, { status: 200 });
+    const user = await getUserFromBearer(req);
+    if (resultado.memberRecord) {
+      await syncEntitlementsFromMember(resultado.code, resultado.memberRecord, {
+        userId: user?.id || null,
+        stripeSessionId: id,
+      });
+    }
+    const { memberRecord, ...respuesta } = resultado;
+    return Response.json(respuesta, { status: 200 });
   } catch (err) {
     console.error('Verify error:', err);
     return Response.json({

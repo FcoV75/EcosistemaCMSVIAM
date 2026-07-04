@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mi Ecosistema — CMS VIAM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --ink:#f5f5fc; --panel:rgba(8,11,26,.85); --edge:rgba(255,255,255,.16); --accent:#f1c96b; --accent2:#86d6ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Montserrat,sans-serif; color:var(--ink); background:linear-gradient(rgba(5,8,20,.5),rgba(5,8,20,.5)),url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1800&q=80") center/cover fixed; }
+    .wrap { max-width:900px; margin:0 auto; padding:1.5rem 1rem 3rem; }
+    h1 { font-family:Cinzel,serif; text-align:center; color:#fff2bf; }
+    .panel { background:var(--panel); border:1px solid var(--edge); border-radius:16px; padding:1.5rem; margin-top:1rem; }
+    .btn { border:0; border-radius:999px; padding:.75rem 1.25rem; font-weight:700; cursor:pointer; background:linear-gradient(135deg,var(--accent),#c9a24d); color:#111; text-decoration:none; display:inline-block; }
+    .btn-outline { background:transparent; color:var(--ink); border:1px solid var(--edge); }
+    input { width:100%; padding:.7rem; border-radius:8px; border:1px solid var(--edge); background:rgba(0,0,0,.4); color:var(--ink); margin:.4rem 0 1rem; }
+    .grid { display:grid; gap:.6rem; }
+    .producto { border:1px solid var(--edge); border-radius:10px; padding:.8rem 1rem; background:rgba(0,0,0,.25); }
+    .nav { display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; margin-bottom:1rem; }
+    .status { color:var(--accent2); font-size:.9rem; min-height:1.2rem; }
+    #vista-sesion { display:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <a class="btn btn-outline" href="/">CMS Principal</a>
+      <a class="btn btn-outline" href="/nexus">Sincronía Nexus</a>
+      <a class="btn btn-outline" href="/video_diamante">Video Diamante</a>
+      <a class="btn btn-outline" href="https://contacneed.com" target="_blank" rel="noreferrer">ContacNeed</a>
+    </div>
+
+    <h1>Mi Ecosistema Digital</h1>
+    <p style="text-align:center;opacity:.9;">Una sola cuenta para CMS, ContacNeed, Nexus y Video Diamante.</p>
+
+    <section class="panel" id="vista-login">
+      <h2 style="margin-top:0;color:var(--accent2);">Iniciar sesión</h2>
+      <p style="font-size:.95rem;">Usa el mismo correo y contraseña de <strong>ContacNeed</strong>.</p>
+      <label>Correo</label>
+      <input type="email" id="login-email" autocomplete="username" />
+      <label>Contraseña</label>
+      <input type="password" id="login-password" autocomplete="current-password" />
+      <div class="status" id="login-status"></div>
+      <button class="btn" id="btn-login" type="button">Entrar</button>
+      <p style="margin-top:1rem;font-size:.9rem;">¿No tienes cuenta? <a id="link-registro" href="https://contacneed.com/registro" target="_blank" rel="noreferrer" style="color:var(--accent2);">Regístrate en ContacNeed</a> (misma cuenta para todo el ecosistema).</p>
+    </section>
+
+    <section class="panel" id="vista-sesion">
+      <h2 style="margin-top:0;color:var(--accent2);">Bienvenido, <span id="user-email"></span></h2>
+      <p>Tus productos activos en el ecosistema:</p>
+      <div class="grid" id="lista-productos"></div>
+      <h3 style="color:var(--accent);margin-top:1.5rem;">Vincular código CMS-XXXXXX</h3>
+      <p style="font-size:.9rem;">Si pagaste y recibiste un comprobante, vincúlalo aquí para unificar acceso.</p>
+      <input type="text" id="vincular-code" placeholder="CMS-XXXXXX" />
+      <div class="status" id="vincular-status"></div>
+      <button class="btn" id="btn-vincular" type="button">Vincular comprobante</button>
+      <div style="margin-top:1.2rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+        <a class="btn btn-outline" href="/#descargas-libros">Descargar libros</a>
+        <a class="btn btn-outline" href="/miembro/">Santuario Nexus</a>
+        <a class="btn btn-outline" href="/video_diamante">Video Diamante</a>
+        <button class="btn btn-outline" id="btn-logout" type="button">Cerrar sesión</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="/Assets/ecosistema-cuenta.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function renderProductos() {
+      const data = await window.EcosistemaCuenta.fetchMisProductos();
+      $('user-email').textContent = data.user?.email || '';
+      const lista = $('lista-productos');
+      lista.innerHTML = '';
+      if (!data.productos?.length) {
+        lista.innerHTML = '<p>Aún no hay productos vinculados. Paga un servicio o vincula tu código CMS-XXXXXX.</p>';
+        return;
+      }
+      data.productos.forEach((p) => {
+        const div = document.createElement('div');
+        div.className = 'producto';
+        const exp = p.expires_at ? new Date(p.expires_at).toLocaleDateString() : 'Permanente';
+        div.innerHTML = `<strong>${p.etiqueta}</strong><br><small>Plan: ${p.plan || '—'} · Vigencia: ${exp}</small>`;
+        lista.appendChild(div);
+      });
+    }
+
+    function mostrarSesion(activa) {
+      $('vista-login').style.display = activa ? 'none' : 'block';
+      $('vista-sesion').style.display = activa ? 'block' : 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const url = await window.EcosistemaCuenta.registroUrl();
+        $('link-registro').href = url;
+      } catch { /* ignore */ }
+
+      try {
+        const session = await window.EcosistemaCuenta.getSession();
+        if (session) {
+          mostrarSesion(true);
+          await renderProductos();
+        }
+      } catch (e) {
+        $('login-status').textContent = e.message;
+      }
+
+      $('btn-login')?.addEventListener('click', async () => {
+        $('login-status').textContent = 'Entrando...';
+        try {
+          await window.EcosistemaCuenta.signIn($('login-email').value, $('login-password').value);
+          mostrarSesion(true);
+          await renderProductos();
+          $('login-status').textContent = '';
+        } catch (e) {
+          $('login-status').textContent = e.message;
+        }
+      });
+
+      $('btn-vincular')?.addEventListener('click', async () => {
+        $('vincular-status').textContent = 'Vinculando...';
+        try {
+          const d = await window.EcosistemaCuenta.vincularCodigo($('vincular-code').value);
+          $('vincular-status').textContent = `Vinculado (${d.vinculados} registros).`;
+          await renderProductos();
+        } catch (e) {
+          $('vincular-status').textContent = e.message;
+        }
+      });
+
+      $('btn-logout')?.addEventListener('click', async () => {
+        await window.EcosistemaCuenta.signOut();
+        mostrarSesion(false);
+      });
+    });
+  </script>
+</body>
+</html>
