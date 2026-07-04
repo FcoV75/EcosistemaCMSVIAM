@@ -1375,9 +1375,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#btn-transcribir")?.addEventListener("click", transcribirAudio);
     $("#btn-guardar-letra")?.addEventListener("click", () => {
         letraGuardada = $("#letra-cancion")?.value || "";
-        letraSegmentos = [];
-        letraPalabras = [];
-        $("#status-transcripcion").textContent = "Letra guardada — se sincronizará por renglones con la pista.";
+        const conservaSync = letraPalabras.length > 0;
+        $("#status-transcripcion").textContent = conservaSync
+            ? "Letra guardada — se conserva el sync de la transcripción. Si cambiaste mucho el texto, vuelve a transcribir."
+            : "Letra guardada — se sincronizará por renglones con la pista.";
     });
 
     $("#btn-plan-mensual")?.addEventListener("click", () => iniciarStripe("mensual"));

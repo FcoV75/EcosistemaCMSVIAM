@@ -259,7 +259,7 @@ def _linea_karaoke_activa(palabras, segundo_actual):
         if linea[0]["start"] <= segundo_actual <= fin_linea:
             idx = -1
             for i, p in enumerate(linea):
-                fin_palabra = p["end"] + 0.06
+                fin_palabra = p["end"] + 0.18
                 if p["start"] <= segundo_actual <= fin_palabra:
                     idx = i
                     break
@@ -462,23 +462,77 @@ def normalizar_palabras_raw(palabras_raw, duracion_total):
         except (TypeError, ValueError):
             continue
         if fin <= inicio:
-            fin = min(duracion_total, inicio + 0.25)
+            fin = min(duracion_total, inicio + 0.35)
+        elif fin - inicio < 0.15:
+            fin = min(duracion_total, inicio + 0.35)
         palabras.append({"start": inicio, "end": fin, "text": word})
     return palabras
 
 
+def ajustar_tiempos_karaoke(palabras, duracion_total):
+    """Alinea el karaoke con la voz: evita palabras demasiado rápidas y estira si el timing viene comprimido."""
+    if not palabras or duracion_total <= 0:
+        return palabras
+
+    palabras = sorted(palabras, key=lambda p: p["start"])
+    inicio_vocal, fin_vocal = ventana_vocal(duracion_total)
+    ancla = palabras[0]["start"]
+    ultimo_fin = palabras[-1]["end"]
+    span = max(ultimo_fin - ancla, 0.001)
+    objetivo = fin_vocal - inicio_vocal
+
+    # Si Whisper comprimió los timestamps en menos del 65% de la ventana vocal, escalar
+    if span > 1.0 and objetivo > span * 1.15 and span < objetivo * 0.65:
+        factor = min(2.2, objetivo / span)
+        escaladas = []
+        for p in palabras:
+            t0 = (p["start"] - ancla) * factor + inicio_vocal
+            t1 = (p["end"] - ancla) * factor + inicio_vocal
+            escaladas.append({
+                "start": round(max(0.0, t0), 3),
+                "end": round(min(duracion_total, t1), 3),
+                "text": p["text"],
+            })
+        palabras = escaladas
+
+    ajustadas = []
+    min_dur = 0.32
+    for i, p in enumerate(palabras):
+        inicio = max(0.0, min(duracion_total, float(p["start"])))
+        if i + 1 < len(palabras):
+            fin = float(palabras[i + 1]["start"]) + 0.04
+        else:
+            fin = max(float(p.get("end", inicio)), inicio) + 0.45
+        fin = max(fin, inicio + min_dur)
+        fin = min(duracion_total, fin)
+        ajustadas.append({"start": round(inicio, 3), "end": round(fin, 3), "text": p["text"]})
+    return ajustadas
+
+
 def lineas_a_palabras_timed(lineas, duracion_total):
+    """Distribuye palabras en la ventana vocal completa, ponderando por longitud de cada línea."""
+    if not lineas or duracion_total <= 0:
+        return []
+    inicio_vocal, fin_vocal = ventana_vocal(duracion_total)
+    usable = fin_vocal - inicio_vocal
+    tokens_por_linea = []
+    for ln in lineas:
+        words = _normalizar_texto(ln).split()
+        tokens_por_linea.append(words)
+    total_peso = sum(len(w) for w in tokens_por_linea) or len(lineas)
     palabras = []
-    for seg in construir_intervalos_lineas(lineas, duracion_total):
-        words = _normalizar_texto(seg["text"]).split()
+    t = inicio_vocal
+    for words in tokens_por_linea:
         if not words:
             continue
-        dur = (seg["end"] - seg["start"]) / len(words)
-        t = seg["start"]
+        bloque = (len(words) / total_peso) * usable
+        dur_palabra = bloque / len(words)
         for w in words:
-            palabras.append({"start": t, "end": t + dur, "text": w})
-            t += dur
-    return palabras
+            palabras.append({"start": round(t, 3), "end": round(t + dur_palabra, 3), "text": w})
+            t += dur_palabra
+    if palabras:
+        palabras[-1]["end"] = round(fin_vocal, 3)
+    return ajustar_tiempos_karaoke(palabras, duracion_total)
 
 
 def normalizar_segmentos_letra(segmentos_raw, duracion_total):
@@ -510,11 +564,12 @@ def preparar_palabras_subtitulo(letra_palabras, letra_cancion, letra_segmentos, 
         return []
     palabras = normalizar_palabras_raw(letra_palabras, duracion_total)
     if palabras:
-        return palabras
+        return ajustar_tiempos_karaoke(palabras, duracion_total)
     lineas = parsear_lineas_letra(letra_cancion)
     if lineas:
         return lineas_a_palabras_timed(lineas, duracion_total)
-    return normalizar_segmentos_letra(letra_segmentos, duracion_total)
+    fallback = normalizar_segmentos_letra(letra_segmentos, duracion_total)
+    return ajustar_tiempos_karaoke(fallback, duracion_total) if fallback else []
 
 
 def debe_mostrar_nombre_pista(segundo_actual, duracion_total):

@@ -306,7 +306,9 @@ def _normalizar_lista_palabras_groq(palabras):
         except (TypeError, ValueError):
             continue
         if fin <= inicio:
-            fin = inicio + 0.2
+            fin = inicio + 0.35
+        elif fin - inicio < 0.15:
+            fin = inicio + 0.35
         out.append({"start": round(inicio, 3), "end": round(fin, 3), "text": text, "word": text})
     return out
 
