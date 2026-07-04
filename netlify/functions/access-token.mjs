@@ -15,10 +15,13 @@ export default async (req) => {
     const product = body.product || 'video_diamante_premium';
     const secret = getSessionSecret();
     if (!secret) {
-      return jsonResponse(
-        { error: 'Servicio no configurado (falta ECOSISTEMA_SESSION_SECRET).' },
-        503,
-      );
+      return jsonResponse({
+        accessToken: '',
+        tier: 'free',
+        product,
+        legacy: true,
+        message: 'Configura ECOSISTEMA_SESSION_SECRET en Netlify para activar tokens.',
+      });
     }
 
     const ip = getClientIp(req);
