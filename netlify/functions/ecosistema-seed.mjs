@@ -1,4 +1,5 @@
 import { seedOwnerEntitlements } from './lib/entitlements-db.mjs';
+import { supabaseEnv } from './lib/supabase-admin.mjs';
 import { corsPreflight, jsonResponse } from './lib/railway-guard.mjs';
 
 export default async (req) => {
@@ -16,6 +17,18 @@ export default async (req) => {
   }
 
   try {
+    const { url, serviceKey } = supabaseEnv();
+    if (!url) {
+      return jsonResponse({
+        error: 'SUPABASE_URL inválida o vacía en Netlify CMS. Debe ser https://xxxx.supabase.co (sin comillas ni texto extra).',
+      }, 503);
+    }
+    if (!serviceKey) {
+      return jsonResponse({
+        error: 'Falta SUPABASE_SERVICE_ROLE_KEY en Netlify CMS.',
+      }, 503);
+    }
+
     const body = await req.json().catch(() => ({}));
     const code = body.code || process.env.ECOSISTEMA_OWNER_CODES?.split(',')[0]?.trim() || 'CMS-8INFW3';
     const resultado = await seedOwnerEntitlements(code);
