@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient, createSupabaseServerClient } from '../lib/supabase.server'
 import { getSiteUrl } from '../lib/site-url'
+import { mapRecoveryEmailError, sendRecoveryEmailViaResend } from '../lib/recovery-email'
 import { generarCodigoReferido } from '../lib/gamificacion'
 import { registrarReferidoEnSignup } from './gamificacion.functions'
 import {
@@ -264,17 +265,63 @@ export const confirmEmailFromLinkFn = createServerFn({ method: 'GET' })
     return { success: true }
   })
 
+export const establishRecoverySessionFromLinkFn = createServerFn({ method: 'GET' })
+  .inputValidator((search: string) => search)
+  .handler(async ({ data: search }) => {
+    const supabase = createSupabaseServerClient()
+    const params = new URLSearchParams(search)
+    const code = params.get('code')
+
+    if (!code) {
+      throw new Error('Enlace de recuperación inválido o expirado.')
+    }
+
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) throw new Error(error.message)
+
+    return { success: true }
+  })
+
 export const requestPasswordResetFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { email: string }) => d)
   .handler(async ({ data }) => {
-    const supabase = createSupabaseServerClient()
     const email = data.email.trim().toLowerCase()
     if (!email) throw new Error('Ingresa tu correo electrónico.')
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getSiteUrl()}/auth/reset`,
-    })
-    if (error) throw new Error(error.message)
+    const redirectTo = `${getSiteUrl()}/auth/reset`
+    const resendKey = String(process.env.RESEND_API_KEY ?? '').trim()
+    const resendFrom = String(process.env.RESEND_FROM ?? 'ContacNeed <noreply@contacneed.com>').trim()
+
+    if (resendKey) {
+      const admin = createSupabaseAdminClient()
+      const { data: linkData, error } = await admin.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: { redirectTo },
+      })
+      if (error) throw new Error(mapRecoveryEmailError(error.message))
+
+      const actionLink = linkData?.properties?.action_link
+      if (!actionLink) {
+        throw new Error('No se pudo generar el enlace de recuperación.')
+      }
+
+      const sent = await sendRecoveryEmailViaResend({
+        apiKey: resendKey,
+        from: resendFrom,
+        to: email,
+        actionLink,
+      })
+      if (!sent.ok) {
+        throw new Error(
+          `No se pudo enviar el correo con Resend. Verifica dominio y RESEND_FROM. ${sent.error}`,
+        )
+      }
+    } else {
+      const supabase = createSupabaseServerClient()
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+      if (error) throw new Error(mapRecoveryEmailError(error.message))
+    }
 
     return {
       success: true,

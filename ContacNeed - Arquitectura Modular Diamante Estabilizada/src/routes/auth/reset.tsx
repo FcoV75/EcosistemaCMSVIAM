@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ContacNeedLogo } from '../../components/ContacNeedLogo'
-import { updatePasswordFromResetFn } from '../../server/auth.functions'
+import {
+  establishRecoverySessionFromLinkFn,
+  updatePasswordFromResetFn,
+} from '../../server/auth.functions'
 
 export const Route = createFileRoute('/auth/reset')({
   component: ResetPasswordPage,
@@ -13,6 +16,26 @@ function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
+  const [sessionError, setSessionError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    establishRecoverySessionFromLinkFn({ data: window.location.search })
+      .then(() => {
+        if (!active) return
+        setSessionReady(true)
+      })
+      .catch((err) => {
+        if (!active) return
+        setSessionError(err instanceof Error ? err.message : 'Enlace inválido o expirado.')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   return (
     <div className="cn-metallic-bg flex min-h-screen items-center justify-center px-4 py-10">
@@ -23,6 +46,18 @@ function ResetPasswordPage() {
           <p className="mt-1 text-sm text-purple-200/70">Elige una contraseña segura (mínimo 6 caracteres)</p>
         </div>
 
+        {sessionError ? (
+          <>
+            <p className="text-sm text-red-300">{sessionError}</p>
+            <p className="mt-4 text-center text-sm">
+              <Link to="/login" className="text-amber-300 hover:underline">
+                Solicitar un nuevo enlace
+              </Link>
+            </p>
+          </>
+        ) : !sessionReady ? (
+          <p className="text-center text-sm text-purple-200/80">Validando enlace de recuperación...</p>
+        ) : (
         <form
           className="space-y-4"
           onSubmit={async (event) => {
@@ -71,12 +106,15 @@ function ResetPasswordPage() {
             {loading ? 'Guardando...' : 'Guardar contraseña'}
           </button>
         </form>
+        )}
 
+        {!sessionError && sessionReady && (
         <p className="mt-4 text-center text-sm">
           <Link to="/login" className="text-amber-300 hover:underline">
             Volver a iniciar sesión
           </Link>
         </p>
+        )}
       </div>
     </div>
   )
