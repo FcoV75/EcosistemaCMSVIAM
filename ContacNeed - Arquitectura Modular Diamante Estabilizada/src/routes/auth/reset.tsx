@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { ContacNeedLogo } from '../components/ContacNeedLogo'
-import { updatePasswordFromResetFn } from '../server/auth.functions'
+import { ContacNeedLogo } from '../../components/ContacNeedLogo'
+import { updatePasswordFromResetFn } from '../../server/auth.functions'
 
 export const Route = createFileRoute('/auth/reset')({
   component: ResetPasswordPage,
