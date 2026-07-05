@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
+import { countActiveContacNeedPro, revokeContacNeedPro, upsertContacNeedPro } from '../lib/ecosistema-entitlements'
 import { requireAdminUser } from '../lib/auth'
 import { askLlm } from '../lib/llm'
 import { mapPublicacionToPost } from '../lib/posts-mapper'
@@ -167,6 +168,7 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
   const users = usersRes.error ? [] : (usersRes.data ?? [])
   const allProfiles = profilesRes.error ? users : (profilesRes.data ?? [])
 
+  const proFromEntitlements = await countActiveContacNeedPro(supabase)
   const proFromProfiles = allProfiles.filter((p) => Boolean(p.es_pro)).length
   const verifiedFromProfiles = allProfiles.filter((p) => Boolean(p.verificado)).length
 
@@ -184,7 +186,7 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
     totals: {
       posts: postsCountRes.count ?? posts.length,
       users: usersCountRes.count ?? users.length,
-      proUsers: proCountRes.count ?? proFromProfiles,
+      proUsers: proFromEntitlements || proCountRes.count || proFromProfiles,
       verifiedUsers: verifiedCountRes.count ?? verifiedFromProfiles,
       pendingPosts: pendingPosts.length,
       pendingPro: pendingProRequests.length,
@@ -224,13 +226,22 @@ export const updateUserAdminFn = createServerFn({ method: 'POST' })
     const supabase = createSupabaseAdminClient()
 
     const patch: Record<string, boolean> = {}
-    if (typeof data.es_pro === 'boolean') patch.es_pro = data.es_pro
     if (typeof data.is_admin === 'boolean') patch.is_admin = data.is_admin
     if (typeof data.bloqueado === 'boolean') patch.bloqueado = data.bloqueado
 
-    const { error } = await supabase.from('perfiles').update(patch).eq('id', data.id)
+    if (Object.keys(patch).length) {
+      const { error } = await supabase.from('perfiles').update(patch).eq('id', data.id)
+      if (error) throw error
+    }
 
-    if (error) throw error
+    if (typeof data.es_pro === 'boolean') {
+      if (data.es_pro) {
+        await upsertContacNeedPro(supabase, data.id, 'monthly')
+      } else {
+        await revokeContacNeedPro(supabase, data.id)
+      }
+    }
+
     return { success: true }
   })
 
@@ -281,12 +292,7 @@ export const approveProRequestFn = createServerFn({ method: 'POST' })
       if (slotsError) throw slotsError
     } else {
       const planType = String(request.notas ?? '').toLowerCase().includes('anual') ? 'annual' : 'monthly'
-      const { error: proError } = await supabase
-        .from('perfiles')
-        .update({ es_pro: true, pro_plan_type: planType })
-        .eq('id', request.usuario_id)
-
-      if (proError) throw proError
+      await upsertContacNeedPro(supabase, request.usuario_id, planType)
     }
 
     const { error: updateError } = await supabase
@@ -334,11 +340,11 @@ export const askAdminBotFn = createServerFn({ method: 'POST' })
     await assertAdmin()
     const supabase = createSupabaseAdminClient()
 
-    const [{ count: userCount }, { count: postCount }, { count: proCount }, { data: topStates }] =
+    const [{ count: userCount }, { count: postCount }, proCount, { data: topStates }] =
       await Promise.all([
         supabase.from('perfiles').select('*', { count: 'exact', head: true }),
         supabase.from('publicaciones').select('*', { count: 'exact', head: true }),
-        supabase.from('perfiles').select('*', { count: 'exact', head: true }).eq('es_pro', true),
+        countActiveContacNeedPro(supabase),
         supabase.from('perfiles').select('estado').limit(500),
       ])
 

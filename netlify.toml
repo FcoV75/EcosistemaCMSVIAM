@@ -37,6 +37,11 @@
   status = 200
 
 [[redirects]]
+  from = "/panel-fundador"
+  to = "/panel-fundador.html"
+  status = 200
+
+[[redirects]]
   from = "/obras"
   to = "/obras.html"
   status = 200

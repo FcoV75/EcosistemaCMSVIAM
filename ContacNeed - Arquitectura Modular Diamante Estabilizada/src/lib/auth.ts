@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient, createSupabaseServerClient } from './supabase.server'
+import { getContacNeedProStatus } from './ecosistema-entitlements'
 
 export type ServerProfile = {
   id: string
@@ -36,7 +37,16 @@ export async function getServerProfile(userId: string): Promise<ServerProfile | 
     .maybeSingle()
 
   if (error) throw error
-  return data
+  if (!data) return null
+
+  const pro = await getContacNeedProStatus(supabase, userId)
+  const esPro = pro.active || Boolean(data.es_pro)
+
+  return {
+    ...data,
+    es_pro: esPro,
+    pro_plan_type: pro.plan ?? data.pro_plan_type ?? null,
+  }
 }
 
 export async function requireAdminUser() {
@@ -67,7 +77,9 @@ export async function requireActiveUser() {
 
 export async function requireProUser() {
   const session = await requireActiveUser()
-  if (!session.profile?.es_pro) {
+  const supabase = createSupabaseAdminClient()
+  const pro = await getContacNeedProStatus(supabase, session.user.id)
+  if (!pro.active && !session.profile?.es_pro) {
     throw new Error('Esta función requiere membresía ContacNeed PRO')
   }
   return session

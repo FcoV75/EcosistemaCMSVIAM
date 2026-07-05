@@ -106,6 +106,14 @@ curl -X POST https://centromultidisciplinarioags.com/.netlify/functions/ecosiste
 - **Descargas libros** — `verify-comprobante` con Bearer; auto-verificación al abrir modal si hay sesión.
 - **ContacNeed webhook** — escribe `contacneed_pro` en `ecosistema_entitlements` además de `perfiles.es_pro`.
 
+### Unificación Fase 3D (cierre legacy)
+
+1. Ejecuta en Supabase SQL Editor: `supabase/migrations/009_pro_desde_entitlements.sql` (vista PRO pública + backfill).
+2. **ContacNeed PRO** se lee desde `ecosistema_entitlements` (`src/lib/ecosistema-entitlements.ts` + `auth.ts`).
+3. **Panel Fundador** CMS: `/panel-fundador` (propietario con plan `propietario` o código `CMS-8INFW3`).
+4. **Blobs legacy**: respaldo opcional; desactiva con `ECOSISTEMA_LEGACY_BLOB_FALLBACK=false` en Netlify CMS.
+5. El código `CMS-XXXXXX` queda como **comprobante**; la cuenta unificada es la llave principal.
+
 ### Sitio `contacneed.com`
 
 ```

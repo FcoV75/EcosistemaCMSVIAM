@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import Stripe from 'stripe'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { getServerUser } from '../lib/auth'
+import { upsertContacNeedPro } from '../lib/ecosistema-entitlements'
 
 function getStripe() {
   const secret = process.env.STRIPE_SECRET_KEY
@@ -28,7 +29,7 @@ export const createCheckoutSessionFn = createServerFn({ method: 'POST' })
           line_items: [{ price: priceId, quantity: 1 }],
           success_url: `${siteUrl}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${siteUrl}/?payment_cancelled=true`,
-          metadata: { userId: user.id, plan: data.plan },
+          metadata: { userId: user.id, plan: data.plan, producto: 'contacneed_pro' },
         })
       : await stripe.checkout.sessions.create({
           mode: 'subscription',
@@ -48,7 +49,7 @@ export const createCheckoutSessionFn = createServerFn({ method: 'POST' })
           ],
           success_url: `${siteUrl}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${siteUrl}/?payment_cancelled=true`,
-          metadata: { userId: user.id, plan: data.plan },
+          metadata: { userId: user.id, plan: data.plan, producto: 'contacneed_pro' },
         })
 
     if (!session.url) throw new Error('No se pudo crear la sesión de pago')
@@ -74,11 +75,7 @@ export const confirmStripeSessionFn = createServerFn({ method: 'POST' })
 
     const supabase = createSupabaseAdminClient()
     const planType = session.metadata?.plan === 'annual' ? 'annual' : 'monthly'
-    const { error } = await supabase
-      .from('perfiles')
-      .update({ es_pro: true, pro_plan_type: planType })
-      .eq('id', user.id)
-    if (error) throw error
+    await upsertContacNeedPro(supabase, user.id, planType, session.id)
 
     return { success: true, es_pro: true }
   })

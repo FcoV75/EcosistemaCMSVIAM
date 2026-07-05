@@ -20,12 +20,18 @@ export async function obtenerMiembro(code, userId = null) {
   }
 
   const dual = await resolverMiembroDual(normalized, userId);
-  if (dual.memberData) return dual;
+  if (dual.memberData) {
+    return { ...dual, fuente: dual.memberData.fuente || 'supabase' };
+  }
 
-  if (!normalized || normalized.length < 5) return { normalized: null, memberData: null };
+  const blobFallback = String(process.env.ECOSISTEMA_LEGACY_BLOB_FALLBACK ?? 'true').toLowerCase() !== 'false';
+  if (!blobFallback || !normalized || normalized.length < 5) {
+    return { normalized: normalized || null, memberData: null, fuente: null };
+  }
+
   const store = openBlobStore('nexus-members');
   const memberData = await store.get(normalized, { type: 'json' });
-  return { normalized, memberData };
+  return { normalized, memberData, fuente: memberData ? 'blobs_legacy' : null };
 }
 export function entitlementsDe(memberData) {
   const list = Array.isArray(memberData?.entitlements) ? [...memberData.entitlements] : [];

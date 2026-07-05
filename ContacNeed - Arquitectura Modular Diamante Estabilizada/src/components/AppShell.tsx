@@ -116,6 +116,14 @@ export function AppShell({
                         Panel Admin
                       </Link>
                     )}
+                    <a
+                      href="https://centromultidisciplinarioags.com/mi-ecosistema"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-xl border border-amber-400/40 bg-amber-900/30 px-3 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-800/40"
+                    >
+                      Mi Ecosistema CMS
+                    </a>
                     <button
                       type="button"
                       onClick={handleSignOut}

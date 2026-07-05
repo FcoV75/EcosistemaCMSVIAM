@@ -26,8 +26,8 @@ async function fetchProProfilesFromDb(): Promise<ProProfile[]> {
   if (!config) return []
 
   const path =
-    'perfiles?select=id,nombre,descripcion_profesion,estado,es_pro,verificado,avatar_url' +
-    '&es_pro=eq.true&order=fecha_registro.desc&limit=8'
+    'perfiles_pro_publicos?select=id,nombre,descripcion_profesion,estado,verificado,avatar_url,es_pro' +
+    '&order=id.desc&limit=8'
 
   const response = await fetch(`${config.url}/rest/v1/${path}`, {
     headers: {

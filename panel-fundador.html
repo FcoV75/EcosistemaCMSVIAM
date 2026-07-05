@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Panel Fundador — Ecosistema CMS VIAM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --ink:#f5f5fc; --panel:rgba(8,11,26,.9); --edge:rgba(255,255,255,.16); --accent:#f1c96b; --accent2:#86d6ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Montserrat,sans-serif; color:var(--ink); background:linear-gradient(rgba(5,8,20,.65),rgba(5,8,20,.65)),url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1800&q=80") center/cover fixed; }
+    .wrap { max-width:1100px; margin:0 auto; padding:1.5rem 1rem 3rem; }
+    h1 { font-family:Cinzel,serif; text-align:center; color:#fff2bf; }
+    .panel { background:var(--panel); border:1px solid var(--edge); border-radius:16px; padding:1.25rem; margin-top:1rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:.75rem; }
+    .stat { border:1px solid var(--edge); border-radius:10px; padding:.8rem; text-align:center; background:rgba(0,0,0,.25); }
+    .stat strong { display:block; font-size:1.4rem; color:var(--accent); }
+    table { width:100%; border-collapse:collapse; font-size:.82rem; margin-top:1rem; }
+    th, td { border-bottom:1px solid var(--edge); padding:.45rem .35rem; text-align:left; }
+    .btn { border:0; border-radius:999px; padding:.6rem 1rem; font-weight:700; cursor:pointer; background:linear-gradient(135deg,var(--accent),#c9a24d); color:#111; text-decoration:none; display:inline-block; }
+    .btn-outline { background:transparent; color:var(--ink); border:1px solid var(--edge); }
+    .nav { display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; margin-bottom:1rem; }
+    .status { color:var(--accent2); min-height:1.2rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <a class="btn btn-outline" href="/">CMS Principal</a>
+      <a class="btn btn-outline" href="/mi-ecosistema">Mi Ecosistema</a>
+      <a class="btn btn-outline" href="https://contacneed.com/admin" target="_blank" rel="noreferrer">Admin ContacNeed</a>
+    </div>
+    <h1>Panel Fundador</h1>
+    <p style="text-align:center;opacity:.9;">Vista unificada de permisos en <strong>ecosistema_entitlements</strong> (Supabase).</p>
+    <div class="status" id="status"></div>
+    <section class="panel" id="vista-login">
+      <p>Inicia sesión con tu cuenta propietaria (misma que ContacNeed).</p>
+      <a class="btn" href="/mi-ecosistema">Ir a iniciar sesión</a>
+    </section>
+    <section class="panel" id="vista-panel" style="display:none;">
+      <div class="grid" id="stats-grid"></div>
+      <div style="overflow-x:auto;margin-top:1rem;">
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Plan</th>
+              <th>Estado</th>
+              <th>Código</th>
+              <th>Usuario</th>
+              <th>Vence</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-entitlements"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <script src="/Assets/ecosistema-cuenta.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const ETIQUETAS = {
+      sincronia_nexus: 'Nexus',
+      video_diamante_premium: 'Video Diamante',
+      contacneed_pro: 'ContacNeed PRO',
+      ecosistema_cms_compra: 'CMS / Libros',
+      consulta_cms: 'Consulta',
+    };
+
+    async function cargarPanel() {
+      $('status').textContent = 'Cargando...';
+      const headers = await window.EcosistemaCuenta.authHeaders({ Accept: 'application/json' });
+      const r = await fetch('/.netlify/functions/ecosistema-fundador', { headers });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'No autorizado');
+      $('vista-login').style.display = 'none';
+      $('vista-panel').style.display = 'block';
+      $('status').textContent = `Bienvenido, ${d.fundador?.email || 'Fundador'}`;
+      const grid = $('stats-grid');
+      grid.innerHTML = '';
+      const stats = [
+        ['Total filas', d.resumen?.total],
+        ['Activos', d.resumen?.activos],
+        ['Con cuenta', d.resumen?.usuariosConCuenta],
+        ['Solo código', d.resumen?.soloCodigoLegacy],
+      ];
+      stats.forEach(([label, val]) => {
+        const div = document.createElement('div');
+        div.className = 'stat';
+        div.innerHTML = `<strong>${val ?? '—'}</strong>${label}`;
+        grid.appendChild(div);
+      });
+      const tbody = $('tabla-entitlements');
+      tbody.innerHTML = '';
+      (d.entitlements || []).forEach((row) => {
+        const tr = document.createElement('tr');
+        const exp = row.expires_at ? new Date(row.expires_at).toLocaleDateString() : 'Permanente';
+        tr.innerHTML = `<td>${ETIQUETAS[row.producto] || row.producto}</td><td>${row.plan || '—'}</td><td>${row.status}</td><td>${row.legacy_code || '—'}</td><td>${row.user_id ? row.user_id.slice(0,8) + '…' : '—'}</td><td>${exp}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const session = await window.EcosistemaCuenta.getSession();
+        if (!session) return;
+        await cargarPanel();
+      } catch (e) {
+        $('status').textContent = e.message;
+      }
+    });
+  </script>
+</body>
+</html>
