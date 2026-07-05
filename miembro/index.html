@@ -276,55 +276,74 @@
   </div>
 
   <script src="/Assets/nexus-santuario.js"></script>
+  <script src="/Assets/ecosistema-cuenta.js"></script>
   <script>
-    const memberCode = localStorage.getItem('nexus_member_code');
-    if(!memberCode) {
-      window.location.href = '/nexus.html';
+    let memberCode = localStorage.getItem('nexus_member_code') || '';
+    let accesoPorSesion = false;
+
+    async function authHeaders(extra = {}) {
+      if (window.EcosistemaCuenta) {
+        return window.EcosistemaCuenta.authHeaders(extra);
+      }
+      return { 'Content-Type': 'application/json', ...extra };
     }
 
-    NexusMensajesDiarios.aplicar();
-    NexusGaleriaViva.init('galeria-viva');
+    async function validarAccesoMiembro() {
+      const headers = await authHeaders({ 'Content-Type': 'application/json' });
+      const body = { productoRequerido: 'sincronia_nexus' };
+      if (memberCode && memberCode !== 'SESION') body.code = memberCode;
+      const res = await fetch('/.netlify/functions/member-status', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      });
+      return { res, data: await res.json() };
+    }
 
-    async function checkMembership() {
-      try {
-        const res = await fetch('/.netlify/functions/member-status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: memberCode, productoRequerido: 'sincronia_nexus' })
-        });
-        const data = await res.json();
-        
-        if (!res.ok || data.error) {
-           alert(data.error || 'Membresía no válida.');
-           logout();
-           return;
+    async function initMiembro() {
+      const { res, data } = await validarAccesoMiembro();
+      if (!res.ok || data.error || data.status === 'expired') {
+        if (window.EcosistemaCuenta) {
+          const session = await window.EcosistemaCuenta.getSession().catch(() => null);
+          if (!session && !memberCode) {
+            window.location.href = '/nexus.html';
+            return;
+          }
+        } else if (!memberCode) {
+          window.location.href = '/nexus.html';
+          return;
         }
+        alert(data.error || 'Membresía no válida.');
+        logout();
+        return;
+      }
+      accesoPorSesion = !memberCode || memberCode === 'SESION';
+      if (data.legacy_code) {
+        memberCode = data.legacy_code;
+        localStorage.setItem('nexus_member_code', memberCode);
+      }
+      NexusMensajesDiarios.aplicar();
+      NexusGaleriaViva.init('galeria-viva');
+      renderAlertaMembresia(data);
+    }
 
-        const container = document.getElementById('membership-alert-container');
-        
-        if (data.status === 'expired') {
-           alert('Agradecemos infinitamente habernos permitido acompañarte. Tu membresía ha concluido.');
-           logout();
-           return;
-        }
-
-        if (data.permanent) {
-          container.innerHTML = `<div class="alert alert-owner">Acceso de <strong>propietario</strong> — Santuario permanente. Todo desbloqueado para ti, sin caducidad.</div>`;
-          NexusBienvenidaMiembro(memberCode, true);
-        } else if (data.status === 'warning') {
-           container.innerHTML = `<div class="alert alert-warning">Tu membresía termina en <strong>${data.daysLeft} días</strong>. Considera renovarla pronto para no perder tu espacio de sanación.</div>`;
-        } else if (data.status === 'last_day') {
-           container.innerHTML = `<div class="alert alert-danger"><strong>Último día</strong> de membresía. Renueva para seguir en el Santuario.</div>`;
-        } else {
-           container.innerHTML = `<div class="alert alert-info">Bienvenido/a a tu santuario. Te quedan <strong>${data.daysLeft} días</strong> de acompañamiento activo.</div>`;
-           NexusBienvenidaMiembro(memberCode, false);
-        }
-      } catch (e) {
-        console.error('Error verificando membresía:', e);
+    function renderAlertaMembresia(data) {
+      const container = document.getElementById('membership-alert-container');
+      const etiqueta = memberCode && memberCode !== 'SESION' ? memberCode : 'tu cuenta del ecosistema';
+      if (data.permanent) {
+        container.innerHTML = `<div class="alert alert-owner">Acceso de <strong>propietario</strong> — Santuario permanente (${etiqueta}). Todo desbloqueado para ti.</div>`;
+        NexusBienvenidaMiembro(memberCode || 'PROPIETARIO', true);
+      } else if (data.status === 'warning') {
+        container.innerHTML = `<div class="alert alert-warning">Tu membresía termina en <strong>${data.daysLeft} días</strong>. Considera renovarla pronto.</div>`;
+      } else if (data.status === 'last_day') {
+        container.innerHTML = `<div class="alert alert-danger"><strong>Último día</strong> de membresía. Renueva para seguir en el Santuario.</div>`;
+      } else {
+        container.innerHTML = `<div class="alert alert-info">Bienvenido/a a tu santuario. Te quedan <strong>${data.daysLeft} días</strong> de acompañamiento activo.</div>`;
+        NexusBienvenidaMiembro(memberCode || 'MIEMBRO', false);
       }
     }
 
-    checkMembership();
+    initMiembro();
 
     async function askIA() {
       const input = document.getElementById('user-input').value.trim();
@@ -348,10 +367,13 @@
       NexusSantuario.detenerSintesis();
 
       try {
+        const headers = await authHeaders({ 'Content-Type': 'application/json' });
+        const body = { message: input };
+        if (memberCode && memberCode !== 'SESION') body.code = memberCode;
         const res = await fetch('/.netlify/functions/member-chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: memberCode, message: input })
+          headers,
+          body: JSON.stringify(body),
         });
 
         const data = await res.json();

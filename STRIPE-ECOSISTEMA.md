@@ -99,6 +99,13 @@ curl -X POST https://centromultidisciplinarioags.com/.netlify/functions/ecosiste
 
 4. Panel unificado: `/mi-ecosistema` (misma cuenta que ContacNeed).
 
+### Unificación Fase 3C (sesión o código)
+
+- **Nexus** `/nexus` → «Entrar al Santuario» con sesión ContacNeed; `/miembro/` acepta Bearer sin código.
+- **Video Diamante** — Premium por sesión o `CMS-XXXXXX`; checkout Stripe incluye `userId` en metadata si hay sesión.
+- **Descargas libros** — `verify-comprobante` con Bearer; auto-verificación al abrir modal si hay sesión.
+- **ContacNeed webhook** — escribe `contacneed_pro` en `ecosistema_entitlements` además de `perfiles.es_pro`.
+
 ### Sitio `contacneed.com`
 
 ```

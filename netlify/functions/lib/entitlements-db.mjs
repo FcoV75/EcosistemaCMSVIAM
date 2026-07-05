@@ -163,9 +163,12 @@ export function memberDataDesdeEntitlements(rows, code = null) {
   }
 
   const meta = ref.metadata || {};
+  const esPermanente = rows.some(
+    (r) => r.metadata?.permanent === true || (r.plan === 'propietario' && !r.expires_at),
+  );
   return {
     startDate,
-    durationDays,
+    durationDays: esPermanente ? 99999 : durationDays,
     producto: principal,
     plan: ref.plan || null,
     entitlements: [...new Set(productos)],
@@ -173,8 +176,9 @@ export function memberDataDesdeEntitlements(rows, code = null) {
     detalle: meta.detalle || null,
     transactionId: ref.stripe_session_id || meta.transactionId || null,
     usage: {},
+    permanent: esPermanente,
     fuente: 'supabase',
-    legacy_code: code || ref.legacy_code || null,
+    legacy_code: code || ref.legacy_code || rows.find((r) => r.legacy_code)?.legacy_code || null,
   };
 }
 

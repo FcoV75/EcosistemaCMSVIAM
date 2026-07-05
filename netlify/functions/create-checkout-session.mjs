@@ -1,5 +1,17 @@
 import Stripe from 'stripe';
 import { PRODUCTOS, resolverProducto } from './stripe-catalog.mjs';
+import { getUserFromBearer } from './lib/supabase-admin.mjs';
+
+function metadataBase(req, extra = {}) {
+  const meta = { ...extra };
+  return getUserFromBearer(req).then((user) => {
+    if (user?.id) {
+      meta.userId = user.id;
+      if (user.email) meta.userEmail = user.email;
+    }
+    return meta;
+  });
+}
 
 function lineaSuscripcion(stripe, cfg, planTipo) {
   const esAnual = planTipo === 'anual';
@@ -52,13 +64,14 @@ export default async (req) => {
     let session;
 
     if (cfg.tipo === 'subscription' && (planTipo === 'mensual' || planTipo === 'anual')) {
+      const metadata = await metadataBase(req, { producto, plan: planTipo, detalle: detalle || producto });
       session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [lineaSuscripcion(stripe, cfg, planTipo)],
         mode: 'subscription',
         success_url: successUrl || `${origin}${cfg.successPath}`,
         cancel_url: cancelUrl || `${origin}${cfg.cancelPath}`,
-        metadata: { producto, plan: planTipo, detalle: detalle || producto },
+        metadata,
       });
     } else if (cfg.tipo === 'payment' || montoTotal > 0) {
       if (!montoTotal || montoTotal <= 0) {
@@ -67,6 +80,10 @@ export default async (req) => {
           headers: { 'Content-Type': 'application/json' },
         });
       }
+      const metadata = await metadataBase(req, {
+        producto: 'ecosistema_cms_compra',
+        detalle: detalle || 'cms_general',
+      });
       session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [{
@@ -80,10 +97,7 @@ export default async (req) => {
         mode: 'payment',
         success_url: successUrl || `${origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}#pago-general`,
         cancel_url: cancelUrl || `${origin}/?payment_cancelled=true`,
-        metadata: {
-          producto: 'ecosistema_cms_compra',
-          detalle: detalle || 'cms_general',
-        },
+        metadata,
       });
     } else {
       return new Response(JSON.stringify({ error: 'Falta plan o monto para el checkout.' }), {

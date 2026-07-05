@@ -98,7 +98,8 @@
       <p>MXN 400.00/mes · MXN 3,600.00/año (3 meses de regalo). Pago seguro con Stripe.</p>
       <div style="display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-top:1rem;">
         <a class="btn" href="/?nexus=1#pago-general">Suscribirse con Stripe</a>
-        <button type="button" class="btn" style="background:var(--accent2);color:#111;" onclick="openMemberModal()">Ya tengo código de miembro</button>
+        <button type="button" class="btn" style="background:var(--accent2);color:#111;" onclick="entrarSantuario()">Entrar al Santuario</button>
+        <button type="button" class="btn" style="background:transparent;color:var(--accent2);border:1px solid var(--accent2);" onclick="openMemberModal()">Tengo código CMS-XXXXXX</button>
       </div>
     </section>
 
@@ -303,31 +304,58 @@ Mente abierta a consejos: ${data.mente_abierta}`;
         </div>
       </div>
     </dialog>
+    <script src="/Assets/ecosistema-cuenta.js"></script>
     <script>
+      async function entrarSantuario() {
+        if (window.EcosistemaCuenta) {
+          try {
+            const session = await window.EcosistemaCuenta.getSession();
+            if (session) {
+              const headers = await window.EcosistemaCuenta.authHeaders({ 'Content-Type': 'application/json' });
+              const r = await fetch('/.netlify/functions/member-status', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ productoRequerido: 'sincronia_nexus' }),
+              });
+              const d = await r.json();
+              if (r.ok && !d.error && d.status !== 'expired') {
+                const code = localStorage.getItem('nexus_member_code') || 'SESION';
+                if (d.legacy_code) localStorage.setItem('nexus_member_code', d.legacy_code);
+                window.location.href = '/miembro/';
+                return;
+              }
+            }
+          } catch { /* continuar al modal */ }
+        }
+        openMemberModal();
+      }
+
       function openMemberModal() {
         document.getElementById('member-modal').showModal();
       }
       async function verifyMemberCode() {
         const code = document.getElementById('member-code').value.trim().toUpperCase();
-        if (code.length < 5) {
-          alert('Por favor, ingresa un código CMS-XXXXXX válido.');
-          return;
-        }
         const btn = document.querySelector('#member-modal .btn:last-child');
         const oldText = btn?.textContent;
         if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
         try {
+          const headers = window.EcosistemaCuenta
+            ? await window.EcosistemaCuenta.authHeaders({ 'Content-Type': 'application/json' })
+            : { 'Content-Type': 'application/json' };
+          const body = { tipo: 'nexus' };
+          if (code.length >= 5) body.code = code;
           const r = await fetch('/.netlify/functions/verify-comprobante', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, tipo: 'nexus' })
+            headers,
+            body: JSON.stringify(body),
           });
           const d = await r.json();
           if (r.ok && d.valid) {
-            localStorage.setItem('nexus_member_code', code);
+            if (d.code) localStorage.setItem('nexus_member_code', d.code);
+            else if (code.length >= 5) localStorage.setItem('nexus_member_code', code);
             window.location.href = '/miembro/';
           } else {
-            alert(d.error || 'Código no válido para Sincronía Nexus.');
+            alert(d.error || 'No se pudo validar el acceso a Sincronía Nexus.');
           }
         } catch {
           alert('Error de conexión. Intenta de nuevo.');

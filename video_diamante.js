@@ -633,15 +633,21 @@ function actualizarIndicadorPlan() {
     }
 }
 
-async function verificarMembresiaDetalle(codigo) {
-    if (!codigo || codigo.trim().length < 5) {
+async function verificarMembresiaDetalle(codigo = null) {
+    const codigoLimpio = codigo ? String(codigo).trim().toUpperCase() : "";
+    const headers = window.EcosistemaCuenta
+        ? await window.EcosistemaCuenta.authHeaders({ "Content-Type": "application/json" })
+        : { "Content-Type": "application/json" };
+    const body = { productoRequerido: "video_diamante_premium" };
+    if (codigoLimpio.length >= 5) body.code = codigoLimpio;
+    else if (!window.EcosistemaCuenta) {
         return { ok: false, error: "Ingresa un código válido (ej. CMS-XXXXXX)." };
     }
     try {
         const r = await fetch("/.netlify/functions/member-status", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: codigo.trim().toUpperCase(), productoRequerido: "video_diamante_premium" })
+            headers,
+            body: JSON.stringify(body),
         });
         const d = await r.json();
         if (!r.ok) return { ok: false, error: d.error || "Código no encontrado." };
@@ -650,7 +656,8 @@ async function verificarMembresiaDetalle(codigo) {
             return { ok: false, error: "Membresía no activa para Video Diamante." };
         }
         if (d.accessToken) guardarAccessToken(d.accessToken);
-        return { ok: true, status: d.status, daysLeft: d.daysLeft, permanent: !!d.permanent };
+        if (d.legacy_code) localStorage.setItem("video_diamante_premium_code", d.legacy_code);
+        return { ok: true, status: d.status, daysLeft: d.daysLeft, permanent: !!d.permanent, legacy_code: d.legacy_code };
     } catch {
         return { ok: false, error: "Error de conexión. Intenta de nuevo." };
     }
@@ -865,9 +872,12 @@ async function iniciarStripe(planTipo) {
     const txtOrig = btn?.textContent;
     if (btn) { btn.disabled = true; btn.textContent = "Redirigiendo a Stripe..."; }
     try {
+        const headers = window.EcosistemaCuenta
+            ? await window.EcosistemaCuenta.authHeaders({ "Content-Type": "application/json" })
+            : { "Content-Type": "application/json" };
         const r = await fetch("/.netlify/functions/create-checkout-session", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers,
             body: JSON.stringify({
                 producto: "video_diamante_premium",
                 planTipo,
@@ -1322,14 +1332,31 @@ async function cargarAudio(file) {
 
 document.addEventListener("DOMContentLoaded", async () => {
     await ensureAccessToken();
-    const codigo = localStorage.getItem("video_diamante_premium_code");
-    if (codigo) {
-        const r = await verificarMembresiaDetalle(codigo);
-        isPremium = r.ok;
-        if (r.ok) {
-            premiumMeta = { daysLeft: r.daysLeft, status: r.status, permanent: !!r.permanent };
-        } else {
-            localStorage.removeItem("video_diamante_premium_code");
+    let premiumOk = false;
+    if (window.EcosistemaCuenta) {
+        try {
+            const session = await window.EcosistemaCuenta.getSession();
+            if (session) {
+                const r = await verificarMembresiaDetalle();
+                premiumOk = r.ok;
+                if (r.ok) {
+                    isPremium = true;
+                    premiumMeta = { daysLeft: r.daysLeft, status: r.status, permanent: !!r.permanent };
+                    if (r.legacy_code) localStorage.setItem("video_diamante_premium_code", r.legacy_code);
+                }
+            }
+        } catch { /* ignore */ }
+    }
+    if (!premiumOk) {
+        const codigo = localStorage.getItem("video_diamante_premium_code");
+        if (codigo) {
+            const r = await verificarMembresiaDetalle(codigo);
+            isPremium = r.ok;
+            if (r.ok) {
+                premiumMeta = { daysLeft: r.daysLeft, status: r.status, permanent: !!r.permanent };
+            } else {
+                localStorage.removeItem("video_diamante_premium_code");
+            }
         }
     }
     aplicarModoPremiumUI();

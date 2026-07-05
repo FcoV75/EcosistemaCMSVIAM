@@ -600,9 +600,12 @@
          localStorage.setItem('nexus_pending_services', JSON.stringify(window.pendingServices || []));
 
          try {
+            const headers = window.EcosistemaCuenta
+              ? await window.EcosistemaCuenta.authHeaders({ 'Content-Type': 'application/json' })
+              : { 'Content-Type': 'application/json' };
             const response = await fetch('/.netlify/functions/create-checkout-session', {
                method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
+               headers,
                body: JSON.stringify(buildStripePayload())
             });
 
@@ -634,9 +637,11 @@
         procDiv.innerHTML = `
           <p style="margin-bottom: 0.5rem;">Se ha abierto la pasarela de pago en una nueva pestaña.</p>
           <p style="font-size: 0.95rem; margin-bottom: 1rem; color: #dbe9ff;">Para confirmar tu pago a través de nuestro webhook, por favor introduce el <strong>ID de Transacción</strong> o <strong>Recibo</strong> que te proporcionó Stripe o PayPal.</p>
+          <div id="cuenta-pago-banner" style="font-size:0.9rem;margin-bottom:1rem;padding:0.75rem;border-radius:8px;border:1px solid var(--edge);background:rgba(0,0,0,0.25);"></div>
           <input type="text" id="transaction-id-input" placeholder="Ej: ch_1Nj... o 9XY123..." style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border-radius: 6px; border: 1px solid var(--edge); background: rgba(0,0,0,0.5); color: var(--ink);">
           <button class="btn btn-primary" onclick="confirmUserPayment()">Verificar mi pago</button>
         `;
+        renderCuentaPagoBanner();
         
         document.getElementById('sim-payment-success').style.display = 'none';
         document.getElementById('ticket-container').innerHTML = '';
@@ -646,6 +651,22 @@
       window.retrySimulatedPayment = function() {
         simulatePayment(window.currentPaymentTotal);
       };
+
+      async function renderCuentaPagoBanner() {
+        const el = document.getElementById('cuenta-pago-banner');
+        if (!el || !window.EcosistemaCuenta) return;
+        try {
+          const session = await window.EcosistemaCuenta.getSession();
+          if (session?.user?.email) {
+            el.innerHTML = `Sesión activa como <strong>${session.user.email}</strong>. Tu comprobante se vinculará automáticamente a tu cuenta del ecosistema.`;
+            el.style.borderColor = 'rgba(74, 222, 128, 0.45)';
+          } else {
+            el.innerHTML = '¿Ya tienes cuenta en ContacNeed? <a href="/mi-ecosistema" style="color:var(--accent2);">Inicia sesión</a> antes de verificar y unifica todo en una sola cuenta.';
+          }
+        } catch {
+          el.textContent = '';
+        }
+      }
 
       window.confirmUserPayment = async function() {
         const transId = document.getElementById('transaction-id-input').value.trim();
@@ -717,6 +738,16 @@
                }
             });
             document.getElementById('ticket-container').innerHTML = ticketHtml;
+            if (window.EcosistemaCuenta) {
+              window.EcosistemaCuenta.getSession().then((session) => {
+                if (session?.user?.email) {
+                  const aviso = document.createElement('p');
+                  aviso.style.cssText = 'margin-top:1rem;font-size:0.9rem;color:#86d6ff;';
+                  aviso.innerHTML = `Producto vinculado a tu cuenta (<strong>${session.user.email}</strong>). Revísalo en <a href="/mi-ecosistema" style="color:var(--accent2);">Mi Ecosistema</a>.`;
+                  document.getElementById('ticket-container').appendChild(aviso);
+                }
+              }).catch(() => {});
+            }
           } else {
              procDiv.innerHTML = `
                 <p style="color: #ef4444; margin-bottom: 0.5rem;">Error: Pago no verificado.</p>
@@ -793,7 +824,7 @@
 
       <dialog id="payment-modal" style="background: var(--panel); color: var(--ink); border: 1px solid var(--edge); border-radius: 12px; padding: 1.5rem; max-width: 400px; text-align: center;">
         <h4 style="margin-top: 0; color: var(--accent);">Verificación de Pago</h4>
-        <p style="font-size: 0.9rem; margin-bottom: 1rem;">Por favor, ingresa tu código de comprobante de pago para habilitar la descarga o visualización.</p>
+        <p style="font-size: 0.9rem; margin-bottom: 1rem;">Ingresa tu código CMS-XXXXXX o inicia sesión en <a href="/mi-ecosistema" style="color:var(--accent2);">Mi Ecosistema</a> para descargar con tu cuenta.</p>
         <input type="text" id="payment-code" placeholder="Código de comprobante" style="width: 100%; padding: 0.5rem; border: 1px solid var(--edge); border-radius: 6px; background: rgba(0,0,0,0.5); color: var(--ink); margin-bottom: 1rem;" />
         <button class="btn btn-primary" onclick="verifyPayment()" style="width: 100%; margin-bottom: 1rem; border-radius: 999px; padding: 0.75rem 1.25rem;">Verificar Pago</button>
         
@@ -824,22 +855,32 @@
           btnView.href = '#';
           btnDownload.href = '#';
           modal.showModal();
+          if (window.EcosistemaCuenta) {
+            window.EcosistemaCuenta.getSession().then((s) => {
+              if (s) verifyPayment(true);
+            }).catch(() => {});
+          }
         }
 
-        async function verifyPayment() {
+        async function verifyPayment(silent = false) {
           const code = codeInput.value.trim();
-          if (code.length < 5) {
-            alert('Por favor, ingresa tu código CMS-XXXXXX de comprobante.');
+          if (code.length < 5 && !window.EcosistemaCuenta) {
+            if (!silent) alert('Por favor, ingresa tu código CMS-XXXXXX de comprobante.');
             return;
           }
           const btn = document.querySelector('#payment-modal .btn-primary');
           const oldText = btn?.textContent;
           if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
           try {
+            const headers = window.EcosistemaCuenta
+              ? await window.EcosistemaCuenta.authHeaders({ 'Content-Type': 'application/json' })
+              : { 'Content-Type': 'application/json' };
+            const body = { libro: currentLibroSlug, tipo: 'libro' };
+            if (code.length >= 5) body.code = code;
             const r = await fetch('/.netlify/functions/verify-comprobante', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code, libro: currentLibroSlug, tipo: 'libro' })
+              headers,
+              body: JSON.stringify(body),
             });
             const d = await r.json();
             if (r.ok && d.valid && d.downloadUrl) {
@@ -847,12 +888,12 @@
               btnDownload.href = d.downloadUrl;
               btnDownload.setAttribute('download', '');
               downloadOptions.style.display = 'flex';
-              localStorage.setItem('cms_comprobante_code', code);
-            } else {
+              if (d.code) localStorage.setItem('cms_comprobante_code', d.code);
+            } else if (!silent) {
               alert(d.error || 'Código no válido para esta obra.');
             }
           } catch {
-            alert('Error de conexión al verificar el comprobante.');
+            if (!silent) alert('Error de conexión al verificar el comprobante.');
           } finally {
             if (btn) { btn.disabled = false; btn.textContent = oldText || 'Verificar Pago'; }
           }

@@ -137,6 +137,7 @@ function pagoDesdeSession(session) {
     producto,
     plan,
     detalle: metadata.detalle || null,
+    userId: metadata.userId || null,
     used: false,
     customerEmail: session.customer_details?.email || session.customer_email || null,
     checkoutSessionId: session.id,
@@ -197,6 +198,7 @@ async function recuperarDesdePaymentIntent(stripe, id) {
     producto: producto || 'ecosistema_cms_compra',
     plan,
     detalle: metadata.detalle || null,
+    userId: metadata.userId || null,
     used: false,
     paymentIntentId: id,
   };
@@ -421,9 +423,10 @@ export default async (req) => {
 
     const resultado = await emitirLicencia(store, membersStore, id, payment, { pendingServices: pendingServices || [] });
     const user = await getUserFromBearer(req);
+    const userIdSync = user?.id || payment.userId || payment.metadata?.userId || null;
     if (resultado.memberRecord) {
       await syncEntitlementsFromMember(resultado.code, resultado.memberRecord, {
-        userId: user?.id || null,
+        userId: userIdSync,
         stripeSessionId: id,
       });
     }

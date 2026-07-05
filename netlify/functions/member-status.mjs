@@ -20,10 +20,11 @@ function tokenPremium(normalized, producto) {
   return createAccessToken({ sub: normalized, tier: 'premium', product: producto }, secret);
 }
 
-function respuestaMembresia(estado, normalized, producto) {
+function respuestaMembresia(estado, normalized, producto, memberData = null) {
   const accessToken = tokenPremium(normalized, producto);
   return Response.json({
     ...estado,
+    legacy_code: memberData?.legacy_code || (normalized && String(normalized).startsWith('CMS-') ? normalized : null),
     ...(accessToken ? { accessToken } : {}),
   });
 }
@@ -48,6 +49,7 @@ export default async (req) => {
         estadoMembresia(normalized, { producto: 'sincronia_nexus', plan: 'propietario', startDate: Date.now(), durationDays: 99999 }),
         normalized,
         'sincronia_nexus',
+        { legacy_code: normalized },
       );
     }
 
@@ -56,6 +58,7 @@ export default async (req) => {
         estadoMembresia(normalized, { producto: 'video_diamante_premium', plan: 'propietario', startDate: Date.now(), durationDays: 99999 }),
         normalized,
         'video_diamante_premium',
+        { legacy_code: normalized },
       );
     }
 
@@ -80,7 +83,7 @@ export default async (req) => {
       if (estado.status === 'expired') {
         return Response.json({ error: 'Tu membresía de Sincronía Nexus expiró. Renueva tu plan.' }, { status: 403 });
       }
-      return respuestaMembresia(estado, clave, 'sincronia_nexus');
+      return respuestaMembresia(estado, clave, 'sincronia_nexus', memberData);
     }
 
     if (
@@ -94,7 +97,7 @@ export default async (req) => {
     }
 
     const producto = memberData.producto || productoRequerido || 'video_diamante_premium';
-    return respuestaMembresia(estadoMembresia(clave, memberData), clave, producto);
+    return respuestaMembresia(estadoMembresia(clave, memberData), clave, producto, memberData);
   } catch (err) {
     console.error('Status error:', err);
     return Response.json({ error: 'Error en el servidor.' }, { status: 500 });
