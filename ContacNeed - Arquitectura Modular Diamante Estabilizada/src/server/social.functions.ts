@@ -26,7 +26,7 @@ export const getPublicProfileFn = createServerFn({ method: 'GET' })
       supabase
         .from('perfiles')
         .select(
-          'id, nombre, estado, municipio, habilidad_empirica, descripcion_profesion, avatar_url, es_pro, verificado, es_fundador, tipo_miembro, celular, ultima_conexion, bloqueado',
+          'id, nombre, estado, municipio, habilidad_empirica, descripcion_profesion, avatar_url, es_pro, verificado, es_fundador, tipo_miembro, celular, ultima_conexion, bloqueado, calificacion_promedio, total_calificaciones',
         )
         .eq('id', userId)
         .maybeSingle(),

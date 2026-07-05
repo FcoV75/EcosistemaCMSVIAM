@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { BadgeCheck, Crown, MapPin, MessageSquare, Phone, Store, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { AppShell } from '../../components/AppShell'
+import { ProfileRating } from '../../components/ProfileRating'
 import { BusinessLocationDisplay } from '../../components/BusinessLocationPanel'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../../lib/mexico-states'
 import { useIdentity } from '../../lib/identity-context'
@@ -108,6 +109,14 @@ function PublicProfilePage() {
                 </a>
               )}
             </div>
+          </div>
+
+          <div className="mt-6">
+            <ProfileRating
+              userId={userId}
+              promedio={profile.calificacion_promedio}
+              total={profile.total_calificaciones}
+            />
           </div>
 
           {user && user.id !== userId && (

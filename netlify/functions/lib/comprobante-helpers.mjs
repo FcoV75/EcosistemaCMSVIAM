@@ -24,7 +24,7 @@ export async function obtenerMiembro(code, userId = null) {
     return { ...dual, fuente: dual.memberData.fuente || 'supabase' };
   }
 
-  const blobFallback = String(process.env.ECOSISTEMA_LEGACY_BLOB_FALLBACK ?? 'true').toLowerCase() !== 'false';
+  const blobFallback = String(process.env.ECOSISTEMA_LEGACY_BLOB_FALLBACK ?? 'false').toLowerCase() === 'true';
   if (!blobFallback || !normalized || normalized.length < 5) {
     return { normalized: normalized || null, memberData: null, fuente: null };
   }

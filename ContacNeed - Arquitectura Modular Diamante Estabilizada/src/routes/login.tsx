@@ -2,7 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ContacNeedLogo } from '../components/ContacNeedLogo'
 import { clearGuestBrowseTimer } from '../components/GuestBrowseGate'
-import { signInFn } from '../server/auth.functions'
+import { requestPasswordResetFn, signInFn } from '../server/auth.functions'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -13,6 +13,8 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resetMsg, setResetMsg] = useState<string | null>(null)
+  const [resetLoading, setResetLoading] = useState(false)
 
   return (
     <div className="cn-metallic-bg relative flex min-h-screen items-center justify-center px-4 py-10">
@@ -82,6 +84,35 @@ function LoginPage() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+
+        <p className="mt-4 text-center text-sm text-purple-200/70">
+          <button
+            type="button"
+            className="font-semibold text-amber-300 hover:text-amber-200"
+            disabled={resetLoading || !email.trim()}
+            onClick={async () => {
+              setResetLoading(true)
+              setResetMsg(null)
+              setError(null)
+              try {
+                const r = await requestPasswordResetFn({ data: { email } })
+                setResetMsg(r.message)
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'No se pudo enviar el enlace')
+              } finally {
+                setResetLoading(false)
+              }
+            }}
+          >
+            {resetLoading ? 'Enviando enlace...' : '¿Olvidaste tu contraseña?'}
+          </button>
+        </p>
+
+        {resetMsg && (
+          <p className="mt-2 rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-200">
+            {resetMsg}
+          </p>
+        )}
 
         <p className="mt-4 text-center text-sm text-purple-200/70">
           ¿Eres nuevo?{' '}

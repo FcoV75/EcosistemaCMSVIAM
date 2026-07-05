@@ -334,6 +334,36 @@ export const banUserAdminFn = createServerFn({ method: 'POST' })
     return { success: true }
   })
 
+export const deleteUsersBulkFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { ids: string[] }) => d)
+  .handler(async ({ data }) => {
+    const admin = await assertAdmin()
+    const supabase = createSupabaseAdminClient()
+    const results: { id: string; ok: boolean; error?: string }[] = []
+
+    for (const id of data.ids) {
+      if (!id || id === admin.user.id) {
+        results.push({ id, ok: false, error: 'No permitido' })
+        continue
+      }
+      const { data: profile } = await supabase
+        .from('perfiles')
+        .select('is_admin')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (profile?.is_admin) {
+        results.push({ id, ok: false, error: 'No se puede eliminar un administrador' })
+        continue
+      }
+
+      const { error } = await supabase.auth.admin.deleteUser(id)
+      results.push({ id, ok: !error, error: error?.message })
+    }
+
+    return { results, eliminados: results.filter((r) => r.ok).length }
+  })
+
 export const askAdminBotFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { question: string }) => d)
   .handler(async ({ data }) => {

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { ArrowLeft, Ban, CheckCircle2, Megaphone, MessageSquare, RefreshCw, Send, Shield, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, Megaphone, MessageSquare, RefreshCw, Send, Shield, Trash2, Trophy, Users } from 'lucide-react'
 import { requireAdminUserFn } from '../server/auth.functions'
 import {
   approveProRequestFn,
@@ -9,11 +9,13 @@ import {
   banUserAdminFn,
   blockUserAdminFn,
   deletePostAdminFn,
+  deleteUsersBulkFn,
   getAdminDashboardFn,
   moderatePostFn,
   rejectProRequestFn,
   updateUserAdminFn,
 } from '../server/admin.functions'
+import { getRankingPerfilesFn } from '../server/gamificacion.functions'
 import { deleteAdFn, getAdminAdsFn, saveAdFn } from '../server/ads.functions'
 
 export const Route = createFileRoute('/admin')({
@@ -29,6 +31,7 @@ function AdminDashboard() {
   const queryClient = useQueryClient()
   const [botQuestion, setBotQuestion] = useState('')
   const [botAnswer, setBotAnswer] = useState<string | null>(null)
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [adForm, setAdForm] = useState({
     titulo: '',
     cuerpo: '',
@@ -49,6 +52,11 @@ function AdminDashboard() {
   const adsQuery = useQuery({
     queryKey: ['admin-ads'],
     queryFn: () => getAdminAdsFn(),
+  })
+
+  const rankingQuery = useQuery({
+    queryKey: ['admin-ranking'],
+    queryFn: () => getRankingPerfilesFn(),
   })
 
   const invalidateAll = () => {
@@ -123,6 +131,23 @@ function AdminDashboard() {
     onSuccess: (result) => setBotAnswer(result.answer),
   })
 
+  const deleteUsersMutation = useMutation({
+    mutationFn: (ids: string[]) => deleteUsersBulkFn({ data: { ids } }),
+    onSuccess: () => {
+      setSelectedUserIds(new Set())
+      invalidateAll()
+    },
+  })
+
+  const toggleUserSelection = (id: string) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   const data = dashboardQuery.data
 
   return (
@@ -181,6 +206,42 @@ function AdminDashboard() {
           <StatsPanel title="Usuarios por oficio/profesión" items={data?.statsByProfession ?? []} />
           <StatsPanel title="Usuarios por tipo de miembro" items={data?.statsByMemberType ?? []} />
         </div>
+
+        <section className="rounded-2xl border border-amber-500/25 bg-slate-900/80 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Trophy size={18} className="text-amber-400" />
+            <h2 className="text-lg font-bold">Ranking IA — perfiles más reconocidos</h2>
+            <span className="text-xs text-slate-400">(likes ×2 + comentarios)</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-slate-800 text-slate-400">
+                <tr>
+                  <th className="px-3 py-2">#</th>
+                  <th className="px-3 py-2">Nombre</th>
+                  <th className="px-3 py-2">Oficio</th>
+                  <th className="px-3 py-2">Likes</th>
+                  <th className="px-3 py-2">Comentarios</th>
+                  <th className="px-3 py-2">Puntaje</th>
+                  <th className="px-3 py-2">★</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(rankingQuery.data?.ranking ?? []).map((row: any, idx: number) => (
+                  <tr key={row.id} className="border-b border-slate-800/80">
+                    <td className="px-3 py-2 font-bold text-amber-400">{idx + 1}</td>
+                    <td className="px-3 py-3">{row.nombre || '—'}</td>
+                    <td className="px-3 py-3">{row.habilidad_empirica || '—'}</td>
+                    <td className="px-3 py-3">{row.total_likes}</td>
+                    <td className="px-3 py-3">{row.total_comentarios}</td>
+                    <td className="px-3 py-3 font-semibold text-emerald-300">{row.puntaje_engagement}</td>
+                    <td className="px-3 py-3">{row.calificacion_promedio ? `${row.calificacion_promedio}★` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <section className="rounded-2xl border border-purple-500/25 bg-slate-900/80 p-4">
           <div className="mb-3 flex items-center gap-2">
@@ -378,11 +439,36 @@ function AdminDashboard() {
               <RefreshCw size={14} />
               Refrescar lista
             </button>
+            {selectedUserIds.size > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!confirm(`¿Eliminar ${selectedUserIds.size} usuario(s) seleccionados? Esta acción no se puede deshacer.`)) return
+                  deleteUsersMutation.mutate([...selectedUserIds])
+                }}
+                disabled={deleteUsersMutation.isPending}
+                className="inline-flex items-center gap-1 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              >
+                <Trash2 size={14} />
+                Eliminar seleccionados ({selectedUserIds.size})
+              </button>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-slate-800 text-slate-400">
                 <tr>
+                  <th className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      aria-label="Seleccionar todos"
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedUserIds(new Set((data?.users ?? []).map((u: any) => u.id)))
+                        } else setSelectedUserIds(new Set())
+                      }}
+                    />
+                  </th>
                   <th className="px-3 py-2">Nombre</th>
                   <th className="px-3 py-2">Correo</th>
                   <th className="px-3 py-2">Oficio</th>
@@ -397,6 +483,14 @@ function AdminDashboard() {
               <tbody>
                 {(data?.users ?? []).map((user: any) => (
                   <tr key={user.id} className="border-b border-slate-800/80">
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.has(user.id)}
+                        onChange={() => toggleUserSelection(user.id)}
+                        aria-label={`Seleccionar ${user.nombre || user.id}`}
+                      />
+                    </td>
                     <td className="px-3 py-3">{user.nombre || 'Sin nombre'}</td>
                     <td className="px-3 py-3 text-xs text-slate-400">{user.correo || '—'}</td>
                     <td className="px-3 py-3">{user.habilidad_empirica || '—'}</td>

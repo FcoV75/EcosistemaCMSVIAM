@@ -113,6 +113,8 @@ curl -X POST https://centromultidisciplinarioags.com/.netlify/functions/ecosiste
 3. **Panel Fundador** CMS: `/panel-fundador` (propietario con plan `propietario` o código `CMS-8INFW3`).
 4. **Blobs legacy**: respaldo opcional; desactiva con `ECOSISTEMA_LEGACY_BLOB_FALLBACK=false` en Netlify CMS.
 5. El código `CMS-XXXXXX` queda como **comprobante**; la cuenta unificada es la llave principal.
+6. **Blobs legacy desactivados** por defecto (`ECOSISTEMA_LEGACY_BLOB_FALLBACK=false`).
+7. Ejecuta `010_gamificacion_ecosistema.sql` para ranking, estrellas, referidos y puntos en ContacNeed.
 
 ### Sitio `contacneed.com`
 

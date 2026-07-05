@@ -14,6 +14,7 @@ import { FREE_TIENDA_MAX_ITEMS } from '../lib/plan-limits'
 import { getServerUserFn, signOutFn } from '../server/auth.functions'
 import { getNegocioFn, updateNegocioFn } from '../server/negocios.functions'
 import { getPlanUsageFn, requestProExtraAdsFn } from '../server/plan.functions'
+import { canjearPuntosMensualidadFn, getMiGamificacionFn } from '../server/gamificacion.functions'
 import { generateProMarketReportFn } from '../server/pro-reports.functions'
 
 export const Route = createFileRoute('/profile')({
@@ -57,6 +58,19 @@ function ProfileContent({
   const { profileData, setProfileData, saveProfileData } = useUser()
   const { isPro } = useIdentity()
   const planQuery = useQuery({ queryKey: ['plan-usage'], queryFn: () => getPlanUsageFn() })
+  const gamificacionQuery = useQuery({
+    queryKey: ['mi-gamificacion'],
+    queryFn: () => getMiGamificacionFn(),
+  })
+  const canjeMutation = useMutation({
+    mutationFn: () => canjearPuntosMensualidadFn(),
+    onSuccess: (r) => {
+      alert(`¡Mensualidad PRO activada! Te quedan ${r.puntosRestantes} puntos.`)
+      gamificacionQuery.refetch()
+      planQuery.refetch()
+    },
+    onError: (e) => alert(e instanceof Error ? e.message : 'No se pudo canjear'),
+  })
   const reportMutation = useMutation({
     mutationFn: () => generateProMarketReportFn(),
     onSuccess: (result) => {
@@ -293,6 +307,52 @@ function ProfileContent({
               <h2 className="text-2xl font-bold text-slate-900">Perfil Personal</h2>
               <p className="text-gray-500">Actualiza tu información para que la comunidad te encuentre más fácil.</p>
             </div>
+
+            {gamificacionQuery.data && (
+              <div className="mb-8 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-purple-50 p-5">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                  <Sparkles size={18} className="text-amber-600" />
+                  Programa de puntos ecosistema
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Comparte tu enlace y gana puntos por registros. Con <strong>100 puntos</strong> obtienes 1 mes PRO gratis.
+                </p>
+                <div className="mt-3 h-3 overflow-hidden rounded-full bg-white">
+                  <div
+                    className="h-full rounded-full bg-amber-500 transition-all"
+                    style={{ width: `${gamificacionQuery.data.progresoMensualidad}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-sm font-semibold text-amber-800">
+                  {gamificacionQuery.data.puntos} / {gamificacionQuery.data.puntosParaMensualidad} puntos
+                </p>
+                <p className="mt-2 break-all text-xs text-slate-600">
+                  Tu código: <strong>{gamificacionQuery.data.codigoReferido}</strong>
+                </p>
+                <p className="mt-1 break-all text-xs text-slate-500">{gamificacionQuery.data.enlaceRegistro}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(gamificacionQuery.data.enlaceRegistro)
+                    alert('Enlace copiado. Compártelo en redes para invitar profesionales.')
+                  }}
+                  className="mt-3 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white"
+                >
+                  Copiar enlace de invitación
+                </button>
+                {gamificacionQuery.data.puntos >= gamificacionQuery.data.puntosParaMensualidad && !isPro && (
+                  <button
+                    type="button"
+                    disabled={canjeMutation.isPending}
+                    onClick={() => canjeMutation.mutate()}
+                    className="ml-2 mt-3 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 disabled:opacity-50"
+                  >
+                    Canjear 1 mes PRO
+                  </button>
+                )}
+              </div>
+            )}
+
             <form className="space-y-6 max-w-2xl" onSubmit={async (e) => {
               e.preventDefault();
               setIsSaving(true);

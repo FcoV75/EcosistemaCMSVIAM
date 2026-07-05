@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient, createSupabaseServerClient } from '../lib/supabase.server'
 import { getSiteUrl } from '../lib/site-url'
+import { generarCodigoReferido } from '../lib/gamificacion'
+import { registrarReferidoEnSignup } from './gamificacion.functions'
 import {
   getServerProfile,
   getServerUser,
@@ -112,6 +114,7 @@ type SignUpInput = {
   password: string
   nombre: string
   tipo_miembro: 'Observador' | 'Oficio' | 'Profesion' | 'Especialidad'
+  codigo_referido?: string
   direccion?: string
   cp?: string
   celular?: string
@@ -212,6 +215,12 @@ export const signUpFn = createServerFn({ method: 'POST' })
       Boolean(signUpData.user?.email_confirmed_at),
     )
 
+    await admin.from('perfiles').update({
+      codigo_referido: generarCodigoReferido(userId),
+    }).eq('id', userId)
+
+    await registrarReferidoEnSignup(admin, userId, data.codigo_referido)
+
     const needsEmailConfirmation = !signUpData.session
 
     if (!needsEmailConfirmation) {
@@ -253,6 +262,36 @@ export const confirmEmailFromLinkFn = createServerFn({ method: 'GET' })
     }
 
     return { success: true }
+  })
+
+export const requestPasswordResetFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { email: string }) => d)
+  .handler(async ({ data }) => {
+    const supabase = createSupabaseServerClient()
+    const email = data.email.trim().toLowerCase()
+    if (!email) throw new Error('Ingresa tu correo electrónico.')
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${getSiteUrl()}/auth/reset`,
+    })
+    if (error) throw new Error(error.message)
+
+    return {
+      success: true,
+      message: 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
+    }
+  })
+
+export const updatePasswordFromResetFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { password: string }) => d)
+  .handler(async ({ data }) => {
+    const supabase = createSupabaseServerClient()
+    if (!data.password || data.password.length < 6) {
+      throw new Error('La contraseña debe tener al menos 6 caracteres.')
+    }
+    const { error } = await supabase.auth.updateUser({ password: data.password })
+    if (error) throw new Error(error.message)
+    return { success: true, message: 'Contraseña actualizada. Ya puedes iniciar sesión.' }
   })
 
 export const signOutFn = createServerFn({ method: 'POST' }).handler(async () => {

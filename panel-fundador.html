@@ -20,7 +20,13 @@
     .btn { border:0; border-radius:999px; padding:.6rem 1rem; font-weight:700; cursor:pointer; background:linear-gradient(135deg,var(--accent),#c9a24d); color:#111; text-decoration:none; display:inline-block; }
     .btn-outline { background:transparent; color:var(--ink); border:1px solid var(--edge); }
     .nav { display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; margin-bottom:1rem; }
-    .status { color:var(--accent2); min-height:1.2rem; }
+    .bar-row { display:flex; align-items:center; gap:.5rem; margin:.35rem 0; font-size:.85rem; }
+    .bar-track { flex:1; height:10px; background:rgba(0,0,0,.35); border-radius:99px; overflow:hidden; }
+    .bar-fill { height:100%; background:linear-gradient(90deg,var(--accent2),var(--accent)); border-radius:99px; }
+    .hero { text-align:center; padding:1rem 0 .5rem; }
+    .badge-ok { color:#4ade80; font-size:.85rem; }
+    .cols-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    @media(max-width:700px){ .cols-2 { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -38,7 +44,21 @@
       <a class="btn" href="/mi-ecosistema">Ir a iniciar sesión</a>
     </section>
     <section class="panel" id="vista-panel" style="display:none;">
+      <div class="hero">
+        <p class="badge-ok">● Supabase activo · Blobs legacy desactivados</p>
+      </div>
       <div class="grid" id="stats-grid"></div>
+      <div class="cols-2" style="margin-top:1rem;">
+        <div class="panel" style="margin:0;">
+          <h3 style="margin:0 0 .75rem;color:var(--accent2);font-size:1rem;">Productos del ecosistema</h3>
+          <div id="chart-productos"></div>
+        </div>
+        <div class="panel" style="margin:0;">
+          <h3 style="margin:0 0 .75rem;color:var(--accent2);font-size:1rem;">Estado de accesos</h3>
+          <div id="chart-estados"></div>
+        </div>
+      </div>
+      <h3 style="margin-top:1.25rem;color:var(--accent);font-family:Cinzel,serif;">Detalle de entitlements</h3>
       <div style="overflow-x:auto;margin-top:1rem;">
         <table>
           <thead>
@@ -90,6 +110,29 @@
         div.innerHTML = `<strong>${val ?? '—'}</strong>${label}`;
         grid.appendChild(div);
       });
+
+      const productos = d.resumen?.porProducto || {};
+      const maxP = Math.max(1, ...Object.values(productos));
+      const chartP = $('chart-productos');
+      chartP.innerHTML = '';
+      Object.entries(productos).forEach(([k, v]) => {
+        const pct = Math.round((Number(v) / maxP) * 100);
+        chartP.innerHTML += `<div class="bar-row"><span style="min-width:110px">${ETIQUETAS[k] || k}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><strong>${v}</strong></div>`;
+      });
+
+      const activos = Number(d.resumen?.activos || 0);
+      const total = Number(d.resumen?.total || 1);
+      const conCuenta = Number(d.resumen?.usuariosConCuenta || 0);
+      const soloCodigo = Number(d.resumen?.soloCodigoLegacy || 0);
+      $('chart-estados').innerHTML = [
+        ['Activos', activos, total],
+        ['Vinculados a cuenta', conCuenta, total],
+        ['Solo código CMS', soloCodigo, total],
+      ].map(([label, val, max]) => {
+        const pct = Math.round((Number(val) / Math.max(1, max)) * 100);
+        return `<div class="bar-row"><span style="min-width:140px">${label}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><strong>${val}</strong></div>`;
+      }).join('');
+
       const tbody = $('tabla-entitlements');
       tbody.innerHTML = '';
       (d.entitlements || []).forEach((row) => {

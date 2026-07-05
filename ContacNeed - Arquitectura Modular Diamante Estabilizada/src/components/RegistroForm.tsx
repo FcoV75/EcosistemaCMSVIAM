@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MEXICO_STATES } from '../lib/mexico-states'
 import { signUpFn } from '../server/auth.functions'
 
@@ -15,6 +15,13 @@ export function RegistroForm({ onSuccess, onSwitchToLogin, compact }: RegistroFo
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [codigoReferido, setCodigoReferido] = useState('')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get('ref')
+    if (ref) setCodigoReferido(ref.trim().toUpperCase())
+  }, [])
 
   const needsCedula = tipo === 'Profesion' || tipo === 'Especialidad'
   const needsProfession = tipo !== 'Observador'
@@ -47,6 +54,7 @@ export function RegistroForm({ onSuccess, onSwitchToLogin, compact }: RegistroFo
               habilidad_empirica: String(form.get('habilidad_empirica') ?? ''),
               descripcion_profesion: String(form.get('descripcion_profesion') ?? ''),
               cedula: String(form.get('cedula') ?? ''),
+              codigo_referido: codigoReferido || undefined,
             },
           })
 
