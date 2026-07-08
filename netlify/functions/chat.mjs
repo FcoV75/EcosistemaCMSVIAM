@@ -27,7 +27,7 @@ Responde ÚNICAMENTE JSON válido (sin markdown):
 }`;
 
 const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-const PUBLIC_CHAT_LIMIT = 10;
+const PUBLIC_CHAT_LIMIT = 1;
 
 function groqKey() {
   try {
@@ -86,7 +86,7 @@ async function enforcePublicRateLimit(req) {
       return Response.json(
         {
           error:
-            'Has alcanzado el límite de consultas gratuitas de hoy. Vuelve mañana o conviértete en miembro de Sincronía Nexus.',
+            'Has alcanzado tu consulta gratuita de hoy (1 por día). Vuelve mañana o conviértete en miembro de Sincronía Nexus para más acompañamiento.',
         },
         { status: 429 },
       );
