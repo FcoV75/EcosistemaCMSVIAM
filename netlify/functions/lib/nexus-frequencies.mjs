@@ -37,11 +37,12 @@ function hashStr(str) {
 }
 
 function nombreDesdeUrl(url) {
+  if (!url) return 'pista instrumental';
   try {
     const part = decodeURIComponent(url.split('/').pop() || '');
     return part.replace(/\.mp3$/i, '').replace(/_/g, ' ').toLowerCase();
   } catch {
-    return url.toLowerCase();
+    return String(url).toLowerCase();
   }
 }
 
@@ -53,8 +54,12 @@ export function elegirPistaCatalogo(frecuenciaHz, semilla = '') {
     return keywords.some((k) => name.includes(k));
   });
   const pool = matched.length ? matched : INSTRUMENTALES_CON_FRECUENCIA;
+  if (!pool.length) {
+    return { url: null, titulo: 'pista instrumental' };
+  }
   const idx = hashStr(`${semilla}:${hz}`) % pool.length;
-  return { url: pool[idx], titulo: nombreDesdeUrl(pool[idx]) };
+  const url = pool[idx];
+  return { url, titulo: nombreDesdeUrl(url) };
 }
 
 export function normalizarDiagnostico(raw) {
