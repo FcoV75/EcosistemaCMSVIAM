@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Camera, ImageIcon, RefreshCw, X } from 'lucide-react'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { PostCard } from './PostCard'
 
@@ -26,6 +26,10 @@ type FeedProps = {
 
   selectedState: MexicoState | ''
 
+  highlightPostId?: string | null
+
+  onHighlightDone?: () => void
+
 }
 
 
@@ -42,7 +46,7 @@ type MediaPreview = {
 
 
 
-export function Feed({ selectedState }: FeedProps) {
+export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedProps) {
 
   const queryClient = useQueryClient()
   const { searchQuery } = useBrowseSearch()
@@ -69,6 +73,15 @@ export function Feed({ selectedState }: FeedProps) {
     refetchOnWindowFocus: false,
 
   })
+
+  useEffect(() => {
+    if (!highlightPostId || postsQuery.isLoading) return
+    const target = document.getElementById(`post-${highlightPostId}`)
+    if (!target) return
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    onHighlightDone?.()
+  }, [highlightPostId, postsQuery.isLoading, postsQuery.data, onHighlightDone])
 
   const filteredPosts = useMemo(() => {
     const posts = postsQuery.data ?? []
@@ -210,6 +223,8 @@ export function Feed({ selectedState }: FeedProps) {
             key={post.id}
 
             post={post}
+
+            highlighted={highlightPostId === post.id}
 
             author={{
 

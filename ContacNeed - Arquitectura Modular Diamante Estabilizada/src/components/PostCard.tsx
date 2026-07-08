@@ -46,7 +46,7 @@ type CommentRow = {
 
 
 
-export function PostCard({ post, author, onChanged }: any) {
+export function PostCard({ post, author, onChanged, highlighted = false }: any) {
 
   const { user } = useIdentity()
 
@@ -228,7 +228,14 @@ export function PostCard({ post, author, onChanged }: any) {
 
   return (
 
-    <article className="cn-glass overflow-hidden rounded-2xl border border-purple-500/20 break-words shadow-xl shadow-purple-900/15 transition hover:border-purple-400/30">
+    <article
+      id={`post-${post.id}`}
+      className={`cn-glass overflow-hidden rounded-2xl border break-words shadow-xl shadow-purple-900/15 transition hover:border-purple-400/30 ${
+        highlighted
+          ? 'border-amber-400/70 ring-2 ring-amber-400/40'
+          : 'border-purple-500/20'
+      }`}
+    >
 
       <div className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-start">
 

@@ -13,6 +13,18 @@ function HomePage() {
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null)
+  const [highlightPostId, setHighlightPostId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const sharedPostId = params.get('post')?.trim()
+    if (sharedPostId) {
+      setHighlightPostId(sharedPostId)
+      params.delete('post')
+      const nextQuery = params.toString()
+      window.history.replaceState({}, '', nextQuery ? `/?${nextQuery}` : '/')
+    }
+  }, [])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -44,7 +56,11 @@ function HomePage() {
           {paymentMessage}
         </div>
       )}
-      <Feed selectedState={selectedState} />
+      <Feed
+        selectedState={selectedState}
+        highlightPostId={highlightPostId}
+        onHighlightDone={() => setHighlightPostId(null)}
+      />
     </AppShell>
   )
 }

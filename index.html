@@ -750,8 +750,8 @@
             }
           } else {
              procDiv.innerHTML = `
-                <p style="color: #ef4444; margin-bottom: 0.5rem;">Error: Pago no verificado.</p>
-                <p style="font-size: 0.9rem; margin-bottom: 1rem;">${data.error || 'El webhook no ha registrado este ID de transacción. Asegúrate de haber finalizado el pago en PayPal/Stripe.'}</p>
+                <p style="color: #ef4444; margin-bottom: 0.5rem;">No se pudo activar tu compra automáticamente.</p>
+                <p style="font-size: 0.9rem; margin-bottom: 1rem;">${data.error || 'El pago puede estar en proceso. Espera 1 minuto e intenta de nuevo con el mismo ID de Stripe (cs_live_... o pi_...). Si pagaste con sesión iniciada, revisa <a href="/mi-ecosistema" style="color:var(--accent2);">Mi Ecosistema</a>.'}</p>
                 <button class="btn btn-primary" onclick="window.retrySimulatedPayment()">Intentar de nuevo</button>
              `;
           }
@@ -809,7 +809,7 @@
          
          simulatePayment(0); // Amount doesn't matter for the verification UI
          document.getElementById('transaction-id-input').value = sessionId;
-         document.getElementById('sim-payment-processing').innerHTML = '<p>Reanudando verificación automática de pago...</p>';
+         document.getElementById('sim-payment-processing').innerHTML = '<p><strong>Pago recibido.</strong> Activando tu licencia automáticamente…</p><p style="font-size:0.9rem;color:#dbe9ff;">No cierres esta ventana hasta ver tu código CMS-XXXXXX.</p>';
          setTimeout(() => {
            confirmUserPayment();
            // Clean URL without refreshing
