@@ -8,11 +8,31 @@
   text-align: center;
 }
 
+/* Imagen completa en móvil, tablet y PC (sin recorte por object-fit: cover) */
+.gracias-pago-img,
 .ecosistema-gracias-banner img {
   width: 100%;
-  max-height: 260px;
-  object-fit: cover;
+  height: auto;
+  max-width: 100%;
+  max-height: min(72vh, 560px);
+  object-fit: contain;
+  object-position: center;
   display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.gracias-pago-img {
+  border-radius: 10px;
+  border: 2px solid #d4af37;
+  margin-bottom: 12px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.ecosistema-gracias-banner img {
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0;
 }
 
 .ecosistema-gracias-banner figcaption {
@@ -30,4 +50,9 @@
 
 .contenedor-principal .ecosistema-gracias-banner {
   margin-top: 18px;
+}
+
+#gracias-modal,
+#simulated-payment-modal {
+  max-width: min(92vw, 640px);
 }

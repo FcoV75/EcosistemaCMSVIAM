@@ -568,8 +568,8 @@
         <button type="button" class="btn-premium-plan" onclick="document.getElementById('upgrade-modal').close();document.getElementById('btn-plan-anual').click();">$3,000 / año</button>
     </dialog>
 
-    <dialog id="gracias-modal">
-        <img src="/Assets/Images/Gracias_Pago_CMS.png" alt="Muchas gracias por tu compra" style="width:100%;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:15px;border:2px solid #D4AF37;">
+    <dialog id="gracias-modal" style="max-width:min(92vw,640px);">
+        <img src="/Assets/Images/Gracias_Pago_CMS.png" alt="Muchas gracias por tu compra" class="gracias-pago-img">
         <h3 style="color:#D4AF37;margin-bottom:10px;">¡Muchas gracias por tu suscripción!</h3>
         <p style="color:#DDD;font-size:0.95rem;margin-bottom:18px;">Esperamos verte pronto de nuevo. Tu licencia Premium se activará en un momento.</p>
         <button type="button" class="btn-viam-subir" style="background:#D4AF37;color:#111;" onclick="document.getElementById('gracias-modal').close()">Continuar</button>
