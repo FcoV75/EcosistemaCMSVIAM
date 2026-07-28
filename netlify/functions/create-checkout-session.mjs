@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { PRODUCTOS, resolverProducto } from './stripe-catalog.mjs';
+import { PRODUCTOS, resolverProducto } from './lib/stripe-catalog.mjs';
 import { getUserFromBearer } from './lib/supabase-admin.mjs';
 
 function metadataBase(req, extra = {}) {
