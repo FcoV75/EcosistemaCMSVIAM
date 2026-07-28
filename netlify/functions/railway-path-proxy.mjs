@@ -31,18 +31,27 @@ export default async (req) => {
   const isPublicHealth = path === '/health' || path.startsWith('/health/');
   const action = actionForPath(path);
 
-  const guard = await guardRailwayRequest(req, {
-    product: 'video_diamante_premium',
-    action: isPublicHealth ? null : action,
-    requireAuth: !isPublicHealth,
-  });
-  if (guard.preflight) return guard.preflight;
-  if (!guard.ok) return jsonResponse({ error: guard.error }, guard.status);
-
   try {
+    const guard = await guardRailwayRequest(req, {
+      product: 'video_diamante_premium',
+      action: isPublicHealth ? null : action,
+      requireAuth: !isPublicHealth,
+    });
+    if (guard.preflight) return guard.preflight;
+    if (!guard.ok) return jsonResponse({ error: guard.error }, guard.status);
+
     const contentType = req.headers.get('content-type') || '';
     const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
     const body = hasBody ? await req.arrayBuffer() : undefined;
+    if (body && body.byteLength > 5.5 * 1024 * 1024) {
+      return jsonResponse(
+        {
+          error:
+            'Archivo demasiado grande para el proxy de Netlify (~4.5 MB máx. por petición). Comprime el archivo e intenta de nuevo.',
+        },
+        413,
+      );
+    }
     const upstream = await proxyToRailway(path, {
       method: req.method,
       body,
@@ -50,6 +59,7 @@ export default async (req) => {
     });
     return relayRailwayResponse(upstream);
   } catch (err) {
-    return jsonResponse({ error: 'Proxy Railway falló', detalle: err.message }, 502);
+    console.error('railway-path-proxy:', err);
+    return jsonResponse({ error: 'Proxy Railway falló', detalle: err.message || String(err) }, 502);
   }
 };

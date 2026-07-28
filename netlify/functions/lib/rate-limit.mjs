@@ -14,14 +14,20 @@ export function hashIp(ip) {
 }
 
 export async function consumeRateLimit(key, max, windowMs = 86400000) {
-  const store = getStore('ecosistema-rate-limit');
-  const bucket = Math.floor(Date.now() / windowMs);
-  const storeKey = `${key}:${bucket}`;
-  const current = (await store.get(storeKey, { type: 'json' })) || { count: 0 };
-  if (current.count >= max) {
-    return { allowed: false, remaining: 0 };
+  try {
+    const store = getStore('ecosistema-rate-limit');
+    const bucket = Math.floor(Date.now() / windowMs);
+    const storeKey = `${key}:${bucket}`;
+    const current = (await store.get(storeKey, { type: 'json' })) || { count: 0 };
+    if (current.count >= max) {
+      return { allowed: false, remaining: 0 };
+    }
+    const next = { count: current.count + 1, at: Date.now() };
+    await store.setJSON(storeKey, next);
+    return { allowed: true, remaining: Math.max(0, max - next.count) };
+  } catch (err) {
+    // Fail-open: Blobs caído no debe tumbar transcribe/render con 500 opaco.
+    console.warn('rate-limit skip:', err?.message || err);
+    return { allowed: true, remaining: max, degraded: true };
   }
-  const next = { count: current.count + 1, at: Date.now() };
-  await store.setJSON(storeKey, next);
-  return { allowed: true, remaining: Math.max(0, max - next.count) };
 }
