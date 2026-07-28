@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { libroPorArchivo, libroPorSlug } from './lib/libros-catalog.mjs';
+import { libroPorSlug } from './lib/libros-catalog.mjs';
 import { verifyDownloadToken, getSessionSecret } from './lib/ecosistema-auth.mjs';
 import { corsPreflight } from './lib/railway-guard.mjs';
 
@@ -11,6 +11,11 @@ const ALLOWED = new Set([
   'Busqueda_Impactante.pdf',
   'EBook_ISometricos.pdf',
   'Poesias_del_Corazon.pdf',
+]);
+
+/** PDFs públicos (sin token): cotizaciones y materiales de marketing. */
+const PUBLIC_ALLOWED = new Set([
+  'Cotizacion_IAVIAMMusicPublicidad.pdf',
 ]);
 
 async function leerPdf(archivo) {
@@ -28,6 +33,19 @@ async function leerPdf(archivo) {
   throw new Error('Archivo no encontrado en el servidor.');
 }
 
+function pdfResponse(bin, archivo, { inline = false, cache = 'private, no-store' } = {}) {
+  const disposition = inline ? 'inline' : 'attachment';
+  return new Response(bin, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `${disposition}; filename="${archivo}"`,
+      'Cache-Control': cache,
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+}
+
 export default async (req) => {
   const preflight = corsPreflight(req);
   if (preflight) return preflight;
@@ -36,6 +54,20 @@ export default async (req) => {
   const token = url.searchParams.get('token') || '';
   const archivoParam = url.searchParams.get('archivo') || '';
   const inline = url.searchParams.get('inline') === '1';
+
+  // Cotización y otros PDF públicos: no requieren compra/token.
+  if (PUBLIC_ALLOWED.has(archivoParam)) {
+    try {
+      const bin = await leerPdf(archivoParam);
+      return pdfResponse(bin, archivoParam, {
+        inline,
+        cache: 'public, max-age=86400',
+      });
+    } catch (err) {
+      console.error('download-libro público:', err);
+      return new Response('No se pudo entregar el archivo.', { status: 500 });
+    }
+  }
 
   const secret = getSessionSecret();
   if (!secret) {
@@ -64,17 +96,7 @@ export default async (req) => {
 
   try {
     const bin = await leerPdf(archivo);
-    const titulo = libroPorArchivo(archivo)?.[1]?.titulo || archivo;
-    const disposition = inline ? 'inline' : 'attachment';
-    return new Response(bin, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `${disposition}; filename="${archivo}"`,
-        'Cache-Control': 'private, no-store',
-        'X-Content-Type-Options': 'nosniff',
-      },
-    });
+    return pdfResponse(bin, archivo, { inline });
   } catch (err) {
     console.error('download-libro:', err);
     return new Response('No se pudo entregar el libro en este momento.', { status: 500 });

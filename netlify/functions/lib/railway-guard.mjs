@@ -65,20 +65,25 @@ export function requireToken(req, { product } = {}) {
 }
 
 export async function enforceRateLimit(payload, action) {
-  const limits = RATE_LIMITS[action];
-  if (!limits || payload?.sub === 'legacy-open') return { ok: true };
-  const tier = payload.tier === 'premium' ? 'premium' : 'free';
-  const max = limits[tier];
-  const key = `${action}:${tier}:${payload.sub}`;
-  const result = await consumeRateLimit(key, max, limits.windowMs);
-  if (!result.allowed) {
-    return {
-      ok: false,
-      status: 429,
-      error: `Límite diario de ${action} alcanzado (${max}/día). Vuelve mañana o activa Premium.`,
-    };
+  try {
+    const limits = RATE_LIMITS[action];
+    if (!limits || payload?.sub === 'legacy-open') return { ok: true };
+    const tier = payload.tier === 'premium' ? 'premium' : 'free';
+    const max = limits[tier];
+    const key = `${action}:${tier}:${payload.sub}`;
+    const result = await consumeRateLimit(key, max, limits.windowMs);
+    if (!result.allowed) {
+      return {
+        ok: false,
+        status: 429,
+        error: `Límite diario de ${action} alcanzado (${max}/día). Vuelve mañana o activa Premium.`,
+      };
+    }
+    return { ok: true, remaining: result.remaining };
+  } catch (err) {
+    console.warn('enforceRateLimit skip:', err?.message || err);
+    return { ok: true, degraded: true };
   }
-  return { ok: true, remaining: result.remaining };
 }
 
 export async function guardRailwayRequest(req, { product, action, requireAuth = true }) {

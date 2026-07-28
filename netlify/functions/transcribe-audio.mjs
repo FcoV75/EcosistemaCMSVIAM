@@ -57,23 +57,23 @@ function segmentosDesdeTexto(texto, duracion = 180) {
 }
 
 export default async (req) => {
-  const guard = await guardRailwayRequest(req, {
-    product: 'video_diamante_premium',
-    action: 'transcribe',
-  });
-  if (guard.preflight) return guard.preflight;
-  if (!guard.ok) return jsonResponse({ error: guard.error }, guard.status);
-
-  if (req.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
-  }
-
-  const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) {
-    return Response.json({ error: "GROQ_API_KEY no configurada." }, { status: 500 });
-  }
-
   try {
+    const guard = await guardRailwayRequest(req, {
+      product: 'video_diamante_premium',
+      action: 'transcribe',
+    });
+    if (guard.preflight) return guard.preflight;
+    if (!guard.ok) return jsonResponse({ error: guard.error }, guard.status);
+
+    if (req.method !== "POST") {
+      return jsonResponse({ error: "Method Not Allowed" }, 405);
+    }
+
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!groqKey) {
+      return jsonResponse({ error: "GROQ_API_KEY no configurada." }, 500);
+    }
+
     let audio = null;
 
     const contentType = req.headers.get("content-type") || "";
@@ -97,7 +97,17 @@ export default async (req) => {
     }
 
     if (!audio || typeof audio === "string") {
-      return Response.json({ error: "Archivo de audio no recibido." }, { status: 400 });
+      return jsonResponse({ error: "Archivo de audio no recibido." }, 400);
+    }
+
+    if (typeof audio.size === "number" && audio.size > 5.5 * 1024 * 1024) {
+      return jsonResponse(
+        {
+          error:
+            "Audio demasiado grande (~4.5 MB máx.). Comprime a MP3 más ligero e intenta de nuevo.",
+        },
+        413,
+      );
     }
 
     const estrategias = [
@@ -124,7 +134,7 @@ export default async (req) => {
           }
           const palabras = data.words?.length ? data.words : palabrasDesdeTexto(texto);
           const segmentos = data.segments?.length ? data.segments : segmentosDesdeTexto(texto);
-          return Response.json({
+          return jsonResponse({
             success: true,
             texto,
             segmentos,
@@ -138,9 +148,12 @@ export default async (req) => {
       }
     }
 
-    return Response.json({ error: `Transcripción fallida: ${ultimoError}` }, { status: 502 });
+    return jsonResponse({ error: `Transcripción fallida: ${ultimoError}` }, 502);
   } catch (err) {
     console.error("transcribe-audio:", err);
-    return Response.json({ error: "Error interno transcribiendo audio.", detalle: String(err) }, { status: 500 });
+    return jsonResponse(
+      { error: "Error interno transcribiendo audio.", detalle: String(err?.message || err) },
+      500,
+    );
   }
 };

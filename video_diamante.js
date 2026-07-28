@@ -21,6 +21,10 @@ let letraEstudioGenerada = "";
 let accessToken = localStorage.getItem("video_diamante_access_token") || "";
 
 const LIMITES_ESTUDIO = { gratuito: 5, premium: 20 };
+/** Netlify rechaza cuerpos ~>6 MB; margen amplio para multipart (campos + boundary). */
+const LIMITE_SUBIDA_NETLIFY = 3.8 * 1024 * 1024;
+/** A partir de este tamaño siempre se re-encodea el audio antes de subir. */
+const UMBRAL_COMPRESION_AUDIO = 2.2 * 1024 * 1024;
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -276,6 +280,9 @@ async function fetchRailwayViaProxy(endpoint, options = {}) {
 }
 
 function mensajeErrorMotorRailway(status, detalle) {
+    if (status === 413 || /payload too large|demasiado grande|entity too large/i.test(String(detalle || ""))) {
+        return "El archivo supera el límite de subida (~3.8 MB por archivo vía Netlify). El sistema comprimirá el audio automáticamente; si persiste, usa un MP3 más corto o un clip de video más ligero.";
+    }
     if (status === 502 || status === 503 || /failed to respond/i.test(String(detalle || ""))) {
         return "Motor Railway no responde (502). Entra a Railway → EcosistemaCMSVIAM → Deployments → Redeploy. Revisa también que la variable PORT exista.";
     }
@@ -327,6 +334,9 @@ async function comprimirImagenParaRender(file, maxW = 1280, maxH = 720, calidad 
     bitmap.close();
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", calidad));
     if (!blob) return file;
+    if (blob.size > LIMITE_SUBIDA_NETLIFY && calidad > 0.45) {
+        return comprimirImagenParaRender(file, Math.round(maxW * 0.85), Math.round(maxH * 0.85), calidad - 0.15);
+    }
     const nombre = file.name.replace(/\.[^.]+$/, "") + ".jpg";
     console.info(`Imagen optimizada: ${(file.size / 1024).toFixed(0)} KB → ${(blob.size / 1024).toFixed(0)} KB`);
     return new File([blob], nombre, { type: "image/jpeg" });
@@ -334,7 +344,20 @@ async function comprimirImagenParaRender(file, maxW = 1280, maxH = 720, calidad 
 
 async function prepararArchivosRender({ audio, portada, cierre, mediaItems }) {
     const archivos = [];
-    if (audio) archivos.push({ campo: "audio", file: audio, etiqueta: audio.name });
+    if (audio) {
+        let audioSubida = audio;
+        if (audio.size > UMBRAL_COMPRESION_AUDIO || necesitaConversionMp3(audio)) {
+            logAudioAviso(`Audio ${(audio.size / (1024 * 1024)).toFixed(1)} MB — comprimiendo para subida segura...`);
+            audioSubida = await comprimirAudioParaSubida(audio);
+            logAudioOk(`Audio listo para render (${(audioSubida.size / (1024 * 1024)).toFixed(1)} MB MP3)`);
+        }
+        if (audioSubida.size > LIMITE_SUBIDA_NETLIFY) {
+            throw new Error(
+                `El audio sigue pesando ${(audioSubida.size / (1024 * 1024)).toFixed(1)} MB tras comprimir. Usa un MP3 más corto o a menor bitrate.`
+            );
+        }
+        archivos.push({ campo: "audio", file: audioSubida, etiqueta: audioSubida.name });
+    }
     if (portada) {
         const img = await comprimirImagenParaRender(portada);
         archivos.push({ campo: "portada_file", file: img, etiqueta: img.name });
@@ -346,21 +369,49 @@ async function prepararArchivosRender({ audio, portada, cierre, mediaItems }) {
     for (let i = 0; i < mediaItems.length; i++) {
         const item = mediaItems[i];
         const campo = item.tipo === "video" ? `video_${i}` : `imagen_${i}`;
-        const file = item.tipo === "imagen" ? await comprimirImagenParaRender(item.file) : item.file;
+        let file = item.tipo === "imagen" ? await comprimirImagenParaRender(item.file) : item.file;
+        if (file.size > LIMITE_SUBIDA_NETLIFY) {
+            throw new Error(
+                `"${file.name}" pesa ${(file.size / (1024 * 1024)).toFixed(1)} MB. Cada archivo debe ser menor a ~3.8 MB para subirse al motor. Usa un clip más corto o comprímelo antes.`
+            );
+        }
         archivos.push({ campo, file, etiqueta: file.name });
     }
     return archivos;
 }
 
-async function subirArchivoRenderSesion(uploadId, campo, file) {
+async function subirArchivoRenderSesion(uploadId, campo, file, { reintento = true } = {}) {
     const fd = new FormData();
     fd.append("upload_id", uploadId);
     fd.append("campo", campo);
     fd.append("archivo", file, file.name || campo);
     const r = await fetchRailwayPreferProxy("/renderizar/subir", { method: "POST", body: fd });
-    const d = await parseJsonSeguro(r);
-    if (!r.ok || !d.success) throw new Error(d.error || d.detalle || "Fallo al subir " + campo);
-    return d;
+
+    let d = {};
+    try {
+        d = await parseJsonSeguro(r);
+    } catch (parseErr) {
+        if (r.status === 413) d = { error: "payload too large" };
+        else d = { error: parseErr.message || `HTTP ${r.status}` };
+    }
+
+    if (r.ok && d.success) return d;
+
+    const es413 = r.status === 413 || /413|payload too large|entity too large|demasiado grande/i.test(
+        String(d.error || d.detalle || d.message || "")
+    );
+
+    if (es413 && reintento && campo === "audio") {
+        logAudioAviso("Subida rechazada (413) — recomprimiendo audio más agresivo...");
+        const masLiviano = await comprimirAudioParaSubida(file, { forzarAgresivo: true });
+        if (masLiviano.size >= file.size && file.size > LIMITE_SUBIDA_NETLIFY * 0.98) {
+            throw new Error(mensajeErrorMotorRailway(413, "payload too large"));
+        }
+        return subirArchivoRenderSesion(uploadId, campo, masLiviano, { reintento: false });
+    }
+
+    if (es413) throw new Error(mensajeErrorMotorRailway(413, d.error || d.detalle || "413"));
+    throw new Error(d.error || d.detalle || mensajeErrorMotorRailway(r.status, "Fallo al subir " + campo));
 }
 
 async function enviarRenderizadoPorPartes(meta, archivos, onProgreso) {
@@ -907,8 +958,11 @@ function humanizarErrorTranscripcion(msg) {
     if (/GROQ_API_KEY/i.test(m)) {
         return "El servicio de transcripción IA no está configurado en el servidor (falta GROQ_API_KEY en Railway y Netlify). Contacta al administrador del ecosistema.";
     }
+    if (/413|payload too large|entity too large|demasiado grande/i.test(m)) {
+        return "El audio es demasiado pesado para enviarse al servidor (~3.8 MB máx. por petición). Recarga la página e intenta de nuevo; el sistema comprimirá el audio automáticamente.";
+    }
     if (/internal error/i.test(m)) {
-        return "El proveedor de IA respondió con error interno. Espera unos segundos e intenta de nuevo. Si persiste, verifica que GROQ_API_KEY esté activa en Railway y Netlify.";
+        return "Groq (IA de transcripción) respondió con error interno. Espera 30 segundos e intenta de nuevo. Si el audio es muy largo (>4 min), prueba con un fragmento más corto.";
     }
     return m || "Transcripción fallida";
 }
@@ -941,7 +995,7 @@ function nombreBaseSinExtension(nombre) {
 function necesitaConversionMp3(file) {
     const ext = (file.name || "").split(".").pop().toLowerCase();
     if (["wav", "wave", "aiff", "aif", "flac"].includes(ext)) return true;
-    if (file.size > 8 * 1024 * 1024) return true;
+    if (file.size > LIMITE_SUBIDA_NETLIFY) return true;
     return false;
 }
 
@@ -955,15 +1009,10 @@ async function decodificarArchivoAudio(file) {
     }
 }
 
-async function convertirAudioAMp3(file, kbps = 128) {
-    if (typeof lamejs === "undefined" || !lamejs.Mp3Encoder) {
-        throw new Error("Motor MP3 no cargado. Recarga la página (Ctrl+F5).");
-    }
-    const audioBuffer = await decodificarArchivoAudio(file);
-    const sampleRate = 44100;
-    const canales = audioBuffer.numberOfChannels >= 2 ? 2 : 1;
+async function resampleAudioBuffer(audioBuffer, sampleRate, canales = 1) {
+    const ch = Math.min(canales, audioBuffer.numberOfChannels) || 1;
     const offline = new OfflineAudioContext(
-        canales,
+        ch,
         Math.max(1, Math.ceil(audioBuffer.duration * sampleRate)),
         sampleRate
     );
@@ -971,8 +1020,13 @@ async function convertirAudioAMp3(file, kbps = 128) {
     src.buffer = audioBuffer;
     src.connect(offline.destination);
     src.start(0);
-    const rendered = await offline.startRendering();
+    return offline.startRendering();
+}
 
+async function encodeMp3FromBuffer(rendered, { sampleRate = 44100, canales = 1, kbps = 128 } = {}) {
+    if (typeof lamejs === "undefined" || !lamejs.Mp3Encoder) {
+        throw new Error("Motor MP3 no cargado. Recarga la página (Ctrl+F5).");
+    }
     const mp3encoder = new lamejs.Mp3Encoder(canales, sampleRate, kbps);
     const bloque = 1152;
     const mp3Chunks = [];
@@ -997,61 +1051,77 @@ async function convertirAudioAMp3(file, kbps = 128) {
     const fin = mp3encoder.flush();
     if (fin.length > 0) mp3Chunks.push(fin);
 
-    const blob = new Blob(mp3Chunks, { type: "audio/mpeg" });
+    return new Blob(mp3Chunks, { type: "audio/mpeg" });
+}
+
+async function convertirAudioAMp3(file, kbps = 128) {
+    const audioBuffer = await decodificarArchivoAudio(file);
+    const sampleRate = 44100;
+    const canales = audioBuffer.numberOfChannels >= 2 ? 2 : 1;
+    const rendered = await resampleAudioBuffer(audioBuffer, sampleRate, canales);
+    const blob = await encodeMp3FromBuffer(rendered, { sampleRate, canales, kbps });
     return new File([blob], `${nombreBaseSinExtension(file.name)}.mp3`, { type: "audio/mpeg" });
 }
 
-function escribirCadenaWav(view, offset, str) {
-    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
-}
+async function comprimirAudioParaSubida(file, { forzarAgresivo = false } = {}) {
+    const audioBuffer = await decodificarArchivoAudio(file);
+    const ladder = forzarAgresivo
+        ? [
+            { sampleRate: 22050, kbps: 48 },
+            { sampleRate: 16000, kbps: 32 },
+            { sampleRate: 16000, kbps: 24 },
+          ]
+        : [
+            { sampleRate: 44100, kbps: 96 },
+            { sampleRate: 44100, kbps: 64 },
+            { sampleRate: 22050, kbps: 48 },
+            { sampleRate: 16000, kbps: 32 },
+          ];
 
-function codificarWavMono16(samples, sampleRate) {
-    const numSamples = samples.length;
-    const buffer = new ArrayBuffer(44 + numSamples * 2);
-    const view = new DataView(buffer);
-    escribirCadenaWav(view, 0, "RIFF");
-    view.setUint32(4, 36 + numSamples * 2, true);
-    escribirCadenaWav(view, 8, "WAVE");
-    escribirCadenaWav(view, 12, "fmt ");
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    escribirCadenaWav(view, 36, "data");
-    view.setUint32(40, numSamples * 2, true);
-    let offset = 44;
-    for (let i = 0; i < numSamples; i++) {
-        const s = Math.max(-1, Math.min(1, samples[i]));
-        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-        offset += 2;
+    let mejor = null;
+    for (const paso of ladder) {
+        const rendered = await resampleAudioBuffer(audioBuffer, paso.sampleRate, 1);
+        const blob = await encodeMp3FromBuffer(rendered, {
+            sampleRate: paso.sampleRate,
+            canales: 1,
+            kbps: paso.kbps,
+        });
+        mejor = blob;
+        if (blob.size <= LIMITE_SUBIDA_NETLIFY) {
+            logAudioOk(`Audio comprimido a ${paso.kbps} kbps / ${paso.sampleRate} Hz (${(blob.size / (1024 * 1024)).toFixed(1)} MB)`);
+            return new File([blob], `${nombreBaseSinExtension(file.name)}_render.mp3`, { type: "audio/mpeg" });
+        }
     }
-    return buffer;
+    return new File([mejor], `${nombreBaseSinExtension(file.name)}_render.mp3`, { type: "audio/mpeg" });
 }
 
 async function comprimirAudioParaIA(file) {
-    const esComprimido = /\.(mp3|m4a|ogg|webm)$/i.test(file.name || "");
-    if (esComprimido && file.size <= 4 * 1024 * 1024) return file;
+    // Siempre MP3 mono 16 kHz (nunca WAV: infla el body y provoca 413/500 en Netlify).
+    if (file.size <= UMBRAL_COMPRESION_AUDIO && /\.mp3$/i.test(file.name || "")) {
+        return file;
+    }
 
     const audioBuffer = await decodificarArchivoAudio(file);
-
     const targetRate = 16000;
-    const offline = new OfflineAudioContext(
-        1,
-        Math.max(1, Math.ceil(audioBuffer.duration * targetRate)),
-        targetRate
-    );
-    const src = offline.createBufferSource();
-    src.buffer = audioBuffer;
-    src.connect(offline.destination);
-    src.start(0);
-    const rendered = await offline.startRendering();
-    const wavBuffer = codificarWavMono16(rendered.getChannelData(0), targetRate);
-    const mb = (wavBuffer.byteLength / (1024 * 1024)).toFixed(1);
-    logAudioOk(`Audio listo para transcripción IA (${mb} MB mono 16 kHz) — esto no es un error.`);
-    return new File([wavBuffer], "transcribe_16k.wav", { type: "audio/wav" });
+    const rendered = await resampleAudioBuffer(audioBuffer, targetRate, 1);
+    let kbps = 48;
+    let blob = await encodeMp3FromBuffer(rendered, { sampleRate: targetRate, canales: 1, kbps });
+    if (blob.size > LIMITE_SUBIDA_NETLIFY) {
+        kbps = 32;
+        blob = await encodeMp3FromBuffer(rendered, { sampleRate: targetRate, canales: 1, kbps });
+    }
+    if (blob.size > LIMITE_SUBIDA_NETLIFY) {
+        kbps = 24;
+        blob = await encodeMp3FromBuffer(rendered, { sampleRate: targetRate, canales: 1, kbps });
+    }
+    if (blob.size > LIMITE_SUBIDA_NETLIFY) {
+        throw new Error(
+            `Audio de transcripción ${(blob.size / (1024 * 1024)).toFixed(1)} MB tras comprimir — supera el límite de Netlify. Usa un fragmento más corto.`
+        );
+    }
+    const mb = (blob.size / (1024 * 1024)).toFixed(1);
+    logAudioOk(`Audio listo para transcripción IA (${mb} MB MP3 mono 16 kHz @ ${kbps} kbps).`);
+    return new File([blob], "transcribe_16k.mp3", { type: "audio/mpeg" });
 }
 
 async function transcribirConGroq(audioFile) {
