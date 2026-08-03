@@ -346,10 +346,28 @@ async function prepararArchivosRender({ audio, portada, cierre, mediaItems }) {
     const archivos = [];
     if (audio) {
         let audioSubida = audio;
-        if (audio.size > UMBRAL_COMPRESION_AUDIO || necesitaConversionMp3(audio)) {
-            logAudioAviso(`Audio ${(audio.size / (1024 * 1024)).toFixed(1)} MB — comprimiendo para subida segura...`);
+        const necesitaReducir = audio.size > UMBRAL_COMPRESION_AUDIO || esAudioSinComprimir(audio);
+        if (necesitaReducir) {
+            logAudioAviso(
+                esAudioSinComprimir(audio)
+                    ? "Audio sin comprimir — convirtiendo a MP3 ligero para subida..."
+                    : `Audio ${(audio.size / (1024 * 1024)).toFixed(1)} MB — comprimiendo para subida segura...`
+            );
             audioSubida = await comprimirAudioParaSubida(audio);
-            logAudioOk(`Audio listo para render (${(audioSubida.size / (1024 * 1024)).toFixed(1)} MB MP3)`);
+            if (
+                esAudioYaComprimido(audio) &&
+                audioSubida.size >= audio.size &&
+                audio.size <= LIMITE_SUBIDA_NETLIFY
+            ) {
+                logAudioAviso("La compresión no redujo el peso — se usa el MP3 original.");
+                audioSubida = audio;
+            } else {
+                logAudioOk(`Audio listo para render (${(audioSubida.size / (1024 * 1024)).toFixed(1)} MB MP3)`);
+            }
+        }
+        if (audioSubida.size > LIMITE_SUBIDA_NETLIFY) {
+            logAudioAviso("Aún supera el límite — recompresión agresiva...");
+            audioSubida = await comprimirAudioParaSubida(audioSubida, { forzarAgresivo: true });
         }
         if (audioSubida.size > LIMITE_SUBIDA_NETLIFY) {
             throw new Error(
@@ -992,10 +1010,72 @@ function nombreBaseSinExtension(nombre) {
     return String(nombre || "pista").replace(/\.[^.]+$/, "");
 }
 
-function necesitaConversionMp3(file) {
-    const ext = (file.name || "").split(".").pop().toLowerCase();
+function extensionArchivo(file) {
+    const nombre = String(file?.name || "").trim();
+    const partes = nombre.split(".");
+    if (partes.length < 2) return "";
+    return partes.pop().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function mimeAudio(file) {
+    return String(file?.type || "").toLowerCase();
+}
+
+/** MP3 / AAC / OGG / etc. ya comprimidos: no reencodear al cargar. */
+function esAudioYaComprimido(file) {
+    const ext = extensionArchivo(file);
+    const mime = mimeAudio(file);
+    if (["mp3", "mpeg", "mpga", "m4a", "aac", "ogg", "oga", "opus", "webm", "mp4"].includes(ext)) {
+        return true;
+    }
+    if (
+        mime.includes("mpeg") ||
+        mime.includes("mp3") ||
+        mime.includes("mp4") ||
+        mime.includes("m4a") ||
+        mime.includes("aac") ||
+        mime.includes("ogg") ||
+        mime.includes("opus") ||
+        mime.includes("webm")
+    ) {
+        return true;
+    }
+    return false;
+}
+
+/** WAV / FLAC / AIFF: sí conviene convertir a MP3 al cargar. */
+function esAudioSinComprimir(file) {
+    const ext = extensionArchivo(file);
+    const mime = mimeAudio(file);
     if (["wav", "wave", "aiff", "aif", "flac"].includes(ext)) return true;
-    if (file.size > LIMITE_SUBIDA_NETLIFY) return true;
+    if (mime.includes("wav") || mime.includes("flac") || mime.includes("aiff")) return true;
+    return false;
+}
+
+function esArchivoAudio(file) {
+    if (!file) return false;
+    if (mimeAudio(file).startsWith("audio/")) return true;
+    if (esAudioYaComprimido(file) || esAudioSinComprimir(file)) return true;
+    const ext = extensionArchivo(file);
+    return ["mp3", "mpeg", "wav", "wave", "m4a", "aac", "ogg", "flac", "aiff", "aif", "opus", "webm"].includes(ext);
+}
+
+/** Solo formatos sin comprimir se convierten al cargar. El tamaño NO fuerza conversión. */
+function necesitaConversionMp3(file) {
+    if (esAudioYaComprimido(file)) return false;
+    return esAudioSinComprimir(file);
+}
+
+/** Detecta MP3 por cabecera ID3 o frame sync (por si el nombre/MIME fallan). */
+async function pareceMp3PorCabecera(file) {
+    try {
+        const buf = await file.slice(0, 12).arrayBuffer();
+        const u8 = new Uint8Array(buf);
+        if (u8.length >= 3 && u8[0] === 0x49 && u8[1] === 0x44 && u8[2] === 0x33) return true; // ID3
+        if (u8.length >= 2 && u8[0] === 0xff && (u8[1] & 0xe0) === 0xe0) return true; // frame sync
+    } catch {
+        /* ignore */
+    }
     return false;
 }
 
@@ -1064,6 +1144,11 @@ async function convertirAudioAMp3(file, kbps = 128) {
 }
 
 async function comprimirAudioParaSubida(file, { forzarAgresivo = false } = {}) {
+    // Si ya es MP3 y cabe en el límite, no tocar.
+    if (!forzarAgresivo && esAudioYaComprimido(file) && file.size <= LIMITE_SUBIDA_NETLIFY) {
+        return file;
+    }
+
     const audioBuffer = await decodificarArchivoAudio(file);
     const ladder = forzarAgresivo
         ? [
@@ -1086,18 +1171,31 @@ async function comprimirAudioParaSubida(file, { forzarAgresivo = false } = {}) {
             canales: 1,
             kbps: paso.kbps,
         });
-        mejor = blob;
-        if (blob.size <= LIMITE_SUBIDA_NETLIFY) {
+        if (!mejor || blob.size < mejor.size) mejor = blob;
+        if (blob.size <= LIMITE_SUBIDA_NETLIFY && blob.size < file.size) {
             logAudioOk(`Audio comprimido a ${paso.kbps} kbps / ${paso.sampleRate} Hz (${(blob.size / (1024 * 1024)).toFixed(1)} MB)`);
             return new File([blob], `${nombreBaseSinExtension(file.name)}_render.mp3`, { type: "audio/mpeg" });
         }
+        if (blob.size <= LIMITE_SUBIDA_NETLIFY) {
+            // Cabe en el límite aunque no haya reducido: útil para WAV grandes.
+            if (!esAudioYaComprimido(file) || blob.size < file.size * 0.98) {
+                logAudioOk(`Audio listo a ${paso.kbps} kbps / ${paso.sampleRate} Hz (${(blob.size / (1024 * 1024)).toFixed(1)} MB)`);
+                return new File([blob], `${nombreBaseSinExtension(file.name)}_render.mp3`, { type: "audio/mpeg" });
+            }
+        }
     }
+
+    // Preferir el más pequeño entre original y mejor intento.
+    if (mejor && mejor.size < file.size) {
+        return new File([mejor], `${nombreBaseSinExtension(file.name)}_render.mp3`, { type: "audio/mpeg" });
+    }
+    if (esAudioYaComprimido(file)) return file;
     return new File([mejor], `${nombreBaseSinExtension(file.name)}_render.mp3`, { type: "audio/mpeg" });
 }
 
 async function comprimirAudioParaIA(file) {
-    // Siempre MP3 mono 16 kHz (nunca WAV: infla el body y provoca 413/500 en Netlify).
-    if (file.size <= UMBRAL_COMPRESION_AUDIO && /\.mp3$/i.test(file.name || "")) {
+    // MP3/AAC livianos: enviar tal cual (nunca WAV: infla el body).
+    if (file.size <= LIMITE_SUBIDA_NETLIFY && esAudioYaComprimido(file)) {
         return file;
     }
 
@@ -1119,6 +1217,11 @@ async function comprimirAudioParaIA(file) {
             `Audio de transcripción ${(blob.size / (1024 * 1024)).toFixed(1)} MB tras comprimir — supera el límite de Netlify. Usa un fragmento más corto.`
         );
     }
+    // Si el reencode salió más pesado y el original ya cabe, conservar el original.
+    if (esAudioYaComprimido(file) && file.size <= LIMITE_SUBIDA_NETLIFY && blob.size >= file.size) {
+        logAudioAviso("Reencode IA más pesado que el original — se envía el MP3 original.");
+        return file;
+    }
     const mb = (blob.size / (1024 * 1024)).toFixed(1);
     logAudioOk(`Audio listo para transcripción IA (${mb} MB MP3 mono 16 kHz @ ${kbps} kbps).`);
     return new File([blob], "transcribe_16k.mp3", { type: "audio/mpeg" });
@@ -1130,7 +1233,7 @@ async function transcribirConGroq(audioFile) {
 
     const crearFormData = () => {
         const fd = new FormData();
-        fd.append("audio", audio, audio.name || "transcribe_16k.wav");
+        fd.append("audio", audio, audio.name || "transcribe_16k.mp3");
         return fd;
     };
 
@@ -1369,17 +1472,61 @@ async function cargarAudio(file) {
         st.style.color = "#00FFCC";
     }
 
+    if (!esArchivoAudio(file)) {
+        // Último recurso: cabecera MP3 con nombre/MIME raros.
+        const esMp3 = await pareceMp3PorCabecera(file);
+        if (!esMp3) {
+            alert("El archivo no parece audio (MP3/WAV/M4A/OGG). Selecciona un MP3.");
+            if (st) {
+                st.textContent = "Archivo no reconocido como audio.";
+                st.style.color = "#FF6B6B";
+            }
+            return;
+        }
+    }
+
     let finalFile = file;
     let notaConversion = "";
+    const mbEntrada = (file.size / (1024 * 1024)).toFixed(1);
 
-    if (necesitaConversionMp3(file)) {
-        const mbEntrada = (file.size / (1024 * 1024)).toFixed(1);
+    // MP3/M4A/OGG: nunca reconvertir al cargar (evita archivos más pesados).
+    let yaComprimido = esAudioYaComprimido(file);
+    if (!yaComprimido && !esAudioSinComprimir(file)) {
+        yaComprimido = await pareceMp3PorCabecera(file);
+        if (yaComprimido && !/\.mp3$/i.test(file.name || "")) {
+            finalFile = new File([file], `${nombreBaseSinExtension(file.name) || "pista"}.mp3`, {
+                type: "audio/mpeg",
+            });
+            logAudioOk(`MP3 detectado por cabecera (${mbEntrada} MB) — se conserva sin reconvertir.`);
+        }
+    }
+
+    if (yaComprimido || esAudioYaComprimido(finalFile)) {
+        const mb = (finalFile.size / (1024 * 1024)).toFixed(1);
+        notaConversion = finalFile.size > LIMITE_SUBIDA_NETLIFY
+            ? `MP3 ${mb} MB — se comprimirá al renderizar si hace falta`
+            : "";
+        logAudioOk(`Audio cargado sin conversión (${finalFile.name}, ${mb} MB) — ya es MP3/comprimido.`);
+    } else if (necesitaConversionMp3(file)) {
         if (st) st.textContent = `Convirtiendo ${file.name} (${mbEntrada} MB) a MP3...`;
         try {
-            finalFile = await convertirAudioAMp3(file);
-            const mbSalida = (finalFile.size / (1024 * 1024)).toFixed(1);
-            notaConversion = `convertido de ${mbEntrada} MB a MP3 ${mbSalida} MB`;
-            logAudioOk(`Audio convertido a MP3 (${mbEntrada} MB → ${mbSalida} MB) — conversión exitosa, no es un error.`);
+            finalFile = await convertirAudioAMp3(file, 128);
+            // Si la conversión engorda, intentar bitrate más bajo; si sigue peor, avisar.
+            if (finalFile.size > file.size) {
+                const liviano = await convertirAudioAMp3(file, 96);
+                if (liviano.size < finalFile.size) finalFile = liviano;
+            }
+            if (finalFile.size > file.size * 1.05 && file.size > 0) {
+                logAudioAviso(
+                    `La conversión salió más pesada (${mbEntrada} → ${(finalFile.size / (1024 * 1024)).toFixed(1)} MB). Se mantiene el archivo original.`
+                );
+                finalFile = file;
+                notaConversion = "se conservó el original (la conversión engordaba)";
+            } else {
+                const mbSalida = (finalFile.size / (1024 * 1024)).toFixed(1);
+                notaConversion = `convertido de ${mbEntrada} MB a MP3 ${mbSalida} MB`;
+                logAudioOk(`Audio convertido a MP3 (${mbEntrada} MB → ${mbSalida} MB).`);
+            }
         } catch (e) {
             logAudioError(`Fallo al convertir ${file.name} a MP3`, e.message);
             alert("No se pudo convertir el audio a MP3: " + e.message);
@@ -1387,15 +1534,14 @@ async function cargarAudio(file) {
             st.style.color = "#FF6B6B";
             return;
         }
+    } else {
+        // Formato desconocido pero pasó esArchivoAudio: cargar tal cual.
+        logAudioOk(`Audio cargado (${finalFile.name}, ${mbEntrada} MB) sin reconversión.`);
     }
 
     audioFile = finalFile;
     audioDuracionEst = await estimarDuracionAudio(finalFile);
     actualizarAvisoAudio(notaConversion);
-    if (!necesitaConversionMp3(file)) {
-        const mb = (finalFile.size / (1024 * 1024)).toFixed(1);
-        logAudioOk(`Audio cargado sin conversión (${finalFile.name}, ${mb} MB) — ya es MP3/comprimido.`);
-    }
     const sec = $("#seccion-subtitulos");
     if (sec) sec.style.display = "block";
 }
@@ -1450,8 +1596,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (e.target.files[0]) cargarAudio(e.target.files[0]);
     });
     configurarDragZone($("#zona-audio"), (files) => {
-        const f = Array.from(files).find((x) => x.type.startsWith("audio/"));
+        const f = Array.from(files).find((x) => esArchivoAudio(x));
         if (f) cargarAudio(f);
+        else alert("Arrastra un archivo de audio (MP3 recomendado).");
     });
 
     $("#input-portada-img")?.addEventListener("change", (e) => {
