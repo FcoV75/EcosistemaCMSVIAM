@@ -273,20 +273,75 @@
       .slide-stage { min-height: 360px; }
       .hero { align-items: end; padding-bottom: 2.2rem; }
     }
+    .gate {
+      min-height: 100vh; min-height: 100dvh;
+      display: grid; place-items: center;
+      padding: 2rem 1rem;
+      background:
+        linear-gradient(180deg, rgba(5,8,20,.55), rgba(5,8,20,.92)),
+        url("/Assets/Images/curso-promotores-hero.jpg") center/cover no-repeat;
+    }
+    .gate-card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 16px;
+      padding: 1.4rem 1.25rem 1.5rem;
+    }
+    .gate-card h1 {
+      font-family: Cinzel, serif;
+      color: #fff2bf;
+      font-size: 1.45rem;
+      margin: 0 0 .4rem;
+    }
+    .gate-card label { display: block; margin: .55rem 0 .25rem; font-size: .88rem; color: var(--muted); }
+    .gate-card input {
+      width: 100%; padding: .7rem; border-radius: 8px;
+      border: 1px solid var(--edge); background: rgba(0,0,0,.4); color: var(--ink);
+      font-family: inherit;
+    }
+    .gate-status { min-height: 1.2rem; color: var(--accent-2); font-size: .88rem; margin: .5rem 0 .75rem; }
+    .gate-status.err { color: var(--danger); }
+    #app-curso { display: none; }
+    #app-curso.ready { display: block; }
     @media print {
-      .nav, .deck-controls, .cta-row { display: none !important; }
+      .nav, .deck-controls, .cta-row, #gate-login { display: none !important; }
+      #app-curso { display: block !important; }
       .slide { display: block !important; page-break-inside: avoid; border-bottom: 1px solid #ccc; }
       body { background: #fff; color: #111; }
     }
   </style>
 </head>
 <body>
+  <section class="gate" id="gate-login" aria-label="Acceso al curso">
+    <div class="gate-card">
+      <h1>Curso de Promotores</h1>
+      <p style="color:var(--muted);margin:0 0 .75rem;font-size:.92rem;">
+        Material interno del área administrativa. Entra con tu misma cuenta de
+        <strong>ContacNeed / Mi Ecosistema</strong>.
+      </p>
+      <label for="login-email">Correo</label>
+      <input id="login-email" type="email" autocomplete="username" />
+      <label for="login-password">Contraseña</label>
+      <input id="login-password" type="password" autocomplete="current-password" />
+      <div class="gate-status" id="login-status">Verificando sesión...</div>
+      <button class="btn" type="button" id="btn-login" style="width:100%;justify-content:center;">Entrar al curso</button>
+      <p style="margin:1rem 0 0;font-size:.85rem;color:var(--muted);">
+        ¿Sin cuenta?
+        <a id="link-registro" href="https://contacneed.com/registro" target="_blank" rel="noreferrer">Regístrate en ContacNeed</a>
+        · <a href="/mi-ecosistema">Mi Ecosistema</a>
+      </p>
+    </div>
+  </section>
+
+  <div id="app-curso">
   <nav class="nav" aria-label="Navegación del curso">
     <a class="btn btn-outline" href="/panel-fundador">Panel Fundador</a>
     <a class="btn btn-outline" href="/mi-ecosistema">Mi Ecosistema</a>
     <a class="btn btn-ghost" href="#diapositivas">Diapositivas</a>
     <a class="btn btn-ghost" href="#objeciones">Beneficios y objeciones</a>
     <a class="btn btn-ghost" href="#cierre">Cierre ético</a>
+    <button class="btn btn-outline" type="button" id="btn-logout">Cerrar sesión</button>
   </nav>
 
   <header class="hero" id="inicio">
@@ -296,6 +351,7 @@
       <p>
         Capacitación interna para presentar ContacNeed PRO, Sincronía Nexus y Video Diamante
         con claridad, ética y persuasión que mueve a la acción.
+        <span id="user-chip" style="display:block;margin-top:.55rem;color:var(--accent-2);font-size:.9rem;"></span>
       </p>
       <div class="cta-row">
         <a class="btn" href="#diapositivas">Comenzar diapositivas</a>
@@ -831,75 +887,139 @@ Si no tienes contenido → Video Diamante te saca un video con subtítulos karao
     Material interno · Área administrativa Ecosistema CMS VIAM · Curso de promotores<br />
     Úsalo con ética: claridad, beneficio real y acción voluntaria del cliente.
   </footer>
+  </div><!-- /#app-curso -->
 
+  <script src="/Assets/ecosistema-cuenta.js"></script>
   <script>
     (function () {
-      const slides = Array.from(document.querySelectorAll(".slide"));
-      const label = document.getElementById("slide-label");
-      const bar = document.getElementById("progress-bar");
-      let i = 0;
+      const gate = document.getElementById("gate-login");
+      const app = document.getElementById("app-curso");
+      const statusEl = document.getElementById("login-status");
 
-      function show(n) {
-        i = Math.max(0, Math.min(slides.length - 1, n));
-        slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
-        label.textContent = (i + 1) + " / " + slides.length;
-        bar.style.width = ((i + 1) / slides.length) * 100 + "%";
-        try { sessionStorage.setItem("curso_promotores_slide", String(i)); } catch (_) {}
-      }
+      function initCursoUi() {
+        const slides = Array.from(document.querySelectorAll(".slide"));
+        const label = document.getElementById("slide-label");
+        const bar = document.getElementById("progress-bar");
+        let i = 0;
 
-      document.getElementById("prev-slide").addEventListener("click", () => show(i - 1));
-      document.getElementById("next-slide").addEventListener("click", () => show(i + 1));
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "ArrowRight" || e.key === "PageDown") show(i + 1);
-        if (e.key === "ArrowLeft" || e.key === "PageUp") show(i - 1);
-        if (e.key === "Home") show(0);
-        if (e.key === "End") show(slides.length - 1);
-      });
-
-      document.querySelectorAll("[data-go]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          show(Number(btn.getAttribute("data-go")) || 0);
-          document.getElementById("diapositivas").scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      });
-
-      try {
-        const saved = Number(sessionStorage.getItem("curso_promotores_slide") || "0");
-        show(Number.isFinite(saved) ? saved : 0);
-      } catch (_) {
-        show(0);
-      }
-
-      // Bitácora local
-      const KEY = "curso_promotores_bitacora_v1";
-      const ta = document.getElementById("bitacora");
-      const status = document.getElementById("bitacora-status");
-      try { ta.value = localStorage.getItem(KEY) || ""; } catch (_) {}
-      document.getElementById("guardar-bitacora").addEventListener("click", () => {
-        try {
-          localStorage.setItem(KEY, ta.value);
-          status.textContent = "Notas guardadas en este dispositivo.";
-        } catch (_) {
-          status.textContent = "No se pudo guardar (almacenamiento bloqueado).";
-          status.style.color = "var(--danger)";
+        function show(n) {
+          i = Math.max(0, Math.min(slides.length - 1, n));
+          slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+          label.textContent = (i + 1) + " / " + slides.length;
+          bar.style.width = ((i + 1) / slides.length) * 100 + "%";
+          try { sessionStorage.setItem("curso_promotores_slide", String(i)); } catch (_) {}
         }
-      });
-      document.getElementById("limpiar-bitacora").addEventListener("click", () => {
-        ta.value = "";
-        try { localStorage.removeItem(KEY); } catch (_) {}
-        status.textContent = "Bitácora limpia.";
-      });
 
-      // Checklist persistente
-      const CK = "curso_promotores_checklist_v1";
-      let state = {};
-      try { state = JSON.parse(localStorage.getItem(CK) || "{}"); } catch (_) { state = {}; }
-      document.querySelectorAll("[data-check]").forEach((input) => {
-        const id = input.getAttribute("data-check");
-        input.checked = !!state[id];
-        input.addEventListener("change", () => {
-          state[id] = input.checked;
-          try { localStorage.setItem(CK, JSON.stringify(state)); } catch (_) {}
+        document.getElementById("prev-slide").addEventListener("click", () => show(i - 1));
+        document.getElementById("next-slide").addEventListener("click", () => show(i + 1));
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowRight" || e.key === "PageDown") show(i + 1);
+          if (e.key === "ArrowLeft" || e.key === "PageUp") show(i - 1);
+          if (e.key === "Home") show(0);
+          if (e.key === "End") show(slides.length - 1);
+        });
+
+        document.querySelectorAll("[data-go]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            show(Number(btn.getAttribute("data-go")) || 0);
+            document.getElementById("diapositivas").scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+
+        try {
+          const saved = Number(sessionStorage.getItem("curso_promotores_slide") || "0");
+          show(Number.isFinite(saved) ? saved : 0);
+        } catch (_) {
+          show(0);
+        }
+
+        const KEY = "curso_promotores_bitacora_v1";
+        const ta = document.getElementById("bitacora");
+        const status = document.getElementById("bitacora-status");
+        try { ta.value = localStorage.getItem(KEY) || ""; } catch (_) {}
+        document.getElementById("guardar-bitacora").addEventListener("click", () => {
+          try {
+            localStorage.setItem(KEY, ta.value);
+            status.textContent = "Notas guardadas en este dispositivo.";
+          } catch (_) {
+            status.textContent = "No se pudo guardar (almacenamiento bloqueado).";
+            status.style.color = "var(--danger)";
+          }
+        });
+        document.getElementById("limpiar-bitacora").addEventListener("click", () => {
+          ta.value = "";
+          try { localStorage.removeItem(KEY); } catch (_) {}
+          status.textContent = "Bitácora limpia.";
+        });
+
+        const CK = "curso_promotores_checklist_v1";
+        let state = {};
+        try { state = JSON.parse(localStorage.getItem(CK) || "{}"); } catch (_) { state = {}; }
+        document.querySelectorAll("[data-check]").forEach((input) => {
+          const id = input.getAttribute("data-check");
+          input.checked = !!state[id];
+          input.addEventListener("change", () => {
+            state[id] = input.checked;
+            try { localStorage.setItem(CK, JSON.stringify(state)); } catch (_) {}
+          });
+        });
+      }
+
+      async function abrirCurso(session) {
+        gate.style.display = "none";
+        app.classList.add("ready");
+        const email = session?.user?.email || "";
+        const chip = document.getElementById("user-chip");
+        if (chip) chip.textContent = email ? ("Sesión: " + email) : "";
+        initCursoUi();
+      }
+
+      function pedirLogin(msg) {
+        gate.style.display = "grid";
+        app.classList.remove("ready");
+        statusEl.textContent = msg || "Inicia sesión para continuar.";
+        statusEl.classList.toggle("err", !!msg && /error|inválid|incorrect|fail/i.test(msg));
+      }
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        try {
+          const url = await window.EcosistemaCuenta.registroUrl();
+          document.getElementById("link-registro").href = url;
+        } catch (_) { /* ignore */ }
+
+        try {
+          const session = await window.EcosistemaCuenta.getSession();
+          if (session) {
+            statusEl.textContent = "";
+            await abrirCurso(session);
+          } else {
+            pedirLogin("Inicia sesión para entrar al curso.");
+          }
+        } catch (e) {
+          pedirLogin(e.message || "No se pudo verificar la sesión.");
+        }
+
+        document.getElementById("btn-login").addEventListener("click", async () => {
+          statusEl.classList.remove("err");
+          statusEl.textContent = "Entrando...";
+          try {
+            const session = await window.EcosistemaCuenta.signIn(
+              document.getElementById("login-email").value,
+              document.getElementById("login-password").value
+            );
+            await abrirCurso(session);
+          } catch (e) {
+            pedirLogin(e.message || "No se pudo iniciar sesión.");
+          }
+        });
+
+        document.getElementById("login-password").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") document.getElementById("btn-login").click();
+        });
+
+        document.getElementById("btn-logout").addEventListener("click", async () => {
+          await window.EcosistemaCuenta.signOut();
+          location.reload();
         });
       });
     })();
