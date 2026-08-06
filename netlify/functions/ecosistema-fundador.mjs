@@ -1,23 +1,6 @@
-import { fetchEntitlementsByUser } from './lib/entitlements-db.mjs';
 import { getUserFromBearer, getSupabaseAdmin } from './lib/supabase-admin.mjs';
 import { corsPreflight, jsonResponse } from './lib/railway-guard.mjs';
-
-function ownerCodesFromEnv() {
-  const raw = process.env.ECOSISTEMA_OWNER_CODES || 'CMS-8INFW3';
-  return new Set(raw.split(',').map((c) => c.trim().toUpperCase()).filter(Boolean));
-}
-
-async function esUsuarioFundador(user) {
-  if (!user?.id) return false;
-  const rows = await fetchEntitlementsByUser(user.id);
-  const owners = ownerCodesFromEnv();
-  return rows.some(
-    (r) =>
-      r.plan === 'propietario' ||
-      r.metadata?.rol === 'fundador' ||
-      (r.legacy_code && owners.has(String(r.legacy_code).toUpperCase())),
-  );
-}
+import { esUsuarioFundador } from './lib/promotores.mjs';
 
 export default async (req) => {
   const preflight = corsPreflight(req);

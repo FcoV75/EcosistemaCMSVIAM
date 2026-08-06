@@ -317,8 +317,8 @@
     <div class="gate-card">
       <h1>Curso de Promotores</h1>
       <p style="color:var(--muted);margin:0 0 .75rem;font-size:.92rem;">
-        Material interno del área administrativa. Entra con tu misma cuenta de
-        <strong>ContacNeed / Mi Ecosistema</strong>.
+        Material interno solo para <strong>promotores matriculados</strong> (y fundador).
+        Entra con tu misma cuenta de <strong>ContacNeed / Mi Ecosistema</strong>.
       </p>
       <label for="login-email">Correo</label>
       <input id="login-email" type="email" autocomplete="username" />
@@ -965,12 +965,30 @@ Si no tienes contenido → Video Diamante te saca un video con subtítulos karao
         });
       }
 
+      async function verificarMatricula() {
+        const headers = await window.EcosistemaCuenta.authHeaders({ Accept: "application/json" });
+        const r = await fetch("/.netlify/functions/curso-promotores-access", { headers });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.ok) {
+          const err = new Error(d.error || "No autorizado para el curso.");
+          err.code = r.status;
+          throw err;
+        }
+        return d;
+      }
+
       async function abrirCurso(session) {
+        statusEl.classList.remove("err");
+        statusEl.textContent = "Verificando matrícula de promotor...";
+        const acceso = await verificarMatricula();
         gate.style.display = "none";
         app.classList.add("ready");
-        const email = session?.user?.email || "";
+        const email = session?.user?.email || acceso.email || "";
         const chip = document.getElementById("user-chip");
-        if (chip) chip.textContent = email ? ("Sesión: " + email) : "";
+        if (chip) {
+          const rol = acceso.rol === "fundador" ? "Fundador" : "Promotor matriculado";
+          chip.textContent = email ? (rol + " · " + email) : rol;
+        }
         initCursoUi();
       }
 
@@ -978,7 +996,10 @@ Si no tienes contenido → Video Diamante te saca un video con subtítulos karao
         gate.style.display = "grid";
         app.classList.remove("ready");
         statusEl.textContent = msg || "Inicia sesión para continuar.";
-        statusEl.classList.toggle("err", !!msg && /error|inválid|incorrect|fail/i.test(msg));
+        statusEl.classList.toggle(
+          "err",
+          !!msg && /error|inválid|incorrect|fail|matricul|autoriz|promotor/i.test(msg)
+        );
       }
 
       document.addEventListener("DOMContentLoaded", async () => {
@@ -990,7 +1011,7 @@ Si no tienes contenido → Video Diamante te saca un video con subtítulos karao
         try {
           const session = await window.EcosistemaCuenta.getSession();
           if (session) {
-            statusEl.textContent = "";
+            statusEl.textContent = "Verificando acceso...";
             await abrirCurso(session);
           } else {
             pedirLogin("Inicia sesión para entrar al curso.");
