@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Curso Intensivo de Promotores — Ecosistema CMS VIAM</title>
+  <meta name="description" content="Capacitación interna para promotores de ContacNeed PRO, Sincronía Nexus y Video Diamante." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc;
+      --muted: rgba(245, 245, 252, 0.78);
+      --panel: rgba(8, 11, 26, 0.88);
+      --edge: rgba(255, 255, 255, 0.16);
+      --accent: #f1c96b;
+      --accent-2: #86d6ff;
+      --ok: #4ade80;
+      --warn: #fbbf24;
+      --danger: #fb7185;
+      --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Montserrat, system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--night);
+      line-height: 1.55;
+    }
+    a { color: var(--accent-2); }
+    .nav {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center;
+      padding: .75rem 1rem;
+      background: rgba(5, 8, 20, 0.92);
+      border-bottom: 1px solid var(--edge);
+      backdrop-filter: blur(10px);
+    }
+    .btn {
+      border: 0; border-radius: 999px; padding: .65rem 1.1rem;
+      font-weight: 700; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: linear-gradient(135deg, var(--accent), #c9a24d); color: #111;
+      font-family: inherit; font-size: .9rem;
+    }
+    .btn-outline {
+      background: transparent; color: var(--ink);
+      border: 1px solid var(--edge);
+    }
+    .btn-ghost {
+      background: rgba(134, 214, 255, 0.12);
+      color: var(--accent-2);
+      border: 1px solid rgba(134, 214, 255, 0.28);
+    }
+    .hero {
+      min-height: 100vh; min-height: 100dvh;
+      display: grid; align-items: end;
+      background:
+        linear-gradient(180deg, rgba(5,8,20,.35) 0%, rgba(5,8,20,.72) 55%, rgba(5,8,20,.96) 100%),
+        url("/Assets/Images/curso-promotores-hero.jpg") center/cover no-repeat;
+      padding: 2rem 1.25rem 3rem;
+    }
+    .hero-inner { max-width: 920px; margin: 0 auto; width: 100%; }
+    .brand {
+      font-family: Cinzel, serif;
+      font-size: clamp(2.2rem, 7vw, 4.2rem);
+      line-height: 1.05;
+      color: #fff2bf;
+      margin: 0 0 .75rem;
+      letter-spacing: .02em;
+      animation: rise .9s ease both;
+    }
+    .hero h2 {
+      font-family: Cinzel, serif;
+      font-weight: 500;
+      font-size: clamp(1.15rem, 3vw, 1.65rem);
+      color: var(--ink);
+      margin: 0 0 .85rem;
+      max-width: 28ch;
+      animation: rise .9s .12s ease both;
+    }
+    .hero p {
+      max-width: 52ch;
+      color: var(--muted);
+      margin: 0 0 1.4rem;
+      animation: rise .9s .22s ease both;
+    }
+    .cta-row { display: flex; flex-wrap: wrap; gap: .6rem; animation: rise .9s .32s ease both; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: none; }
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+    .section-title {
+      font-family: Cinzel, serif;
+      color: #fff2bf;
+      font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+      margin: 2.5rem 0 .75rem;
+    }
+    .lead { color: var(--muted); max-width: 70ch; margin: 0 0 1.25rem; }
+    .deck {
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    .deck-top {
+      display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; justify-content: space-between;
+      padding: .85rem 1rem;
+      border-bottom: 1px solid var(--edge);
+      background: rgba(0,0,0,.28);
+    }
+    .progress {
+      flex: 1; min-width: 140px; height: 8px;
+      background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden;
+    }
+    .progress > span {
+      display: block; height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent-2), var(--accent));
+      transition: width .35s ease;
+    }
+    .slide-stage { position: relative; min-height: 420px; }
+    .slide {
+      display: none;
+      padding: 1.25rem 1.25rem 1.5rem;
+      animation: fadeIn .45s ease;
+    }
+    .slide.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to { opacity: 1; transform: none; }
+    }
+    .slide-kicker {
+      font-size: .78rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent-2); margin: 0 0 .4rem; font-weight: 700;
+    }
+    .slide h3 {
+      font-family: Cinzel, serif;
+      color: #fff2bf;
+      margin: 0 0 .75rem;
+      font-size: clamp(1.25rem, 2.8vw, 1.8rem);
+    }
+    .slide-visual {
+      width: 100%; max-height: 220px; object-fit: cover;
+      border-radius: 12px; margin: 0 0 1rem;
+      border: 1px solid var(--edge);
+    }
+    .slide ul { margin: .4rem 0 0; padding-left: 1.15rem; }
+    .slide li { margin: .35rem 0; color: var(--muted); }
+    .slide li strong { color: var(--ink); }
+    .emphasis {
+      border-left: 3px solid var(--accent);
+      padding: .65rem .9rem;
+      margin: 1rem 0;
+      background: rgba(241, 201, 107, 0.08);
+      color: #fff8e7;
+    }
+    .example {
+      border: 1px solid rgba(134, 214, 255, 0.28);
+      background: rgba(134, 214, 255, 0.08);
+      border-radius: 12px;
+      padding: .85rem 1rem;
+      margin: .75rem 0;
+    }
+    .example h4 { margin: 0 0 .35rem; color: var(--accent-2); font-size: .95rem; }
+    .example p { margin: 0; color: var(--muted); font-size: .92rem; }
+    .deck-controls {
+      display: flex; flex-wrap: wrap; gap: .5rem; justify-content: space-between;
+      padding: .85rem 1rem 1.1rem; border-top: 1px solid var(--edge);
+    }
+    .mods {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: .65rem;
+      margin: 1rem 0 2rem;
+    }
+    .mod {
+      text-align: left;
+      border: 1px solid var(--edge);
+      background: rgba(0,0,0,.28);
+      color: var(--ink);
+      border-radius: 12px;
+      padding: .85rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color .2s, transform .2s;
+    }
+    .mod:hover, .mod:focus-visible {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      outline: none;
+    }
+    .mod span { display: block; color: var(--accent); font-size: .75rem; font-weight: 700; letter-spacing: .08em; }
+    .mod strong { display: block; margin-top: .25rem; font-size: .95rem; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: .85rem;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 14px;
+      padding: 1rem 1.1rem;
+    }
+    .panel h3 { margin: 0 0 .5rem; font-family: Cinzel, serif; color: #fff2bf; font-size: 1.1rem; }
+    .price {
+      display: inline-block;
+      margin: .15rem .35rem .15rem 0;
+      padding: .25rem .6rem;
+      border-radius: 999px;
+      background: rgba(241,201,107,.14);
+      border: 1px solid rgba(241,201,107,.35);
+      color: var(--accent);
+      font-size: .82rem;
+      font-weight: 700;
+    }
+    details.obj {
+      border: 1px solid var(--edge);
+      border-radius: 12px;
+      background: rgba(0,0,0,.25);
+      padding: .7rem .9rem;
+      margin: .55rem 0;
+    }
+    details.obj summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--ink);
+      list-style: none;
+    }
+    details.obj summary::-webkit-details-marker { display: none; }
+    details.obj summary::before {
+      content: "＋ ";
+      color: var(--accent);
+    }
+    details.obj[open] summary::before { content: "− "; }
+    details.obj .answer { color: var(--muted); margin-top: .55rem; font-size: .93rem; }
+    details.obj .tag {
+      display: inline-block; font-size: .7rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      color: var(--accent-2); margin-bottom: .25rem;
+    }
+    .notes {
+      width: 100%; min-height: 110px;
+      border-radius: 10px; border: 1px solid var(--edge);
+      background: rgba(0,0,0,.35); color: var(--ink);
+      padding: .75rem; font-family: inherit; resize: vertical;
+    }
+    .checklist label {
+      display: flex; gap: .55rem; align-items: flex-start;
+      margin: .45rem 0; color: var(--muted); cursor: pointer;
+    }
+    .checklist input { margin-top: .25rem; accent-color: var(--accent); }
+    .script {
+      white-space: pre-wrap;
+      background: rgba(0,0,0,.35);
+      border: 1px dashed rgba(241,201,107,.35);
+      border-radius: 12px;
+      padding: 1rem;
+      color: #fff8e7;
+      font-size: .92rem;
+    }
+    footer {
+      text-align: center; padding: 2rem 1rem 3rem;
+      color: var(--muted); font-size: .85rem;
+      border-top: 1px solid var(--edge);
+    }
+    @media (max-width: 640px) {
+      .slide-stage { min-height: 360px; }
+      .hero { align-items: end; padding-bottom: 2.2rem; }
+    }
+    .gate {
+      min-height: 100vh; min-height: 100dvh;
+      display: grid; place-items: center;
+      padding: 2rem 1rem;
+      background:
+        linear-gradient(180deg, rgba(5,8,20,.55), rgba(5,8,20,.92)),
+        url("/Assets/Images/curso-promotores-hero.jpg") center/cover no-repeat;
+    }
+    .gate-card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 16px;
+      padding: 1.4rem 1.25rem 1.5rem;
+    }
+    .gate-card h1 {
+      font-family: Cinzel, serif;
+      color: #fff2bf;
+      font-size: 1.45rem;
+      margin: 0 0 .4rem;
+    }
+    .gate-card label { display: block; margin: .55rem 0 .25rem; font-size: .88rem; color: var(--muted); }
+    .gate-card input {
+      width: 100%; padding: .7rem; border-radius: 8px;
+      border: 1px solid var(--edge); background: rgba(0,0,0,.4); color: var(--ink);
+      font-family: inherit;
+    }
+    .gate-status { min-height: 1.2rem; color: var(--accent-2); font-size: .88rem; margin: .5rem 0 .75rem; }
+    .gate-status.err { color: var(--danger); }
+    #app-curso { display: none; }
+    #app-curso.ready { display: block; }
+    @media print {
+      .nav, .deck-controls, .cta-row, #gate-login { display: none !important; }
+      #app-curso { display: block !important; }
+      .slide { display: block !important; page-break-inside: avoid; border-bottom: 1px solid #ccc; }
+      body { background: #fff; color: #111; }
+    }
+  </style>
+</head>
+<body>
+  <section class="gate" id="gate-login" aria-label="Acceso al curso">
+    <div class="gate-card">
+      <h1>Curso de Promotores</h1>
+      <p style="color:var(--muted);margin:0 0 .75rem;font-size:.92rem;">
+        Material interno del área administrativa. Entra con tu misma cuenta de
+        <strong>ContacNeed / Mi Ecosistema</strong>.
+      </p>
+      <label for="login-email">Correo</label>
+      <input id="login-email" type="email" autocomplete="username" />
+      <label for="login-password">Contraseña</label>
+      <input id="login-password" type="password" autocomplete="current-password" />
+      <div class="gate-status" id="login-status">Verificando sesión...</div>
+      <button class="btn" type="button" id="btn-login" style="width:100%;justify-content:center;">Entrar al curso</button>
+      <p style="margin:1rem 0 0;font-size:.85rem;color:var(--muted);">
+        ¿Sin cuenta?
+        <a id="link-registro" href="https://contacneed.com/registro" target="_blank" rel="noreferrer">Regístrate en ContacNeed</a>
+        · <a href="/mi-ecosistema">Mi Ecosistema</a>
+      </p>
+    </div>
+  </section>
+
+  <div id="app-curso">
+  <nav class="nav" aria-label="Navegación del curso">
+    <a class="btn btn-outline" href="/panel-fundador">Panel Fundador</a>
+    <a class="btn btn-outline" href="/mi-ecosistema">Mi Ecosistema</a>
+    <a class="btn btn-ghost" href="#diapositivas">Diapositivas</a>
+    <a class="btn btn-ghost" href="#objeciones">Beneficios y objeciones</a>
+    <a class="btn btn-ghost" href="#cierre">Cierre ético</a>
+    <button class="btn btn-outline" type="button" id="btn-logout">Cerrar sesión</button>
+  </nav>
+
+  <header class="hero" id="inicio">
+    <div class="hero-inner">
+      <p class="brand">Ecosistema CMS VIAM</p>
+      <h2>Curso intensivo para promotores</h2>
+      <p>
+        Capacitación interna para presentar ContacNeed PRO, Sincronía Nexus y Video Diamante
+        con claridad, ética y persuasión que mueve a la acción.
+        <span id="user-chip" style="display:block;margin-top:.55rem;color:var(--accent-2);font-size:.9rem;"></span>
+      </p>
+      <div class="cta-row">
+        <a class="btn" href="#diapositivas">Comenzar diapositivas</a>
+        <a class="btn btn-outline" href="#modulos">Ver módulos</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <h2 class="section-title" id="modulos">Mapa del curso</h2>
+    <p class="lead">
+      Dominarás las tres herramientas como un solo ecosistema: primero la red que conecta oficios,
+      luego el santuario emocional, y finalmente la producción audiovisual con IA.
+      Tu meta no es “empujar un precio”: es hacer obvia la transformación que el cliente necesita hoy.
+    </p>
+    <div class="mods" id="mod-buttons">
+      <button class="mod" type="button" data-go="0"><span>M0</span><strong>Misión del promotor</strong></button>
+      <button class="mod" type="button" data-go="3"><span>M1</span><strong>ContacNeed PRO</strong></button>
+      <button class="mod" type="button" data-go="10"><span>M2</span><strong>Sincronía Nexus</strong></button>
+      <button class="mod" type="button" data-go="15"><span>M3</span><strong>Video Diamante</strong></button>
+      <button class="mod" type="button" data-go="20"><span>M4</span><strong>Precios y anualidad</strong></button>
+      <button class="mod" type="button" data-go="23"><span>M5</span><strong>Objeciones vivas</strong></button>
+    </div>
+
+    <h2 class="section-title" id="diapositivas">Diapositivas</h2>
+    <p class="lead">Usa flechas ← →, botones, o el teclado. Ideal para proyectar en capacitación o estudiar en móvil.</p>
+
+    <section class="deck" aria-label="Presentación del curso">
+      <div class="deck-top">
+        <strong id="slide-label">1 / 26</strong>
+        <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+      </div>
+      <div class="slide-stage" id="slides">
+
+        <!-- 0 -->
+        <article class="slide active" data-mod="0">
+          <p class="slide-kicker">Módulo 0 · Fundamentos</p>
+          <h3>Tu misión como promotor</h3>
+          <p>No vendes “apps”. Acompañas a personas a entrar en un ecosistema que les da <strong>visibilidad, paz y producción</strong>.</p>
+          <div class="emphasis">
+            Frase maestra: <em>“No te ofrezco otra red más. Te ofrezco tres herramientas que se refuerzan entre sí para que tu talento se vea, tu mente descanse y tu contenido se multiplique.”</em>
+          </div>
+          <ul>
+            <li><strong>ContacNeed PRO</strong> → presencia profesional y clientes.</li>
+            <li><strong>Sincronía Nexus</strong> → equilibrio emocional y foco.</li>
+            <li><strong>Video Diamante</strong> → contenido persuasivo listo para redes.</li>
+          </ul>
+        </article>
+
+        <!-- 1 -->
+        <article class="slide" data-mod="0">
+          <p class="slide-kicker">Módulo 0 · Fundamentos</p>
+          <h3>Ética + persuasión profunda</h3>
+          <ul>
+            <li><strong>Verdad primero:</strong> solo promete lo que la herramienta sí hace.</li>
+            <li><strong>Diagnóstico antes de precio:</strong> pregunta qué les duele (falta de clientes, estrés, cero contenido).</li>
+            <li><strong>Urgencia honesta:</strong> “cada día sin perfil visible es un día que alguien más ocupa tu lugar”.</li>
+            <li><strong>Anualidad con lógica:</strong> muestra el ahorro real y la continuidad (no “presión vacía”).</li>
+          </ul>
+          <div class="emphasis">Persuadir es hacer evidente el costo de no decidir. Nunca es humillar ni exagerar.</div>
+        </article>
+
+        <!-- 2 -->
+        <article class="slide" data-mod="0">
+          <p class="slide-kicker">Módulo 0 · Fundamentos</p>
+          <h3>El viaje del cliente en 60 segundos</h3>
+          <ol>
+            <li>Entra a ContacNeed → crea perfil / negocio → se hace visible por estado.</li>
+            <li>Activa PRO → chat en vivo, Maps, tienda amplia, anuncio PRO.</li>
+            <li>Usa Nexus → regula estrés con frecuencias e IA emocional.</li>
+            <li>Abre Video Diamante → publica videos con subtítulos karaoke y sin marca de agua (Premium).</li>
+          </ol>
+          <div class="example">
+            <h4>Gancho de apertura</h4>
+            <p>“¿Quieres clientes, claridad mental y contenido que venda… en un solo ecosistema mexicano?”</p>
+          </div>
+        </article>
+
+        <!-- 3 ContacNeed -->
+        <article class="slide" data-mod="1">
+          <p class="slide-kicker">Módulo 1 · ContacNeed PRO</p>
+          <h3>La red que conecta oficios de México</h3>
+          <img class="slide-visual" src="/Assets/Images/curso-contacneed.jpg" alt="Ambiente ContacNeed: red profesional por ciudad" />
+          <p>Idea central: <strong>una red social de oficios y profesiones por estado</strong>, hecha para que el talento local sea encontrado, calificado y contratado.</p>
+          <div class="emphasis">Ventaja no escrita: ContacNeed no compite con “likes vacíos”; compite por <strong>confianza geográfica</strong>.</div>
+        </article>
+
+        <!-- 4 -->
+        <article class="slide" data-mod="1">
+          <p class="slide-kicker">Módulo 1 · ContacNeed PRO</p>
+          <h3>Ventajas que debes memorizar</h3>
+          <ul>
+            <li><strong>Pizarra social:</strong> publica tu trabajo y aparece en el feed.</li>
+            <li><strong>Filtro por estado:</strong> te encuentran cerca de quien necesita tu oficio.</li>
+            <li><strong>Bandeja de mensajes y contactos:</strong> solicitudes de servicio/amistad en un solo lugar.</li>
+            <li><strong>Chat en vivo (PRO):</strong> cierras tratos sin perder el momento.</li>
+            <li><strong>Mi Negocio / Tienda:</strong> banner + galería (PRO escala hasta ~100 imágenes).</li>
+            <li><strong>Estrellas y comentarios:</strong> prueba social que vende mientras duermes.</li>
+            <li><strong>Compartir a WhatsApp, Facebook, X, Telegram, LinkedIn:</strong> tu anuncio viaja fuera de la red.</li>
+            <li><strong>Ubicación GPS / Google Maps (PRO):</strong> “estoy aquí, ven o agenda”.</li>
+            <li><strong>Espacio PRO / anuncio destacado + Informe de tendencias:</strong> visibilidad premium.</li>
+            <li><strong>Asistente de Diseño IA:</strong> mejora cómo se ve tu tienda sin ser diseñador.</li>
+          </ul>
+        </article>
+
+        <!-- 5 -->
+        <article class="slide" data-mod="1">
+          <p class="slide-kicker">Módulo 1 · ContacNeed PRO</p>
+          <h3>Gratis vs PRO (para cerrar con honestidad)</h3>
+          <div class="grid-2">
+            <div class="panel">
+              <h3>Plan gratuito</h3>
+              <ul>
+                <li>Publicar y ser visible</li>
+                <li>~15 posts/día</li>
+                <li>Tienda básica (1 banner + pocas imágenes)</li>
+                <li>Bandeja de mensajes</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>ContacNeed PRO</h3>
+              <ul>
+                <li><span class="price">$300 MXN / mes</span> <span class="price">$3,000 / año</span></li>
+                <li>Más posts, tienda amplia</li>
+                <li>Chat en vivo</li>
+                <li>Maps + anuncio PRO</li>
+                <li>Informe de tendencias</li>
+              </ul>
+            </div>
+          </div>
+          <div class="emphasis">Script: “Gratis te deja existir. PRO te deja <strong>cerrar</strong>.”</div>
+        </article>
+
+        <!-- 6 ejemplos ContacNeed -->
+        <article class="slide" data-mod="1">
+          <p class="slide-kicker">Módulo 1 · ContacNeed PRO</p>
+          <h3>Ejemplo práctico A — Plomero en Aguascalientes</h3>
+          <div class="example">
+            <h4>Uso completo del potencial</h4>
+            <p>1) Crea “Mi Negocio” con fotos reales de instalaciones. 2) Filtra su estado para atraer demanda local. 3) Activa Maps PRO. 4) Responde por chat en vivo en minutos. 5) Pide reseña de estrellas al terminar. 6) Comparte el anuncio PRO por WhatsApp a grupos de vecinos.</p>
+          </div>
+          <div class="emphasis">Resultado narrable: “De esperar referidos… a que te busquen por estado con prueba social.”</div>
+        </article>
+
+        <!-- 7 -->
+        <article class="slide" data-mod="1">
+          <p class="slide-kicker">Módulo 1 · ContacNeed PRO</p>
+          <h3>Ejemplo práctico B — Estilista / marca personal</h3>
+          <div class="example">
+            <h4>Uso completo del potencial</h4>
+            <p>1) Galería PRO de antes/después. 2) Asistente IA para mejorar textos de tienda. 3) Publica en Pizarra 4–5 piezas semanales. 4) Comparte a Instagram vía enlace/WhatsApp. 5) Convierte comentarios en citas por chat. 6) Usa Informe PRO para ver qué tipo de publicación genera más interés.</p>
+          </div>
+          <p>Persuasión: “Tu talento ya existe. PRO lo vuelve <strong>encontrable, confiable y agendable</strong>.”</p>
+        </article>
+
+        <!-- 8 -->
+        <article class="slide" data-mod="1">
+          <p class="slide-kicker">Módulo 1 · ContacNeed PRO</p>
+          <h3>Ventajas “no escritas” (oro del promotor)</h3>
+          <ul>
+            <li><strong>Autoridad local:</strong> aparecer por estado genera confianza de cercanía.</li>
+            <li><strong>Embudos naturales:</strong> post → perfil → chat → cita.</li>
+            <li><strong>Prueba social acumulativa:</strong> estrellas + comentarios = cierre más rápido.</li>
+            <li><strong>Distribución externa:</strong> compartir a otras redes trae tráfico sin pagar ads al inicio.</li>
+            <li><strong>Profesionalización:</strong> tienda + Maps comunica “negocio real”, no hobby.</li>
+          </ul>
+        </article>
+
+        <!-- 9 puente -->
+        <article class="slide" data-mod="1">
+          <p class="slide-kicker">Puente comercial</p>
+          <h3>De ContacNeed a Nexus (sin fricción)</h3>
+          <p>Cuando el cliente ya quiere clientes, aparece el segundo dolor: <strong>estrés, ansiedad y saturación</strong>.</p>
+          <div class="emphasis">Puente: “De nada sirve ganar visibilidad si el estrés te apaga. Nexus te sostiene por dentro para que sostengas tu negocio por fuera.”</div>
+        </article>
+
+        <!-- 10 Nexus -->
+        <article class="slide" data-mod="2">
+          <p class="slide-kicker">Módulo 2 · Sincronía Nexus</p>
+          <h3>El sistema operativo emocional</h3>
+          <img class="slide-visual" src="/Assets/Images/curso-nexus.jpg" alt="Ambiente Sincronía Nexus: calma y frecuencias" />
+          <p>Nexus es el pilar de <strong>regulación emocional</strong> del ecosistema: frecuencias, IA empática y un santuario para miembros.</p>
+          <div class="emphasis">Ventaja central: no es “música relajante genérica”; es un ritual guiado de claridad y calma.</div>
+        </article>
+
+        <!-- 11 -->
+        <article class="slide" data-mod="2">
+          <p class="slide-kicker">Módulo 2 · Sincronía Nexus</p>
+          <h3>Ventajas que debes enfatizar</h3>
+          <ul>
+            <li><strong>Frecuencia base 963 Hz</strong> y muestras guiadas.</li>
+            <li><strong>Personalización NEXUS:</strong> el usuario expresa cómo se siente.</li>
+            <li><strong>IA NEXUS / Bio-Sincronizador:</strong> sugiere frecuencia y acompañamiento.</li>
+            <li><strong>Radio Sincronía Nexus:</strong> instrumental para foco y descanso.</li>
+            <li><strong>Santuario del miembro:</strong> Consejero IA (cupo diario) + pistas completas.</li>
+            <li><strong>Beneficio físico-mental:</strong> bajar ruido mental → mejores decisiones → mejor ventas.</li>
+          </ul>
+          <p><span class="price">$400 MXN / mes</span> <span class="price">$3,600 / año</span> <small>(anual con meses de regalo en oferta)</small></p>
+        </article>
+
+        <!-- 12 ejemplo nexus -->
+        <article class="slide" data-mod="2">
+          <p class="slide-kicker">Módulo 2 · Sincronía Nexus</p>
+          <h3>Ejemplo práctico A — Emprendedor saturado</h3>
+          <div class="example">
+            <h4>Rutina de 12 minutos</h4>
+            <p>1) Abre Nexus y escribe: “ansiedad por ventas”. 2) Activa IA NEXUS. 3) Escucha la frecuencia sugerida. 4) Entra al Santuario y pide al Consejero un plan de priorización del día. 5) Vuelve a ContacNeed/Video Diamante con foco.</p>
+          </div>
+          <div class="emphasis">Cierre: “No es lujo emocional. Es infraestructura mental para no sabotear tu propio crecimiento.”</div>
+        </article>
+
+        <!-- 13 -->
+        <article class="slide" data-mod="2">
+          <p class="slide-kicker">Módulo 2 · Sincronía Nexus</p>
+          <h3>Ejemplo práctico B — Equipo / familia</h3>
+          <div class="example">
+            <h4>Uso relacional</h4>
+            <p>Un promotor puede invitar a un líder de equipo a usar Nexus antes de reuniones difíciles: 2 minutos de frecuencia + una pregunta al Consejero (“¿cómo abro esta conversación con calma?”). Mejora el clima y la retención de clientes internos.</p>
+          </div>
+          <ul>
+            <li>Ventaja no escrita: <strong>reduce impulsividad</strong> en cierres y quejas.</li>
+            <li>Ventaja no escrita: crea hábito diario → renovación natural de membresía.</li>
+          </ul>
+        </article>
+
+        <!-- 14 puente -->
+        <article class="slide" data-mod="2">
+          <p class="slide-kicker">Puente comercial</p>
+          <h3>De Nexus a Video Diamante</h3>
+          <p>Con calma y claridad, falta el acelerador: <strong>contenido que convenza en redes</strong>.</p>
+          <div class="emphasis">Puente: “Nexus te ordena por dentro. Video Diamante te hace visible por fuera… con videos que parecen de productora.”</div>
+        </article>
+
+        <!-- 15 VD -->
+        <article class="slide" data-mod="3">
+          <p class="slide-kicker">Módulo 3 · Video Diamante</p>
+          <h3>Producción audiovisual con IA</h3>
+          <img class="slide-visual" src="/Assets/Images/curso-video-diamante.jpg" alt="Ambiente Video Diamante: edición creativa" />
+          <p>Video Diamante convierte audio + imágenes/clips en videos con <strong>subtítulos karaoke</strong>, tipografía potente y flujo creativo asistido por IA.</p>
+        </article>
+
+        <!-- 16 -->
+        <article class="slide" data-mod="3">
+          <p class="slide-kicker">Módulo 3 · Video Diamante</p>
+          <h3>Ventajas Premium (lo que cierra)</h3>
+          <ul>
+            <li><strong>Hasta 1 hora de video</strong> y más renders diarios (Premium).</li>
+            <li><strong>Estudio VIAM Creativo:</strong> más generaciones de imagen/letra con IA.</li>
+            <li><strong>Pizarra amplia:</strong> secuencia de imágenes y MP4 sin el cupo del plan gratis.</li>
+            <li><strong>Subtítulos IA / karaoke sincronizado</strong> — retiene atención en redes.</li>
+            <li><strong>Sin marca de agua</strong> IAVIAM VIDEO_DIAMANTE (beneficio Premium).</li>
+            <li><strong>Guía + Asistente IA VIAM</strong> para no trabarse.</li>
+          </ul>
+          <p><span class="price">$300 MXN / mes</span> <span class="price">$3,000 / año</span></p>
+        </article>
+
+        <!-- 17 ejemplo VD -->
+        <article class="slide" data-mod="3">
+          <p class="slide-kicker">Módulo 3 · Video Diamante</p>
+          <h3>Ejemplo práctico A — Promoción de oficio</h3>
+          <div class="example">
+            <h4>De audio a anuncio en 1 sesión</h4>
+            <p>1) Graba un audio de 60–90 s ofreciendo tu servicio. 2) Transcribe con IA y corrige. 3) Sube 4 fotos reales a la pizarra. 4) Activa karaoke. 5) Render Premium sin marca. 6) Publica en ContacNeed y comparte a WhatsApp/Facebook.</p>
+          </div>
+          <div class="emphasis">Frase de cierre: “Si puedes hablar 90 segundos, ya tienes un comercial.”</div>
+        </article>
+
+        <!-- 18 -->
+        <article class="slide" data-mod="3">
+          <p class="slide-kicker">Módulo 3 · Video Diamante</p>
+          <h3>Ejemplo práctico B — Lanzamiento Nexus / marca personal</h3>
+          <div class="example">
+            <h4>Contenido emocional + conversión</h4>
+            <p>Usa Estudio VIAM para generar una imagen de portada, escribe una letra breve de motivación, renderiza con tipografía grande y subtítulos. El video invita a probar Nexus o a subir a ContacNeed PRO. Un activo, dos ventas posibles.</p>
+          </div>
+          <ul>
+            <li>Ventaja no escrita: <strong>consistencia de marca</strong> sin contratar editor.</li>
+            <li>Ventaja no escrita: el karaoke aumenta retención → más comentarios → más confianza.</li>
+          </ul>
+        </article>
+
+        <!-- 19 ecosistema -->
+        <article class="slide" data-mod="3">
+          <p class="slide-kicker">Síntesis</p>
+          <h3>El tridente del ecosistema</h3>
+          <ul>
+            <li><strong>ContacNeed PRO</strong> = ser encontrado y contratado.</li>
+            <li><strong>Nexus</strong> = sostenerte emocionalmente para no abandonar.</li>
+            <li><strong>Video Diamante</strong> = multiplicar el mensaje con contenido profesional.</li>
+          </ul>
+          <div class="emphasis">Vende el ecosistema completo cuando el cliente quiere crecimiento serio. Vende una herramienta cuando hay un dolor específico urgente.</div>
+        </article>
+
+        <!-- 20 precios -->
+        <article class="slide" data-mod="4">
+          <p class="slide-kicker">Módulo 4 · Comercial</p>
+          <h3>Precios claros (memoriza)</h3>
+          <div class="grid-2">
+            <div class="panel">
+              <h3>Mensual</h3>
+              <p>ContacNeed PRO <span class="price">$300</span></p>
+              <p>Video Diamante <span class="price">$300</span></p>
+              <p>Sincronía Nexus <span class="price">$400</span></p>
+            </div>
+            <div class="panel">
+              <h3>Anual (mejor historia)</h3>
+              <p>ContacNeed / Video Diamante <span class="price">$3,000</span></p>
+              <p>Nexus <span class="price">$3,600</span></p>
+              <p>Enfatiza continuidad + ahorro vs pagar mes a mes sin compromiso.</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 21 anualidad -->
+        <article class="slide" data-mod="4">
+          <p class="slide-kicker">Módulo 4 · Comercial</p>
+          <h3>Cómo presentar la anualidad con ética</h3>
+          <ul>
+            <li>“Si ya sabes que lo vas a usar 4+ meses, el anual te cuida el bolsillo y la constancia.”</li>
+            <li>“El resultado aparece con hábito: perfiles, reseñas y videos no maduran en una semana.”</li>
+            <li>“Anual = te tomas en serio tu presencia profesional.”</li>
+          </ul>
+          <div class="emphasis">Nunca digas “si no pagas anual estás perdiendo”. Di: “el anual es para quien ya decidió crecer con constancia”.</div>
+        </article>
+
+        <!-- 22 combo -->
+        <article class="slide" data-mod="4">
+          <p class="slide-kicker">Módulo 4 · Comercial</p>
+          <h3>Combo persuasivo recomendado</h3>
+          <div class="example">
+            <h4>Para oficios y marcas locales</h4>
+            <p><strong>ContacNeed PRO + Video Diamante</strong>: visibilidad + contenido. Nexus se agrega cuando detectas estrés/ansiedad o abandono temprano.</p>
+          </div>
+          <div class="example">
+            <h4>Para líderes / bienestar</h4>
+            <p><strong>Nexus primero</strong>, luego Video Diamante para testimonios, y ContacNeed si hay servicio que ofrecer.</p>
+          </div>
+        </article>
+
+        <!-- 23 objeciones intro -->
+        <article class="slide" data-mod="5">
+          <p class="slide-kicker">Módulo 5 · Objeciones</p>
+          <h3>Objeciones = material vivo</h3>
+          <p>Abajo en la página tienes un banco de <strong>beneficios y objeciones</strong> para enriquecer con la experiencia diaria. Cada cierre real debe volver a ese banco.</p>
+          <div class="emphasis">Regla: escucha completa → reformula el dolor → responde con un beneficio concreto → invita a una acción pequeña hoy.</div>
+        </article>
+
+        <!-- 24 scripts -->
+        <article class="slide" data-mod="5">
+          <p class="slide-kicker">Módulo 5 · Cierre</p>
+          <h3>Micro-guion de 45 segundos</h3>
+          <div class="script">“Cuéntame qué te frena hoy: ¿faltan clientes, te sientes saturado, o no tienes contenido?
+Si faltan clientes → ContacNeed PRO te hace visible por estado, con chat y Maps.
+Si estás saturado → Nexus te ordena emocionalmente en minutos.
+Si no tienes contenido → Video Diamante te saca un video con subtítulos karaoke desde tu voz.
+¿Empezamos por el dolor más urgente ahora mismo?”</div>
+        </article>
+
+        <!-- 25 checklist -->
+        <article class="slide" data-mod="5">
+          <p class="slide-kicker">Cierre del curso</p>
+          <h3>Eres maestro cuando puedes…</h3>
+          <ul>
+            <li>Explicar ContacNeed PRO sin leer (Pizarra, estados, chat, tienda, estrellas, Maps, compartir).</li>
+            <li>Demostrar Nexus en vivo en menos de 5 minutos.</li>
+            <li>Mostrar un render mental de Video Diamante (audio → karaoke → publicar).</li>
+            <li>Presentar mensual vs anual sin presión tóxica.</li>
+            <li>Responder 5 objeciones del banco con calma.</li>
+            <li>Invitar a una acción inmediata: crear cuenta / iniciar checkout / agendar demo.</li>
+          </ul>
+          <div class="emphasis">Última línea: “El ecosistema ya está listo. La única pieza que falta es su decisión de hoy.”</div>
+        </article>
+      </div>
+
+      <div class="deck-controls">
+        <button class="btn btn-outline" type="button" id="prev-slide">← Anterior</button>
+        <button class="btn" type="button" id="next-slide">Siguiente →</button>
+      </div>
+    </section>
+
+    <!-- Beneficios / Objeciones vivos -->
+    <h2 class="section-title" id="objeciones">Banco vivo: beneficios y objeciones</h2>
+    <p class="lead">
+      Esta sección es para nutrirla con la práctica diaria. Usa las notas al final (se guardan en este navegador)
+      y agrega nuevas objeciones reales que escuches en campo.
+    </p>
+
+    <div class="grid-2" id="banco">
+      <section class="panel">
+        <h3>Beneficios ContacNeed PRO</h3>
+        <ul>
+          <li>Visibilidad por estado + prueba social (estrellas/comentarios).</li>
+          <li>Chat en vivo para no perder clientes calientes.</li>
+          <li>Tienda amplia y anuncio PRO para verse “negocio serio”.</li>
+          <li>Maps + compartir a otras redes = alcance local y externo.</li>
+        </ul>
+      </section>
+      <section class="panel">
+        <h3>Beneficios Sincronía Nexus</h3>
+        <ul>
+          <li>Regulación emocional rápida con frecuencias.</li>
+          <li>IA empática que acompaña sin juzgar.</li>
+          <li>Santuario para hábito diario (retención natural).</li>
+          <li>Mejor toma de decisiones bajo presión comercial.</li>
+        </ul>
+      </section>
+      <section class="panel">
+        <h3>Beneficios Video Diamante</h3>
+        <ul>
+          <li>Videos con karaoke que retienen en el feed.</li>
+          <li>Premium sin marca de agua = imagen profesional.</li>
+          <li>Estudio IA para imágenes/letras sin equipo creativo.</li>
+          <li>De la voz al anuncio en una sola sesión.</li>
+        </ul>
+      </section>
+      <section class="panel">
+        <h3>Beneficios del ecosistema completo</h3>
+        <ul>
+          <li>Una cuenta / un universo: CMS + ContacNeed + Nexus + Video Diamante.</li>
+          <li>Cada herramienta alimenta a la otra (contenido → red → calma → más contenido).</li>
+          <li>Narrativa mexicana, cercana y premium a la vez.</li>
+        </ul>
+      </section>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.35rem;">Objeciones frecuentes (expandibles)</h3>
+
+    <details class="obj" data-product="general">
+      <summary><span class="tag">General</span> “Está caro”</summary>
+      <div class="answer">
+        Reformula: “¿Caro comparado con qué: un cliente perdido, un editor freelance, o un mes sin dormir?”
+        Ancla: ContacNeed o Video Diamante a $300 puede pagarse con <strong>un solo servicio cerrado</strong>.
+        Nexus a $400 cuesta menos que muchas consultas sueltas y se usa diario.
+        Ofrece anual solo si hay compromiso real de uso.
+      </div>
+    </details>
+
+    <details class="obj" data-product="contacneed">
+      <summary><span class="tag">ContacNeed</span> “Ya tengo Facebook / Instagram”</summary>
+      <div class="answer">
+        “Perfecto: ContacNeed no reemplaza tus redes; las <strong>ordena hacia negocio local</strong>.
+        Aquí te filtran por estado, te califican con estrellas, te escriben por bandeja/chat y pueden verte en Maps.
+        Además compartes hacia Facebook/WhatsApp desde la misma publicación.”
+      </div>
+    </details>
+
+    <details class="obj" data-product="contacneed">
+      <summary><span class="tag">ContacNeed</span> “No soy bueno con la tecnología”</summary>
+      <div class="answer">
+        “Por eso existe el Asistente de Diseño IA y flujos simples: perfil → fotos → publicar.
+        En la demo hacemos juntos el primer anuncio. PRO vale la pena cuando ya recibes mensajes:
+        el chat en vivo evita que se enfríe el cliente.”
+      </div>
+    </details>
+
+    <details class="obj" data-product="nexus">
+      <summary><span class="tag">Nexus</span> “Eso de frecuencias suena raro”</summary>
+      <div class="answer">
+        Lenguaje ético: “No te pedimos creer en magia. Te invitamos a un <strong>ritual de calma medible</strong>:
+        2–5 minutos de audio + claridad mental. Si te ayuda a bajar ansiedad y enfocarte, se justifica.
+        Prueba la muestra y decide con tu cuerpo, no con un discurso.”
+      </div>
+    </details>
+
+    <details class="obj" data-product="nexus">
+      <summary><span class="tag">Nexus</span> “Prefiero un psicólogo”</summary>
+      <div class="answer">
+        “Nexus no sustituye terapia clínica. Es un <strong>apoyo cotidiano</strong> entre sesiones:
+        frecuencias, radio y un consejero IA con límites diarios. Muchas personas usan ambos.”
+      </div>
+    </details>
+
+    <details class="obj" data-product="video">
+      <summary><span class="tag">Video Diamante</span> “No tengo tiempo de hacer videos”</summary>
+      <div class="answer">
+        “Por eso es potente: si puedes hablar 1 minuto al teléfono, ya tienes materia prima.
+        Transcribes, pones fotos y renderizas. Premium evita la marca de agua y te da más margen creativo.
+        Un video bueno trabaja por ti mientras atiendes clientes.”
+      </div>
+    </details>
+
+    <details class="obj" data-product="video">
+      <summary><span class="tag">Video Diamante</span> “CapCut / Canva me alcanza”</summary>
+      <div class="answer">
+        “Sí puedes editar ahí. Video Diamante brilla cuando quieres <strong>karaoke sincronizado + flujo musical/voz + Estudio IA</strong>
+        sin armar proyecto desde cero. Es velocidad con sello VIAM, ideal para publicar seguido en ContacNeed.”
+      </div>
+    </details>
+
+    <details class="obj" data-product="general">
+      <summary><span class="tag">General</span> “Lo pienso y te aviso”</summary>
+      <div class="answer">
+        “Claro. Para que no se enfríe: ¿qué te falta para decidir — ver una demo de 5 minutos, comparar mensual vs anual, o probar el plan gratuito primero?
+        Si es demo, la hacemos ahora. Si es gratis, creamos la cuenta hoy y te muestro el camino a PRO.”
+        Acción inmediata siempre.
+      </div>
+    </details>
+
+    <section class="panel" style="margin-top:1.25rem;" id="notas-campo">
+      <h3>Bitácora del promotor (se guarda en tu navegador)</h3>
+      <p class="lead" style="margin-bottom:.6rem;">Anota objeciones nuevas, frases que funcionaron y casos reales. Esto nutre el curso con el tiempo.</p>
+      <textarea class="notes" id="bitacora" placeholder="Ejemplo: Hoy un carpintero dijo que Facebook le basta. Funcionó responderle con Maps + estrellas + chat en vivo..."></textarea>
+      <div style="margin-top:.7rem; display:flex; gap:.5rem; flex-wrap:wrap;">
+        <button class="btn" type="button" id="guardar-bitacora">Guardar notas</button>
+        <button class="btn btn-outline" type="button" id="limpiar-bitacora">Limpiar</button>
+        <span id="bitacora-status" style="color:var(--ok); font-size:.85rem;"></span>
+      </div>
+    </section>
+
+    <h2 class="section-title" id="cierre">Checklist de salida a campo</h2>
+    <section class="panel checklist" id="checklist">
+      <label><input type="checkbox" data-check="1" /> Puedo explicar ContacNeed PRO en 90 segundos (Pizarra, estado, tienda, chat, estrellas, Maps, compartir).</label>
+      <label><input type="checkbox" data-check="2" /> Puedo demostrar Nexus (frecuencia + IA) en vivo.</label>
+      <label><input type="checkbox" data-check="3" /> Puedo narrar Video Diamante: audio → subtítulos → render Premium.</label>
+      <label><input type="checkbox" data-check="4" /> Sé los precios mensual/anual de las tres herramientas.</label>
+      <label><input type="checkbox" data-check="5" /> Tengo 3 respuestas a “está caro” / “lo pienso” / “ya tengo redes”.</label>
+      <label><input type="checkbox" data-check="6" /> Siempre dejo una acción inmediata (cuenta, demo o checkout).</label>
+    </section>
+
+    <section class="panel" style="margin-top:1rem;">
+      <h3>Enlaces operativos</h3>
+      <div class="cta-row">
+        <a class="btn" href="https://contacneed.com" target="_blank" rel="noreferrer">Abrir ContacNeed</a>
+        <a class="btn btn-outline" href="/nexus">Sincronía Nexus</a>
+        <a class="btn btn-outline" href="/video_diamante">Video Diamante</a>
+        <a class="btn btn-outline" href="/mi-ecosistema">Mi Ecosistema</a>
+        <a class="btn btn-ghost" href="/panel-fundador">Volver al Panel Fundador</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Material interno · Área administrativa Ecosistema CMS VIAM · Curso de promotores<br />
+    Úsalo con ética: claridad, beneficio real y acción voluntaria del cliente.
+  </footer>
+  </div><!-- /#app-curso -->
+
+  <script src="/Assets/ecosistema-cuenta.js"></script>
+  <script>
+    (function () {
+      const gate = document.getElementById("gate-login");
+      const app = document.getElementById("app-curso");
+      const statusEl = document.getElementById("login-status");
+
+      function initCursoUi() {
+        const slides = Array.from(document.querySelectorAll(".slide"));
+        const label = document.getElementById("slide-label");
+        const bar = document.getElementById("progress-bar");
+        let i = 0;
+
+        function show(n) {
+          i = Math.max(0, Math.min(slides.length - 1, n));
+          slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+          label.textContent = (i + 1) + " / " + slides.length;
+          bar.style.width = ((i + 1) / slides.length) * 100 + "%";
+          try { sessionStorage.setItem("curso_promotores_slide", String(i)); } catch (_) {}
+        }
+
+        document.getElementById("prev-slide").addEventListener("click", () => show(i - 1));
+        document.getElementById("next-slide").addEventListener("click", () => show(i + 1));
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowRight" || e.key === "PageDown") show(i + 1);
+          if (e.key === "ArrowLeft" || e.key === "PageUp") show(i - 1);
+          if (e.key === "Home") show(0);
+          if (e.key === "End") show(slides.length - 1);
+        });
+
+        document.querySelectorAll("[data-go]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            show(Number(btn.getAttribute("data-go")) || 0);
+            document.getElementById("diapositivas").scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+
+        try {
+          const saved = Number(sessionStorage.getItem("curso_promotores_slide") || "0");
+          show(Number.isFinite(saved) ? saved : 0);
+        } catch (_) {
+          show(0);
+        }
+
+        const KEY = "curso_promotores_bitacora_v1";
+        const ta = document.getElementById("bitacora");
+        const status = document.getElementById("bitacora-status");
+        try { ta.value = localStorage.getItem(KEY) || ""; } catch (_) {}
+        document.getElementById("guardar-bitacora").addEventListener("click", () => {
+          try {
+            localStorage.setItem(KEY, ta.value);
+            status.textContent = "Notas guardadas en este dispositivo.";
+          } catch (_) {
+            status.textContent = "No se pudo guardar (almacenamiento bloqueado).";
+            status.style.color = "var(--danger)";
+          }
+        });
+        document.getElementById("limpiar-bitacora").addEventListener("click", () => {
+          ta.value = "";
+          try { localStorage.removeItem(KEY); } catch (_) {}
+          status.textContent = "Bitácora limpia.";
+        });
+
+        const CK = "curso_promotores_checklist_v1";
+        let state = {};
+        try { state = JSON.parse(localStorage.getItem(CK) || "{}"); } catch (_) { state = {}; }
+        document.querySelectorAll("[data-check]").forEach((input) => {
+          const id = input.getAttribute("data-check");
+          input.checked = !!state[id];
+          input.addEventListener("change", () => {
+            state[id] = input.checked;
+            try { localStorage.setItem(CK, JSON.stringify(state)); } catch (_) {}
+          });
+        });
+      }
+
+      async function abrirCurso(session) {
+        gate.style.display = "none";
+        app.classList.add("ready");
+        const email = session?.user?.email || "";
+        const chip = document.getElementById("user-chip");
+        if (chip) chip.textContent = email ? ("Sesión: " + email) : "";
+        initCursoUi();
+      }
+
+      function pedirLogin(msg) {
+        gate.style.display = "grid";
+        app.classList.remove("ready");
+        statusEl.textContent = msg || "Inicia sesión para continuar.";
+        statusEl.classList.toggle("err", !!msg && /error|inválid|incorrect|fail/i.test(msg));
+      }
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        try {
+          const url = await window.EcosistemaCuenta.registroUrl();
+          document.getElementById("link-registro").href = url;
+        } catch (_) { /* ignore */ }
+
+        try {
+          const session = await window.EcosistemaCuenta.getSession();
+          if (session) {
+            statusEl.textContent = "";
+            await abrirCurso(session);
+          } else {
+            pedirLogin("Inicia sesión para entrar al curso.");
+          }
+        } catch (e) {
+          pedirLogin(e.message || "No se pudo verificar la sesión.");
+        }
+
+        document.getElementById("btn-login").addEventListener("click", async () => {
+          statusEl.classList.remove("err");
+          statusEl.textContent = "Entrando...";
+          try {
+            const session = await window.EcosistemaCuenta.signIn(
+              document.getElementById("login-email").value,
+              document.getElementById("login-password").value
+            );
+            await abrirCurso(session);
+          } catch (e) {
+            pedirLogin(e.message || "No se pudo iniciar sesión.");
+          }
+        });
+
+        document.getElementById("login-password").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") document.getElementById("btn-login").click();
+        });
+
+        document.getElementById("btn-logout").addEventListener("click", async () => {
+          await window.EcosistemaCuenta.signOut();
+          location.reload();
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
