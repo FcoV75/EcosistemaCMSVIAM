@@ -78,6 +78,18 @@ async function buscarFilaPromotorPorUsuario(user) {
   return match || null;
 }
 
+async function esAdminContacNeed(user) {
+  if (!user?.id) return false;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from('perfiles')
+    .select('is_admin, bloqueado')
+    .eq('id', user.id)
+    .maybeSingle();
+  return Boolean(data?.is_admin) && !data?.bloqueado;
+}
+
 export async function resolverAccesoCurso(user) {
   if (!user) {
     return { ok: false, status: 401, error: 'Inicia sesión para acceder al curso.' };
@@ -89,6 +101,16 @@ export async function resolverAccesoCurso(user) {
       rol: 'fundador',
       email: user.email,
       mensaje: 'Acceso de fundador al curso de promotores.',
+    };
+  }
+
+  // Admins ContacNeed (panel unificado) también pueden estudiar el material.
+  if (await esAdminContacNeed(user)) {
+    return {
+      ok: true,
+      rol: 'admin',
+      email: user.email,
+      mensaje: 'Acceso de administrador ContacNeed al curso de promotores.',
     };
   }
 

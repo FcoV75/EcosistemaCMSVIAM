@@ -1,13 +1,14 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
-import { Camera, Settings, HelpCircle, Store, Image as ImageIcon, Sparkles, X, Plus, LogOut, Crown, BarChart3 } from 'lucide-react'
+import { Camera, Settings, HelpCircle, Store, Image as ImageIcon, Sparkles, X, Plus, LogOut, Crown, BarChart3, BookOpen } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { BusinessLocationPanel } from '../components/BusinessLocationPanel'
 import { PlanComparison } from '../components/PlanComparison'
 import { SmartGuidePanel } from '../components/NewUserGuide'
 import { useUser } from '../store/userContext'
 import { useIdentity } from '../lib/identity-context'
+import { buildCursoPromotoresUrl } from '../lib/curso-promotores-url'
 import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { FREE_TIENDA_MAX_ITEMS } from '../lib/plan-limits'
@@ -16,6 +17,7 @@ import { getNegocioFn, updateNegocioFn } from '../server/negocios.functions'
 import { getPlanUsageFn, requestProExtraAdsFn } from '../server/plan.functions'
 import { canjearPuntosMensualidadFn, getMiGamificacionFn } from '../server/gamificacion.functions'
 import { generateProMarketReportFn } from '../server/pro-reports.functions'
+import { getCursoPromotoresAccessFn } from '../server/promotores.functions'
 
 export const Route = createFileRoute('/profile')({
   beforeLoad: async () => {
@@ -58,10 +60,27 @@ function ProfileContent({
   const { profileData, setProfileData, saveProfileData } = useUser()
   const { isPro } = useIdentity()
   const planQuery = useQuery({ queryKey: ['plan-usage'], queryFn: () => getPlanUsageFn() })
+  const cursoPromotoresQuery = useQuery({
+    queryKey: ['curso-promotores-access'],
+    queryFn: () => getCursoPromotoresAccessFn(),
+    retry: false,
+  })
   const gamificacionQuery = useQuery({
     queryKey: ['mi-gamificacion'],
     queryFn: () => getMiGamificacionFn(),
   })
+  const [openingCurso, setOpeningCurso] = useState(false)
+  const openCursoPromotores = async () => {
+    setOpeningCurso(true)
+    try {
+      const url = await buildCursoPromotoresUrl()
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo abrir el curso')
+    } finally {
+      setOpeningCurso(false)
+    }
+  }
   const canjeMutation = useMutation({
     mutationFn: () => canjearPuntosMensualidadFn(),
     onSuccess: (r) => {
@@ -277,6 +296,17 @@ function ProfileContent({
             >
               <HelpCircle size={18} /> Guía de Uso (IA)
             </button>
+            {cursoPromotoresQuery.data?.ok && (
+              <button
+                type="button"
+                onClick={openCursoPromotores}
+                disabled={openingCurso}
+                className="flex w-full items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50"
+              >
+                <BookOpen size={18} />
+                {openingCurso ? 'Abriendo curso...' : 'Curso Promotores'}
+              </button>
+            )}
             <button
               type="button"
               onClick={async () => {
@@ -307,6 +337,34 @@ function ProfileContent({
               <h2 className="text-2xl font-bold text-slate-900">Perfil Personal</h2>
               <p className="text-gray-500">Actualiza tu información para que la comunidad te encuentre más fácil.</p>
             </div>
+
+            {cursoPromotoresQuery.data?.ok && (
+              <div className="mb-8 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-amber-50 p-5">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                  <BookOpen size={18} className="text-sky-700" />
+                  Acceso Promotor VIAM
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Estás matriculado como{' '}
+                  <strong>
+                    {cursoPromotoresQuery.data.rol === 'fundador'
+                      ? 'fundador'
+                      : cursoPromotoresQuery.data.rol === 'admin'
+                        ? 'admin'
+                        : 'promotor'}
+                  </strong>
+                  . Entra al curso intensivo desde tu perfil activo.
+                </p>
+                <button
+                  type="button"
+                  onClick={openCursoPromotores}
+                  disabled={openingCurso}
+                  className="mt-3 rounded-lg bg-sky-700 px-4 py-2 text-xs font-bold text-white hover:bg-sky-800 disabled:opacity-50"
+                >
+                  {openingCurso ? 'Abriendo...' : 'Abrir Curso Promotores'}
+                </button>
+              </div>
+            )}
 
             {gamificacionQuery.data && (
               <div className="mb-8 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-purple-50 p-5">

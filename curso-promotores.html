@@ -1009,7 +1009,12 @@ Si no tienes contenido → Video Diamante te saca un video con subtítulos karao
         } catch (_) { /* ignore */ }
 
         try {
-          const session = await window.EcosistemaCuenta.getSession();
+          // Sesión traída desde ContacNeed Admin / perfil (mismo Supabase)
+          let session = null;
+          try {
+            session = await window.EcosistemaCuenta.hydrateSessionFromUrl();
+          } catch (_) { /* ignore bridge errors */ }
+          if (!session) session = await window.EcosistemaCuenta.getSession();
           if (session) {
             statusEl.textContent = "Verificando acceso...";
             await abrirCurso(session);

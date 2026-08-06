@@ -42,6 +42,35 @@
     return data.session;
   }
 
+  /** Acepta tokens desde ContacNeed (hash o query) para no volver a pedir login. */
+  async function hydrateSessionFromUrl() {
+    if (typeof location === 'undefined') return null;
+    const hashParams = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+    const queryParams = new URLSearchParams(location.search || '');
+    const access_token =
+      hashParams.get('access_token') || queryParams.get('access_token');
+    const refresh_token =
+      hashParams.get('refresh_token') || queryParams.get('refresh_token');
+    if (!access_token || !refresh_token) return null;
+
+    const client = await initSupabase();
+    const { data, error } = await client.auth.setSession({
+      access_token,
+      refresh_token,
+    });
+    if (error) throw error;
+
+    try {
+      const clean = location.pathname + (location.search || '').replace(
+        /([?&])(access_token|refresh_token)=[^&]*/g,
+        '',
+      ).replace(/[?&]$/, '').replace(/\?&/, '?');
+      history.replaceState(null, '', clean || location.pathname);
+    } catch (_) { /* ignore */ }
+
+    return data.session;
+  }
+
   async function authHeaders(extra = {}) {
     const session = await getSession();
     const headers = { ...extra };
@@ -99,6 +128,7 @@
   window.EcosistemaCuenta = {
     initSupabase,
     getSession,
+    hydrateSessionFromUrl,
     authHeaders,
     signIn,
     signOut,
