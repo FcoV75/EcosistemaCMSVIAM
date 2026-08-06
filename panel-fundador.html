@@ -78,6 +78,42 @@
           <tbody id="tabla-entitlements"></tbody>
         </table>
       </div>
+
+      <section class="panel" style="margin-top:1.25rem;" id="seccion-promotores">
+        <h3 style="margin:0 0 .5rem;color:var(--accent2);font-family:Cinzel,serif;">Matrícula de promotores</h3>
+        <p style="opacity:.9;font-size:.9rem;margin:0 0 1rem;">
+          Solo quienes matricules aquí (o tú como fundador) pueden entrar a
+          <a href="/curso-promotores" style="color:var(--accent2);">Curso Promotores</a>.
+        </p>
+        <div class="cols-2">
+          <div>
+            <label style="font-size:.85rem;opacity:.85;">Correo del promotor</label>
+            <input id="promotor-email" type="email" placeholder="correo@ejemplo.com"
+              style="width:100%;padding:.65rem;border-radius:8px;border:1px solid var(--edge);background:rgba(0,0,0,.35);color:var(--ink);margin:.35rem 0 .7rem;" />
+            <label style="font-size:.85rem;opacity:.85;">Nombre (opcional)</label>
+            <input id="promotor-nombre" type="text" placeholder="Nombre para la bitácora"
+              style="width:100%;padding:.65rem;border-radius:8px;border:1px solid var(--edge);background:rgba(0,0,0,.35);color:var(--ink);margin:.35rem 0 .7rem;" />
+            <button class="btn" type="button" id="btn-matricular-promotor">Matricular promotor</button>
+            <p id="promotor-status" style="min-height:1.2rem;color:var(--accent2);font-size:.85rem;margin:.6rem 0 0;"></p>
+          </div>
+          <div>
+            <p style="margin:0 0 .5rem;font-size:.85rem;opacity:.85;">Promotores activos</p>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Correo</th>
+                    <th>Nombre</th>
+                    <th>Estado</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-promotores"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
     </section>
   </div>
   <script src="/Assets/ecosistema-cuenta.js"></script>
@@ -89,7 +125,53 @@
       contacneed_pro: 'ContacNeed PRO',
       ecosistema_cms_compra: 'CMS / Libros',
       consulta_cms: 'Consulta',
+      promotor_viam: 'Promotor VIAM',
     };
+
+    async function cargarPromotores() {
+      const headers = await window.EcosistemaCuenta.authHeaders({ Accept: 'application/json' });
+      const r = await fetch('/.netlify/functions/promotores-admin', { headers });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'No se pudo cargar matrículas');
+      const tbody = $('tabla-promotores');
+      tbody.innerHTML = '';
+      const activos = (d.promotores || []).filter((p) => p.status === 'active');
+      if (!activos.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="opacity:.75;">Aún no hay promotores matriculados.</td></tr>';
+        return;
+      }
+      activos.forEach((p) => {
+        const tr = document.createElement('tr');
+        const email = p.metadata?.email || '—';
+        const nombre = p.metadata?.nombre || '—';
+        tr.innerHTML = `<td>${email}</td><td>${nombre}</td><td>${p.status}</td>
+          <td><button type="button" class="btn btn-outline" data-baja="${p.id}" style="padding:.35rem .7rem;font-size:.75rem;">Dar de baja</button></td>`;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('[data-baja]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('¿Dar de baja a este promotor del curso?')) return;
+          $('promotor-status').textContent = 'Dando de baja...';
+          try {
+            const headers = await window.EcosistemaCuenta.authHeaders({
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            });
+            const r = await fetch('/.netlify/functions/promotores-admin', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ action: 'baja', id: btn.getAttribute('data-baja') }),
+            });
+            const d = await r.json();
+            if (!r.ok) throw new Error(d.error || 'No se pudo dar de baja');
+            $('promotor-status').textContent = 'Promotor dado de baja.';
+            await cargarPromotores();
+          } catch (e) {
+            $('promotor-status').textContent = e.message;
+          }
+        });
+      });
+    }
 
     async function cargarPanel() {
       $('status').textContent = 'Cargando...';
@@ -145,6 +227,8 @@
         tr.innerHTML = `<td>${ETIQUETAS[row.producto] || row.producto}</td><td>${row.plan || '—'}</td><td>${row.status}</td><td>${row.legacy_code || '—'}</td><td>${row.user_id ? row.user_id.slice(0,8) + '…' : '—'}</td><td>${exp}</td>`;
         tbody.appendChild(tr);
       });
+
+      await cargarPromotores();
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -155,6 +239,32 @@
       } catch (e) {
         $('status').textContent = e.message;
       }
+
+      $('btn-matricular-promotor')?.addEventListener('click', async () => {
+        $('promotor-status').textContent = 'Matriculando...';
+        try {
+          const headers = await window.EcosistemaCuenta.authHeaders({
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          });
+          const r = await fetch('/.netlify/functions/promotores-admin', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              email: $('promotor-email').value,
+              nombre: $('promotor-nombre').value,
+            }),
+          });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || 'No se pudo matricular');
+          $('promotor-status').textContent = d.nota || 'Promotor matriculado.';
+          $('promotor-email').value = '';
+          $('promotor-nombre').value = '';
+          await cargarPromotores();
+        } catch (e) {
+          $('promotor-status').textContent = e.message;
+        }
+      });
     });
   </script>
 </body>
