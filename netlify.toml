@@ -55,3 +55,8 @@
   from = "/musica"
   to = "/musica.html"
   status = 200
+
+[[redirects]]
+  from = "/curso-promotores"
+  to = "/curso-promotores.html"
+  status = 200
