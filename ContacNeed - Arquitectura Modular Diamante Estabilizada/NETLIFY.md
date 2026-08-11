@@ -69,11 +69,14 @@ Supabase **no envía correos a usuarios externos** con el servicio de email por 
 
 ## Webhook Stripe
 
-En Stripe Dashboard → Webhooks, apunta a:
+Función Netlify (ESM): `netlify/functions/stripe-webhook.mjs`  
+URL pública (no cambies el path en Stripe):
 
 ```
 https://contacneed.com/.netlify/functions/stripe-webhook
 ```
+
+Requiere en Netlify ContacNeed: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (`whsec_...` de este endpoint, distinto al de VIAM) y `SUPABASE_SERVICE_ROLE_KEY`.
 
 Evento mínimo: `checkout.session.completed`.
 
