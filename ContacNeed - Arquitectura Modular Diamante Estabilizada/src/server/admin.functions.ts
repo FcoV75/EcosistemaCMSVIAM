@@ -165,11 +165,33 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
       ? []
       : (pendingProRes.data ?? [])
 
-  const users = usersRes.error ? [] : (usersRes.data ?? [])
-  const allProfiles = profilesRes.error ? users : (profilesRes.data ?? [])
+  const usersRaw = usersRes.error ? [] : (usersRes.data ?? [])
+  const allProfiles = profilesRes.error ? usersRaw : (profilesRes.data ?? [])
+
+  const { data: proEntitlementRows } = await supabase
+    .from('ecosistema_entitlements')
+    .select('user_id, expires_at, status, plan, metadata')
+    .eq('producto', 'contacneed_pro')
+    .eq('status', 'active')
+    .limit(500)
+
+  const proUserIds = new Set(
+    (proEntitlementRows || [])
+      .filter((row) => {
+        if (!row.user_id) return false
+        if (!row.expires_at) return true
+        return new Date(row.expires_at).getTime() > Date.now()
+      })
+      .map((row) => row.user_id as string),
+  )
+
+  const users = usersRaw.map((u) => ({
+    ...u,
+    es_pro: Boolean(u.es_pro) || proUserIds.has(u.id),
+  }))
 
   const proFromEntitlements = await countActiveContacNeedPro(supabase)
-  const proFromProfiles = allProfiles.filter((p) => Boolean(p.es_pro)).length
+  const proFromProfiles = allProfiles.filter((p) => Boolean(p.es_pro) || proUserIds.has(p.id)).length
   const verifiedFromProfiles = allProfiles.filter((p) => Boolean(p.verificado)).length
 
   return {
@@ -200,13 +222,16 @@ export const moderatePostFn = createServerFn({ method: 'POST' })
     await assertAdmin()
     const supabase = createSupabaseAdminClient()
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('publicaciones')
       .update({ estatus: data.estatus })
       .eq('id', data.id)
+      .select('id, estatus')
+      .maybeSingle()
 
     if (error) throw error
-    return { success: true, id: data.id, estatus: data.estatus }
+    if (!updated?.id) throw new Error('No se encontró la publicación para moderar.')
+    return { success: true, id: updated.id, estatus: updated.estatus }
   })
 
 export const deletePostAdminFn = createServerFn({ method: 'POST' })
@@ -228,6 +253,7 @@ export const updateUserAdminFn = createServerFn({ method: 'POST' })
     const patch: Record<string, boolean> = {}
     if (typeof data.is_admin === 'boolean') patch.is_admin = data.is_admin
     if (typeof data.bloqueado === 'boolean') patch.bloqueado = data.bloqueado
+    if (typeof data.es_pro === 'boolean') patch.es_pro = data.es_pro
 
     if (Object.keys(patch).length) {
       const { error } = await supabase.from('perfiles').update(patch).eq('id', data.id)
@@ -293,6 +319,11 @@ export const approveProRequestFn = createServerFn({ method: 'POST' })
     } else {
       const planType = String(request.notas ?? '').toLowerCase().includes('anual') ? 'annual' : 'monthly'
       await upsertContacNeedPro(supabase, request.usuario_id, planType)
+      const { error: proFlagError } = await supabase
+        .from('perfiles')
+        .update({ es_pro: true })
+        .eq('id', request.usuario_id)
+      if (proFlagError) throw proFlagError
     }
 
     const { error: updateError } = await supabase
@@ -325,13 +356,14 @@ export const banUserAdminFn = createServerFn({ method: 'POST' })
     await assertAdmin()
     const supabase = createSupabaseAdminClient()
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('publicaciones')
       .update({ estatus: 'baneado' })
       .eq('usuario_id', data.id)
+      .select('id')
 
     if (error) throw error
-    return { success: true }
+    return { success: true, bannedPosts: updated?.length ?? 0 }
   })
 
 export const deleteUsersBulkFn = createServerFn({ method: 'POST' })

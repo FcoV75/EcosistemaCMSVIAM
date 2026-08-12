@@ -6,6 +6,7 @@ import {
   Ban,
   BookOpen,
   CheckCircle2,
+  Diamond,
   GraduationCap,
   LayoutDashboard,
   Megaphone,
@@ -13,11 +14,14 @@ import {
   RefreshCw,
   Send,
   Shield,
+  Sparkles,
   Trash2,
   Trophy,
   Users,
 } from 'lucide-react'
 import { buildCursoPromotoresUrl } from '../lib/curso-promotores-url'
+import { MembershipAdminPanel } from '../components/admin/MembershipAdminPanel'
+import { PRODUCTO_NEXUS, PRODUCTO_VIDEO_DIAMANTE } from '../lib/membresias-viam'
 import { requireAdminUserFn } from '../server/auth.functions'
 import {
   approveProRequestFn,
@@ -40,7 +44,7 @@ import {
   matricularPromotorAdminFn,
 } from '../server/promotores.functions'
 
-type AdminTab = 'contacneed' | 'fundador' | 'curso'
+type AdminTab = 'contacneed' | 'fundador' | 'curso' | 'nexus' | 'video'
 
 export const Route = createFileRoute('/admin')({
   beforeLoad: async () => {
@@ -133,41 +137,73 @@ function AdminDashboard() {
     queryClient.invalidateQueries({ queryKey: ['admin-promotores'] })
   }
 
+  const notifyError = (error: unknown, fallback: string) => {
+    const message = error instanceof Error ? error.message : fallback
+    console.error(fallback, error)
+    if (typeof window !== 'undefined') alert(message)
+  }
+
+  const notifyOk = (message: string) => {
+    if (typeof window !== 'undefined') alert(message)
+  }
+
   const moderateMutation = useMutation({
     mutationFn: (payload: { id: string; estatus: 'aprobado' | 'baneado' | 'pendiente' }) =>
       moderatePostFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Publicación actualizada')
+    },
+    onError: (error) => notifyError(error, 'No se pudo moderar la publicación'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (payload: { id: string }) => deletePostAdminFn({ data: payload }),
     onSuccess: invalidateAll,
+    onError: (error) => notifyError(error, 'No se pudo eliminar la publicación'),
   })
 
   const userMutation = useMutation({
     mutationFn: (payload: { id: string; es_pro?: boolean; is_admin?: boolean }) =>
       updateUserAdminFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Usuario actualizado')
+    },
+    onError: (error) => notifyError(error, 'No se pudo actualizar el usuario'),
   })
 
   const banUserMutation = useMutation({
     mutationFn: (payload: { id: string }) => banUserAdminFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Publicaciones del usuario baneadas')
+    },
+    onError: (error) => notifyError(error, 'No se pudieron banear las publicaciones'),
   })
 
   const blockUserMutation = useMutation({
     mutationFn: (payload: { id: string; bloqueado: boolean }) => blockUserAdminFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Estado de cuenta actualizado')
+    },
+    onError: (error) => notifyError(error, 'No se pudo suspender/reactivar al usuario'),
   })
 
   const approveProMutation = useMutation({
     mutationFn: (payload: { id: string }) => approveProRequestFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Solicitud PRO aprobada')
+    },
+    onError: (error) => notifyError(error, 'No se pudo aprobar la solicitud PRO'),
   })
 
   const rejectProMutation = useMutation({
     mutationFn: (payload: { id: string }) => rejectProRequestFn({ data: payload }),
     onSuccess: invalidateAll,
+    onError: (error) => notifyError(error, 'No se pudo rechazar la solicitud'),
   })
 
   const saveAdMutation = useMutation({
@@ -266,7 +302,7 @@ function AdminDashboard() {
             <p className="text-sm uppercase tracking-[0.2em] text-amber-400">Plataforma de Administración</p>
             <h1 className="text-3xl font-black">ContacNeed Admin</h1>
             <p className="mt-2 text-sm text-slate-300">
-              ContacNeed, Panel Fundador y Curso de Promotores en un solo lugar.
+              ContacNeed, Panel Fundador, Curso Promotores, Sincronía Nexus y Video Diamante.
             </p>
           </div>
           <Link
@@ -292,8 +328,24 @@ function AdminDashboard() {
         <div className="flex flex-wrap gap-2">
           {tabBtn('contacneed', 'ContacNeed', <LayoutDashboard size={16} />)}
           {tabBtn('fundador', 'Panel Fundador', <GraduationCap size={16} />)}
+          {tabBtn('nexus', 'Sincronía Nexus', <Sparkles size={16} />)}
+          {tabBtn('video', 'Video Diamante', <Diamond size={16} />)}
           {tabBtn('curso', 'Curso Promotores', <BookOpen size={16} />)}
         </div>
+
+        {adminTab === 'nexus' && (
+          <MembershipAdminPanel
+            producto={PRODUCTO_NEXUS}
+            accentClass="text-violet-300 border-violet-500/30"
+          />
+        )}
+
+        {adminTab === 'video' && (
+          <MembershipAdminPanel
+            producto={PRODUCTO_VIDEO_DIAMANTE}
+            accentClass="text-amber-300 border-amber-500/30"
+          />
+        )}
 
         {adminTab === 'fundador' && (
           <div className="space-y-6">
