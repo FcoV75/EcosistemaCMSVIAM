@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { ensureLegacyCmsCode } from './cms-legacy-code'
 
 export type ContacNeedProStatus = {
   active: boolean
@@ -56,6 +57,7 @@ export async function upsertContacNeedPro(
   userId: string,
   planType: 'monthly' | 'annual',
   stripeSessionId?: string | null,
+  options?: { email?: string | null; notifySource?: string | null },
 ) {
   const plan = planType === 'annual' ? 'anual' : 'mensual'
   const expiresAt = new Date(
@@ -64,11 +66,18 @@ export async function upsertContacNeedPro(
 
   const { data: existente } = await supabase
     .from('ecosistema_entitlements')
-    .select('id')
+    .select('id, legacy_code')
     .eq('user_id', userId)
     .eq('producto', 'contacneed_pro')
     .eq('status', 'active')
     .maybeSingle()
+
+  const legacyCode =
+    (existente?.legacy_code && String(existente.legacy_code).toUpperCase()) ||
+    (await ensureLegacyCmsCode(supabase, {
+      userId,
+      email: options?.email || null,
+    }))
 
   const row = {
     user_id: userId,
@@ -77,7 +86,12 @@ export async function upsertContacNeedPro(
     status: 'active',
     expires_at: expiresAt,
     stripe_session_id: stripeSessionId || null,
-    metadata: { source: 'contacneed' },
+    legacy_code: legacyCode,
+    metadata: {
+      source: options?.notifySource || 'contacneed',
+      codigo_cms: legacyCode,
+      email: options?.email || null,
+    },
     updated_at: new Date().toISOString(),
   }
 
@@ -87,12 +101,12 @@ export async function upsertContacNeedPro(
       .update(row)
       .eq('id', existente.id)
     if (error) throw error
-    return { updated: true }
+    return { updated: true, legacyCode }
   }
 
   const { error } = await supabase.from('ecosistema_entitlements').insert(row)
   if (error) throw error
-  return { created: true }
+  return { created: true, legacyCode }
 }
 
 export async function revokeContacNeedPro(supabase: SupabaseClient, userId: string) {

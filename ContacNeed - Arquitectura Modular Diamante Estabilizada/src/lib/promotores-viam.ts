@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { ensureLegacyCmsCode } from './cms-legacy-code'
 
 export const PRODUCTO_PROMOTOR = 'promotor_viam'
 export const CMS_VIAM_URL = 'https://centromultidisciplinarioags.com'
@@ -196,7 +197,7 @@ export async function matricularPromotorViam(
 
   const { data: rowsEmail } = await supabase
     .from('ecosistema_entitlements')
-    .select('id, metadata, user_id')
+    .select('id, metadata, user_id, legacy_code')
     .eq('producto', PRODUCTO_PROMOTOR)
     .eq('status', 'active')
     .limit(300)
@@ -207,6 +208,10 @@ export async function matricularPromotorViam(
       normalizarEmail((r.metadata as { email?: string } | null)?.email) === mail,
   )
 
+  const legacyCode =
+    (already?.legacy_code && String(already.legacy_code).toUpperCase()) ||
+    (await ensureLegacyCmsCode(supabase, { userId, email: mail }))
+
   const metadata = {
     rol: 'promotor',
     email: mail,
@@ -214,6 +219,7 @@ export async function matricularPromotorViam(
     matriculado_at: new Date().toISOString(),
     matriculado_por: matriculadoPor || null,
     source: 'contacneed-admin',
+    codigo_cms: legacyCode,
   }
 
   const row = {
@@ -222,6 +228,7 @@ export async function matricularPromotorViam(
     plan: 'promotor',
     status: 'active',
     expires_at: null as string | null,
+    legacy_code: legacyCode,
     metadata,
     updated_at: new Date().toISOString(),
   }
@@ -232,7 +239,14 @@ export async function matricularPromotorViam(
       .update(row)
       .eq('id', already.id)
     if (error) throw error
-    return { id: already.id, updated: true, userLinked: !!userId, email: mail }
+    return {
+      id: already.id,
+      updated: true,
+      userLinked: !!userId,
+      email: mail,
+      legacyCode,
+      nombre: metadata.nombre,
+    }
   }
 
   const { data, error } = await supabase
@@ -241,7 +255,14 @@ export async function matricularPromotorViam(
     .select('id')
     .single()
   if (error) throw error
-  return { id: data?.id, created: true, userLinked: !!userId, email: mail }
+  return {
+    id: data?.id,
+    created: true,
+    userLinked: !!userId,
+    email: mail,
+    legacyCode,
+    nombre: metadata.nombre,
+  }
 }
 
 export async function darBajaPromotorViam(supabase: SupabaseClient, id: string) {

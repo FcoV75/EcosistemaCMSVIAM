@@ -1,7 +1,13 @@
 import { createServerFn } from '@tanstack/react-start'
+import type { EmailOtpType } from '@supabase/supabase-js'
 import { createSupabaseAdminClient, createSupabaseServerClient } from '../lib/supabase.server'
 import { getSiteUrl } from '../lib/site-url'
-import { mapRecoveryEmailError, sendRecoveryEmailViaResend } from '../lib/recovery-email'
+import {
+  isSoftRecoveryLookupError,
+  mapRecoveryEmailError,
+  sendRecoveryEmailViaResend,
+} from '../lib/recovery-email'
+import { getResendConfig, sendSignupConfirmEmailViaResend } from '../lib/privilege-email'
 import { generarCodigoReferido } from '../lib/gamificacion'
 import { registrarReferidoEnSignup } from './gamificacion.functions'
 import {
@@ -10,6 +16,52 @@ import {
   requireActiveUser,
   requireAdminUser,
 } from '../lib/auth'
+
+function parseAuthLinkParams(search: string) {
+  const raw = String(search || '')
+  const normalized = raw
+    .replace(/^\?/, '')
+    .replace(/#/, '&')
+    .replace(/^&/, '')
+  return new URLSearchParams(normalized)
+}
+
+async function establishSessionFromAuthParams(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  params: URLSearchParams,
+  invalidMessage: string,
+) {
+  const code = params.get('code')
+  if (code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) throw new Error(error.message)
+    return data
+  }
+
+  const tokenHash = params.get('token_hash')
+  const type = params.get('type') as EmailOtpType | null
+  if (tokenHash && type) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type,
+    })
+    if (error) throw new Error(error.message)
+    return data
+  }
+
+  const accessToken = params.get('access_token')
+  const refreshToken = params.get('refresh_token')
+  if (accessToken && refreshToken) {
+    const { data, error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    })
+    if (error) throw new Error(error.message)
+    return data
+  }
+
+  throw new Error(invalidMessage)
+}
 
 export const getServerUserFn = createServerFn({ method: 'GET' }).handler(async () => {
   const user = await getServerUser()
@@ -191,38 +243,79 @@ export const signUpFn = createServerFn({ method: 'POST' })
     const supabase = createSupabaseServerClient()
     const admin = createSupabaseAdminClient()
     const email = data.email.trim().toLowerCase()
+    const redirectTo = `${getSiteUrl()}/auth/confirm`
+    const resend = getResendConfig()
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password: data.password,
-      options: {
-        emailRedirectTo: `${getSiteUrl()}/auth/confirm`,
-        data: { nombre: data.nombre.trim() },
-      },
-    })
+    let userId: string
+    let emailConfirmed = false
+    let needsEmailConfirmation = true
+    let confirmationSentViaResend = false
 
-    if (signUpError) {
-      throw new Error(mapSignUpError(signUpError.message, email))
+    if (resend.enabled) {
+      // Crea usuario + enlace sin que Supabase mande su propio correo (evita doble envío).
+      const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+        type: 'signup',
+        email,
+        password: data.password,
+        options: {
+          redirectTo,
+          data: { nombre: data.nombre.trim() },
+        },
+      })
+      if (linkError) {
+        throw new Error(mapSignUpError(linkError.message, email))
+      }
+
+      userId = linkData.user?.id || ''
+      if (!userId) throw new Error('No se pudo crear la cuenta')
+      emailConfirmed = Boolean(linkData.user?.email_confirmed_at)
+
+      const actionLink = linkData.properties?.action_link
+      if (!actionLink) {
+        throw new Error('No se pudo generar el enlace de confirmación.')
+      }
+
+      const sent = await sendSignupConfirmEmailViaResend({
+        apiKey: resend.apiKey,
+        from: resend.from,
+        to: email,
+        actionLink,
+        nombre: data.nombre,
+      })
+      if (!sent.ok) {
+        throw new Error(
+          `Cuenta creada, pero no se pudo enviar el correo de confirmación. Verifica dominio y RESEND_FROM. ${sent.error}`,
+        )
+      }
+      confirmationSentViaResend = true
+      needsEmailConfirmation = !emailConfirmed
+    } else {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: data.password,
+        options: {
+          emailRedirectTo: redirectTo,
+          data: { nombre: data.nombre.trim() },
+        },
+      })
+
+      if (signUpError) {
+        throw new Error(mapSignUpError(signUpError.message, email))
+      }
+
+      userId = signUpData.user?.id || ''
+      if (!userId) throw new Error('No se pudo crear la cuenta')
+      emailConfirmed = Boolean(signUpData.user?.email_confirmed_at)
+      needsEmailConfirmation = !signUpData.session
     }
 
-    const userId = signUpData.user?.id
-    if (!userId) throw new Error('No se pudo crear la cuenta')
-
-    await saveSignupProfile(
-      admin,
-      userId,
-      email,
-      data,
-      Boolean(signUpData.user?.email_confirmed_at),
-    )
+    await saveSignupProfile(admin, userId, email, data, emailConfirmed)
 
     await admin.from('perfiles').update({
       codigo_referido: generarCodigoReferido(userId),
     }).eq('id', userId)
 
     await registrarReferidoEnSignup(admin, userId, data.codigo_referido)
-
-    const needsEmailConfirmation = !signUpData.session
 
     if (!needsEmailConfirmation) {
       return {
@@ -235,8 +328,9 @@ export const signUpFn = createServerFn({ method: 'POST' })
     return {
       success: true,
       needsEmailConfirmation: true,
-      message:
-        'Te enviamos un correo de confirmación. Abre el enlace para activar tu cuenta y luego inicia sesión.',
+      message: confirmationSentViaResend
+        ? 'Te enviamos un correo de confirmación desde ContacNeed. Abre el enlace para activar tu cuenta y luego inicia sesión.'
+        : 'Te enviamos un correo de confirmación. Abre el enlace para activar tu cuenta y luego inicia sesión.',
     }
   })
 
@@ -244,15 +338,12 @@ export const confirmEmailFromLinkFn = createServerFn({ method: 'GET' })
   .inputValidator((search: string) => search)
   .handler(async ({ data: search }) => {
     const supabase = createSupabaseServerClient()
-    const params = new URLSearchParams(search)
-    const code = params.get('code')
-
-    if (!code) {
-      throw new Error('Enlace de confirmación inválido o expirado.')
-    }
-
-    const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) throw new Error(error.message)
+    const params = parseAuthLinkParams(search)
+    const sessionData = await establishSessionFromAuthParams(
+      supabase,
+      params,
+      'Enlace de confirmación inválido o expirado.',
+    )
 
     if (sessionData.user?.id) {
       const admin = createSupabaseAdminClient()
@@ -269,16 +360,12 @@ export const establishRecoverySessionFromLinkFn = createServerFn({ method: 'GET'
   .inputValidator((search: string) => search)
   .handler(async ({ data: search }) => {
     const supabase = createSupabaseServerClient()
-    const params = new URLSearchParams(search)
-    const code = params.get('code')
-
-    if (!code) {
-      throw new Error('Enlace de recuperación inválido o expirado.')
-    }
-
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) throw new Error(error.message)
-
+    const params = parseAuthLinkParams(search)
+    await establishSessionFromAuthParams(
+      supabase,
+      params,
+      'Enlace de recuperación inválido o expirado.',
+    )
     return { success: true }
   })
 
@@ -289,17 +376,23 @@ export const requestPasswordResetFn = createServerFn({ method: 'POST' })
     if (!email) throw new Error('Ingresa tu correo electrónico.')
 
     const redirectTo = `${getSiteUrl()}/auth/reset`
-    const resendKey = String(process.env.RESEND_API_KEY ?? '').trim()
-    const resendFrom = String(process.env.RESEND_FROM ?? 'ContacNeed <noreply@contacneed.com>').trim()
+    const softSuccess = {
+      success: true as const,
+      message: 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
+    }
+    const resend = getResendConfig()
 
-    if (resendKey) {
+    if (resend.enabled) {
       const admin = createSupabaseAdminClient()
       const { data: linkData, error } = await admin.auth.admin.generateLink({
         type: 'recovery',
         email,
         options: { redirectTo },
       })
-      if (error) throw new Error(mapRecoveryEmailError(error.message))
+      if (error) {
+        if (isSoftRecoveryLookupError(error.message)) return softSuccess
+        throw new Error(mapRecoveryEmailError(error.message))
+      }
 
       const actionLink = linkData?.properties?.action_link
       if (!actionLink) {
@@ -307,8 +400,8 @@ export const requestPasswordResetFn = createServerFn({ method: 'POST' })
       }
 
       const sent = await sendRecoveryEmailViaResend({
-        apiKey: resendKey,
-        from: resendFrom,
+        apiKey: resend.apiKey,
+        from: resend.from,
         to: email,
         actionLink,
       })
@@ -320,13 +413,13 @@ export const requestPasswordResetFn = createServerFn({ method: 'POST' })
     } else {
       const supabase = createSupabaseServerClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
-      if (error) throw new Error(mapRecoveryEmailError(error.message))
+      if (error) {
+        if (isSoftRecoveryLookupError(error.message)) return softSuccess
+        throw new Error(mapRecoveryEmailError(error.message))
+      }
     }
 
-    return {
-      success: true,
-      message: 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
-    }
+    return softSuccess
   })
 
 export const updatePasswordFromResetFn = createServerFn({ method: 'POST' })

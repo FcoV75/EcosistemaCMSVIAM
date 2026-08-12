@@ -2,6 +2,10 @@ import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { requireAdminUser } from '../lib/auth'
 import {
+  etiquetaPrivilegioMembresia,
+  notifyPrivilegeGrant,
+} from '../lib/notify-privileges'
+import {
   listarMembresiasProducto,
   otorgarMembresiaViam,
   PRODUCTO_NEXUS,
@@ -82,12 +86,22 @@ export const otorgarMembresiaAdminFn = createServerFn({ method: 'POST' })
       otorgadoPor: admin.user.email || admin.user.id,
     })
     const etiqueta = PRODUCTOS_MEMBRESIA[producto].etiqueta
+    const mailNotify = await notifyPrivilegeGrant({
+      email: out.email,
+      nombre: out.nombre,
+      codigoCms: out.legacyCode,
+      privilegios: [etiquetaPrivilegioMembresia(producto, data.plan)],
+    })
+    const base = out.userLinked
+      ? `${etiqueta} (${out.plan}) otorgada y vinculada. Código ${out.legacyCode}.`
+      : `${etiqueta} (${out.plan}) otorgada por correo. Código ${out.legacyCode}. Se vinculará al iniciar sesión.`
     return {
       success: true,
       ...out,
-      nota: out.userLinked
-        ? `${etiqueta} (${out.plan}) otorgada y vinculada a la cuenta ContacNeed.`
-        : `${etiqueta} (${out.plan}) otorgada por correo. Se vinculará al iniciar sesión.`,
+      emailed: mailNotify.emailed,
+      nota: mailNotify.emailed
+        ? `${base} Correo enviado con el código CMS.`
+        : `${base}${mailNotify.warning ? ` ${mailNotify.warning}` : ''}`,
     }
   })
 

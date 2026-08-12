@@ -17,6 +17,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UUserIdRouteImport } from './routes/u/$userId'
+import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
 import { Route as MensajesChatPeerIdRouteImport } from './routes/mensajes/chat/$peerId'
 
@@ -60,6 +61,11 @@ const UUserIdRoute = UUserIdRouteImport.update({
   path: '/u/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthResetRoute = AuthResetRouteImport.update({
+  id: '/auth/reset',
+  path: '/auth/reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthConfirmRoute = AuthConfirmRouteImport.update({
   id: '/auth/confirm',
   path: '/auth/confirm',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/auth/reset': typeof AuthResetRoute
   '/u/$userId': typeof UUserIdRoute
   '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/auth/reset': typeof AuthResetRoute
   '/u/$userId': typeof UUserIdRoute
   '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
+  '/auth/reset': typeof AuthResetRoute
   '/u/$userId': typeof UUserIdRoute
   '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/radio'
     | '/registro'
     | '/auth/confirm'
+    | '/auth/reset'
     | '/u/$userId'
     | '/mensajes/chat/$peerId'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/radio'
     | '/registro'
     | '/auth/confirm'
+    | '/auth/reset'
     | '/u/$userId'
     | '/mensajes/chat/$peerId'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/radio'
     | '/registro'
     | '/auth/confirm'
+    | '/auth/reset'
     | '/u/$userId'
     | '/mensajes/chat/$peerId'
   fileRoutesById: FileRoutesById
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   RadioRoute: typeof RadioRoute
   RegistroRoute: typeof RegistroRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
+  AuthResetRoute: typeof AuthResetRoute
   UUserIdRoute: typeof UUserIdRoute
 }
 
@@ -217,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/reset': {
+      id: '/auth/reset'
+      path: '/auth/reset'
+      fullPath: '/auth/reset'
+      preLoaderRoute: typeof AuthResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/confirm': {
       id: '/auth/confirm'
       path: '/auth/confirm'
@@ -255,6 +275,7 @@ const rootRouteChildren: RootRouteChildren = {
   RadioRoute: RadioRoute,
   RegistroRoute: RegistroRoute,
   AuthConfirmRoute: AuthConfirmRoute,
+  AuthResetRoute: AuthResetRoute,
   UUserIdRoute: UUserIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -15,12 +15,16 @@ function ConfirmEmailPage() {
   useEffect(() => {
     let active = true
 
-    confirmEmailFromLinkFn({ data: window.location.search })
+    const linkPayload = `${window.location.search}${window.location.hash || ''}`
+    confirmEmailFromLinkFn({ data: linkPayload })
       .then(() => {
         if (!active) return
         clearGuestBrowseTimer()
         setStatus('success')
         setMessage('Correo confirmado. Ya puedes usar ContacNeed con tu cuenta.')
+        if (window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        }
       })
       .catch((error) => {
         if (!active) return
