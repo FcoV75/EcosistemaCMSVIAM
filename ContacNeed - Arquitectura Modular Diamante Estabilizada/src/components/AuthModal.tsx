@@ -2,7 +2,7 @@ import { Shield, UserPlus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ContacNeedLogo } from './ContacNeedLogo'
 import { RegistroForm } from './RegistroForm'
-import { signInFn } from '../server/auth.functions'
+import { requestPasswordResetFn, signInFn } from '../server/auth.functions'
 
 export type AuthTab = 'login' | 'register' | 'admin'
 
@@ -21,12 +21,15 @@ export function AuthModal({ open, onClose, initialTab = 'login', required = fals
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resetMsg, setResetMsg] = useState<string | null>(null)
+  const [resetLoading, setResetLoading] = useState(false)
   const [registerDone, setRegisterDone] = useState(false)
 
   useEffect(() => {
     if (open) {
       setTab(initialTab)
       setError(null)
+      setResetMsg(null)
       setRegisterDone(false)
     }
   }, [open, initialTab])
@@ -173,6 +176,37 @@ export function AuthModal({ open, onClose, initialTab = 'login', required = fals
               >
                 {loading ? 'Entrando...' : tab === 'admin' ? 'Entrar al Panel Admin' : 'Entrar'}
               </button>
+
+              {(tab === 'login' || tab === 'admin') && (
+                <p className="text-center text-sm text-purple-200/70">
+                  <button
+                    type="button"
+                    className="font-semibold text-amber-300 hover:text-amber-200 disabled:opacity-50"
+                    disabled={resetLoading || !email.trim()}
+                    onClick={async () => {
+                      setResetLoading(true)
+                      setResetMsg(null)
+                      setError(null)
+                      try {
+                        const r = await requestPasswordResetFn({ data: { email: email.trim() } })
+                        setResetMsg(r.message)
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'No se pudo enviar el enlace')
+                      } finally {
+                        setResetLoading(false)
+                      }
+                    }}
+                  >
+                    {resetLoading ? 'Enviando enlace...' : '¿Olvidaste tu contraseña?'}
+                  </button>
+                </p>
+              )}
+
+              {resetMsg && (
+                <p className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-3 py-2 text-center text-sm text-emerald-200">
+                  {resetMsg}
+                </p>
+              )}
 
               {tab === 'login' && (
                 <p className="text-center text-xs text-purple-300/50">
