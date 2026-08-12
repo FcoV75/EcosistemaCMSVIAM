@@ -6,6 +6,7 @@ import {
   Ban,
   BookOpen,
   CheckCircle2,
+  Diamond,
   GraduationCap,
   LayoutDashboard,
   Megaphone,
@@ -13,11 +14,14 @@ import {
   RefreshCw,
   Send,
   Shield,
+  Sparkles,
   Trash2,
   Trophy,
   Users,
 } from 'lucide-react'
 import { buildCursoPromotoresUrl } from '../lib/curso-promotores-url'
+import { MembershipAdminPanel } from '../components/admin/MembershipAdminPanel'
+import { PRODUCTO_NEXUS, PRODUCTO_VIDEO_DIAMANTE } from '../lib/membresias-viam'
 import { requireAdminUserFn } from '../server/auth.functions'
 import {
   approveProRequestFn,
@@ -40,7 +44,7 @@ import {
   matricularPromotorAdminFn,
 } from '../server/promotores.functions'
 
-type AdminTab = 'contacneed' | 'fundador' | 'curso'
+type AdminTab = 'contacneed' | 'fundador' | 'curso' | 'nexus' | 'video'
 
 export const Route = createFileRoute('/admin')({
   beforeLoad: async () => {
@@ -266,7 +270,7 @@ function AdminDashboard() {
             <p className="text-sm uppercase tracking-[0.2em] text-amber-400">Plataforma de Administración</p>
             <h1 className="text-3xl font-black">ContacNeed Admin</h1>
             <p className="mt-2 text-sm text-slate-300">
-              ContacNeed, Panel Fundador y Curso de Promotores en un solo lugar.
+              ContacNeed, Panel Fundador, Curso Promotores, Sincronía Nexus y Video Diamante.
             </p>
           </div>
           <Link
@@ -292,8 +296,24 @@ function AdminDashboard() {
         <div className="flex flex-wrap gap-2">
           {tabBtn('contacneed', 'ContacNeed', <LayoutDashboard size={16} />)}
           {tabBtn('fundador', 'Panel Fundador', <GraduationCap size={16} />)}
+          {tabBtn('nexus', 'Sincronía Nexus', <Sparkles size={16} />)}
+          {tabBtn('video', 'Video Diamante', <Diamond size={16} />)}
           {tabBtn('curso', 'Curso Promotores', <BookOpen size={16} />)}
         </div>
+
+        {adminTab === 'nexus' && (
+          <MembershipAdminPanel
+            producto={PRODUCTO_NEXUS}
+            accentClass="text-violet-300 border-violet-500/30"
+          />
+        )}
+
+        {adminTab === 'video' && (
+          <MembershipAdminPanel
+            producto={PRODUCTO_VIDEO_DIAMANTE}
+            accentClass="text-amber-300 border-amber-500/30"
+          />
+        )}
 
         {adminTab === 'fundador' && (
           <div className="space-y-6">
