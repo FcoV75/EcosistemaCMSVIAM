@@ -22,10 +22,14 @@ function ResetPasswordPage() {
   useEffect(() => {
     let active = true
 
-    establishRecoverySessionFromLinkFn({ data: window.location.search })
+    const linkPayload = `${window.location.search}${window.location.hash || ''}`
+    establishRecoverySessionFromLinkFn({ data: linkPayload })
       .then(() => {
         if (!active) return
         setSessionReady(true)
+        if (window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        }
       })
       .catch((err) => {
         if (!active) return

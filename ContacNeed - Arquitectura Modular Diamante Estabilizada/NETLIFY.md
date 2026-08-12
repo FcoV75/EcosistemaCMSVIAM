@@ -45,13 +45,19 @@ VITE_SUPABASE_ANON_KEY=     # obligatorio: sin estas dos el feed no carga
 VITE_CLOUDINARY_CLOUD_NAME=
 VITE_CLOUDINARY_UPLOAD_PRESET=
 SUPABASE_SERVICE_ROLE_KEY=     # OBLIGATORIO: guardar posts, perfil, tienda y comentarios
-RESEND_API_KEY=                # recomendado: recuperación de contraseña por correo
+RESEND_API_KEY=                # recomendado: registro, recuperación y códigos CMS al otorgar privilegios
 RESEND_FROM=ContacNeed <noreply@contacneed.com>
 ```
 
-## Recuperación de contraseña (correo)
+## Correos (registro, recuperación y privilegios)
 
-Supabase **no envía correos a usuarios externos** con el servicio de email por defecto. Para que funcione "¿Olvidaste tu contraseña?" necesitas **una** de estas opciones:
+Con `RESEND_API_KEY`, ContacNeed envía por Resend (mismo remitente unificado):
+
+- Confirmación de cuenta al registrarse
+- Recuperación de contraseña (“¿Olvidaste tu contraseña?”)
+- Aviso de privilegios + código unificado `CMS-XXXXXX` al otorgar PRO, Nexus, Video Diamante o Curso de Promotores
+
+Supabase **no envía correos a usuarios externos** con el email por defecto. Necesitas **una** de estas opciones:
 
 ### Opción A — Resend (recomendada en ContacNeed)
 
@@ -59,13 +65,16 @@ Supabase **no envía correos a usuarios externos** con el servicio de email por 
 2. En Netlify → Environment variables agrega `RESEND_API_KEY` y `RESEND_FROM` (ej. `ContacNeed <noreply@contacneed.com>`).
 3. En Supabase → Authentication → URL Configuration:
    - **Site URL:** `https://contacneed.com`
-   - **Redirect URLs:** `https://contacneed.com/auth/reset`
+   - **Redirect URLs** (ambas):
+     - `https://contacneed.com/auth/confirm`
+     - `https://contacneed.com/auth/reset`
+     - (opcionales) `http://localhost:3000/auth/confirm` y `http://localhost:3000/auth/reset` para local
 
 ### Opción B — SMTP en Supabase
 
 1. Supabase → Authentication → SMTP → activa Custom SMTP (Resend, SendGrid, etc.).
 2. Mismas URLs de redirect que arriba.
-3. No hace falta `RESEND_API_KEY` en Netlify si SMTP en Supabase ya funciona.
+3. Sin `RESEND_API_KEY` en Netlify: el registro/recuperación usan el SMTP de Supabase; los correos de privilegios/código CMS **sí requieren** `RESEND_API_KEY`.
 
 ## Webhook Stripe
 

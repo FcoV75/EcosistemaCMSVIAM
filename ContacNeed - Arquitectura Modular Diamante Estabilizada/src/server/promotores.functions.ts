@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { requireActiveUser, requireAdminUser } from '../lib/auth'
+import { notifyPrivilegeGrant } from '../lib/notify-privileges'
 import {
   darBajaPromotorViam,
   listarPromotoresMatriculados,
@@ -105,12 +106,22 @@ export const matricularPromotorAdminFn = createServerFn({ method: 'POST' })
       nombre: data.nombre,
       matriculadoPor: admin.user.email || admin.user.id,
     })
+    const mailNotify = await notifyPrivilegeGrant({
+      email: out.email,
+      nombre: out.nombre,
+      codigoCms: out.legacyCode,
+      privilegios: ['Curso intensivo de Promotores VIAM'],
+    })
+    const base = out.userLinked
+      ? `Promotor matriculado y vinculado. Código ${out.legacyCode}.`
+      : `Promotor matriculado por correo. Código ${out.legacyCode}. Se vinculará al iniciar sesión.`
     return {
       success: true,
       ...out,
-      nota: out.userLinked
-        ? 'Promotor matriculado y vinculado a su cuenta ContacNeed.'
-        : 'Promotor matriculado por correo. Se vinculará al iniciar sesión.',
+      emailed: mailNotify.emailed,
+      nota: mailNotify.emailed
+        ? `${base} Correo enviado con el código CMS.`
+        : `${base}${mailNotify.warning ? ` ${mailNotify.warning}` : ''}`,
     }
   })
 

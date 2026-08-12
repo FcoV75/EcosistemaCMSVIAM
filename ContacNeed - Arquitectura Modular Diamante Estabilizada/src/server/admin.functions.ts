@@ -1,9 +1,29 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { countActiveContacNeedPro, revokeContacNeedPro, upsertContacNeedPro } from '../lib/ecosistema-entitlements'
+import { notifyPrivilegeGrant } from '../lib/notify-privileges'
 import { requireAdminUser } from '../lib/auth'
 import { askLlm } from '../lib/llm'
 import { mapPublicacionToPost } from '../lib/posts-mapper'
+
+async function profileContact(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+) {
+  const { data } = await supabase
+    .from('perfiles')
+    .select('correo, nombre')
+    .eq('id', userId)
+    .maybeSingle()
+
+  let email = data?.correo?.trim().toLowerCase() || null
+  if (!email) {
+    const { data: authUser } = await supabase.auth.admin.getUserById(userId)
+    email = authUser.user?.email?.trim().toLowerCase() || null
+  }
+
+  return { email, nombre: data?.nombre ?? null }
+}
 
 async function assertAdmin() {
   const admin = await requireAdminUser()
@@ -262,10 +282,28 @@ export const updateUserAdminFn = createServerFn({ method: 'POST' })
 
     if (typeof data.es_pro === 'boolean') {
       if (data.es_pro) {
-        await upsertContacNeedPro(supabase, data.id, 'monthly')
-      } else {
-        await revokeContacNeedPro(supabase, data.id)
+        const contact = await profileContact(supabase, data.id)
+        const out = await upsertContacNeedPro(supabase, data.id, 'monthly', null, {
+          email: contact.email,
+          notifySource: 'admin_grant_pro',
+        })
+        let emailed = false
+        let emailWarning: string | undefined
+        if (contact.email) {
+          const mail = await notifyPrivilegeGrant({
+            email: contact.email,
+            nombre: contact.nombre,
+            codigoCms: out.legacyCode,
+            privilegios: ['ContacNeed PRO — Mensual'],
+          })
+          emailed = mail.emailed
+          if (!mail.emailed) emailWarning = mail.warning
+        } else {
+          emailWarning = 'Privilegio guardado, pero el usuario no tiene correo para enviar el código CMS.'
+        }
+        return { success: true, legacyCode: out.legacyCode, emailed, emailWarning }
       }
+      await revokeContacNeedPro(supabase, data.id)
     }
 
     return { success: true }
@@ -318,12 +356,40 @@ export const approveProRequestFn = createServerFn({ method: 'POST' })
       if (slotsError) throw slotsError
     } else {
       const planType = String(request.notas ?? '').toLowerCase().includes('anual') ? 'annual' : 'monthly'
-      await upsertContacNeedPro(supabase, request.usuario_id, planType)
+      const contact = await profileContact(supabase, request.usuario_id)
+      const out = await upsertContacNeedPro(supabase, request.usuario_id, planType, null, {
+        email: contact.email,
+        notifySource: 'admin_approve_pro',
+      })
       const { error: proFlagError } = await supabase
         .from('perfiles')
         .update({ es_pro: true })
         .eq('id', request.usuario_id)
       if (proFlagError) throw proFlagError
+
+      const { error: updateError } = await supabase
+        .from('solicitudes_pro')
+        .update({ estatus: 'aprobado' })
+        .eq('id', data.id)
+      if (updateError) throw updateError
+
+      let emailed = false
+      let emailWarning: string | undefined
+      if (contact.email) {
+        const planLabel = planType === 'annual' ? 'Anual' : 'Mensual'
+        const mail = await notifyPrivilegeGrant({
+          email: contact.email,
+          nombre: contact.nombre,
+          codigoCms: out.legacyCode,
+          privilegios: [`ContacNeed PRO — ${planLabel}`],
+        })
+        emailed = mail.emailed
+        if (!mail.emailed) emailWarning = mail.warning
+      } else {
+        emailWarning = 'Privilegio guardado, pero el usuario no tiene correo para enviar el código CMS.'
+      }
+
+      return { success: true, legacyCode: out.legacyCode, emailed, emailWarning }
     }
 
     const { error: updateError } = await supabase

@@ -166,8 +166,18 @@ function AdminDashboard() {
   const userMutation = useMutation({
     mutationFn: (payload: { id: string; es_pro?: boolean; is_admin?: boolean }) =>
       updateUserAdminFn({ data: payload }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       invalidateAll()
+      if (result && 'legacyCode' in result && result.legacyCode) {
+        if (result.emailed) {
+          notifyOk(`PRO activado. Código ${result.legacyCode} enviado por correo.`)
+        } else {
+          notifyOk(
+            `PRO activado. Código ${result.legacyCode}.${result.emailWarning ? ` ${result.emailWarning}` : ''}`,
+          )
+        }
+        return
+      }
       notifyOk('Usuario actualizado')
     },
     onError: (error) => notifyError(error, 'No se pudo actualizar el usuario'),
@@ -193,8 +203,18 @@ function AdminDashboard() {
 
   const approveProMutation = useMutation({
     mutationFn: (payload: { id: string }) => approveProRequestFn({ data: payload }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       invalidateAll()
+      if (result && 'legacyCode' in result && result.legacyCode) {
+        if (result.emailed) {
+          notifyOk(`Solicitud PRO aprobada. Código ${result.legacyCode} enviado por correo.`)
+        } else {
+          notifyOk(
+            `Solicitud PRO aprobada. Código ${result.legacyCode}.${result.emailWarning ? ` ${result.emailWarning}` : ''}`,
+          )
+        }
+        return
+      }
       notifyOk('Solicitud PRO aprobada')
     },
     onError: (error) => notifyError(error, 'No se pudo aprobar la solicitud PRO'),

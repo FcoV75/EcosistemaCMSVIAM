@@ -1,3 +1,5 @@
+import { sendResendEmail } from './privilege-email'
+
 type SendRecoveryEmailInput = {
   apiKey: string
   from: string
@@ -13,7 +15,7 @@ export function mapRecoveryEmailError(message: string) {
   }
 
   if (normalized.includes('redirect_to') && normalized.includes('not allowed')) {
-    return 'La URL de recuperación no está autorizada en Supabase. Agrega https://contacneed.com/auth/reset en Authentication → URL Configuration → Redirect URLs.'
+    return 'La URL de recuperación no está autorizada en Supabase. Agrega https://contacneed.com/auth/reset y https://contacneed.com/auth/confirm en Authentication → URL Configuration → Redirect URLs.'
   }
 
   if (normalized.includes('rate limit')) {
@@ -23,40 +25,36 @@ export function mapRecoveryEmailError(message: string) {
   return message
 }
 
+/** Errores que no deben revelar si el correo existe. */
+export function isSoftRecoveryLookupError(message: string) {
+  const normalized = message.toLowerCase()
+  return (
+    normalized.includes('user not found') ||
+    normalized.includes('unable to find') ||
+    normalized.includes('no user found') ||
+    normalized.includes('user does not exist') ||
+    (normalized.includes('email') && normalized.includes('not found'))
+  )
+}
+
 export async function sendRecoveryEmailViaResend(input: SendRecoveryEmailInput) {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${input.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: input.from,
-      to: [input.to],
-      subject: 'Restablece tu contraseña en ContacNeed',
-      html: `
-        <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
-          <h2>Recuperación de contraseña</h2>
-          <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en ContacNeed.</p>
-          <p>
-            <a href="${input.actionLink}" style="display:inline-block;padding:12px 18px;background:#d4a017;color:#111;text-decoration:none;border-radius:8px;font-weight:700">
-              Crear nueva contraseña
-            </a>
-          </p>
-          <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
-          <p style="color:#666;font-size:13px">El enlace expira en 24 horas.</p>
-        </div>
-      `,
-    }),
+  return sendResendEmail({
+    apiKey: input.apiKey,
+    from: input.from,
+    to: input.to,
+    subject: 'Restablece tu contraseña en ContacNeed',
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
+        <h2>Recuperación de contraseña</h2>
+        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en ContacNeed.</p>
+        <p>
+          <a href="${input.actionLink}" style="display:inline-block;padding:12px 18px;background:#d4a017;color:#111;text-decoration:none;border-radius:8px;font-weight:700">
+            Crear nueva contraseña
+          </a>
+        </p>
+        <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
+        <p style="color:#666;font-size:13px">El enlace expira en 24 horas.</p>
+      </div>
+    `,
   })
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => '')
-    return {
-      ok: false as const,
-      error: body || `Resend respondió con estado ${response.status}`,
-    }
-  }
-
-  return { ok: true as const }
 }

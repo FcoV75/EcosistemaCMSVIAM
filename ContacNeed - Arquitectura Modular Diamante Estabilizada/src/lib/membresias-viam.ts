@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { ensureLegacyCmsCode } from './cms-legacy-code'
 import { normalizarEmail } from './promotores-viam'
 
 export const PRODUCTO_NEXUS = 'sincronia_nexus'
@@ -89,7 +90,7 @@ export async function otorgarMembresiaViam(
 
   const { data: rows } = await supabase
     .from('ecosistema_entitlements')
-    .select('id, metadata, user_id')
+    .select('id, metadata, user_id, legacy_code')
     .eq('producto', producto)
     .eq('status', 'active')
     .limit(300)
@@ -100,6 +101,10 @@ export async function otorgarMembresiaViam(
       normalizarEmail((r.metadata as { email?: string } | null)?.email) === mail,
   )
 
+  const legacyCode =
+    (already?.legacy_code && String(already.legacy_code).toUpperCase()) ||
+    (await ensureLegacyCmsCode(supabase, { userId, email: mail }))
+
   const now = new Date().toISOString()
   const metadata = {
     email: mail,
@@ -109,6 +114,7 @@ export async function otorgarMembresiaViam(
     otorgado_at: now,
     otorgado_por: otorgadoPor || null,
     source: 'contacneed-admin',
+    codigo_cms: legacyCode,
   }
 
   const row = {
@@ -117,6 +123,7 @@ export async function otorgarMembresiaViam(
     plan,
     status: 'active',
     expires_at: expiresForPlan(plan),
+    legacy_code: legacyCode,
     metadata,
     updated_at: now,
   }
@@ -134,6 +141,8 @@ export async function otorgarMembresiaViam(
       email: mail,
       plan,
       producto,
+      legacyCode,
+      nombre: metadata.nombre,
     }
   }
 
@@ -150,6 +159,8 @@ export async function otorgarMembresiaViam(
     email: mail,
     plan,
     producto,
+    legacyCode,
+    nombre: metadata.nombre,
   }
 }
 
