@@ -137,41 +137,73 @@ function AdminDashboard() {
     queryClient.invalidateQueries({ queryKey: ['admin-promotores'] })
   }
 
+  const notifyError = (error: unknown, fallback: string) => {
+    const message = error instanceof Error ? error.message : fallback
+    console.error(fallback, error)
+    if (typeof window !== 'undefined') alert(message)
+  }
+
+  const notifyOk = (message: string) => {
+    if (typeof window !== 'undefined') alert(message)
+  }
+
   const moderateMutation = useMutation({
     mutationFn: (payload: { id: string; estatus: 'aprobado' | 'baneado' | 'pendiente' }) =>
       moderatePostFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Publicación actualizada')
+    },
+    onError: (error) => notifyError(error, 'No se pudo moderar la publicación'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (payload: { id: string }) => deletePostAdminFn({ data: payload }),
     onSuccess: invalidateAll,
+    onError: (error) => notifyError(error, 'No se pudo eliminar la publicación'),
   })
 
   const userMutation = useMutation({
     mutationFn: (payload: { id: string; es_pro?: boolean; is_admin?: boolean }) =>
       updateUserAdminFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Usuario actualizado')
+    },
+    onError: (error) => notifyError(error, 'No se pudo actualizar el usuario'),
   })
 
   const banUserMutation = useMutation({
     mutationFn: (payload: { id: string }) => banUserAdminFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Publicaciones del usuario baneadas')
+    },
+    onError: (error) => notifyError(error, 'No se pudieron banear las publicaciones'),
   })
 
   const blockUserMutation = useMutation({
     mutationFn: (payload: { id: string; bloqueado: boolean }) => blockUserAdminFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Estado de cuenta actualizado')
+    },
+    onError: (error) => notifyError(error, 'No se pudo suspender/reactivar al usuario'),
   })
 
   const approveProMutation = useMutation({
     mutationFn: (payload: { id: string }) => approveProRequestFn({ data: payload }),
-    onSuccess: invalidateAll,
+    onSuccess: () => {
+      invalidateAll()
+      notifyOk('Solicitud PRO aprobada')
+    },
+    onError: (error) => notifyError(error, 'No se pudo aprobar la solicitud PRO'),
   })
 
   const rejectProMutation = useMutation({
     mutationFn: (payload: { id: string }) => rejectProRequestFn({ data: payload }),
     onSuccess: invalidateAll,
+    onError: (error) => notifyError(error, 'No se pudo rechazar la solicitud'),
   })
 
   const saveAdMutation = useMutation({

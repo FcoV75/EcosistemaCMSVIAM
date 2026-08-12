@@ -4,12 +4,12 @@ import {
   listMembresiasAdminFn,
   otorgarMembresiaAdminFn,
   revocarMembresiaAdminFn,
-} from '../server/membresias.functions'
+} from '../../server/membresias.functions'
 import {
   PLANES_MEMBRESIA,
   type PlanMembresia,
   type ProductoMembresia,
-} from '../lib/membresias-viam'
+} from '../../lib/membresias-viam'
 
 type Props = {
   producto: ProductoMembresia
