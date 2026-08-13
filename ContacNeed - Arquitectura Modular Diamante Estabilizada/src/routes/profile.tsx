@@ -373,7 +373,12 @@ function ProfileContent({
                   Programa de puntos ecosistema
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                  Comparte tu enlace y gana puntos por registros. Con <strong>100 puntos</strong> obtienes 1 mes PRO gratis.
+                  Cada persona que se registre con tu enlace suma{' '}
+                  <strong>{gamificacionQuery.data.puntosPorReferido ?? 10} puntos</strong>. Con{' '}
+                  <strong>{gamificacionQuery.data.puntosParaMensualidad} puntos</strong> canjeas 1 mes
+                  PRO gratis. Máximo{' '}
+                  <strong>{gamificacionQuery.data.maxMesesProAnio ?? 4} meses PRO al año</strong> por
+                  este programa.
                 </p>
                 <div className="mt-3 h-3 overflow-hidden rounded-full bg-white">
                   <div
@@ -383,6 +388,10 @@ function ProfileContent({
                 </div>
                 <p className="mt-2 text-sm font-semibold text-amber-800">
                   {gamificacionQuery.data.puntos} / {gamificacionQuery.data.puntosParaMensualidad} puntos
+                  <span className="ml-2 font-normal text-slate-600">
+                    · Canjes este año: {gamificacionQuery.data.canjesUsadosAnio ?? 0}/
+                    {gamificacionQuery.data.maxMesesProAnio ?? 4}
+                  </span>
                 </p>
                 <p className="mt-2 break-all text-xs text-slate-600">
                   Tu código: <strong>{gamificacionQuery.data.codigoReferido}</strong>
@@ -398,7 +407,8 @@ function ProfileContent({
                 >
                   Copiar enlace de invitación
                 </button>
-                {gamificacionQuery.data.puntos >= gamificacionQuery.data.puntosParaMensualidad && !isPro && (
+                {gamificacionQuery.data.puntos >= gamificacionQuery.data.puntosParaMensualidad &&
+                  (gamificacionQuery.data.canjesRestantesAnio ?? 0) > 0 && (
                   <button
                     type="button"
                     disabled={canjeMutation.isPending}
@@ -407,6 +417,11 @@ function ProfileContent({
                   >
                     Canjear 1 mes PRO
                   </button>
+                )}
+                {(gamificacionQuery.data.canjesRestantesAnio ?? 0) <= 0 && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Ya alcanzaste el máximo de meses PRO por recomendados este año.
+                  </p>
                 )}
               </div>
             )}
@@ -532,18 +547,18 @@ function ProfileContent({
                   initialLat={mapsLat}
                   initialLng={mapsLng}
                   onSave={async (payload) => {
-                    await updateNegocioFn({
+                    const row = await updateNegocioFn({
                       data: {
                         banner_url: bannerUrl,
                         items,
                         maps_address: payload.maps_address,
-                        lat: payload.lat,
-                        lng: payload.lng,
+                        lat: payload.lat ?? undefined,
+                        lng: payload.lng ?? undefined,
                       },
                     })
-                    setMapsAddress(payload.maps_address)
-                    setMapsLat(payload.lat)
-                    setMapsLng(payload.lng)
+                    setMapsAddress(row?.maps_address || payload.maps_address)
+                    setMapsLat(typeof row?.lat === 'number' ? row.lat : payload.lat ?? null)
+                    setMapsLng(typeof row?.lng === 'number' ? row.lng : payload.lng ?? null)
                   }}
                 />
 

@@ -5,6 +5,7 @@ import { Link } from '@tanstack/react-router'
 import { ThumbsUp, ThumbsDown, MessageCircle, Share2, BadgeCheck, MoreHorizontal, Trash2, Edit2, ShieldAlert } from 'lucide-react'
 
 import { useIdentity } from '../lib/identity-context'
+import { resolveAvatarUrl } from '../lib/default-avatar'
 
 import {
 
@@ -64,6 +65,8 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
 
   const [comments, setComments] = useState(post.comments || 0)
 
+  const [shares, setShares] = useState(post.shares || 0)
+
   const [commentList, setCommentList] = useState<CommentRow[]>(post.commentList || [])
 
   const [loadingComments, setLoadingComments] = useState(false)
@@ -84,7 +87,9 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
 
     setComments(post.comments || 0)
 
-  }, [post.likes, post.dislikes, post.userReaction, post.comments])
+    setShares(post.shares || 0)
+
+  }, [post.likes, post.dislikes, post.userReaction, post.comments, post.shares])
 
 
 
@@ -160,6 +165,32 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
 
     }
 
+    const prevLikes = likes
+    const prevDislikes = dislikes
+    const prevReaction = userReaction
+
+    let nextLikes = likes
+    let nextDislikes = dislikes
+    let nextReaction: 'like' | 'dislike' | null = tipo
+    if (prevReaction === tipo) {
+      nextReaction = null
+      if (tipo === 'like') nextLikes = Math.max(0, likes - 1)
+      else nextDislikes = Math.max(0, dislikes - 1)
+    } else if (prevReaction === 'like' && tipo === 'dislike') {
+      nextLikes = Math.max(0, likes - 1)
+      nextDislikes = dislikes + 1
+    } else if (prevReaction === 'dislike' && tipo === 'like') {
+      nextDislikes = Math.max(0, dislikes - 1)
+      nextLikes = likes + 1
+    } else if (tipo === 'like') {
+      nextLikes = likes + 1
+    } else {
+      nextDislikes = dislikes + 1
+    }
+    setLikes(nextLikes)
+    setDislikes(nextDislikes)
+    setUserReaction(nextReaction)
+
     setReacting(true)
 
     try {
@@ -174,6 +205,9 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
 
     } catch (error) {
 
+      setLikes(prevLikes)
+      setDislikes(prevDislikes)
+      setUserReaction(prevReaction)
       alert(error instanceof Error ? error.message : 'No se pudo guardar tu reacción')
 
     } finally {
@@ -597,7 +631,7 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
 
           >
 
-            <Share2 size={20} /> <span className="hidden text-sm font-medium sm:inline">Compartir</span>
+            <Share2 size={20} /> <span className="text-sm font-medium">{shares > 0 ? shares : <span className="hidden sm:inline">Compartir</span>}</span>
 
           </button>
 
@@ -629,7 +663,7 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
 
                   <img
 
-                    src={c.author_avatar || `https://i.pravatar.cc/40?u=${c.user_id}`}
+                    src={resolveAvatarUrl(c.author_avatar, c.user_id, c.author_name)}
 
                     alt=""
 
@@ -714,6 +748,8 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
         postId={post.id}
 
         excerpt={post.content?.slice(0, 120) ?? 'Publicación en ContacNeed'}
+
+        onShared={(count) => setShares(count)}
 
       />
 

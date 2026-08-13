@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { requireAdminUser, requireProUser } from '../lib/auth'
 import { getMaxProAds } from '../lib/plan-limits'
+import { isPlaceholderAvatarUrl, resolveAvatarUrl } from '../lib/default-avatar'
 
 export type AnuncioRow = {
   id: string
@@ -16,6 +17,7 @@ export type AnuncioRow = {
   tipo: string
   fecha_inicio?: string | null
   fecha_fin?: string | null
+  avatar_url?: string | null
 }
 
 async function assertAdmin() {
@@ -51,11 +53,36 @@ export const getActiveAdsFn = createServerFn({ method: 'GET' })
     const estado = data?.estado?.trim()
     const tipo = data?.tipo?.trim()
 
-    return (rows ?? [])
+    const filtered = (rows ?? [])
       .filter((ad) => isActive(ad as AnuncioRow))
       .filter((ad) => !tipo || ad.tipo === tipo)
       .filter((ad) => !estado || !ad.estado || ad.estado === estado)
       .slice(0, 12) as AnuncioRow[]
+
+    const userIds = [...new Set(filtered.map((ad) => ad.usuario_id).filter(Boolean))] as string[]
+    let profileById = new Map<string, { nombre?: string | null; avatar_url?: string | null }>()
+    if (userIds.length) {
+      const { data: profiles } = await supabase
+        .from('perfiles')
+        .select('id, nombre, avatar_url')
+        .in('id', userIds)
+      profileById = new Map((profiles ?? []).map((p) => [p.id, p]))
+    }
+
+    return filtered.map((ad) => {
+      const profile = ad.usuario_id ? profileById.get(ad.usuario_id) : null
+      const realAvatar = resolveAvatarUrl(
+        (!isPlaceholderAvatarUrl(ad.imagen_url) && ad.imagen_url) || profile?.avatar_url,
+        ad.usuario_id || ad.id,
+        profile?.nombre || ad.titulo,
+      )
+      return {
+        ...ad,
+        imagen_url: realAvatar,
+        avatar_url: realAvatar,
+        titulo: ad.titulo || profile?.nombre || 'Profesional PRO',
+      }
+    })
   })
 
 export const getAdminAdsFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -146,12 +173,17 @@ export const publishMyProAdFn = createServerFn({ method: 'POST' })
       )
     }
 
+    const avatar =
+      (!isPlaceholderAvatarUrl(profile?.avatar_url) && profile?.avatar_url?.trim()) ||
+      (!isPlaceholderAvatarUrl(data.imagen_url) && data.imagen_url?.trim()) ||
+      null
+
     const { data: row, error } = await supabase
       .from('anuncios')
       .insert({
         titulo: data.titulo?.trim() || profile?.nombre?.trim() || 'Profesional PRO',
         cuerpo: data.cuerpo?.trim() || profile?.descripcion_profesion || profile?.habilidad_empirica || null,
-        imagen_url: data.imagen_url?.trim() || profile?.avatar_url || null,
+        imagen_url: avatar,
         enlace_url: data.enlace_url?.trim() || null,
         usuario_id: user.id,
         estado: profile?.estado ?? null,

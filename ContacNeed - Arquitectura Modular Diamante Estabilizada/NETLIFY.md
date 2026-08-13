@@ -47,7 +47,15 @@ VITE_CLOUDINARY_UPLOAD_PRESET=
 SUPABASE_SERVICE_ROLE_KEY=     # OBLIGATORIO: guardar posts, perfil, tienda y comentarios
 RESEND_API_KEY=                # recomendado: registro, recuperación y códigos CMS al otorgar privilegios
 RESEND_FROM=ContacNeed <noreply@contacneed.com>
+GOOGLE_MAPS_API_KEY=           # opcional: geocodifica dirección de tienda PRO (si no, usa Nominatim)
+VITE_GOOGLE_MAPS_API_KEY=      # opcional, misma key si la usas en el cliente
 ```
+
+## SQL pendiente (Supabase)
+
+Para likes/comentarios/compartidos/solicitudes/notificaciones en tiempo real, ejecuta en el SQL Editor:
+
+`ContacNeed - Arquitectura Modular Diamante Estabilizada/supabase/migrations/011_realtime_social.sql`
 
 ## Correos (registro, recuperación y privilegios)
 

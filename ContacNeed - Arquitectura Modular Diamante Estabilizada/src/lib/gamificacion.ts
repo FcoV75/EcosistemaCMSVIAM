@@ -1,8 +1,10 @@
 /** Umbrales de recompensa ecosistema (ContacNeed / Nexus / Video Diamante) */
-export const PUNTOS_POR_REFERIDO_REGISTRO = 15
+export const PUNTOS_POR_REFERIDO_REGISTRO = 10
 export const PUNTOS_POR_REFERIDO_PRO = 40
 export const PUNTOS_POR_LIBRO_REFERIDO = 25
 export const PUNTOS_MENSUALIDAD_GRATIS = 100
+/** Máximo de meses PRO canjeados por puntos en un año calendario. */
+export const MAX_MESES_PRO_CANJE_ANUAL = 4
 
 export function generarCodigoReferido(userId: string) {
   const base = userId.replace(/-/g, '').slice(0, 8).toUpperCase()

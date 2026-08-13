@@ -105,6 +105,28 @@ async function attachReactionCounts(
   return { likes, dislikes }
 }
 
+
+async function attachShareCounts(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  posts: PublicacionRow[],
+) {
+  const ids = posts.map((post) => post.id)
+  if (ids.length === 0) return new Map<string, number>()
+
+  const { data, error } = await supabase
+    .from('compartidos')
+    .select('publicacion_id')
+    .in('publicacion_id', ids)
+
+  if (error) return new Map<string, number>()
+
+  const counts = new Map<string, number>()
+  for (const row of data ?? []) {
+    counts.set(row.publicacion_id, (counts.get(row.publicacion_id) ?? 0) + 1)
+  }
+  return counts
+}
+
 async function attachUserReactions(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   posts: PublicacionRow[],
@@ -132,6 +154,7 @@ function toMappedPost(
   post: PublicacionRow & { perfiles?: PerfilRow | null },
   commentCount = 0,
   reactionCounts?: { likes: number; dislikes: number; userReaction?: 'like' | 'dislike' | null },
+  shareCount = 0,
 ) {
   const mapped = mapPublicacionToPost({
     ...post,
@@ -153,6 +176,7 @@ function toMappedPost(
     dislikes: reactionCounts?.dislikes ?? 0,
     userReaction: reactionCounts?.userReaction ?? null,
     comments: commentCount,
+    shares: shareCount,
   }
 }
 
@@ -188,14 +212,20 @@ export const getPosts = createServerFn({ method: 'GET' })
     const postsWithProfiles = await attachProfiles(supabase, posts ?? [])
     const commentCounts = await attachCommentCounts(supabase, postsWithProfiles)
     const reactionCounts = await attachReactionCounts(supabase, postsWithProfiles)
+    const shareCounts = await attachShareCounts(supabase, postsWithProfiles)
     const userReactions = await attachUserReactions(supabase, postsWithProfiles, currentUser?.id ?? null)
 
     return postsWithProfiles.map((post) =>
-      toMappedPost(post, commentCounts.get(post.id) ?? 0, {
-        likes: reactionCounts.likes.get(post.id) ?? 0,
-        dislikes: reactionCounts.dislikes.get(post.id) ?? 0,
-        userReaction: userReactions.get(post.id) ?? null,
-      }),
+      toMappedPost(
+        post,
+        commentCounts.get(post.id) ?? 0,
+        {
+          likes: reactionCounts.likes.get(post.id) ?? 0,
+          dislikes: reactionCounts.dislikes.get(post.id) ?? 0,
+          userReaction: userReactions.get(post.id) ?? null,
+        },
+        shareCounts.get(post.id) ?? 0,
+      ),
     )
   })
 
@@ -402,6 +432,39 @@ export const toggleReactionFn = createServerFn({ method: 'POST' })
       dislikes,
       userReaction: current ? (current.tipo === 'dislike' ? 'dislike' : 'like') : null,
     }
+  })
+
+export const registerShareFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { postId: string; canal?: string }) => d)
+  .handler(async ({ data }) => {
+    const supabase = createSupabaseAdminClient()
+    let userId: string | null = null
+    try {
+      const { user } = await requireActiveUser()
+      userId = user.id
+    } catch {
+      userId = null
+    }
+
+    const { error } = await supabase.from('compartidos').insert({
+      publicacion_id: data.postId,
+      usuario_id: userId,
+      canal: data.canal?.trim() || 'link',
+    })
+
+    if (error) {
+      if (error.message.includes('does not exist')) {
+        return { shares: 0, warning: 'Comparte guardado localmente; ejecuta SQL 011 para persistir.' }
+      }
+      throw error
+    }
+
+    const { data: rows } = await supabase
+      .from('compartidos')
+      .select('id')
+      .eq('publicacion_id', data.postId)
+
+    return { shares: rows?.length ?? 1 }
   })
 
 export const getCommentsFn = createServerFn({ method: 'GET' })

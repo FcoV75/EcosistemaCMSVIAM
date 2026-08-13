@@ -47,17 +47,27 @@ export async function fetchProPanelItems(estado?: string): Promise<ProProfile[]>
   ])
 
   const adItems: ProProfile[] = ads.map((ad) => ({
-    id: ad.id,
+    id: ad.usuario_id || ad.id,
     nombre: ad.titulo,
     descripcion_profesion: ad.cuerpo,
     estado: ad.estado,
     imagen_url: ad.imagen_url,
-    enlace_url: ad.enlace_url,
+    avatar_url: ad.avatar_url || ad.imagen_url,
+    enlace_url: ad.enlace_url || (ad.usuario_id ? `/u/${ad.usuario_id}` : null),
     es_pro: true,
     verificado: true,
   }))
 
   const profileItems = profiles.filter((p) => !estado || !p.estado || p.estado === estado)
 
-  return [...adItems, ...profileItems].slice(0, 10)
+  const seen = new Set<string>()
+  const merged: ProProfile[] = []
+  for (const item of [...adItems, ...profileItems]) {
+    const key = item.id
+    if (seen.has(key)) continue
+    seen.add(key)
+    merged.push(item)
+  }
+
+  return merged.slice(0, 10)
 }

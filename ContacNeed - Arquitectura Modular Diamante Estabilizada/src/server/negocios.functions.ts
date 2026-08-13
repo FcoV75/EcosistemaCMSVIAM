@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { requireActiveUser } from '../lib/auth'
 import { getStoreItemLimit } from '../lib/plan-limits'
+import { geocodeAddress } from '../lib/geocode'
 
 export const getNegocioFn = createServerFn({ method: 'GET' })
   .inputValidator((d: string) => d)
@@ -52,9 +53,21 @@ export const updateNegocioFn = createServerFn({ method: 'POST' })
     }
 
     if (isPro && hasMapsPayload) {
-      payload.maps_address = data.maps_address?.trim() || null
-      payload.lat = typeof data.lat === 'number' ? data.lat : null
-      payload.lng = typeof data.lng === 'number' ? data.lng : null
+      const address = data.maps_address?.trim() || ''
+      payload.maps_address = address || null
+
+      if (typeof data.lat === 'number' && typeof data.lng === 'number') {
+        payload.lat = data.lat
+        payload.lng = data.lng
+      } else if (address) {
+        const geo = await geocodeAddress(address)
+        payload.lat = geo.lat
+        payload.lng = geo.lng
+        if (geo.formattedAddress) payload.maps_address = geo.formattedAddress
+      } else {
+        payload.lat = null
+        payload.lng = null
+      }
     }
 
     const { data: row, error } = await supabase
