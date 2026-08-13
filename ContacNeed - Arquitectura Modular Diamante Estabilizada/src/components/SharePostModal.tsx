@@ -1,25 +1,37 @@
 import { Copy, Share2, X } from 'lucide-react'
 import { useState } from 'react'
 import { buildSharePayload, SHARE_CHANNELS } from '../lib/share-post'
+import { registerShareFn } from '../server/posts.functions'
 
 type SharePostModalProps = {
   open: boolean
   onClose: () => void
   postId: string
   excerpt: string
+  onShared?: (shares: number) => void
 }
 
-export function SharePostModal({ open, onClose, postId, excerpt }: SharePostModalProps) {
+export function SharePostModal({ open, onClose, postId, excerpt, onShared }: SharePostModalProps) {
   const [copied, setCopied] = useState(false)
 
   if (!open) return null
 
   const { url, text, full } = buildSharePayload(postId, excerpt)
 
+  const trackShare = async (canal: string) => {
+    try {
+      const result = await registerShareFn({ data: { postId, canal } })
+      if (typeof result.shares === 'number') onShared?.(result.shares)
+    } catch {
+      /* tracking best-effort */
+    }
+  }
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(full)
       setCopied(true)
+      await trackShare('copy')
       setTimeout(() => setCopied(false), 2000)
     } catch {
       alert('No se pudo copiar el enlace')
@@ -30,6 +42,7 @@ export function SharePostModal({ open, onClose, postId, excerpt }: SharePostModa
     if (navigator.share) {
       try {
         await navigator.share({ title: 'ContacNeed', text, url })
+        await trackShare('native')
         onClose()
         return
       } catch {
@@ -64,7 +77,10 @@ export function SharePostModal({ open, onClose, postId, excerpt }: SharePostModa
                 href={channel.buildUrl(url, text)}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={onClose}
+                onClick={() => {
+                  void trackShare(channel.id)
+                  onClose()
+                }}
                 className={`rounded-xl ${channel.color} px-3 py-3 text-center text-sm font-bold text-white transition hover:opacity-90`}
               >
                 {channel.label}
@@ -78,18 +94,16 @@ export function SharePostModal({ open, onClose, postId, excerpt }: SharePostModa
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500/30 bg-slate-900/60 py-3 text-sm font-semibold text-purple-100"
           >
             <Copy size={16} />
-            {copied ? 'Enlace copiado' : 'Copiar enlace'}
+            {copied ? '¡Enlace copiado!' : 'Copiar enlace'}
           </button>
 
-          {'share' in navigator && (
-            <button
-              type="button"
-              onClick={nativeShare}
-              className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-bold text-slate-950"
-            >
-              Compartir con apps del dispositivo
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={nativeShare}
+            className="cn-btn-metallic w-full rounded-xl py-3 text-sm font-bold text-slate-950"
+          >
+            Compartir desde este dispositivo
+          </button>
         </div>
       </div>
     </div>

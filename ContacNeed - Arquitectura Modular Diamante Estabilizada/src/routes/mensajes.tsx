@@ -36,10 +36,30 @@ function MessagesPage() {
   const [showStripeModal, setShowStripeModal] = useState(false)
   const [tab, setTab] = useState<'inbox' | 'chats' | 'requests' | 'online'>('chats')
 
-  const inboxQuery = useQuery({ queryKey: ['inbox'], queryFn: () => getInboxFn() })
-  const chatsQuery = useQuery({ queryKey: ['conversations'], queryFn: () => getConversationsSummaryFn() })
-  const requestsQuery = useQuery({ queryKey: ['contact-requests'], queryFn: () => getContactRequestsFn() })
-  const onlineQuery = useQuery({ queryKey: ['online-users'], queryFn: () => getOnlineUsersFn(), refetchInterval: 60000 })
+  const inboxQuery = useQuery({
+    queryKey: ['inbox'],
+    queryFn: () => getInboxFn(),
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+  })
+  const chatsQuery = useQuery({
+    queryKey: ['conversations'],
+    queryFn: () => getConversationsSummaryFn(),
+    refetchInterval: 8_000,
+    refetchOnWindowFocus: true,
+  })
+  const requestsQuery = useQuery({
+    queryKey: ['contact-requests'],
+    queryFn: () => getContactRequestsFn(),
+    refetchInterval: 8_000,
+    refetchOnWindowFocus: true,
+  })
+  const onlineQuery = useQuery({
+    queryKey: ['online-users'],
+    queryFn: () => getOnlineUsersFn(),
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
+  })
 
   const respondMutation = useMutation({
     mutationFn: (payload: { id: string; accept: boolean }) => respondContactRequestFn({ data: payload }),

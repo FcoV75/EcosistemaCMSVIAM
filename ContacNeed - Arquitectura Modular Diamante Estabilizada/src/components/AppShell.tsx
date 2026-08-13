@@ -6,6 +6,8 @@ import { ContacNeedLogo } from './ContacNeedLogo'
 import { GuestBrowseGate } from './GuestBrowseGate'
 import { HeaderSearchBar } from './HeaderSearchBar'
 import { LastSeenPing } from './LastSeenPing'
+import { LiveSocialBridge } from './LiveSocialBridge'
+import { NotificationsBell } from './NotificationsBell'
 import { useOnboardingGuide } from '../lib/onboarding-context'
 import { ProAdModal } from './ProAdModal'
 import { ProAdPanel } from './ProAdPanel'
@@ -95,6 +97,7 @@ export function AppShell({
                     <span className="hidden max-w-[160px] truncate text-xs text-purple-200/70 xl:inline">
                       {user.email}
                     </span>
+                    <NotificationsBell />
                     <Link
                       to="/mensajes"
                       className="inline-flex items-center gap-1.5 rounded-xl border border-purple-400/40 bg-purple-900/40 px-3 py-2 text-xs font-semibold text-purple-100 hover:bg-purple-800/50"
@@ -211,6 +214,7 @@ export function AppShell({
         />
         <GuestBrowseGate onGateOpen={handleGateOpen} />
         <LastSeenPing />
+        <LiveSocialBridge />
         {authModal.required && authModal.open && (
           <div className="fixed inset-0 z-[54] bg-black/40 backdrop-blur-[1px]" aria-hidden />
         )}

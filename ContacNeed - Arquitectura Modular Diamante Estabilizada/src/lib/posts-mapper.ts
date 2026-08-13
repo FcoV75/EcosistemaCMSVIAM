@@ -15,6 +15,7 @@ export type MappedPost = {
   dislikes: number
   userReaction: 'like' | 'dislike' | null
   comments: number
+  shares: number
   commentList: unknown[]
   authorData: {
     name: string
@@ -71,6 +72,7 @@ export function mapPublicacionToPost(post: {
     dislikes: 0,
     userReaction: null,
     comments: 0,
+    shares: 0,
     commentList: [],
     authorData: {
       name: post.perfiles?.nombre ?? 'Usuario',

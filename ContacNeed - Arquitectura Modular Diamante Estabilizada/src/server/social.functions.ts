@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { getServerUser, requireActiveUser } from '../lib/auth'
+import { crearNotificacion } from '../lib/notificaciones'
 
 const ONLINE_WINDOW_MS = 5 * 60 * 1000
 
@@ -114,6 +115,21 @@ export const sendMessageFn = createServerFn({ method: 'POST' })
       }
       throw error
     }
+
+    const { data: sender } = await supabase
+      .from('perfiles')
+      .select('nombre')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    await crearNotificacion(supabase, {
+      usuarioId: data.destinatarioId,
+      tipo: 'mensaje',
+      titulo: `Nuevo mensaje de ${sender?.nombre || 'un contacto'}`,
+      cuerpo: data.cuerpo.trim().slice(0, 140),
+      enlace: '/mensajes',
+      metadata: { mensaje_id: row.id, remitente_id: user.id },
+    })
 
     return { success: true, id: row.id }
   })
@@ -343,6 +359,24 @@ export const sendContactRequestFn = createServerFn({ method: 'POST' })
       }
       throw error
     }
+
+    const { data: sender } = await supabase
+      .from('perfiles')
+      .select('nombre')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    await crearNotificacion(supabase, {
+      usuarioId: data.destinatarioId,
+      tipo: data.tipo === 'servicio' ? 'solicitud_servicio' : 'solicitud_amistad',
+      titulo:
+        data.tipo === 'servicio'
+          ? `Solicitud de servicio de ${sender?.nombre || 'un usuario'}`
+          : `Solicitud de amistad de ${sender?.nombre || 'un usuario'}`,
+      cuerpo: data.mensaje?.trim() || 'Tienes una nueva solicitud pendiente.',
+      enlace: '/mensajes',
+      metadata: { solicitud_id: row.id, tipo: data.tipo },
+    })
 
     return { success: true, id: row.id }
   })

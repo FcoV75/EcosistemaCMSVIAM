@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { BadgeCheck, Crown, ExternalLink, Sparkles } from 'lucide-react'
 import { useIdentity } from '../lib/identity-context'
+import { resolveAvatarUrl } from '../lib/default-avatar'
 import { fetchProPanelItems } from '../lib/pro-ads-client'
 import type { MexicoState } from '../lib/mexico-states'
 
@@ -70,7 +71,11 @@ function ProCard({
     enlace_url?: string | null
   }
 }) {
-  const avatar = pro.imagen_url || pro.avatar_url || `https://i.pravatar.cc/80?u=${pro.id}`
+  const avatar = resolveAvatarUrl(
+    pro.imagen_url || pro.avatar_url,
+    pro.id,
+    pro.nombre,
+  )
   const body = (
     <div className="cn-pro-card rounded-2xl border border-purple-400/30 bg-gradient-to-br from-purple-900/50 to-slate-900/80 p-4 shadow-lg shadow-purple-500/10 transition hover:border-amber-400/40">
       <div className="flex items-start gap-3">

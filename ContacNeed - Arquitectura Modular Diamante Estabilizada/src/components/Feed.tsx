@@ -66,11 +66,11 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
     queryFn: () => fetchPublicPosts(selectedState || undefined),
 
-    refetchInterval: false,
+    refetchInterval: 12_000,
 
     refetchIntervalInBackground: false,
 
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
 
   })
 

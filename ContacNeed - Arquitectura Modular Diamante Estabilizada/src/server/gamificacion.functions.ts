@@ -2,12 +2,32 @@ import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { requireActiveUser, requireAdminUser } from '../lib/auth'
 import {
+  MAX_MESES_PRO_CANJE_ANUAL,
   PUNTOS_MENSUALIDAD_GRATIS,
   PUNTOS_POR_REFERIDO_REGISTRO,
   asegurarCodigoReferido,
   otorgarPuntos,
 } from '../lib/gamificacion'
 import { upsertContacNeedPro } from '../lib/ecosistema-entitlements'
+
+async function contarCanjesProAnioActual(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+) {
+  const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString()
+  const { data, error } = await supabase
+    .from('puntos_historial')
+    .select('id, metadata, created_at')
+    .eq('usuario_id', userId)
+    .eq('motivo', 'canje_mensualidad_pro')
+    .gte('created_at', yearStart)
+
+  if (error) return 0
+  return (data ?? []).reduce((sum, row) => {
+    const meses = Number((row.metadata as { meses?: number } | null)?.meses ?? 1)
+    return sum + (Number.isFinite(meses) && meses > 0 ? meses : 1)
+  }, 0)
+}
 
 export const getRankingPerfilesFn = createServerFn({ method: 'GET' }).handler(async () => {
     const supabase = createSupabaseAdminClient()
@@ -82,14 +102,20 @@ export const getMiGamificacionFn = createServerFn({ method: 'GET' }).handler(asy
     .maybeSingle()
 
   const puntos = Number(perfil?.puntos_ecosistema ?? 0)
+  const canjesUsadosAnio = await contarCanjesProAnioActual(supabase, user.id)
+  const canjesRestantesAnio = Math.max(0, MAX_MESES_PRO_CANJE_ANUAL - canjesUsadosAnio)
 
   return {
     codigoReferido: codigo,
     enlaceRegistro: `${siteUrl}/registro?ref=${encodeURIComponent(codigo)}`,
     enlaceEcosistema: `https://centromultidisciplinarioags.com/mi-ecosistema?ref=${encodeURIComponent(codigo)}`,
     puntos,
+    puntosPorReferido: PUNTOS_POR_REFERIDO_REGISTRO,
     puntosParaMensualidad: PUNTOS_MENSUALIDAD_GRATIS,
     progresoMensualidad: Math.min(100, Math.round((puntos / PUNTOS_MENSUALIDAD_GRATIS) * 100)),
+    canjesUsadosAnio,
+    canjesRestantesAnio,
+    maxMesesProAnio: MAX_MESES_PRO_CANJE_ANUAL,
     calificacionPromedio: perfil?.calificacion_promedio ?? null,
     totalCalificaciones: perfil?.total_calificaciones ?? 0,
   }
@@ -110,6 +136,13 @@ export const canjearPuntosMensualidadFn = createServerFn({ method: 'POST' }).han
     throw new Error(`Necesitas ${PUNTOS_MENSUALIDAD_GRATIS} puntos para canjear 1 mes PRO gratis.`)
   }
 
+  const canjesUsadosAnio = await contarCanjesProAnioActual(supabase, user.id)
+  if (canjesUsadosAnio >= MAX_MESES_PRO_CANJE_ANUAL) {
+    throw new Error(
+      `Ya canjeaste el máximo de ${MAX_MESES_PRO_CANJE_ANUAL} meses PRO este año con puntos de recomendados.`,
+    )
+  }
+
   await supabase
     .from('perfiles')
     .update({ puntos_ecosistema: puntos - PUNTOS_MENSUALIDAD_GRATIS })
@@ -119,12 +152,16 @@ export const canjearPuntosMensualidadFn = createServerFn({ method: 'POST' }).han
     usuario_id: user.id,
     puntos: -PUNTOS_MENSUALIDAD_GRATIS,
     motivo: 'canje_mensualidad_pro',
-    metadata: { meses: 1 },
+    metadata: { meses: 1, anio: new Date().getFullYear() },
   })
 
   await upsertContacNeedPro(supabase, user.id, 'monthly')
 
-  return { success: true, puntosRestantes: puntos - PUNTOS_MENSUALIDAD_GRATIS }
+  return {
+    success: true,
+    puntosRestantes: puntos - PUNTOS_MENSUALIDAD_GRATIS,
+    canjesRestantesAnio: Math.max(0, MAX_MESES_PRO_CANJE_ANUAL - canjesUsadosAnio - 1),
+  }
 })
 
 export async function registrarReferidoEnSignup(
