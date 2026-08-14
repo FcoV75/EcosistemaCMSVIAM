@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
-import { useBrowseSearch } from '#/lib/browse-context'
+import { useBrowseSearch } from '../lib/browse-context'
 
 /**
  * Input local + debounce: el valor en pantalla no depende del re-render del feed
