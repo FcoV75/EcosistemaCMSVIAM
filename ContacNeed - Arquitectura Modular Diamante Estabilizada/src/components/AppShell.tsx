@@ -17,7 +17,6 @@ import { StateSelector } from './StateSelector'
 import { SupportBot } from './SupportBot'
 import { TopBannerBar } from './TopBannerBar'
 import { StripeSubscriptionModal } from './StripeSubscriptionModal'
-import { BrowseProvider } from '../lib/browse-context'
 import { useIdentity } from '../lib/identity-context'
 import { signOutFn } from '../server/auth.functions'
 import type { MexicoState } from '../lib/mexico-states'
@@ -69,7 +68,6 @@ export function AppShell({
   }
 
   return (
-    <BrowseProvider>
       <div className="cn-metallic-bg relative min-h-screen overflow-x-hidden text-white">
         <div
           className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.04]"
@@ -158,7 +156,7 @@ export function AppShell({
               </div>
             </div>
 
-            <HeaderSearchBar />
+            <HeaderSearchBar selectedState={selectedState} />
           </div>
         </header>
 
@@ -219,6 +217,5 @@ export function AppShell({
           <div className="fixed inset-0 z-[54] bg-black/40 backdrop-blur-[1px]" aria-hidden />
         )}
       </div>
-    </BrowseProvider>
   )
 }
