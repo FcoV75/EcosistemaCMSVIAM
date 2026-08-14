@@ -14,9 +14,9 @@ export function HeaderSearchBar() {
         type="search"
         value={searchQuery}
         onChange={(event) => setSearchQuery(event.target.value)}
-        placeholder="Buscar oficio, profesión, servicio o publicación..."
+        placeholder="Buscar persona, oficio, profesión o publicación..."
         className="w-full rounded-xl border border-purple-500/25 bg-slate-900/50 py-2.5 pl-9 pr-9 text-sm text-white placeholder:text-purple-300/40 focus:border-amber-400/50 focus:outline-none"
-        aria-label="Buscar en ContacNeed"
+        aria-label="Buscar personas y publicaciones en ContacNeed"
       />
       {searchQuery && (
         <button

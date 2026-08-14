@@ -14,14 +14,24 @@ export const Route = createFileRoute('/mensajes/chat/$peerId')({
     if (session.user.id === params.peerId) throw redirect({ to: '/mensajes' })
     return { user: session.user }
   },
-  loader: async ({ params }) => getConversationFn({ data: params.peerId }),
+  loader: async ({ params }) => {
+    try {
+      const data = await getConversationFn({ data: params.peerId })
+      return { ok: true as const, data }
+    } catch (error) {
+      return {
+        ok: false as const,
+        error: error instanceof Error ? error.message : 'No se pudo abrir el chat',
+      }
+    }
+  },
   component: ChatPage,
 })
 
 function ChatPage() {
   const { user } = Route.useRouteContext()
   const { peerId } = Route.useParams()
-  const data = Route.useLoaderData()
+  const loaded = Route.useLoaderData()
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
 
@@ -44,13 +54,22 @@ function ChatPage() {
           </p>
         </div>
 
-        <RealtimeChat
-          peerId={peerId}
-          myUserId={user.id}
-          peerName={data.peer.nombre}
-          peerAvatar={data.peer.avatar_url}
-          peerOnlineApprox={data.peer.online}
-        />
+        {!loaded.ok ? (
+          <div className="rounded-2xl border border-amber-400/30 bg-amber-950/30 p-5 text-sm text-amber-100">
+            <p>{loaded.error}</p>
+            <Link to="/mensajes" className="mt-3 inline-block font-bold text-amber-300 hover:underline">
+              Ir a solicitudes y bandeja →
+            </Link>
+          </div>
+        ) : (
+          <RealtimeChat
+            peerId={peerId}
+            myUserId={user.id}
+            peerName={loaded.data.peer.nombre}
+            peerAvatar={loaded.data.peer.avatar_url}
+            peerOnlineApprox={loaded.data.peer.online}
+          />
+        )}
       </div>
     </AppShell>
   )

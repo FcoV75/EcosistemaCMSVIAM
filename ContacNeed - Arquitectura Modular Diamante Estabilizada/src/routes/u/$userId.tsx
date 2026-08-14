@@ -7,7 +7,7 @@ import { ProfileRating } from '../../components/ProfileRating'
 import { BusinessLocationDisplay } from '../../components/BusinessLocationPanel'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../../lib/mexico-states'
 import { useIdentity } from '../../lib/identity-context'
-import { getPublicProfileFn, sendContactRequestFn, sendMessageFn } from '../../server/social.functions'
+import { getPublicProfileFn, sendContactRequestFn } from '../../server/social.functions'
 
 export const Route = createFileRoute('/u/$userId')({
   loader: async ({ params }) => getPublicProfileFn({ data: params.userId }),
@@ -20,44 +20,47 @@ function PublicProfilePage() {
   const { user } = useIdentity()
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
-  const [message, setMessage] = useState('')
-  const [requestNote, setRequestNote] = useState('')
+  const [serviceNote, setServiceNote] = useState('')
+  const [friendNote, setFriendNote] = useState('')
 
   const profile = data.profile
   const negocio = data.negocio
+  const relacion = data.relacion
   const items = Array.isArray(negocio?.items) ? (negocio.items as string[]) : []
 
-  const sendMessageMutation = useMutation({
+  const serviceMutation = useMutation({
     mutationFn: () =>
-      sendMessageFn({
+      sendContactRequestFn({
         data: {
           destinatarioId: userId,
-          cuerpo: message.trim(),
-          asunto: 'Solicitud de servicio',
           tipo: 'servicio',
+          mensaje: serviceNote.trim(),
         },
       }),
     onSuccess: () => {
-      alert('Mensaje enviado. Revisa tu bandeja en Mensajes.')
-      setMessage('')
+      alert('Solicitud de servicio enviada. Le llegará en Avisos y en su bandeja.')
+      setServiceNote('')
     },
     onError: (error) => alert(error instanceof Error ? error.message : 'No se pudo enviar'),
   })
 
-  const contactMutation = useMutation({
-    mutationFn: (tipo: 'amistad' | 'servicio') =>
+  const friendMutation = useMutation({
+    mutationFn: () =>
       sendContactRequestFn({
-        data: { destinatarioId: userId, tipo, mensaje: requestNote.trim() || undefined },
+        data: {
+          destinatarioId: userId,
+          tipo: 'amistad',
+          mensaje: friendNote.trim() || undefined,
+        },
       }),
     onSuccess: () => {
-      alert('Solicitud enviada correctamente.')
-      setRequestNote('')
+      alert('Solicitud de amistad enviada.')
+      setFriendNote('')
     },
     onError: (error) => alert(error instanceof Error ? error.message : 'No se pudo enviar'),
   })
 
-  const avatar =
-    profile.avatar_url?.trim() || `https://i.pravatar.cc/150?u=${profile.id}`
+  const avatar = profile.avatar_url?.trim() || `https://i.pravatar.cc/150?u=${profile.id}`
 
   return (
     <AppShell
@@ -121,80 +124,86 @@ function PublicProfilePage() {
 
           {user && user.id !== userId && (
             <div className="mt-8 grid gap-4 lg:grid-cols-2">
-              <div className="rounded-xl border border-purple-500/20 bg-slate-900/40 p-4">
+              <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/20 p-4">
                 <h2 className="mb-2 flex items-center gap-2 font-bold text-white">
-                  <MessageSquare size={18} className="text-amber-400" />
-                  Enviar mensaje privado
+                  <MessageSquare size={18} className="text-emerald-400" />
+                  Solicitar servicio
                 </h2>
+                <p className="mb-2 text-xs text-emerald-100/75">
+                  Explica con claridad qué necesitas. Le llegará en su campanita de Avisos y podrá responderte.
+                </p>
                 <textarea
-                  rows={3}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe el servicio que necesitas..."
-                  className="w-full rounded-xl border border-purple-500/25 bg-slate-950/60 px-3 py-2 text-sm text-white"
+                  rows={4}
+                  value={serviceNote}
+                  onChange={(e) => setServiceNote(e.target.value)}
+                  placeholder="Ej. Necesito plomería el sábado en la mañana, fuga en baño, colonia Centro..."
+                  className="w-full rounded-xl border border-emerald-500/25 bg-slate-950/60 px-3 py-2 text-sm text-white"
                 />
                 <button
                   type="button"
-                  disabled={!message.trim() || sendMessageMutation.isPending}
-                  onClick={() => sendMessageMutation.mutate()}
-                  className="mt-3 rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 disabled:opacity-50"
+                  disabled={serviceNote.trim().length < 20 || serviceMutation.isPending}
+                  onClick={() => serviceMutation.mutate()}
+                  className="mt-3 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
                 >
-                  {sendMessageMutation.isPending ? 'Enviando...' : 'Enviar a bandeja'}
+                  {serviceMutation.isPending ? 'Enviando...' : 'Enviar solicitud de servicio'}
                 </button>
-                <Link
-                  to="/mensajes"
-                  className="mt-3 inline-flex rounded-xl border border-purple-400/40 bg-purple-950/30 px-4 py-2 text-sm font-bold text-purple-100 hover:bg-purple-900/40"
-                >
-                  Enviar mensaje a bandeja →
-                </Link>
-                {profile.es_pro ? (
-                  <Link
-                    to="/mensajes/chat/$peerId"
-                    params={{ peerId: userId }}
-                    className="mt-3 inline-flex rounded-xl border border-emerald-400/40 bg-emerald-950/30 px-4 py-2 text-sm font-bold text-emerald-200 hover:bg-emerald-900/40"
-                  >
-                    Chat en vivo PRO →
-                  </Link>
-                ) : (
-                  <p className="mt-2 text-xs text-purple-300/70">
-                    El chat en vivo es exclusivo PRO. Plan gratuito: bandeja de mensajes y solicitudes.
-                  </p>
+                {relacion?.solicitudPendiente === 'servicio' && (
+                  <p className="mt-2 text-xs text-amber-200/80">Ya tienes una solicitud de servicio pendiente.</p>
                 )}
-                <Link to="/mensajes" className="mt-2 block text-xs text-purple-300 hover:text-white">
-                  Ir a mi bandeja →
-                </Link>
               </div>
 
               <div className="rounded-xl border border-purple-500/20 bg-slate-900/40 p-4">
                 <h2 className="mb-2 flex items-center gap-2 font-bold text-white">
                   <UserPlus size={18} className="text-amber-400" />
-                  Solicitudes de contacto
+                  Amistad y chat
                 </h2>
-                <textarea
-                  rows={2}
-                  value={requestNote}
-                  onChange={(e) => setRequestNote(e.target.value)}
-                  placeholder="Mensaje opcional..."
-                  className="w-full rounded-xl border border-purple-500/25 bg-slate-950/60 px-3 py-2 text-sm text-white"
-                />
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => contactMutation.mutate('servicio')}
-                    disabled={contactMutation.isPending}
-                    className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white"
-                  >
-                    Solicitar servicio
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => contactMutation.mutate('amistad')}
-                    disabled={contactMutation.isPending}
-                    className="rounded-xl border border-purple-400/40 px-4 py-2 text-xs font-bold text-purple-100"
-                  >
-                    Solicitar amistad
-                  </button>
-                </div>
+                {relacion?.esContacto ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-emerald-200/90">
+                      Ya son contactos. Pueden escribirse en la bandeja
+                      {profile.es_pro ? ' y usar chat en vivo si eres PRO.' : '.'}
+                    </p>
+                    <Link
+                      to="/mensajes"
+                      className="inline-flex rounded-xl border border-purple-400/40 bg-purple-950/30 px-4 py-2 text-sm font-bold text-purple-100 hover:bg-purple-900/40"
+                    >
+                      Ir a mensajes →
+                    </Link>
+                    {profile.es_pro && (
+                      <Link
+                        to="/mensajes/chat/$peerId"
+                        params={{ peerId: userId }}
+                        className="ml-2 inline-flex rounded-xl border border-emerald-400/40 bg-emerald-950/30 px-4 py-2 text-sm font-bold text-emerald-200 hover:bg-emerald-900/40"
+                      >
+                        Chat en vivo PRO →
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <p className="mb-2 text-xs text-purple-200/70">
+                      El chat libre se habilita cuando acepten tu amistad o tu solicitud de servicio.
+                    </p>
+                    <textarea
+                      rows={2}
+                      value={friendNote}
+                      onChange={(e) => setFriendNote(e.target.value)}
+                      placeholder="Mensaje opcional de presentación..."
+                      className="w-full rounded-xl border border-purple-500/25 bg-slate-950/60 px-3 py-2 text-sm text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => friendMutation.mutate()}
+                      disabled={friendMutation.isPending}
+                      className="mt-3 rounded-xl border border-purple-400/40 px-4 py-2 text-xs font-bold text-purple-100"
+                    >
+                      {friendMutation.isPending ? 'Enviando...' : 'Solicitar amistad'}
+                    </button>
+                    {relacion?.solicitudPendiente === 'amistad' && (
+                      <p className="mt-2 text-xs text-amber-200/80">Solicitud de amistad pendiente.</p>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           )}
