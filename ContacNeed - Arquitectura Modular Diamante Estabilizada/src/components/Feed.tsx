@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { PostCard } from './PostCard'
 
+import { PeopleSearchResults } from './PeopleSearchResults'
+
 import { Link } from '@tanstack/react-router'
 
 import { useBrowseSearch } from '../lib/browse-context'
@@ -173,6 +175,14 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
         onSubmit={(payload) => createPostMutation.mutate(payload)}
 
       />
+
+      {searchQuery.trim().length >= 2 && (
+        <PeopleSearchResults query={searchQuery} selectedState={selectedState} />
+      )}
+
+      {searchQuery.trim().length >= 2 && (
+        <h3 className="text-sm font-bold text-white">Publicaciones</h3>
+      )}
 
 
 

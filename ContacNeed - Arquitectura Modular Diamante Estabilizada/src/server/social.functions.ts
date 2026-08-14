@@ -2,8 +2,32 @@ import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { getServerUser, requireActiveUser } from '../lib/auth'
 import { crearNotificacion } from '../lib/notificaciones'
+import { resolveAvatarUrl } from '../lib/default-avatar'
 
 const ONLINE_WINDOW_MS = 5 * 60 * 1000
+
+function contactPair(userA: string, userB: string) {
+  return [userA, userB].sort() as [string, string]
+}
+
+async function sonContactos(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  userA: string,
+  userB: string,
+) {
+  const [a, b] = contactPair(userA, userB)
+  const { data } = await supabase
+    .from('contactos')
+    .select('id')
+    .eq('usuario_a', a)
+    .eq('usuario_b', b)
+    .maybeSingle()
+  return Boolean(data?.id)
+}
+
+function escapeIlike(value: string) {
+  return value.replace(/[%_]/g, '\\$&')
+}
 
 export const pingLastSeenFn = createServerFn({ method: 'POST' }).handler(async () => {
   const user = await getServerUser()
@@ -22,6 +46,7 @@ export const getPublicProfileFn = createServerFn({ method: 'GET' })
   .inputValidator((userId: string) => userId)
   .handler(async ({ data: userId }) => {
     const supabase = createSupabaseAdminClient()
+    const viewer = await getServerUser()
 
     const [{ data: profile, error: profileError }, { data: negocio }] = await Promise.all([
       supabase
@@ -45,6 +70,21 @@ export const getPublicProfileFn = createServerFn({ method: 'GET' })
       profile.ultima_conexion &&
       Date.now() - new Date(profile.ultima_conexion).getTime() < ONLINE_WINDOW_MS
 
+    let esContacto = false
+    let solicitudPendiente: 'amistad' | 'servicio' | null = null
+    if (viewer?.id && viewer.id !== userId) {
+      esContacto = await sonContactos(supabase, viewer.id, userId)
+      const { data: pending } = await supabase
+        .from('solicitudes_contacto')
+        .select('tipo')
+        .eq('solicitante_id', viewer.id)
+        .eq('destinatario_id', userId)
+        .eq('estatus', 'pendiente')
+        .limit(5)
+      if (pending?.some((p) => p.tipo === 'servicio')) solicitudPendiente = 'servicio'
+      else if (pending?.some((p) => p.tipo === 'amistad')) solicitudPendiente = 'amistad'
+    }
+
     return {
       profile: {
         id: profile.id,
@@ -53,7 +93,7 @@ export const getPublicProfileFn = createServerFn({ method: 'GET' })
         municipio: profile.municipio,
         habilidad_empirica: profile.habilidad_empirica,
         descripcion_profesion: profile.descripcion_profesion,
-        avatar_url: profile.avatar_url,
+        avatar_url: resolveAvatarUrl(profile.avatar_url, profile.id, profile.nombre),
         es_pro: Boolean(profile.es_pro),
         verificado: Boolean(profile.verificado),
         es_fundador: Boolean(profile.es_fundador),
@@ -61,8 +101,67 @@ export const getPublicProfileFn = createServerFn({ method: 'GET' })
         celular: profile.celular,
         online,
         ultima_conexion: profile.ultima_conexion,
+        calificacion_promedio: profile.calificacion_promedio,
+        total_calificaciones: profile.total_calificaciones,
       },
       negocio: negocio ?? null,
+      relacion: {
+        esContacto,
+        solicitudPendiente,
+        puedeChatear: esContacto,
+      },
+    }
+  })
+
+export const searchProfilesFn = createServerFn({ method: 'GET' })
+  .inputValidator((d: { query: string; estado?: string }) => d)
+  .handler(async ({ data }) => {
+    const q = data.query.trim()
+    if (q.length < 2) return { profiles: [] as const }
+
+    const supabase = createSupabaseAdminClient()
+    const pattern = `%${escapeIlike(q)}%`
+    let query = supabase
+      .from('perfiles')
+      .select(
+        'id, nombre, estado, municipio, habilidad_empirica, descripcion_profesion, avatar_url, es_pro, verificado, tipo_miembro, ultima_conexion',
+      )
+      .eq('bloqueado', false)
+      .or(
+        [
+          `nombre.ilike.${pattern}`,
+          `habilidad_empirica.ilike.${pattern}`,
+          `descripcion_profesion.ilike.${pattern}`,
+          `estado.ilike.${pattern}`,
+          `municipio.ilike.${pattern}`,
+          `tipo_miembro.ilike.${pattern}`,
+        ].join(','),
+      )
+      .order('nombre', { ascending: true })
+      .limit(24)
+
+    const estado = data.estado?.trim()
+    if (estado) query = query.eq('estado', estado)
+
+    const { data: rows, error } = await query
+    if (error) throw new Error(error.message)
+
+    return {
+      profiles: (rows ?? []).map((row) => ({
+        id: row.id,
+        nombre: row.nombre ?? 'Profesional',
+        estado: row.estado,
+        municipio: row.municipio,
+        habilidad_empirica: row.habilidad_empirica,
+        descripcion_profesion: row.descripcion_profesion,
+        tipo_miembro: row.tipo_miembro,
+        es_pro: Boolean(row.es_pro),
+        verificado: Boolean(row.verificado),
+        avatar_url: resolveAvatarUrl(row.avatar_url, row.id, row.nombre),
+        online:
+          Boolean(row.ultima_conexion) &&
+          Date.now() - new Date(row.ultima_conexion).getTime() < ONLINE_WINDOW_MS,
+      })),
     }
   })
 
@@ -97,14 +196,33 @@ export const sendMessageFn = createServerFn({ method: 'POST' })
     if (data.tipo === 'informe_pro') throw new Error('Tipo de mensaje no permitido')
 
     const supabase = createSupabaseAdminClient()
+    const tipo = data.tipo ?? 'general'
+    const cuerpo = data.cuerpo.trim()
+    if (!cuerpo) throw new Error('Escribe un mensaje.')
+
+    // Chat / mensajes libres solo entre contactos (amistad o servicio aceptado).
+    // Las solicitudes de servicio van por sendContactRequestFn.
+    if (tipo === 'general' || tipo === 'amistad') {
+      const ok = await sonContactos(supabase, user.id, data.destinatarioId)
+      if (!ok) {
+        throw new Error(
+          'Para chatear o escribir libremente primero deben aceptar tu solicitud de amistad o de servicio.',
+        )
+      }
+    }
+
+    if (tipo === 'servicio' && cuerpo.length < 20) {
+      throw new Error('Describe con más detalle el servicio que necesitas (mínimo 20 caracteres).')
+    }
+
     const { data: row, error } = await supabase
       .from('mensajes')
       .insert({
         remitente_id: user.id,
         destinatario_id: data.destinatarioId,
         asunto: data.asunto?.trim() || null,
-        cuerpo: data.cuerpo.trim(),
-        tipo: data.tipo ?? 'general',
+        cuerpo,
+        tipo,
       })
       .select('id')
       .single()
@@ -124,15 +242,19 @@ export const sendMessageFn = createServerFn({ method: 'POST' })
 
     await crearNotificacion(supabase, {
       usuarioId: data.destinatarioId,
-      tipo: 'mensaje',
-      titulo: `Nuevo mensaje de ${sender?.nombre || 'un contacto'}`,
-      cuerpo: data.cuerpo.trim().slice(0, 140),
+      tipo: tipo === 'servicio' ? 'solicitud_servicio' : 'mensaje',
+      titulo:
+        tipo === 'servicio'
+          ? `Detalle de servicio de ${sender?.nombre || 'un usuario'}`
+          : `Nuevo mensaje de ${sender?.nombre || 'un contacto'}`,
+      cuerpo: cuerpo.slice(0, 140),
       enlace: '/mensajes',
-      metadata: { mensaje_id: row.id, remitente_id: user.id },
+      metadata: { mensaje_id: row.id, remitente_id: user.id, tipo },
     })
 
     return { success: true, id: row.id }
   })
+
 
 async function fetchInboxMessages(userId: string) {
   const supabase = createSupabaseAdminClient()
@@ -219,6 +341,12 @@ export const getConversationFn = createServerFn({ method: 'GET' })
     if (user.id === peerId) throw new Error('Conversación no válida')
 
     const supabase = createSupabaseAdminClient()
+    const ok = await sonContactos(supabase, user.id, peerId)
+    if (!ok) {
+      throw new Error(
+        'El chat en vivo se habilita cuando acepten tu solicitud de amistad o de servicio.',
+      )
+    }
 
     const [{ data: rows, error }, { data: peerProfile }] = await Promise.all([
       supabase
@@ -337,7 +465,21 @@ export const sendContactRequestFn = createServerFn({ method: 'POST' })
     const { user } = await requireActiveUser()
     if (user.id === data.destinatarioId) throw new Error('Acción no válida')
 
+    const mensaje = data.mensaje?.trim() || ''
+    if (data.tipo === 'servicio') {
+      if (mensaje.length < 20) {
+        throw new Error(
+          'En la solicitud de servicio describe con claridad qué necesitas (mínimo 20 caracteres).',
+        )
+      }
+    }
+
     const supabase = createSupabaseAdminClient()
+
+    if (await sonContactos(supabase, user.id, data.destinatarioId)) {
+      throw new Error('Ya eres contacto de esta persona. Puedes escribirle o chatear desde Mensajes.')
+    }
+
     const { data: row, error } = await supabase
       .from('solicitudes_contacto')
       .upsert(
@@ -345,7 +487,7 @@ export const sendContactRequestFn = createServerFn({ method: 'POST' })
           solicitante_id: user.id,
           destinatario_id: data.destinatarioId,
           tipo: data.tipo,
-          mensaje: data.mensaje?.trim() || null,
+          mensaje: mensaje || null,
           estatus: 'pendiente',
         },
         { onConflict: 'solicitante_id,destinatario_id,tipo' },
@@ -373,10 +515,21 @@ export const sendContactRequestFn = createServerFn({ method: 'POST' })
         data.tipo === 'servicio'
           ? `Solicitud de servicio de ${sender?.nombre || 'un usuario'}`
           : `Solicitud de amistad de ${sender?.nombre || 'un usuario'}`,
-      cuerpo: data.mensaje?.trim() || 'Tienes una nueva solicitud pendiente.',
+      cuerpo: mensaje || 'Tienes una nueva solicitud pendiente.',
       enlace: '/mensajes',
       metadata: { solicitud_id: row.id, tipo: data.tipo },
     })
+
+    // Copia en bandeja para que el detalle del servicio quede documentado.
+    if (data.tipo === 'servicio' && mensaje) {
+      await supabase.from('mensajes').insert({
+        remitente_id: user.id,
+        destinatario_id: data.destinatarioId,
+        asunto: 'Solicitud de servicio',
+        cuerpo: mensaje,
+        tipo: 'servicio',
+      })
+    }
 
     return { success: true, id: row.id }
   })
@@ -453,6 +606,21 @@ export const respondContactRequestFn = createServerFn({ method: 'POST' })
         { usuario_a: pair[0], usuario_b: pair[1] },
         { onConflict: 'usuario_a,usuario_b', ignoreDuplicates: true },
       )
+
+      const { data: accepter } = await supabase
+        .from('perfiles')
+        .select('nombre')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      await crearNotificacion(supabase, {
+        usuarioId: request.solicitante_id,
+        tipo: 'general',
+        titulo: `${accepter?.nombre || 'Un usuario'} aceptó tu solicitud`,
+        cuerpo: 'Ya pueden escribirse y usar el chat (si tienen PRO).',
+        enlace: '/mensajes',
+        metadata: { solicitud_id: request.id },
+      })
     }
 
     return { success: true, estatus }
