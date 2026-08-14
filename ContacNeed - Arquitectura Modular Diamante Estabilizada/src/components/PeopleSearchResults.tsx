@@ -7,9 +7,16 @@ import type { MexicoState } from '../lib/mexico-states'
 type PeopleSearchResultsProps = {
   query: string
   selectedState: MexicoState | ''
+  variant?: 'section' | 'dropdown'
+  onPick?: () => void
 }
 
-export function PeopleSearchResults({ query, selectedState }: PeopleSearchResultsProps) {
+export function PeopleSearchResults({
+  query,
+  selectedState,
+  variant = 'section',
+  onPick,
+}: PeopleSearchResultsProps) {
   const q = query.trim()
   const enabled = q.length >= 2
 
@@ -29,9 +36,10 @@ export function PeopleSearchResults({ query, selectedState }: PeopleSearchResult
   if (!enabled) return null
 
   const profiles = peopleQuery.data?.profiles ?? []
+  const isDropdown = variant === 'dropdown'
 
   return (
-    <section className="mb-5 space-y-3">
+    <section className={isDropdown ? 'space-y-2' : 'mb-5 space-y-3'}>
       <div className="flex items-center gap-2">
         <UserRoundSearch size={16} className="text-amber-400" />
         <h3 className="text-sm font-bold text-white">Personas</h3>
@@ -54,18 +62,27 @@ export function PeopleSearchResults({ query, selectedState }: PeopleSearchResult
         </p>
       )}
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className={isDropdown ? 'grid gap-1.5' : 'grid gap-2 sm:grid-cols-2'}>
         {profiles.map((person) => (
           <Link
             key={person.id}
             to="/u/$userId"
             params={{ userId: person.id }}
-            className="flex items-start gap-3 rounded-xl border border-purple-500/20 bg-slate-900/50 p-3 transition hover:border-amber-400/40"
+            onClick={() => onPick?.()}
+            className={
+              isDropdown
+                ? 'flex items-start gap-3 rounded-lg border border-purple-500/15 bg-slate-900/60 px-2.5 py-2 transition hover:border-amber-400/40'
+                : 'flex items-start gap-3 rounded-xl border border-purple-500/20 bg-slate-900/50 p-3 transition hover:border-amber-400/40'
+            }
           >
             <img
               src={person.avatar_url}
               alt=""
-              className="h-12 w-12 shrink-0 rounded-full border border-amber-400/30 object-cover"
+              className={
+                isDropdown
+                  ? 'h-10 w-10 shrink-0 rounded-full border border-amber-400/30 object-cover'
+                  : 'h-12 w-12 shrink-0 rounded-full border border-amber-400/30 object-cover'
+              }
             />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">

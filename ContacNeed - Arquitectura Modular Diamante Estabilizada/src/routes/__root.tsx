@@ -1,6 +1,7 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { BrowseProvider } from '../lib/browse-context'
 import { IdentityProvider } from '../lib/identity-context'
 import { OnboardingProvider } from '../lib/onboarding-context'
 import { UserProvider } from '../store/userContext'
@@ -35,7 +36,9 @@ function RootLayout() {
           <IdentityProvider user={user} profile={profile} isAdmin={isAdmin}>
             <OnboardingProvider>
               <UserProvider>
-                <Outlet />
+                <BrowseProvider>
+                  <Outlet />
+                </BrowseProvider>
               </UserProvider>
             </OnboardingProvider>
           </IdentityProvider>
