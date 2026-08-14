@@ -116,29 +116,20 @@ export const getPublicProfileFn = createServerFn({ method: 'GET' })
 export const searchProfilesFn = createServerFn({ method: 'GET' })
   .inputValidator((d: { query: string; estado?: string }) => d)
   .handler(async ({ data }) => {
-    const q = data.query.trim()
+    const q = data.query.trim().toLowerCase()
     if (q.length < 2) return { profiles: [] as const }
 
     const supabase = createSupabaseAdminClient()
-    const pattern = `%${escapeIlike(q)}%`
+    // Evita filtros .or(ilike) frágiles de PostgREST (espacios/caracteres) que
+    // pueden colgar o fallar la búsqueda y “atorar” el buscador en el cliente.
     let query = supabase
       .from('perfiles')
       .select(
         'id, nombre, estado, municipio, habilidad_empirica, descripcion_profesion, avatar_url, es_pro, verificado, tipo_miembro, ultima_conexion',
       )
       .eq('bloqueado', false)
-      .or(
-        [
-          `nombre.ilike.${pattern}`,
-          `habilidad_empirica.ilike.${pattern}`,
-          `descripcion_profesion.ilike.${pattern}`,
-          `estado.ilike.${pattern}`,
-          `municipio.ilike.${pattern}`,
-          `tipo_miembro.ilike.${pattern}`,
-        ].join(','),
-      )
       .order('nombre', { ascending: true })
-      .limit(24)
+      .limit(400)
 
     const estado = data.estado?.trim()
     if (estado) query = query.eq('estado', estado)
@@ -146,8 +137,23 @@ export const searchProfilesFn = createServerFn({ method: 'GET' })
     const { data: rows, error } = await query
     if (error) throw new Error(error.message)
 
-    return {
-      profiles: (rows ?? []).map((row) => ({
+    const profiles = (rows ?? [])
+      .filter((row) => {
+        const haystack = [
+          row.nombre,
+          row.habilidad_empirica,
+          row.descripcion_profesion,
+          row.estado,
+          row.municipio,
+          row.tipo_miembro,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return haystack.includes(q)
+      })
+      .slice(0, 24)
+      .map((row) => ({
         id: row.id,
         nombre: row.nombre ?? 'Profesional',
         estado: row.estado,
@@ -161,8 +167,9 @@ export const searchProfilesFn = createServerFn({ method: 'GET' })
         online:
           Boolean(row.ultima_conexion) &&
           Date.now() - new Date(row.ultima_conexion).getTime() < ONLINE_WINDOW_MS,
-      })),
-    }
+      }))
+
+    return { profiles }
   })
 
 export const getOnlineUsersFn = createServerFn({ method: 'GET' }).handler(async () => {

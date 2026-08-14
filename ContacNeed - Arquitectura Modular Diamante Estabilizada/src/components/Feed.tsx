@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Camera, ImageIcon, RefreshCw, X } from 'lucide-react'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useDeferredValue, useMemo, useRef, useState } from 'react'
 
 import { PostCard } from './PostCard'
 
@@ -52,6 +52,7 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
   const queryClient = useQueryClient()
   const { searchQuery } = useBrowseSearch()
+  const deferredSearch = useDeferredValue(searchQuery)
   const { user } = useIdentity()
 
   const planQuery = useQuery({
@@ -87,7 +88,7 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
   const filteredPosts = useMemo(() => {
     const posts = postsQuery.data ?? []
-    const q = searchQuery.trim().toLowerCase()
+    const q = deferredSearch.trim().toLowerCase()
     if (!q) return posts
 
     return posts.filter((post) => {
@@ -102,7 +103,7 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
         .toLowerCase()
       return haystack.includes(q)
     })
-  }, [postsQuery.data, searchQuery])
+  }, [postsQuery.data, deferredSearch])
 
 
 
@@ -176,11 +177,11 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
       />
 
-      {searchQuery.trim().length >= 2 && (
-        <PeopleSearchResults query={searchQuery} selectedState={selectedState} />
+      {deferredSearch.trim().length >= 2 && (
+        <PeopleSearchResults query={deferredSearch} selectedState={selectedState} />
       )}
 
-      {searchQuery.trim().length >= 2 && (
+      {deferredSearch.trim().length >= 2 && (
         <h3 className="text-sm font-bold text-white">Publicaciones</h3>
       )}
 
@@ -214,8 +215,8 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
         <p className="rounded-xl border border-purple-500/20 bg-slate-900/50 px-4 py-3 text-sm text-purple-200/70">
 
-          {searchQuery.trim()
-            ? `No hay resultados para "${searchQuery.trim()}". Prueba otro término o cambia el estado.`
+          {deferredSearch.trim()
+            ? `No hay publicaciones para "${deferredSearch.trim()}". Prueba otro término o cambia el estado.`
             : 'No hay publicaciones en este estado todavía. Prueba cambiar el filtro a "Todos los estados" o publica la primera.'}
 
         </p>

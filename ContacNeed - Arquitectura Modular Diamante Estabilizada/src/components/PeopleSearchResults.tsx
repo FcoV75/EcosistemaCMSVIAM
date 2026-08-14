@@ -20,7 +20,10 @@ export function PeopleSearchResults({ query, selectedState }: PeopleSearchResult
         data: { query: q, estado: selectedState || undefined },
       }),
     enabled,
-    staleTime: 15_000,
+    staleTime: 30_000,
+    retry: 1,
+    placeholderData: (previous) => previous,
+    refetchOnWindowFocus: false,
   })
 
   if (!enabled) return null
@@ -33,7 +36,9 @@ export function PeopleSearchResults({ query, selectedState }: PeopleSearchResult
         <UserRoundSearch size={16} className="text-amber-400" />
         <h3 className="text-sm font-bold text-white">Personas</h3>
         <span className="text-xs text-purple-300/60">
-          {peopleQuery.isLoading ? 'Buscando...' : `${profiles.length} resultado${profiles.length === 1 ? '' : 's'}`}
+          {peopleQuery.isFetching && !peopleQuery.data
+            ? 'Buscando...'
+            : `${profiles.length} resultado${profiles.length === 1 ? '' : 's'}`}
         </span>
       </div>
 
@@ -43,7 +48,7 @@ export function PeopleSearchResults({ query, selectedState }: PeopleSearchResult
         </p>
       )}
 
-      {!peopleQuery.isLoading && profiles.length === 0 && (
+      {!peopleQuery.isFetching && profiles.length === 0 && !peopleQuery.isError && (
         <p className="rounded-xl border border-purple-500/20 bg-slate-900/40 px-3 py-2 text-sm text-purple-200/70">
           No hay personas con “{q}”. Prueba nombre, oficio, profesión o estado.
         </p>

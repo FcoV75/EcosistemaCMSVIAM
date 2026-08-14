@@ -78,7 +78,7 @@ export function AppShell({
           <ContacNeedLogo className="h-[min(75vw,32rem)] w-auto max-w-[90vw]" />
         </div>
 
-        <header className="cn-metallic-header sticky top-0 z-30 backdrop-blur-xl">
+        <header className="cn-metallic-header sticky top-0 z-40 backdrop-blur-xl">
           <div className="mx-auto flex max-w-[90rem] flex-col gap-3 px-4 py-3 lg:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Link to="/" className="flex min-w-0 shrink-0 items-center gap-3">

@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 
 type BrowseContextValue = {
   searchQuery: string
@@ -11,8 +11,11 @@ const BrowseContext = createContext<BrowseContextValue>({
 })
 
 export function BrowseProvider({ children }: { children: ReactNode }) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const value = useMemo(() => ({ searchQuery, setSearchQuery }), [searchQuery])
+  const [searchQuery, setSearchQueryState] = useState('')
+  const setSearchQuery = useCallback((query: string) => {
+    setSearchQueryState(query)
+  }, [])
+  const value = useMemo(() => ({ searchQuery, setSearchQuery }), [searchQuery, setSearchQuery])
   return <BrowseContext.Provider value={value}>{children}</BrowseContext.Provider>
 }
 
