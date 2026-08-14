@@ -25,10 +25,6 @@ async function sonContactos(
   return Boolean(data?.id)
 }
 
-function escapeIlike(value: string) {
-  return value.replace(/[%_]/g, '\\$&')
-}
-
 export const pingLastSeenFn = createServerFn({ method: 'POST' }).handler(async () => {
   const user = await getServerUser()
   if (!user) return { ok: false }
