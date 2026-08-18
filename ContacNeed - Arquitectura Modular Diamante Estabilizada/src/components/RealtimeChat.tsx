@@ -87,7 +87,11 @@ function ChatAttachmentView({
   mine: boolean
 }) {
   const mime = attachment.mimeType ?? ''
-  const isImage = mime.startsWith('image/') || /\.(gif|jpe?g|png|webp)(\?|$)/i.test(attachment.url)
+  const isPdf =
+    mime === 'application/pdf' || /\.pdf(\?|$)/i.test(attachment.url) || /\.pdf$/i.test(attachment.fileName || '')
+  const isImage =
+    !isPdf &&
+    (mime.startsWith('image/') || /\.(gif|jpe?g|png|webp)(\?|$)/i.test(attachment.url))
   const isVideo = mime.startsWith('video/') || /\.(mp4|mov|webm)(\?|$)/i.test(attachment.url)
   const isAudio = mime.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)(\?|$)/i.test(attachment.url)
 
