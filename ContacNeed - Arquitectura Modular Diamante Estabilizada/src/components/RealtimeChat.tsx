@@ -1,7 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
-import { ArrowLeft, Send, Wifi, WifiOff } from 'lucide-react'
+import { ArrowLeft, FileText, Paperclip, Send, Wifi, WifiOff, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
 import { chatRoomId, getSupabaseBrowserClient } from '../lib/supabase.browser'
 import { getSupabaseBrowserSessionFn } from '../server/auth.functions'
 import {
@@ -9,6 +10,17 @@ import {
   markMessageReadFn,
   sendMessageFn,
 } from '../server/social.functions'
+import { LinkifiedText } from './LinkifiedText'
+import { PostMedia } from './PostMedia'
+
+const MAX_CHAT_ATTACHMENT_BYTES = 20 * 1024 * 1024
+
+type ChatAttachment = {
+  url: string
+  mimeType: string | null
+  fileName: string | null
+  sizeBytes: number | null
+}
 
 type ChatMessage = {
   id: string
@@ -20,6 +32,10 @@ type ChatMessage = {
   leido: boolean
   created_at: string
   mine: boolean
+  url_adjunto?: string | null
+  tipo_mime?: string | null
+  nombre_archivo?: string | null
+  tamanio_bytes?: number | null
 }
 
 type RealtimeChatProps = {
@@ -41,6 +57,82 @@ function isConversationMessage(
   )
 }
 
+function formatBytes(bytes: number | null | undefined) {
+  if (!bytes || bytes <= 0) return null
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function attachmentFromRow(row: {
+  url_adjunto?: string | null
+  tipo_mime?: string | null
+  nombre_archivo?: string | null
+  tamanio_bytes?: number | null
+}): ChatAttachment | null {
+  if (!row.url_adjunto) return null
+  return {
+    url: row.url_adjunto,
+    mimeType: row.tipo_mime ?? null,
+    fileName: row.nombre_archivo ?? null,
+    sizeBytes: row.tamanio_bytes ?? null,
+  }
+}
+
+function ChatAttachmentView({
+  attachment,
+  mine,
+}: {
+  attachment: ChatAttachment
+  mine: boolean
+}) {
+  const mime = attachment.mimeType ?? ''
+  const isImage = mime.startsWith('image/') || /\.(gif|jpe?g|png|webp)(\?|$)/i.test(attachment.url)
+  const isVideo = mime.startsWith('video/') || /\.(mp4|mov|webm)(\?|$)/i.test(attachment.url)
+  const isAudio = mime.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)(\?|$)/i.test(attachment.url)
+
+  if (isImage || isVideo) {
+    return (
+      <div className="mt-2 overflow-hidden rounded-xl">
+        <PostMedia mediaUrl={attachment.url} mediaType={isVideo ? 'video' : undefined} compact />
+      </div>
+    )
+  }
+
+  if (isAudio) {
+    return (
+      <div className="mt-2">
+        <audio controls src={attachment.url} className="w-full max-w-xs" preload="metadata" />
+        {attachment.fileName ? (
+          <p className={`mt-1 truncate text-[11px] ${mine ? 'text-slate-700' : 'text-purple-300/70'}`}>
+            {attachment.fileName}
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+
+  const sizeLabel = formatBytes(attachment.sizeBytes)
+  return (
+    <a
+      href={attachment.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`mt-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+        mine
+          ? 'border-slate-800/30 bg-black/10 text-slate-900 hover:bg-black/15'
+          : 'border-purple-500/30 bg-slate-950/50 text-amber-100 hover:border-amber-400/40'
+      }`}
+    >
+      <FileText size={16} />
+      <span className="min-w-0 flex-1 truncate">
+        {attachment.fileName || 'Documento adjunto'}
+        {sizeLabel ? ` · ${sizeLabel}` : ''}
+      </span>
+    </a>
+  )
+}
+
 export function RealtimeChat({
   peerId,
   myUserId,
@@ -50,15 +142,19 @@ export function RealtimeChat({
 }: RealtimeChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [liveConnected, setLiveConnected] = useState(false)
   const [peerInChat, setPeerInChat] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let cancelled = false
     getConversationFn({ data: peerId }).then((data) => {
-      if (!cancelled) setMessages(data.messages)
+      if (!cancelled) setMessages(data.messages as ChatMessage[])
     })
     return () => {
       cancelled = true
@@ -68,6 +164,12 @@ export function RealtimeChat({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    return () => {
+      if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl)
+    }
+  }, [pendingPreviewUrl])
 
   useEffect(() => {
     let cancelled = false
@@ -92,15 +194,9 @@ export function RealtimeChat({
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'mensajes' },
           (payload) => {
-            const row = payload.new as {
-              id: string
+            const row = payload.new as ChatMessage & {
               remitente_id: string
               destinatario_id: string
-              asunto: string | null
-              cuerpo: string
-              tipo: string
-              leido: boolean
-              created_at: string
             }
 
             if (!isConversationMessage(row, myUserId, peerId)) return
@@ -118,6 +214,10 @@ export function RealtimeChat({
                   tipo: row.tipo,
                   leido: row.leido,
                   created_at: row.created_at,
+                  url_adjunto: row.url_adjunto ?? null,
+                  tipo_mime: row.tipo_mime ?? null,
+                  nombre_archivo: row.nombre_archivo ?? null,
+                  tamanio_bytes: row.tamanio_bytes ?? null,
                   mine: row.remitente_id === myUserId,
                 },
               ]
@@ -151,14 +251,80 @@ export function RealtimeChat({
     }
   }, [myUserId, peerId])
 
+  const clearPendingFile = () => {
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl)
+    setPendingFile(null)
+    setPendingPreviewUrl(null)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const handlePickFile = (file: File | null) => {
+    if (!file) return
+    if (file.size > MAX_CHAT_ATTACHMENT_BYTES) {
+      alert('El archivo debe pesar máximo 20 MB.')
+      return
+    }
+    const allowed =
+      file.type.startsWith('image/') ||
+      file.type.startsWith('video/') ||
+      file.type.startsWith('audio/') ||
+      file.type === 'application/pdf' ||
+      /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|zip)$/i.test(file.name)
+    if (!allowed && file.type) {
+      // permitir si Cloudinary auto/upload puede manejarlo; avisamos solo tipos raros vacíos
+    }
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl)
+    setPendingFile(file)
+    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+      setPendingPreviewUrl(URL.createObjectURL(file))
+    } else {
+      setPendingPreviewUrl(null)
+    }
+  }
+
   const sendMutation = useMutation({
-    mutationFn: (cuerpo: string) =>
-      sendMessageFn({ data: { destinatarioId: peerId, cuerpo, tipo: 'general' } }),
-    onSuccess: (result, cuerpo) => {
+    mutationFn: async (payload: { cuerpo: string; file: File | null }) => {
+      let adjunto: ChatAttachment | null = null
+      if (payload.file) {
+        setUploading(true)
+        try {
+          const url = await uploadFileToCloudinary(payload.file)
+          adjunto = {
+            url,
+            mimeType: payload.file.type || null,
+            fileName: payload.file.name || null,
+            sizeBytes: payload.file.size,
+          }
+        } finally {
+          setUploading(false)
+        }
+      }
+
+      const result = await sendMessageFn({
+        data: {
+          destinatarioId: peerId,
+          cuerpo: payload.cuerpo,
+          tipo: 'general',
+          adjunto: adjunto
+            ? {
+                url: adjunto.url,
+                mimeType: adjunto.mimeType,
+                fileName: adjunto.fileName,
+                sizeBytes: adjunto.sizeBytes,
+              }
+            : null,
+        },
+      })
+
+      return { result, cuerpo: payload.cuerpo || (adjunto ? '📎' : ''), adjunto }
+    },
+    onSuccess: ({ result, cuerpo, adjunto }) => {
       setText('')
+      clearPendingFile()
       if (!result.id) return
       setMessages((prev) => {
         if (prev.some((m) => m.id === result.id)) return prev
+        const fromServer = result.adjunto
         return [
           ...prev,
           {
@@ -171,6 +337,10 @@ export function RealtimeChat({
             leido: false,
             created_at: new Date().toISOString(),
             mine: true,
+            url_adjunto: fromServer?.url ?? adjunto?.url ?? null,
+            tipo_mime: fromServer?.mimeType ?? adjunto?.mimeType ?? null,
+            nombre_archivo: fromServer?.fileName ?? adjunto?.fileName ?? null,
+            tamanio_bytes: fromServer?.sizeBytes ?? adjunto?.sizeBytes ?? null,
           },
         ]
       })
@@ -180,12 +350,13 @@ export function RealtimeChat({
 
   const handleSend = () => {
     const trimmed = text.trim()
-    if (!trimmed || sendMutation.isPending) return
-    sendMutation.mutate(trimmed)
+    if ((!trimmed && !pendingFile) || sendMutation.isPending || uploading) return
+    sendMutation.mutate({ cuerpo: trimmed, file: pendingFile })
   }
 
   const avatar = peerAvatar?.trim() || `https://i.pravatar.cc/80?u=${peerId}`
   const showLiveBadge = peerInChat || peerOnlineApprox
+  const canSend = Boolean(text.trim() || pendingFile) && !sendMutation.isPending && !uploading
 
   return (
     <div className="flex h-[min(72vh,640px)] flex-col overflow-hidden rounded-2xl border border-purple-500/25 bg-slate-950/50">
@@ -226,45 +397,91 @@ export function RealtimeChat({
       <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
           <p className="text-center text-sm text-purple-200/50">
-            Aún no hay mensajes. Escribe abajo para iniciar la conversación.
+            Aún no hay mensajes. Escribe o adjunta un archivo para iniciar.
           </p>
         )}
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.mine ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                msg.mine
-                  ? 'rounded-br-md bg-amber-500 text-slate-950'
-                  : 'rounded-bl-md border border-purple-500/20 bg-slate-900/80 text-purple-50'
-              }`}
-            >
-              {msg.asunto && (
-                <p className={`mb-1 text-xs font-bold ${msg.mine ? 'text-slate-800' : 'text-amber-200/90'}`}>
-                  {msg.asunto}
-                </p>
-              )}
-              <p className="whitespace-pre-wrap break-words">{msg.cuerpo}</p>
-              <p
-                className={`mt-1 text-[10px] ${
-                  msg.mine ? 'text-slate-700' : 'text-purple-400/70'
+        {messages.map((msg) => {
+          const attachment = attachmentFromRow(msg)
+          const showText = msg.cuerpo && msg.cuerpo !== '📎'
+          return (
+            <div key={msg.id} className={`flex ${msg.mine ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                  msg.mine
+                    ? 'rounded-br-md bg-amber-500 text-slate-950'
+                    : 'rounded-bl-md border border-purple-500/20 bg-slate-900/80 text-purple-50'
                 }`}
               >
-                {new Date(msg.created_at).toLocaleTimeString('es-MX', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </p>
+                {msg.asunto && (
+                  <p className={`mb-1 text-xs font-bold ${msg.mine ? 'text-slate-800' : 'text-amber-200/90'}`}>
+                    {msg.asunto}
+                  </p>
+                )}
+                {showText ? (
+                  <p className="whitespace-pre-wrap break-words">
+                    <LinkifiedText text={msg.cuerpo} />
+                  </p>
+                ) : null}
+                {attachment ? <ChatAttachmentView attachment={attachment} mine={msg.mine} /> : null}
+                <p className={`mt-1 text-[10px] ${msg.mine ? 'text-slate-700' : 'text-purple-400/70'}`}>
+                  {new Date(msg.created_at).toLocaleTimeString('es-MX', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         <div ref={bottomRef} />
       </div>
 
       <div className="border-t border-purple-500/20 p-3">
+        {pendingFile ? (
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+            <Paperclip size={14} />
+            <span className="min-w-0 flex-1 truncate">
+              {pendingFile.name}
+              {formatBytes(pendingFile.size) ? ` · ${formatBytes(pendingFile.size)}` : ''}
+            </span>
+            <button
+              type="button"
+              onClick={clearPendingFile}
+              className="rounded-lg p-1 hover:bg-white/10"
+              aria-label="Quitar adjunto"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : null}
+        {pendingPreviewUrl ? (
+          <div className="mb-2 overflow-hidden rounded-xl border border-purple-500/20">
+            {pendingFile?.type.startsWith('video/') ? (
+              <video src={pendingPreviewUrl} controls className="max-h-40 w-full object-contain" />
+            ) : (
+              <img src={pendingPreviewUrl} alt="" className="max-h-40 w-full object-contain" />
+            )}
+          </div>
+        ) : null}
+
         <div className="flex gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            className="hidden"
+            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+            onChange={(e) => handlePickFile(e.target.files?.[0] ?? null)}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={sendMutation.isPending || uploading}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-purple-500/30 text-purple-100 hover:bg-white/5 disabled:opacity-50"
+            aria-label="Adjuntar archivo"
+            title="Imagen, GIF, video, audio o documento"
+          >
+            <Paperclip size={18} />
+          </button>
           <textarea
             rows={2}
             value={text}
@@ -275,20 +492,24 @@ export function RealtimeChat({
                 handleSend()
               }
             }}
-            placeholder="Escribe un mensaje..."
+            placeholder="Escribe un mensaje o adjunta un archivo…"
             className="min-h-[44px] flex-1 resize-none rounded-xl border border-purple-500/25 bg-slate-900/70 px-3 py-2 text-sm text-white"
           />
           <button
             type="button"
             onClick={handleSend}
-            disabled={!text.trim() || sendMutation.isPending}
+            disabled={!canSend}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-slate-950 disabled:opacity-50"
             aria-label="Enviar"
           >
             <Send size={18} />
           </button>
         </div>
-        <p className="mt-1 text-[10px] text-purple-400/60">Enter para enviar · Shift+Enter nueva línea</p>
+        <p className="mt-1 text-[10px] text-purple-400/60">
+          {uploading
+            ? 'Subiendo archivo…'
+            : 'Enter enviar · Shift+Enter nueva línea · Adjuntos hasta 20 MB'}
+        </p>
       </div>
     </div>
   )
