@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 
 import { Link } from '@tanstack/react-router'
 
 import { ThumbsUp, ThumbsDown, MessageCircle, Share2, BadgeCheck, MoreHorizontal, Trash2, Edit2, ShieldAlert } from 'lucide-react'
 
 import { useIdentity } from '../lib/identity-context'
-import { resolveAvatarUrl } from '../lib/default-avatar'
 
 import {
 
@@ -13,37 +12,17 @@ import {
 
   deletePostFn,
 
-  addCommentFn,
-
   reportContentFn,
-
-  getCommentsFn,
 
   toggleReactionFn,
 
 } from '../server/posts.functions'
 
+import { CommentSection } from './CommentSection'
+
 import { hasPostMedia, PostMedia } from './PostMedia'
 
 import { SharePostModal } from './SharePostModal'
-
-
-
-type CommentRow = {
-
-  id: string
-
-  text: string
-
-  user_id: string
-
-  author_name?: string
-
-  author_avatar?: string | null
-
-  created_at?: string | null
-
-}
 
 
 
@@ -61,19 +40,17 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
 
   const [showCommentInput, setShowCommentInput] = useState(false)
 
-  const [comment, setComment] = useState('')
-
   const [comments, setComments] = useState(post.comments || 0)
 
   const [shares, setShares] = useState(post.shares || 0)
 
-  const [commentList, setCommentList] = useState<CommentRow[]>(post.commentList || [])
-
-  const [loadingComments, setLoadingComments] = useState(false)
-
   const [showShare, setShowShare] = useState(false)
 
   const [reacting, setReacting] = useState(false)
+
+  const handleCommentCount = useCallback((count: number) => {
+    setComments(count)
+  }, [])
 
 
 
@@ -90,54 +67,6 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
     setShares(post.shares || 0)
 
   }, [post.likes, post.dislikes, post.userReaction, post.comments, post.shares])
-
-
-
-  useEffect(() => {
-
-    if (!showCommentInput) return
-
-
-
-    let cancelled = false
-
-    setLoadingComments(true)
-
-    getCommentsFn({ data: { postId: post.id } })
-
-      .then((rows) => {
-
-        if (!cancelled) {
-
-          setCommentList(rows)
-
-          setComments(rows.length)
-
-        }
-
-      })
-
-      .catch(() => {
-
-        if (!cancelled) setCommentList([])
-
-      })
-
-      .finally(() => {
-
-        if (!cancelled) setLoadingComments(false)
-
-      })
-
-
-
-    return () => {
-
-      cancelled = true
-
-    }
-
-  }, [showCommentInput, post.id])
 
 
 
@@ -213,46 +142,6 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
     } finally {
 
       setReacting(false)
-
-    }
-
-  }
-
-
-
-  const appendComment = (newC: CommentRow) => {
-
-    setCommentList((prev) => [...prev, newC])
-
-    setComments((prev) => prev + 1)
-
-    setComment('')
-
-  }
-
-
-
-  const submitComment = async () => {
-
-    if (!user) {
-
-      alert('Debes iniciar sesión para comentar')
-
-      return
-
-    }
-
-    if (!comment.trim()) return
-
-    try {
-
-      const result = await addCommentFn({ data: { postId: post.id, comment: { text: comment.trim() } } })
-
-      appendComment(result.comment)
-
-    } catch (err) {
-
-      alert(err instanceof Error ? err.message : 'Error al comentar')
 
     }
 
@@ -641,101 +530,11 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
 
 
 
-      {showCommentInput && (
-
-        <div className="bg-slate-900/40 px-4 pb-4 pt-3">
-
-          {loadingComments && <p className="mb-2 text-xs text-purple-200/50">Cargando comentarios...</p>}
-
-          {commentList.map((c) => (
-
-            <div
-
-              key={c.id}
-
-              className="group mb-2 rounded-lg border border-purple-500/15 bg-slate-900/60 p-2 text-sm shadow-sm"
-
-            >
-
-              <div className="mb-1 flex items-center gap-2">
-
-                <Link to="/u/$userId" params={{ userId: c.user_id }}>
-
-                  <img
-
-                    src={resolveAvatarUrl(c.author_avatar, c.user_id, c.author_name)}
-
-                    alt=""
-
-                    className="h-7 w-7 rounded-full object-cover"
-
-                  />
-
-                </Link>
-
-                <Link
-
-                  to="/u/$userId"
-
-                  params={{ userId: c.user_id }}
-
-                  className="text-xs font-bold text-amber-200/90 hover:text-amber-100"
-
-                >
-
-                  {c.author_name ?? 'Usuario'}
-
-                </Link>
-
-              </div>
-
-              <div className="whitespace-pre-wrap pl-9 text-purple-50/90">{c.text}</div>
-
-            </div>
-
-          ))}
-
-          <div className="flex gap-2">
-
-            <input
-
-              type="text"
-
-              value={comment}
-
-              onChange={(e) => setComment(e.target.value)}
-
-              placeholder="Escribe un comentario..."
-
-              className="flex-1 rounded-full border border-purple-500/30 bg-slate-900/80 px-4 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-400/40"
-
-              onKeyDown={(e) => {
-
-                if (e.key === 'Enter') void submitComment()
-
-              }}
-
-            />
-
-            <button
-
-              type="button"
-
-              onClick={() => void submitComment()}
-
-              className="rounded-full bg-amber-500 px-4 py-1.5 text-sm font-bold text-slate-950 hover:bg-amber-600"
-
-            >
-
-              Comentar
-
-            </button>
-
-          </div>
-
-        </div>
-
-      )}
+      <CommentSection
+        postId={post.id}
+        open={showCommentInput}
+        onCountChange={handleCommentCount}
+      />
 
 
 

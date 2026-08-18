@@ -6,6 +6,8 @@ type PostMediaProps = {
   imageUrl?: string | null
   videoUrl?: string | null
   mediaType?: string
+  /** Versión compacta para comentarios / embeds pequeños */
+  compact?: boolean
 }
 
 function resolveMediaUrl({ mediaUrl, imageUrl, videoUrl }: PostMediaProps) {
@@ -34,7 +36,20 @@ function SafeCloudinaryImage({ src, alt }: { src: string; alt: string }) {
   )
 }
 
-function MediaFrame({ children }: { children: React.ReactNode }) {
+function MediaFrame({
+  children,
+  compact,
+}: {
+  children: React.ReactNode
+  compact?: boolean
+}) {
+  if (compact) {
+    return (
+      <div className="mt-2 overflow-hidden rounded-xl border border-purple-500/20 bg-slate-900/60">
+        {children}
+      </div>
+    )
+  }
   return (
     <div className="px-4 pb-4 pt-1">
       <div className="overflow-hidden rounded-2xl border border-purple-500/20 bg-slate-900/60 shadow-inner shadow-purple-900/20">
@@ -48,14 +63,17 @@ export function PostMedia(props: PostMediaProps) {
   try {
     const url = resolveMediaUrl(props)
     if (!url) return null
+    const compact = Boolean(props.compact)
+    const maxH = compact ? 'max-h-56' : 'max-h-[520px]'
+    const minH = compact ? 'min-h-[120px]' : 'min-h-[200px]'
 
     const embedUrl = toYouTubeEmbedUrl(url)
     const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/i)
 
     if (url.endsWith('.mp4') || url.endsWith('.mov') || props.mediaType === 'video') {
       return (
-        <MediaFrame>
-          <div className="aspect-video w-full bg-black">
+        <MediaFrame compact={compact}>
+          <div className={`aspect-video w-full bg-black ${compact ? 'max-h-56' : ''}`}>
             <video src={url} controls className="h-full w-full object-contain" />
           </div>
         </MediaFrame>
@@ -64,7 +82,7 @@ export function PostMedia(props: PostMediaProps) {
 
     if (embedUrl || isYouTubeUrl(url)) {
       return (
-        <MediaFrame>
+        <MediaFrame compact={compact}>
           <div className="relative aspect-video w-full bg-black">
             <iframe
               src={embedUrl ?? url}
@@ -80,7 +98,7 @@ export function PostMedia(props: PostMediaProps) {
 
     if (vimeoMatch) {
       return (
-        <MediaFrame>
+        <MediaFrame compact={compact}>
           <div className="relative aspect-video w-full bg-black">
             <iframe
               src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
@@ -96,8 +114,8 @@ export function PostMedia(props: PostMediaProps) {
 
     if (isCloudinaryUrl(url) || url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i)) {
       return (
-        <MediaFrame>
-          <div className="flex max-h-[520px] min-h-[200px] w-full items-center justify-center bg-slate-950/40">
+        <MediaFrame compact={compact}>
+          <div className={`flex ${maxH} ${minH} w-full items-center justify-center bg-slate-950/40`}>
             <SafeCloudinaryImage src={url} alt="Contenido multimedia" />
           </div>
         </MediaFrame>
@@ -105,8 +123,8 @@ export function PostMedia(props: PostMediaProps) {
     }
 
     return (
-      <MediaFrame>
-        <div className="flex max-h-[520px] min-h-[200px] w-full items-center justify-center bg-slate-950/40">
+      <MediaFrame compact={compact}>
+        <div className={`flex ${maxH} ${minH} w-full items-center justify-center bg-slate-950/40`}>
           <SafeCloudinaryImage src={url} alt="Contenido multimedia" />
         </div>
       </MediaFrame>
