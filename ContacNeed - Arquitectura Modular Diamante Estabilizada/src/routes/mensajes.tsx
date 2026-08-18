@@ -152,7 +152,11 @@ function MessagesPage() {
                   </div>
                   <p className="truncate text-sm text-purple-100/75">
                     {conv.lastMessage.incoming ? '' : 'Tú: '}
-                    {conv.lastMessage.cuerpo}
+                    {conv.lastMessage.url_adjunto
+                      ? conv.lastMessage.cuerpo && conv.lastMessage.cuerpo !== '📎'
+                        ? conv.lastMessage.cuerpo
+                        : `📎 ${conv.lastMessage.nombre_archivo || 'Archivo adjunto'}`
+                      : conv.lastMessage.cuerpo}
                   </p>
                 </div>
                 {conv.unreadCount > 0 && (
@@ -173,7 +177,13 @@ function MessagesPage() {
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold text-white">{conv.peer.nombre}</p>
-                  <p className="truncate text-sm text-purple-100/75">{conv.lastMessage.cuerpo}</p>
+                  <p className="truncate text-sm text-purple-100/75">
+                    {conv.lastMessage.url_adjunto
+                      ? conv.lastMessage.cuerpo && conv.lastMessage.cuerpo !== '📎'
+                        ? conv.lastMessage.cuerpo
+                        : `📎 ${conv.lastMessage.nombre_archivo || 'Archivo adjunto'}`
+                      : conv.lastMessage.cuerpo}
+                  </p>
                 </div>
                 <span className="text-[10px] font-bold uppercase text-amber-300">Solo PRO</span>
               </div>
@@ -219,7 +229,21 @@ function MessagesPage() {
                   </span>
                 </div>
                 {msg.asunto && <p className="text-xs font-semibold text-amber-200/80">{msg.asunto}</p>}
-                <p className="mt-2 text-sm text-purple-100/90">{msg.cuerpo}</p>
+                <p className="mt-2 text-sm text-purple-100/90">
+                  {msg.url_adjunto && (!msg.cuerpo || msg.cuerpo === '📎')
+                    ? `📎 ${msg.nombre_archivo || 'Archivo adjunto'}`
+                    : msg.cuerpo}
+                </p>
+                {msg.url_adjunto ? (
+                  <a
+                    href={msg.url_adjunto}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex text-xs font-bold text-amber-300 hover:text-amber-200"
+                  >
+                    Ver adjunto →
+                  </a>
+                ) : null}
                 <div className="mt-3 flex flex-wrap gap-3">
                   <Link
                     to="/mensajes/chat/$peerId"

@@ -190,8 +190,18 @@ export const getOnlineUsersFn = createServerFn({ method: 'GET' }).handler(async 
 
 export const sendMessageFn = createServerFn({ method: 'POST' })
   .inputValidator(
-    (d: { destinatarioId: string; cuerpo: string; asunto?: string; tipo?: 'general' | 'servicio' | 'amistad' | 'informe_pro' }) =>
-      d,
+    (d: {
+      destinatarioId: string
+      cuerpo?: string
+      asunto?: string
+      tipo?: 'general' | 'servicio' | 'amistad' | 'informe_pro'
+      adjunto?: {
+        url: string
+        mimeType?: string | null
+        fileName?: string | null
+        sizeBytes?: number | null
+      } | null
+    }) => d,
   )
   .handler(async ({ data }) => {
     const { user } = await requireActiveUser()
@@ -200,8 +210,10 @@ export const sendMessageFn = createServerFn({ method: 'POST' })
 
     const supabase = createSupabaseAdminClient()
     const tipo = data.tipo ?? 'general'
-    const cuerpo = data.cuerpo.trim()
-    if (!cuerpo) throw new Error('Escribe un mensaje.')
+    const adjuntoUrl = data.adjunto?.url?.trim() || null
+    const cuerpoRaw = data.cuerpo?.trim() ?? ''
+    const cuerpo = cuerpoRaw || (adjuntoUrl ? '📎' : '')
+    if (!cuerpo) throw new Error('Escribe un mensaje o adjunta un archivo.')
 
     // Chat / mensajes libres solo entre contactos (amistad o servicio aceptado).
     // Las solicitudes de servicio van por sendContactRequestFn.
@@ -214,25 +226,45 @@ export const sendMessageFn = createServerFn({ method: 'POST' })
       }
     }
 
-    if (tipo === 'servicio' && cuerpo.length < 20) {
+    if (tipo === 'servicio' && cuerpoRaw.length < 20) {
       throw new Error('Describe con más detalle el servicio que necesitas (mínimo 20 caracteres).')
+    }
+
+    const payload: Record<string, unknown> = {
+      remitente_id: user.id,
+      destinatario_id: data.destinatarioId,
+      asunto: data.asunto?.trim() || null,
+      cuerpo,
+      tipo,
+    }
+
+    if (adjuntoUrl) {
+      payload.url_adjunto = adjuntoUrl
+      payload.tipo_mime = data.adjunto?.mimeType?.trim() || null
+      payload.nombre_archivo = data.adjunto?.fileName?.trim() || null
+      payload.tamanio_bytes =
+        typeof data.adjunto?.sizeBytes === 'number' && data.adjunto.sizeBytes >= 0
+          ? Math.round(data.adjunto.sizeBytes)
+          : null
     }
 
     const { data: row, error } = await supabase
       .from('mensajes')
-      .insert({
-        remitente_id: user.id,
-        destinatario_id: data.destinatarioId,
-        asunto: data.asunto?.trim() || null,
-        cuerpo,
-        tipo,
-      })
-      .select('id')
+      .insert(payload)
+      .select('id, url_adjunto, tipo_mime, nombre_archivo, tamanio_bytes')
       .single()
 
     if (error) {
       if (error.message.includes('does not exist')) {
         throw new Error('Bandeja de mensajes en configuración. Ejecuta SQL 004 en Supabase.')
+      }
+      if (
+        error.message.includes('url_adjunto') ||
+        error.message.includes('tipo_mime') ||
+        error.message.includes('nombre_archivo') ||
+        error.message.includes('tamanio_bytes')
+      ) {
+        throw new Error('Falta la migración 013 en Supabase (adjuntos en chat).')
       }
       throw error
     }
@@ -243,6 +275,10 @@ export const sendMessageFn = createServerFn({ method: 'POST' })
       .eq('id', user.id)
       .maybeSingle()
 
+    const preview =
+      cuerpoRaw ||
+      (row.nombre_archivo ? `📎 ${row.nombre_archivo}` : adjuntoUrl ? '📎 Archivo adjunto' : cuerpo)
+
     await crearNotificacion(supabase, {
       usuarioId: data.destinatarioId,
       tipo: tipo === 'servicio' ? 'solicitud_servicio' : 'mensaje',
@@ -250,12 +286,23 @@ export const sendMessageFn = createServerFn({ method: 'POST' })
         tipo === 'servicio'
           ? `Detalle de servicio de ${sender?.nombre || 'un usuario'}`
           : `Nuevo mensaje de ${sender?.nombre || 'un contacto'}`,
-      cuerpo: cuerpo.slice(0, 140),
+      cuerpo: String(preview).slice(0, 140),
       enlace: '/mensajes',
       metadata: { mensaje_id: row.id, remitente_id: user.id, tipo },
     })
 
-    return { success: true, id: row.id }
+    return {
+      success: true,
+      id: row.id,
+      adjunto: adjuntoUrl
+        ? {
+            url: row.url_adjunto ?? adjuntoUrl,
+            mimeType: row.tipo_mime ?? data.adjunto?.mimeType ?? null,
+            fileName: row.nombre_archivo ?? data.adjunto?.fileName ?? null,
+            sizeBytes: row.tamanio_bytes ?? data.adjunto?.sizeBytes ?? null,
+          }
+        : null,
+    }
   })
 
 
@@ -263,17 +310,56 @@ async function fetchInboxMessages(userId: string) {
   const supabase = createSupabaseAdminClient()
   const { data: rows, error } = await supabase
     .from('mensajes')
-    .select('id, remitente_id, destinatario_id, asunto, cuerpo, tipo, leido, created_at')
+    .select(
+      'id, remitente_id, destinatario_id, asunto, cuerpo, tipo, leido, created_at, url_adjunto, tipo_mime, nombre_archivo, tamanio_bytes',
+    )
     .or(`remitente_id.eq.${userId},destinatario_id.eq.${userId}`)
     .order('created_at', { ascending: false })
     .limit(100)
 
-  if (error) throw error
+  if (error) {
+    // Migración 013 aún no aplicada
+    if (
+      error.message.includes('url_adjunto') ||
+      error.message.includes('tipo_mime') ||
+      error.message.includes('nombre_archivo') ||
+      error.message.includes('tamanio_bytes')
+    ) {
+      const legacy = await supabase
+        .from('mensajes')
+        .select('id, remitente_id, destinatario_id, asunto, cuerpo, tipo, leido, created_at')
+        .or(`remitente_id.eq.${userId},destinatario_id.eq.${userId}`)
+        .order('created_at', { ascending: false })
+        .limit(100)
+      if (legacy.error) throw legacy.error
+      return mapInboxRows(supabase, userId, legacy.data ?? [])
+    }
+    throw error
+  }
 
+  return mapInboxRows(supabase, userId, rows ?? [])
+}
+
+async function mapInboxRows(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+  rows: Array<{
+    id: string
+    remitente_id: string
+    destinatario_id: string
+    asunto: string | null
+    cuerpo: string
+    tipo: string
+    leido: boolean
+    created_at: string
+    url_adjunto?: string | null
+    tipo_mime?: string | null
+    nombre_archivo?: string | null
+    tamanio_bytes?: number | null
+  }>,
+) {
   const userIds = [
-    ...new Set(
-      (rows ?? []).flatMap((row) => [row.remitente_id, row.destinatario_id]).filter(Boolean),
-    ),
+    ...new Set(rows.flatMap((row) => [row.remitente_id, row.destinatario_id]).filter(Boolean)),
   ] as string[]
 
   const { data: profiles } = await supabase
@@ -283,7 +369,7 @@ async function fetchInboxMessages(userId: string) {
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]))
 
-  return (rows ?? []).map((row) => {
+  return rows.map((row) => {
     const isIncoming = row.destinatario_id === userId
     const peerId = isIncoming ? row.remitente_id : row.destinatario_id
     const peer = profileMap.get(peerId)
@@ -295,6 +381,10 @@ async function fetchInboxMessages(userId: string) {
       leido: row.leido,
       created_at: row.created_at,
       incoming: isIncoming,
+      url_adjunto: row.url_adjunto ?? null,
+      tipo_mime: row.tipo_mime ?? null,
+      nombre_archivo: row.nombre_archivo ?? null,
+      tamanio_bytes: row.tamanio_bytes ?? null,
       peer: {
         id: peerId,
         nombre: peer?.nombre ?? 'Usuario',
@@ -354,7 +444,9 @@ export const getConversationFn = createServerFn({ method: 'GET' })
     const [{ data: rows, error }, { data: peerProfile }] = await Promise.all([
       supabase
         .from('mensajes')
-        .select('id, remitente_id, destinatario_id, asunto, cuerpo, tipo, leido, created_at')
+        .select(
+          'id, remitente_id, destinatario_id, asunto, cuerpo, tipo, leido, created_at, url_adjunto, tipo_mime, nombre_archivo, tamanio_bytes',
+        )
         .or(
           `and(remitente_id.eq.${user.id},destinatario_id.eq.${peerId}),and(remitente_id.eq.${peerId},destinatario_id.eq.${user.id})`,
         )
@@ -378,6 +470,14 @@ export const getConversationFn = createServerFn({ method: 'GET' })
           },
           messages: [],
         }
+      }
+      if (
+        error.message.includes('url_adjunto') ||
+        error.message.includes('tipo_mime') ||
+        error.message.includes('nombre_archivo') ||
+        error.message.includes('tamanio_bytes')
+      ) {
+        throw new Error('Falta la migración 013 en Supabase (adjuntos en chat).')
       }
       throw error
     }
@@ -409,6 +509,10 @@ export const getConversationFn = createServerFn({ method: 'GET' })
         tipo: row.tipo,
         leido: row.leido,
         created_at: row.created_at,
+        url_adjunto: row.url_adjunto ?? null,
+        tipo_mime: row.tipo_mime ?? null,
+        nombre_archivo: row.nombre_archivo ?? null,
+        tamanio_bytes: row.tamanio_bytes ?? null,
         mine: row.remitente_id === user.id,
       })),
     }
@@ -423,7 +527,14 @@ export const getConversationsSummaryFn = createServerFn({ method: 'GET' }).handl
       string,
       {
         peer: { id: string; nombre: string; avatar_url: string | null }
-        lastMessage: { cuerpo: string; created_at: string; incoming: boolean; leido: boolean }
+        lastMessage: {
+          cuerpo: string
+          created_at: string
+          incoming: boolean
+          leido: boolean
+          url_adjunto?: string | null
+          nombre_archivo?: string | null
+        }
         unreadCount: number
       }
     >()
@@ -438,6 +549,8 @@ export const getConversationsSummaryFn = createServerFn({ method: 'GET' }).handl
             created_at: msg.created_at,
             incoming: msg.incoming,
             leido: msg.leido,
+            url_adjunto: msg.url_adjunto ?? null,
+            nombre_archivo: msg.nombre_archivo ?? null,
           },
           unreadCount: msg.incoming && !msg.leido ? 1 : 0,
         })
