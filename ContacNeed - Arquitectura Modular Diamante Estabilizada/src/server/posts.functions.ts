@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseAdminClient, createSupabaseServerClient } from '../lib/supabase.server'
-import { requireActiveUser } from '../lib/auth'
+import { getServerUser, requireActiveUser } from '../lib/auth'
 import { mapPublicacionToPost } from '../lib/posts-mapper'
 import { toYouTubeEmbedUrl } from '../lib/youtube'
 import { getDailyPostLimit, getStartOfTodayIso } from '../lib/plan-limits'
@@ -330,15 +330,49 @@ export const reportContentFn = createServerFn({ method: 'POST' })
     return { success: true }
   })
 
+type CommentInput = {
+  postId: string
+  comment: { text?: string; mediaUrl?: string | null } | string
+}
+
+function mapCommentRow(
+  row: {
+    id: string
+    contenido: string
+    usuario_id: string
+    fecha_creacion?: string | null
+    updated_at?: string | null
+    url_multimedia?: string | null
+  },
+  author?: { nombre?: string | null; avatar_url?: string | null } | null,
+  likes = 0,
+  likedByMe = false,
+) {
+  return {
+    id: row.id,
+    text: row.contenido,
+    mediaUrl: row.url_multimedia ?? null,
+    user_id: row.usuario_id,
+    author_name: author?.nombre ?? 'Usuario',
+    author_avatar: author?.avatar_url ?? null,
+    created_at: row.fecha_creacion ?? null,
+    updated_at: row.updated_at ?? null,
+    likes,
+    likedByMe,
+  }
+}
+
 export const addCommentFn = createServerFn({ method: 'POST' })
-  .inputValidator((d: { postId: string; comment: { text: string } | string }) => d)
+  .inputValidator((d: CommentInput) => d)
   .handler(async ({ data }) => {
     const { user } = await requireActiveUser()
     const supabase = createSupabaseAdminClient()
     const text =
       typeof data.comment === 'string' ? data.comment.trim() : data.comment.text?.trim() ?? ''
+    const mediaUrl =
+      typeof data.comment === 'string' ? null : data.comment.mediaUrl?.trim() || null
 
-    if (!text) throw new Error('El comentario está vacío')
+    if (!text && !mediaUrl) throw new Error('Escribe un comentario o adjunta una imagen/GIF/video')
 
     const { data: profile } = await supabase
       .from('perfiles')
@@ -346,34 +380,153 @@ export const addCommentFn = createServerFn({ method: 'POST' })
       .eq('id', user.id)
       .maybeSingle()
 
+    const payload: Record<string, unknown> = {
+      publicacion_id: data.postId,
+      usuario_id: user.id,
+      contenido: text || (mediaUrl ? '📎' : ''),
+    }
+    if (mediaUrl) payload.url_multimedia = mediaUrl
+
     const { data: row, error } = await supabase
       .from('comentarios')
-      .insert({
-        publicacion_id: data.postId,
-        usuario_id: user.id,
-        contenido: text,
-      })
-      .select('id, contenido, usuario_id')
+      .insert(payload)
+      .select('id, contenido, usuario_id, fecha_creacion, updated_at, url_multimedia')
       .single()
 
     if (error) {
       if (error.message.includes('does not exist')) {
         throw new Error('Comentarios en configuración. Ejecuta la migración SQL en Supabase.')
       }
+      if (error.message.includes('url_multimedia')) {
+        throw new Error('Falta la migración 012 en Supabase (multimedia en comentarios).')
+      }
       throw error
     }
 
     return {
       success: true,
-      comment: {
-        id: row.id,
-        text: row.contenido,
-        user_id: row.usuario_id,
-        author_name: profile?.nombre ?? 'Usuario',
-        author_avatar: profile?.avatar_url ?? null,
-        created_at: new Date().toISOString(),
-      },
+      comment: mapCommentRow(row, profile, 0, false),
     }
+  })
+
+export const updateCommentFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { commentId: string; text: string; mediaUrl?: string | null }) => d)
+  .handler(async ({ data }) => {
+    const { user } = await requireActiveUser()
+    const supabase = createSupabaseAdminClient()
+    const text = data.text.trim()
+    const mediaUrl = data.mediaUrl?.trim() || null
+
+    if (!text && !mediaUrl) throw new Error('El comentario no puede quedar vacío')
+
+    const { data: existing, error: fetchError } = await supabase
+      .from('comentarios')
+      .select('id, usuario_id')
+      .eq('id', data.commentId)
+      .maybeSingle()
+
+    if (fetchError) throw fetchError
+    if (!existing) throw new Error('Comentario no encontrado')
+    if (existing.usuario_id !== user.id) throw new Error('Solo puedes editar tus propios comentarios')
+
+    const { data: row, error } = await supabase
+      .from('comentarios')
+      .update({
+        contenido: text || (mediaUrl ? '📎' : ''),
+        url_multimedia: mediaUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', data.commentId)
+      .select('id, contenido, usuario_id, fecha_creacion, updated_at, url_multimedia')
+      .single()
+
+    if (error) {
+      if (error.message.includes('url_multimedia') || error.message.includes('updated_at')) {
+        throw new Error('Falta la migración 012 en Supabase (editar comentarios).')
+      }
+      throw error
+    }
+
+    const { data: profile } = await supabase
+      .from('perfiles')
+      .select('nombre, avatar_url')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const { count } = await supabase
+      .from('reacciones_comentarios')
+      .select('*', { count: 'exact', head: true })
+      .eq('comentario_id', data.commentId)
+
+    return {
+      success: true,
+      comment: mapCommentRow(row, profile, count ?? 0, false),
+    }
+  })
+
+export const deleteCommentFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { commentId: string }) => d)
+  .handler(async ({ data }) => {
+    const { user } = await requireActiveUser()
+    const supabase = createSupabaseAdminClient()
+
+    const { data: existing, error: fetchError } = await supabase
+      .from('comentarios')
+      .select('id, usuario_id, publicacion_id')
+      .eq('id', data.commentId)
+      .maybeSingle()
+
+    if (fetchError) throw fetchError
+    if (!existing) throw new Error('Comentario no encontrado')
+    if (existing.usuario_id !== user.id) throw new Error('Solo puedes borrar tus propios comentarios')
+
+    const { error } = await supabase.from('comentarios').delete().eq('id', data.commentId)
+    if (error) throw error
+
+    return { success: true, postId: existing.publicacion_id }
+  })
+
+export const toggleCommentLikeFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { commentId: string }) => d)
+  .handler(async ({ data }) => {
+    const { user } = await requireActiveUser()
+    const supabase = createSupabaseAdminClient()
+
+    const { data: existing, error: fetchError } = await supabase
+      .from('reacciones_comentarios')
+      .select('id')
+      .eq('comentario_id', data.commentId)
+      .eq('usuario_id', user.id)
+      .maybeSingle()
+
+    if (fetchError) {
+      if (fetchError.message.includes('does not exist')) {
+        throw new Error('Falta la migración 012 en Supabase (likes en comentarios).')
+      }
+      throw fetchError
+    }
+
+    if (existing) {
+      await supabase.from('reacciones_comentarios').delete().eq('id', existing.id)
+    } else {
+      const { error: insertError } = await supabase.from('reacciones_comentarios').insert({
+        comentario_id: data.commentId,
+        usuario_id: user.id,
+      })
+      if (insertError) throw insertError
+    }
+
+    const { data: rows, error: countError } = await supabase
+      .from('reacciones_comentarios')
+      .select('usuario_id')
+      .eq('comentario_id', data.commentId)
+
+    if (countError) throw countError
+
+    const likes = rows?.length ?? 0
+    const likedByMe = Boolean(rows?.some((row) => row.usuario_id === user.id))
+
+    return { likes, likedByMe }
   })
 
 export const toggleReactionFn = createServerFn({ method: 'POST' })
@@ -471,17 +624,47 @@ export const getCommentsFn = createServerFn({ method: 'GET' })
   .inputValidator((d: { postId: string }) => d)
   .handler(async ({ data }) => {
     const supabase = createSupabaseAdminClient()
+    const viewer = await getServerUser()
+    const viewerId = viewer?.id ?? null
+
     const { data: rows, error } = await supabase
       .from('comentarios')
-      .select('id, contenido, usuario_id, fecha_creacion')
+      .select('id, contenido, usuario_id, fecha_creacion, updated_at, url_multimedia')
       .eq('publicacion_id', data.postId)
       .order('fecha_creacion', { ascending: true })
 
     if (error) {
       if (error.message.includes('does not exist')) return []
+      // Migración 012 aún no aplicada: fallback sin columnas nuevas
+      if (error.message.includes('url_multimedia') || error.message.includes('updated_at')) {
+        const legacy = await supabase
+          .from('comentarios')
+          .select('id, contenido, usuario_id, fecha_creacion')
+          .eq('publicacion_id', data.postId)
+          .order('fecha_creacion', { ascending: true })
+        if (legacy.error) {
+          if (legacy.error.message.includes('does not exist')) return []
+          throw legacy.error
+        }
+        const userIds = [...new Set((legacy.data ?? []).map((row) => row.usuario_id))]
+        const { data: profiles } = await supabase
+          .from('perfiles')
+          .select('id, nombre, avatar_url')
+          .in('id', userIds.length ? userIds : ['00000000-0000-0000-0000-000000000000'])
+        const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]))
+        return (legacy.data ?? []).map((row) =>
+          mapCommentRow(
+            { ...row, updated_at: null, url_multimedia: null },
+            profileMap.get(row.usuario_id),
+            0,
+            false,
+          ),
+        )
+      }
       throw error
     }
 
+    const commentIds = (rows ?? []).map((row) => row.id)
     const userIds = [...new Set((rows ?? []).map((row) => row.usuario_id))]
     const { data: profiles } = await supabase
       .from('perfiles')
@@ -490,15 +673,33 @@ export const getCommentsFn = createServerFn({ method: 'GET' })
 
     const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]))
 
-    return (rows ?? []).map((row) => {
-      const author = profileMap.get(row.usuario_id)
-      return {
-        id: row.id,
-        text: row.contenido,
-        user_id: row.usuario_id,
-        author_name: author?.nombre ?? 'Usuario',
-        author_avatar: author?.avatar_url ?? null,
-        created_at: row.fecha_creacion,
+    const likeCounts = new Map<string, number>()
+    const likedByMe = new Set<string>()
+    if (commentIds.length > 0) {
+      const { data: reactionRows, error: reactionError } = await supabase
+        .from('reacciones_comentarios')
+        .select('comentario_id, usuario_id')
+        .in('comentario_id', commentIds)
+
+      if (!reactionError) {
+        for (const reaction of reactionRows ?? []) {
+          likeCounts.set(
+            reaction.comentario_id,
+            (likeCounts.get(reaction.comentario_id) ?? 0) + 1,
+          )
+          if (viewerId && reaction.usuario_id === viewerId) {
+            likedByMe.add(reaction.comentario_id)
+          }
+        }
       }
-    })
+    }
+
+    return (rows ?? []).map((row) =>
+      mapCommentRow(
+        row,
+        profileMap.get(row.usuario_id),
+        likeCounts.get(row.id) ?? 0,
+        likedByMe.has(row.id),
+      ),
+    )
   })

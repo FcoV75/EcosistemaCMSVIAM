@@ -51,7 +51,12 @@ export function LiveSocialBridge() {
           )
           .on(
             'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'comentarios' },
+            { event: '*', schema: 'public', table: 'comentarios' },
+            bumpPosts,
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'reacciones_comentarios' },
             bumpPosts,
           )
           .on(
