@@ -34,11 +34,10 @@ const MAX_COMMENT_MEDIA_BYTES = 20 * 1024 * 1024
 type CommentSectionProps = {
   postId: string
   open: boolean
-  initialCount: number
   onCountChange: (count: number) => void
 }
 
-export function CommentSection({ postId, open, initialCount, onCountChange }: CommentSectionProps) {
+export function CommentSection({ postId, open, onCountChange }: CommentSectionProps) {
   const { user } = useIdentity()
   const fileRef = useRef<HTMLInputElement>(null)
   const [commentList, setCommentList] = useState<CommentRow[]>([])

@@ -533,7 +533,6 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
       <CommentSection
         postId={post.id}
         open={showCommentInput}
-        initialCount={comments}
         onCountChange={handleCommentCount}
       />
 
