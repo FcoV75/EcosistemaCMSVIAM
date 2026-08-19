@@ -43,7 +43,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     id: 'publish',
     title: 'Publica en la Pizarra',
     description:
-      'Publica lo de tu oficio: foto de un trabajo reciente, un YouTube de tu proceso o material propio (catálogo, certificado, demo). El botón «Qué publicar» en la pizarra te da ideas concretas. Necesitas iniciar sesión para publicar y comentar.'
+      'Publica lo de tu oficio: foto de un trabajo reciente, un YouTube de tu proceso o material propio (catálogo, certificado, demo). El botón "Qué publicar" en la pizarra te da ideas concretas. Necesitas iniciar sesión para publicar y comentar.',
     icon: PenLine,
     accent: 'from-emerald-500 to-teal-500',
   },
