@@ -15,7 +15,7 @@ export function SupportBot() {
     {
       id: 'welcome',
       role: 'bot',
-      text: 'Hola, soy el bot de apoyo de ContacNeed. Pregúntame sobre oficios, publicaciones, PRO o soporte técnico.',
+      text: 'Hola, soy el bot de apoyo de ContacNeed. Pregúntame sobre oficios, qué publicar en la pizarra (fotos, YouTube o material propio), PRO o soporte técnico.',
     },
   ])
   const [isPending, startTransition] = useTransition()
@@ -79,7 +79,7 @@ export function SupportBot() {
               </div>
               <div>
                 <p className="text-sm font-bold">Apoyo ContacNeed</p>
-                <p className="text-[11px] text-purple-200/80">IA de oficios y soporte</p>
+                <p className="text-[11px] text-purple-200/80">IA de oficios, pizarra y soporte</p>
               </div>
             </div>
             <button
@@ -102,7 +102,7 @@ export function SupportBot() {
                     : 'bg-purple-900/50 text-purple-50'
                 }`}
               >
-                {message.text}
+                <p className="whitespace-pre-wrap">{message.text}</p>
               </div>
             ))}
             {isPending && <p className="text-xs text-purple-300/60">Escribiendo respuesta...</p>}
@@ -116,7 +116,7 @@ export function SupportBot() {
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') sendMessage()
                 }}
-                placeholder="Escribe tu pregunta..."
+                placeholder="Ej: ¿qué publico hoy de mi oficio?"
                 className="flex-1 rounded-full border border-purple-500/30 bg-slate-900/80 px-4 py-2 text-sm text-white placeholder:text-purple-300/40 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
               />
               <button

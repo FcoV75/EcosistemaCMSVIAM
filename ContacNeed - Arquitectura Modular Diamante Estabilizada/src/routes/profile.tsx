@@ -18,6 +18,7 @@ import { getPlanUsageFn, requestProExtraAdsFn } from '../server/plan.functions'
 import { canjearPuntosMensualidadFn, getMiGamificacionFn } from '../server/gamificacion.functions'
 import { generateProMarketReportFn } from '../server/pro-reports.functions'
 import { getCursoPromotoresAccessFn } from '../server/promotores.functions'
+import { generarIdeasTiendaFn } from '../server/tienda-ideas.functions'
 
 export const Route = createFileRoute('/profile')({
   beforeLoad: async () => {
@@ -58,7 +59,7 @@ function ProfileContent({
   onOpenStripe: () => void
 }) {
   const { profileData, setProfileData, saveProfileData } = useUser()
-  const { isPro } = useIdentity()
+  const { isPro, profile } = useIdentity()
   const planQuery = useQuery({ queryKey: ['plan-usage'], queryFn: () => getPlanUsageFn() })
   const cursoPromotoresQuery = useQuery({
     queryKey: ['curso-promotores-access'],
@@ -104,7 +105,14 @@ function ProfileContent({
   })
   const [activeTab, setActiveTab] = useState<'perfil' | 'negocio' | 'guia'>('perfil')
   const [storePrompt, setStorePrompt] = useState('')
-  const [aiSuggestions, setAiSuggestions] = useState<string | null>(null)
+  const [aiSuggestions, setAiSuggestions] = useState<{
+    promocion: { titulo: string; texto: string }
+    objecion: { objecion: string; respuesta: string }
+    remaining: number
+    limit: number
+    reused: boolean
+  } | null>(null)
+  const [storeIdeasError, setStoreIdeasError] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isSavingStore, setIsSavingStore] = useState(false)
@@ -194,22 +202,22 @@ function ProfileContent({
   }
 
   const handleGenerateStoreIdeas = async () => {
-    if (!storePrompt) return
     setIsGenerating(true)
-    setTimeout(() => {
-      setAiSuggestions(`
-        <div class="space-y-4">
-          <h4 class="font-bold text-lg text-slate-900">Sugerencias para tu Tienda:</h4>
-          <ul class="list-disc pl-5 space-y-2 text-slate-700">
-            <li><strong>Colores:</strong> Usa tonos azules y grises para transmitir confianza.</li>
-            <li><strong>Sección Destacada:</strong> Agrega fotos de antes/después de tus trabajos.</li>
-            <li><strong>Llamado a la acción:</strong> "Cotización gratis por ContacNeed".</li>
-          </ul>
-        </div>
-      `)
+    setStoreIdeasError(null)
+    try {
+      const result = await generarIdeasTiendaFn({ data: { prompt: storePrompt.trim() } })
+      setAiSuggestions({
+        promocion: result.promocion,
+        objecion: result.objecion,
+        remaining: result.remaining,
+        limit: result.limit,
+        reused: result.reused,
+      })
+    } catch (error) {
+      setStoreIdeasError(error instanceof Error ? error.message : 'No se pudieron generar los consejos.')
+    } finally {
       setIsGenerating(false)
-    }, 1500)
-
+    }
   }
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -514,29 +522,49 @@ function ProfileContent({
 
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-8">
               <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-3">
-                <Sparkles className="text-amber-500" size={20} /> Asistente de Diseño IA
+                <Sparkles className="text-amber-500" size={20} /> Asistente de tienda IA
               </h3>
               <p className="text-sm text-slate-600 mb-4">
-                Describe tu negocio y recibe sugerencias de colores, secciones y textos (incluido en plan gratuito).
+                Un par de consejos al día para no saturar tu creatividad: cómo promocionar lo que vendes, actualizar
+                tu tienda y vencer objeciones comunes de tu rubro
+                {profile?.habilidad_empirica ? ` (${profile.habilidad_empirica})` : ''}.
               </p>
               <div className="flex gap-3">
                 <input 
                   type="text" 
                   value={storePrompt}
                   onChange={(e) => setStorePrompt(e.target.value)}
-                  placeholder="Ej. Soy carpintero y quiero destacar mis servicios 24/7..." 
+                  placeholder="Ej. Vendo pasteles y me dicen que están caros / quiero más fotos en la tienda..."
                   className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-amber-500 focus:ring-amber-500"
                 />
                 <button 
                   onClick={handleGenerateStoreIdeas}
-                  disabled={isGenerating || !storePrompt}
+                  disabled={isGenerating}
                   className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  {isGenerating ? 'Generando...' : 'Recomendar'}
+                  {isGenerating ? 'Pensando...' : 'Consejos del día'}
                 </button>
               </div>
+              {storeIdeasError && (
+                <p className="mt-3 text-sm text-red-700">{storeIdeasError}</p>
+              )}
               {aiSuggestions && (
-                <div className="mt-6 bg-white p-4 rounded-lg border border-amber-100 shadow-sm" dangerouslySetInnerHTML={{ __html: aiSuggestions }}></div>
+                <div className="mt-6 space-y-4 rounded-lg border border-amber-100 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+                    {aiSuggestions.reused
+                      ? 'Ya recibiste tu par de hoy. Relee estos consejos y vuelve mañana.'
+                      : 'Tu par de consejos de hoy. Mañana la IA te da otro par distinto.'}
+                  </p>
+                  <div>
+                    <h4 className="font-bold text-slate-900">{aiSuggestions.promocion.titulo}</h4>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-700">{aiSuggestions.promocion.texto}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Objeción frecuente</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{aiSuggestions.objecion.objecion}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-700">{aiSuggestions.objecion.respuesta}</p>
+                  </div>
+                </div>
               )}
             </div>
 
