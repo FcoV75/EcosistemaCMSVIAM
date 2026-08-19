@@ -411,6 +411,8 @@ function Composer({
 
     setMediaUrl('')
 
+    setPostIdeas([])
+
     clearPreview()
 
     event.currentTarget.reset()
