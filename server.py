@@ -548,7 +548,7 @@ def estudio_generar_letra():
         "- Rima natural y cantable.\n"
         "- Entre 16 y 28 líneas."
     )
-    modelos = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    modelos = ["openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"]
     ultimo = "Sin respuesta"
     for modelo in modelos:
         try:
