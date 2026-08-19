@@ -6,7 +6,7 @@ import {
 } from './lib/member-helpers.mjs';
 import { obtenerMiembro, tieneAccesoNexus } from './lib/comprobante-helpers.mjs';
 import { getUserFromBearer } from './lib/supabase-admin.mjs';
-import { consumeRateLimit, getClientIp, hashIp } from './lib/rate-limit.mjs';
+import { getClientIp, hashIp } from './lib/rate-limit.mjs';
 import {
   FRECUENCIAS_SOLFEGGIO,
   ONDAS_CEREBRALES,
@@ -14,6 +14,9 @@ import {
   normalizarDiagnostico,
   parsearRespuestaIA,
 } from './lib/nexus-frequencies.mjs';
+import { PLAN_MIEMBRO, PLAN_PUBLICO, payloadMusica } from './lib/nexus-sesion.mjs';
+import { abrirTurnoChat, confirmarTurnoChat } from './lib/nexus-sesion-store.mjs';
+import { consultarGroqNexus, groqKey } from './lib/nexus-groq.mjs';
 import { contratoPublico, modoValido } from './lib/organo-contratos.mjs';
 import {
   aplicarTripleFiltro,
@@ -25,52 +28,8 @@ import {
   validarPercepcion,
 } from './lib/organo-kernel.mjs';
 
-const GROQ_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
-const PUBLIC_LIMIT = 1;
-
-function groqKey() {
-  try {
-    if (typeof Netlify !== 'undefined' && Netlify.env?.get) {
-      return Netlify.env.get('GROQ_API_KEY') || '';
-    }
-  } catch {
-    /* ignore */
-  }
-  return process.env.GROQ_API_KEY || '';
-}
-
 function claveUso(memberData, normalized, userId) {
   return memberData?.legacy_code || normalized || (userId ? `USER-${userId}` : null);
-}
-
-async function consultarGroq(apiKey, system, user) {
-  for (const model of GROQ_MODELS) {
-    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.55,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-      }),
-    });
-    let aiData = null;
-    try {
-      aiData = await groqResponse.json();
-    } catch {
-      continue;
-    }
-    if (!groqResponse.ok) continue;
-    const rawText = aiData?.choices?.[0]?.message?.content?.trim();
-    if (rawText) return rawText;
-  }
-  return null;
 }
 
 function corsHeaders() {
@@ -109,46 +68,6 @@ async function escribirMemoria(clave, memoria, consentimientos) {
   }
 }
 
-async function consultarUsoChat(clave, memberData, esPermanente) {
-  if (esPermanente || !clave) return { ok: true, restantes: null };
-  const store = getStore('nexus-members');
-  const today = new Date().toISOString().split('T')[0];
-  const blobExistente = await store.get(clave, { type: 'json' });
-  const usageToday = blobExistente?.usage?.[today] || memberData?.usage?.[today] || 0;
-  if (usageToday >= 3) {
-    return {
-      ok: false,
-      restantes: 0,
-      error:
-        'Has alcanzado el límite de 3 conversaciones diarias. Date tiempo para integrar los consejos de hoy; mañana el Santuario te esperará de nuevo.',
-    };
-  }
-  return { ok: true, restantes: Math.max(0, 3 - usageToday), usageToday, today, store };
-}
-
-async function incrementarUsoChat(clave, memberData, esPermanente) {
-  const consulta = await consultarUsoChat(clave, memberData, esPermanente);
-  if (!consulta.ok) return consulta;
-  if (esPermanente || !clave) return { ok: true, restantes: null };
-  const today = consulta.today;
-  const store = consulta.store || getStore('nexus-members');
-  const blobExistente = await store.get(clave, { type: 'json' });
-  const datosUso = {
-    ...memberData,
-    ...(blobExistente || {}),
-    usage: { ...(memberData?.usage || {}), ...(blobExistente?.usage || {}) },
-  };
-  const usageToday = datosUso.usage[today] || 0;
-  datosUso.usage[today] = usageToday + 1;
-  await store.setJSON(clave, {
-    ...datosUso,
-    producto: memberData.producto || 'sincronia_nexus',
-    startDate: memberData.startDate || Date.now(),
-    durationDays: memberData.durationDays || 30,
-  });
-  return { ok: true, restantes: Math.max(0, 3 - (usageToday + 1)) };
-}
-
 async function resolverMiembro(req, body) {
   const user = await getUserFromBearer(req);
   const normalized = body.code ? String(body.code).trim().toUpperCase() : null;
@@ -183,8 +102,8 @@ async function resolverMiembro(req, body) {
 function armarRespuesta({
   parsed,
   rawText,
-  diag,
-  pista,
+  musica,
+  nuevaMusica,
   modo,
   faro,
   filtro,
@@ -192,11 +111,9 @@ function armarRespuesta({
   vetosPendientes,
   silencio,
   memoriaGuardada,
-  consultasRestantes,
+  sesion,
   percepcionOk,
 }) {
-  const freqInfo = FRECUENCIAS_SOLFEGGIO[diag.frecuenciaHz];
-  const ondaInfo = diag.ondaCerebral ? ONDAS_CEREBRALES[diag.ondaCerebral] : null;
   return {
     contrato: contratoPublico(),
     modo,
@@ -209,17 +126,14 @@ function armarRespuesta({
     reply: silencio && parsed.respuesta ? parsed.respuesta : parsed.respuesta || rawText,
     loQueNoHare: parsed.lo_que_no_hare || 'No diagnostico, no presento, no cobro y no grabo sin tu veto.',
     preguntaVeto: parsed.pregunta_veto || (vetosPendientes[0]?.resumen ?? null),
-    frecuenciaHz: diag.frecuenciaHz,
-    frecuenciaEtiqueta: diag.frecuenciaEtiqueta,
-    frecuenciaProposito: freqInfo?.proposito || '',
-    ondaCerebral: diag.ondaCerebral,
-    ondaEtiqueta: ondaInfo?.etiqueta || null,
-    fuenteAudio: diag.fuenteAudio,
-    diagnosticoBreve: diag.diagnosticoBreve,
-    audioUrl: pista?.url || null,
-    tituloPista: pista?.titulo || '',
+    esPrimera: Boolean(nuevaMusica || sesion?.esPrimera),
+    nuevaMusica: Boolean(nuevaMusica),
+    sesion,
+    musicaDelDia: musica,
     memoriaGuardada,
-    consultasRestantes,
+    consultasRestantes: null,
+    ...payloadMusica(musica),
+    audioUrl: nuevaMusica ? musica?.audioUrl || null : null,
   };
 }
 
@@ -260,21 +174,25 @@ async function turno({ req, body, publico }) {
   const silencioSkill = skillsInvocados.includes('silencio') && filtro.veredicto === 'esperar';
 
   let clave = null;
-  let memberData = null;
   let esPermanente = false;
   if (!publico) {
     const miembro = await resolverMiembro(req, body);
     if (miembro.error) return json({ error: miembro.error }, miembro.status);
     clave = miembro.clave;
-    memberData = miembro.memberData;
     esPermanente = miembro.esPermanente;
-    const cupo = await consultarUsoChat(clave, memberData, esPermanente);
-    if (!cupo.ok) return json({ error: cupo.error }, 429);
+  }
+
+  const claveSesion = publico ? `public:${hashIp(getClientIp(req))}` : `member:${clave}`;
+  const turnoChat = await abrirTurnoChat(claveSesion, {
+    plan: publico ? PLAN_PUBLICO : PLAN_MIEMBRO,
+    permanente: esPermanente,
+  });
+  if (!turnoChat.ok) {
+    return json({ error: turnoChat.error, sesion: { restanteMs: 0, plan: publico ? 'publico' : 'miembro' } }, 429);
   }
 
   const memoria = publico || !consentimientos.memoria ? podarMemoria({}) : await leerMemoria(clave);
-  const apiKey = groqKey();
-  if (!apiKey) return json({ error: 'IA no configurada (GROQ_API_KEY).' }, 503);
+  if (!groqKey()) return json({ error: 'IA no configurada (GROQ_API_KEY).' }, 503);
 
   const userBlock = [
     `Modo: ${modo}`,
@@ -286,17 +204,19 @@ async function turno({ req, body, publico }) {
       : 'Sin veto pendiente.',
   ].join('\n');
 
-  const rawText = await consultarGroq(
-    apiKey,
-    systemPromptOrgano({
+  const { raw: rawText } = await consultarGroqNexus({
+    system: systemPromptOrgano({
       modo,
       skills: skillsInvocados,
       filtro,
       memoria,
       publico,
+      esPrimera: turnoChat.esPrimera,
     }),
-    userBlock,
-  );
+    historia: turnoChat.sesion.historia,
+    message: userBlock,
+    temperature: 0.55,
+  });
   if (!rawText) {
     return json(
       { error: 'Sincronía Nexus no pudo sintonizar en este momento. Intenta de nuevo en unos minutos.' },
@@ -307,17 +227,43 @@ async function turno({ req, body, publico }) {
   const parsed = parsearRespuestaIA(rawText);
   if (typeof parsed.silencio !== 'boolean') parsed.silencio = silencioSkill;
   if (parsed.respuesta && parsed.silencio !== true) parsed.silencio = Boolean(parsed.silencio);
-  const diag = normalizarDiagnostico(parsed);
-  const semilla = `${clave || 'public'}:${modo}:${mensaje.slice(0, 40)}`;
-  const pista = elegirPistaCatalogo(diag.frecuenciaHz, semilla);
   const silencio = Boolean(parsed.silencio) && filtro.veredicto !== 'actuar';
 
-  let consultasRestantes = null;
-  if (!publico && clave) {
-    const uso = await incrementarUsoChat(clave, memberData, esPermanente);
-    if (!uso.ok) return json({ error: uso.error }, 429);
-    consultasRestantes = uso.restantes;
+  let musica = turnoChat.sesion.musica;
+  let nuevaMusica = false;
+  let diag = musica
+    ? {
+        frecuenciaHz: musica.frecuenciaHz,
+        frecuenciaEtiqueta: musica.frecuenciaEtiqueta,
+        ondaCerebral: musica.ondaCerebral,
+        fuenteAudio: musica.fuenteAudio,
+        diagnosticoBreve: musica.diagnosticoBreve,
+      }
+    : normalizarDiagnostico(parsed);
+  if (turnoChat.esPrimera) {
+    diag = normalizarDiagnostico(parsed);
+    const pista = elegirPistaCatalogo(diag.frecuenciaHz, `${claveSesion}:${turnoChat.sesion.day}`);
+    const freqInfo = FRECUENCIAS_SOLFEGGIO[diag.frecuenciaHz];
+    const ondaInfo = diag.ondaCerebral ? ONDAS_CEREBRALES[diag.ondaCerebral] : null;
+    musica = {
+      frecuenciaHz: diag.frecuenciaHz,
+      frecuenciaEtiqueta: diag.frecuenciaEtiqueta,
+      frecuenciaProposito: freqInfo?.proposito || '',
+      ondaCerebral: diag.ondaCerebral,
+      ondaEtiqueta: ondaInfo?.etiqueta || null,
+      fuenteAudio: diag.fuenteAudio,
+      diagnosticoBreve: diag.diagnosticoBreve,
+      audioUrl: pista?.url || null,
+      tituloPista: pista?.titulo || '',
+    };
+    nuevaMusica = Boolean(musica.audioUrl);
   }
+
+  await confirmarTurnoChat(claveSesion, turnoChat.sesion, {
+    mensaje,
+    reply: parsed.respuesta || rawText,
+    musica,
+  });
 
   let memoriaGuardada = false;
   if (!publico && clave && consentimientos.memoria && !consentimientos.clinica) {
@@ -338,8 +284,8 @@ async function turno({ req, body, publico }) {
     armarRespuesta({
       parsed,
       rawText,
-      diag,
-      pista,
+      musica,
+      nuevaMusica,
       modo,
       faro: percepcionOk.faro,
       filtro,
@@ -347,7 +293,13 @@ async function turno({ req, body, publico }) {
       vetosPendientes,
       silencio,
       memoriaGuardada,
-      consultasRestantes,
+      sesion: {
+        plan: publico ? 'publico' : 'miembro',
+        restanteMs: esPermanente ? null : turnoChat.restanteMs,
+        etiqueta: publico ? '10 minutos' : '30 minutos',
+        permanente: Boolean(esPermanente),
+        esPrimera: turnoChat.esPrimera,
+      },
       percepcionOk,
     }),
   );
@@ -403,26 +355,7 @@ export default async (req) => {
     }
 
     if (accion === 'turno') {
-      const publico = Boolean(body.publico);
-      if (publico) {
-        try {
-          const ip = hashIp(getClientIp(req));
-          const limit = await consumeRateLimit(`nexus-organo-public:${ip}`, PUBLIC_LIMIT, 86400000);
-          if (!limit.allowed) {
-            return json(
-              {
-                error:
-                  'Has alcanzado tu consulta pública de hoy. Vuelve mañana o entra al Santuario como miembro para la presencia completa.',
-              },
-              429,
-            );
-          }
-        } catch (rateErr) {
-          console.warn('organo public rate-limit skip:', rateErr);
-        }
-        return turno({ req, body, publico: true });
-      }
-      return turno({ req, body, publico: false });
+      return turno({ req, body, publico: Boolean(body.publico) });
     }
 
     return json({ error: 'Acción no reconocida. Usa contrato, turno, memoria o veto.' }, 400);

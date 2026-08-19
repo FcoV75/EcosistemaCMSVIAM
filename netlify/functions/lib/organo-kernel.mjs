@@ -196,7 +196,7 @@ export function resumenEpisodio({ modo, mensaje, reply, skills, filtro, silencio
   };
 }
 
-export function systemPromptOrgano({ modo, skills, filtro, memoria, publico }) {
+export function systemPromptOrgano({ modo, skills, filtro, memoria, publico, esPrimera = true }) {
   const m = MODOS[modoValido(modo)];
   const contrato = contratoPublico();
   const episodios = (memoria?.episodios || []).slice(-4).map((e) => `- ${e.hecho}`).join('\n');
@@ -229,7 +229,11 @@ ${skillLines || '- filtro_decision'}
 Memoria reciente (resúmenes, no crudo):
 ${episodios || '- (vacía)'}
 
-Elige frecuencia Solfeggio (174, 285, 417, 528, 639, 741, 852, 963) y onda opcional delta/theta/alpha.
+${
+    esPrimera
+      ? 'Elige frecuencia Solfeggio (174, 285, 417, 528, 639, 741, 852, 963) y onda opcional delta/theta/alpha. Es el ÚNICO momento del día en que se genera la música.'
+      : 'La frecuencia y la pieza del día YA están sonando. NO elijas pista nueva ni invites a activar otra frecuencia. Continúa la plática.'
+  }
 
 Responde ÚNICAMENTE JSON válido (sin markdown):
 {

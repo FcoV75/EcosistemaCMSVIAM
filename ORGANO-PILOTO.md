@@ -39,8 +39,8 @@ El chat clásico (`chat`, `member-chat`) sigue vivo. La presencia nueva no lo ro
 
 ## Dónde se ve
 
-- Público: `/nexus#organo-piloto` (1 turno/día)
-- Santuario: `/miembro/` (3 turnos/día, memoria resumida 30 días)
+- Público: `/nexus#organo-piloto` (plática continua de 10 min; música solo en el primer consejo del día)
+- Santuario: `/miembro/` (plática continua de 30 min, memoria resumida 30 días; misma regla de música)
 - ContacNeed: skill de **encuentro** — propone perfiles, no envía solicitudes
 
 ## Qué no hace (a propósito)

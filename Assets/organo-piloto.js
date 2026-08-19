@@ -365,6 +365,8 @@
         `skills: ${(data.skillsInvocados || []).join(', ') || 'ninguna'}`,
         data.memoriaGuardada ? 'memoria resumida guardada' : 'sin memoria cruda',
         data.consultasRestantes != null ? `${data.consultasRestantes} consultas restantes` : '',
+        data.sesion?.restanteMs != null ? `plática ${window.NexusPlatica ? NexusPlatica.formatMs(data.sesion.restanteMs) : ''}`.trim() : '',
+        data.nuevaMusica === false ? 'sin pista nueva' : '',
       ]
         .filter(Boolean)
         .join(' · ');
