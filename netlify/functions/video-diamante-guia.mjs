@@ -27,7 +27,7 @@ Instrucciones:
 - No inventes funciones que no existen (lip sync aún no está disponible).
 - Sé breve salvo que pidan detalle.`;
 
-const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+const GROQ_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
 
 function groqKey() {
   try {

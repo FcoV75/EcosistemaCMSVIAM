@@ -23,7 +23,7 @@ Estado de ánimo: ${mood}
 
 Solo la letra, con acentos correctos, versos y estribillo, 16-28 líneas.`;
 
-    for (const modelo of ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]) {
+    for (const modelo of ["openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"]) {
       const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${groqKey}`, "Content-Type": "application/json" },
