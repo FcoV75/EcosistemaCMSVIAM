@@ -40,6 +40,7 @@
     @media (max-width: 680px) { .purpose { grid-template-columns:1fr; } .purpose img { max-width:190px; } }
   </style>
   <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
+  <link rel="stylesheet" href="/Assets/organo-piloto.css" />
 </head>
 <body>
   <div class="wrap">
@@ -64,6 +65,12 @@
         <img src="/Assets/Images/SincNex_logo.png" alt="Imagen conceptual de Sincronía NEXUS" loading="lazy" />
         <p>Sincronía NEXUS integra un enfoque emocional, atención intencional profunda y acompañamiento personalizado para fortalecer tu claridad, concentración y bienestar físico y mental. El sistema está orientado a miembros que desean una ruta de transformación con seguimiento y compromiso.</p>
       </div>
+    </section>
+
+    <section class="panel" id="organo-piloto">
+      <h2>Órgano piloto · Presencia</h2>
+      <p>Sincronía Nexus ya no espera a las gafas para tener oídos y voz. Aquí empieza el contrato: faro visible, modos, y veto humano. La muestra pública es de un turno al día; el Santuario guarda solo resúmenes, nunca el audio ni el video.</p>
+      <div id="organo-piloto-root"></div>
     </section>
 
     <section class="panel">
@@ -366,6 +373,35 @@ Mente abierta a consejos: ${data.mente_abierta}`;
       }
     </script>
 
+  <script src="/Assets/organo-piloto.js"></script>
+  <script>
+    NexusOrgano.montar({
+      root: 'organo-piloto-root',
+      ambito: 'publico',
+      getMensaje() {
+        const form = document.getElementById('nexus-form');
+        if (!form) return '';
+        const d = Object.fromEntries(new FormData(form).entries());
+        const partes = [d.situacion, d.como_te_sientes, d.emocion_desear].filter(Boolean);
+        return partes.join('\n') || (document.querySelector('#nexus-form textarea')?.value || '').trim();
+      },
+      setMensaje(texto) {
+        const situacion = document.querySelector('#nexus-form textarea[name="situacion"]');
+        if (situacion) situacion.value = texto;
+      },
+      onRespuesta(data) {
+        const box = document.getElementById('ia-response-container');
+        const reply = document.getElementById('ia-response');
+        if (box && reply) {
+          box.style.display = 'block';
+          reply.textContent = data.reply || '';
+        }
+        if (data.audioUrl && window.NexusSantuario) {
+          NexusSantuario.reproducirExperiencia(data, 'custom-frequency-player', 'freq-nota-publica');
+        }
+      },
+    });
+  </script>
   <script src="/Assets/ecosistema-banner.js" defer></script>
 </body>
 </html>

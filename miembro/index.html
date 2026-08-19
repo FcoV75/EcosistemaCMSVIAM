@@ -213,8 +213,10 @@
     #synth-player-wrap {
       display: none;
     }
+    .organo-host { margin-top: 1.25rem; }
   </style>
   <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
+  <link rel="stylesheet" href="/Assets/organo-piloto.css" />
 </head>
 <body>
 
@@ -241,6 +243,8 @@
       <h2>Tu Consejero del Santuario</h2>
       <p id="santuario-bienvenida" class="bienvenida-santuario">Cargando tu mensaje de hoy…</p>
       <p>Tienes hasta <strong>3 conversaciones profundas al día</strong>. Con cada una recibirás consejos meditados y una pista de frecuencia personalizada — del catálogo o creada para ti — para acompañar tu sanación.</p>
+
+      <div class="organo-host" id="organo-piloto-root"></div>
       
       <div class="chat-container">
         <textarea id="user-input" placeholder="Cuéntame qué sientes…"></textarea>
@@ -277,6 +281,7 @@
 
   <script src="/Assets/nexus-santuario.js"></script>
   <script src="/Assets/ecosistema-cuenta.js"></script>
+  <script src="/Assets/organo-piloto.js"></script>
   <script>
     let memberCode = localStorage.getItem('nexus_member_code') || '';
     let accesoPorSesion = false;
@@ -406,6 +411,38 @@
         loading.style.display = 'none';
       }
     }
+
+    function aplicarRespuestaOrgano(data) {
+      const responseBox = document.getElementById('ia-response');
+      const responseText = document.getElementById('ia-response-text');
+      const freqBadges = document.getElementById('freq-badges');
+      const playerWrap = document.getElementById('player-wrapper');
+      const pistaTitulo = document.getElementById('pista-titulo');
+      responseText.textContent = data.reply || '';
+      freqBadges.innerHTML = [
+        data.frecuenciaHz ? `<span class="freq-badge">${data.frecuenciaHz} Hz · ${data.frecuenciaEtiqueta || 'Frecuencia'} (segundo plano)</span>` : '',
+        data.ondaEtiqueta ? `<span class="freq-badge">Onda ${data.ondaCerebral}: ${data.ondaEtiqueta}</span>` : '',
+        data.silencio ? `<span class="freq-badge">Nexus eligió el silencio útil</span>` : '',
+      ].filter(Boolean).join('');
+      responseBox.style.display = 'block';
+      if (data.audioUrl) {
+        playerWrap.style.display = 'block';
+        pistaTitulo.textContent = data.tituloPista
+          ? `Tu pieza: ${data.tituloPista}`
+          : 'Tu pieza instrumental personalizada';
+        NexusSantuario.reproducirExperiencia(data);
+      }
+    }
+
+    NexusOrgano.montar({
+      root: 'organo-piloto-root',
+      ambito: 'santuario',
+      getAuthHeaders: (extra) => authHeaders(extra),
+      getCode: () => (memberCode && memberCode !== 'SESION' ? memberCode : ''),
+      getMensaje: () => document.getElementById('user-input').value.trim(),
+      setMensaje: (texto) => { document.getElementById('user-input').value = texto; },
+      onRespuesta: aplicarRespuestaOrgano,
+    });
 
     function logout() {
       NexusSantuario.detenerSintesis();

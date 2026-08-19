@@ -18,6 +18,8 @@ El "Sistema Operativo de Vida" (Life OS) para la gestión del estrés y la sober
 
 El Triple Filtro Nexus: Metodología para la toma de decisiones y liberación de cargas.
 
+Órgano piloto **Sincronía Nexus Presencia**: voz, oído y ojo con faro y veto humano. Contrato en `ORGANO-PILOTO.md`.
+
 Frecuencias Sagradas: Integración de audios en 528Hz y 963Hz para la armonización bioenergética.
 
 Comunidad de apoyo y crecimiento gradual.

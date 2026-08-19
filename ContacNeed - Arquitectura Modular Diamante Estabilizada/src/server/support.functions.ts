@@ -3,7 +3,7 @@ import { askLlm } from '../lib/llm'
 import { getServerProfile, getServerUser } from '../lib/auth'
 
 const SYSTEM_CONTEXT = `ContacNeed es una red social mexicana que conecta oficios, profesiones y especialidades por estado.
-Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin.
+Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin, órgano de encuentro (voz con faro; nunca presenta personas sin veto humano).
 Cloudinary sube fotos/videos con preset contacneed_uploads. Soporte técnico: pedir correo, navegador y captura del error.`
 
 const FAQ_ENTRIES: Record<string, string> = {

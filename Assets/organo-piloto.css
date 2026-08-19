@@ -1,0 +1,138 @@
+/* Órgano piloto — faro de percepción Sincronía Nexus Presencia */
+.organo-faro {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
+}
+.organo-faro[data-estado="apagado"] .organo-faro-luz {
+  background: #64748b;
+  box-shadow: none;
+}
+.organo-faro[data-estado="oido"] .organo-faro-luz {
+  background: #9ed6ff;
+  box-shadow: 0 0 10px #9ed6ff;
+}
+.organo-faro[data-estado="voz"],
+.organo-faro[data-estado="ojo"] {
+  border-color: #fb7185;
+  background: rgba(127, 29, 29, 0.35);
+}
+.organo-faro[data-estado="voz"] .organo-faro-luz,
+.organo-faro[data-estado="ojo"] .organo-faro-luz {
+  background: #fb7185;
+  box-shadow: 0 0 16px #fb7185;
+  animation: organo-pulso 1.1s ease-in-out infinite;
+}
+.organo-faro-luz {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.organo-faro-texto { color: #f8fafc; }
+.organo-faro button {
+  margin-left: auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #fff2bf;
+  color: #17141a;
+}
+@keyframes organo-pulso {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.7; }
+}
+
+.organo-panel { margin-top: 1rem; }
+.organo-modos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.8rem 0;
+}
+.organo-modos button {
+  border: 1px solid rgba(255,255,255,.3);
+  background: rgba(0,0,0,.28);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  font: inherit;
+}
+.organo-modos button[aria-pressed="true"] {
+  background: #a970ff;
+  border-color: #fff2bf;
+  color: #fff;
+}
+.organo-consent {
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  color: #dbe9ff;
+  margin: 0.6rem 0 1rem;
+}
+.organo-consent label { display: flex; gap: 0.5rem; align-items: flex-start; font-weight: 500; }
+.organo-acciones { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+.organo-acciones .btn-organo {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #a970ff;
+  color: #fff;
+}
+.organo-acciones .btn-organo.secundario {
+  background: transparent;
+  color: #9ed6ff;
+  border: 1px solid #9ed6ff;
+}
+.organo-acciones .btn-organo:disabled { opacity: 0.5; cursor: not-allowed; }
+.organo-preview {
+  display: none;
+  margin: 0.8rem 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #fb7185;
+  max-height: 220px;
+}
+.organo-preview video {
+  width: 100%;
+  display: block;
+  background: #000;
+}
+.organo-filtro {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #e8e4ff;
+  background: rgba(169, 112, 255, 0.12);
+  border: 1px solid rgba(169, 112, 255, 0.4);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-top: 0.8rem;
+  display: none;
+}
+.organo-veto {
+  display: none;
+  margin-top: 0.8rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #fbbf24;
+  background: rgba(120, 53, 15, 0.35);
+  color: #fff7ed;
+}
+.organo-meta { font-size: 0.82rem; color: #cbd5e1; margin-top: 0.6rem; }
+.organo-lo-que-veo {
+  width: 100%;
+  min-height: 70px;
+  margin-top: 0.5rem;
+  display: none;
+}

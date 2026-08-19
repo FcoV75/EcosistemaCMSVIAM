@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Crown, HelpCircle, Home, LogIn, LogOut, Mail, User, UserPlus } from 'lucide-react'
+import { Crown, HelpCircle, Home, LogIn, LogOut, Mail, Sparkles, User, UserPlus } from 'lucide-react'
 import type { AuthTab } from './AuthModal'
 
 type SidebarNavProps = {
@@ -37,6 +37,17 @@ export function SidebarNav({
             <Home size={18} className="text-amber-400" />
             Pizarra
           </Link>
+        </li>
+        <li>
+          <a
+            href="https://centromultidisciplinarioags.com/nexus#organo-piloto"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-purple-100 transition hover:bg-white/10"
+          >
+            <Sparkles size={18} className="text-amber-400" />
+            Nexus Presencia
+          </a>
         </li>
         {isLoggedIn ? (
           <>
