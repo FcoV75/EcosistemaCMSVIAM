@@ -2,6 +2,7 @@ type LlmOptions = {
   system?: string
   user: string
   maxSentences?: number
+  maxTokens?: number
 }
 
 /** Reemplazos oficiales Groq tras decommission de Llama 3.3 70B / 3.1 8B (16 ago 2026). */
@@ -11,10 +12,15 @@ const GROQ_CHAT_MODELS = [
   'openai/gpt-oss-20b',
 ] as const
 
-export async function askLlm({ system, user, maxSentences = 6 }: LlmOptions): Promise<string | null> {
+export async function askLlm({
+  system,
+  user,
+  maxSentences = 6,
+  maxTokens = 600,
+}: LlmOptions): Promise<string | null> {
   const groqKey = process.env.GROQ_API_KEY?.trim()
   if (groqKey) {
-    const answer = await askGroq(groqKey, system, user, maxSentences)
+    const answer = await askGroq(groqKey, system, user, maxSentences, maxTokens)
     if (answer) return answer
   }
 
@@ -27,7 +33,13 @@ export async function askLlm({ system, user, maxSentences = 6 }: LlmOptions): Pr
   return null
 }
 
-async function askGroq(apiKey: string, system: string | undefined, user: string, maxSentences: number) {
+async function askGroq(
+  apiKey: string,
+  system: string | undefined,
+  user: string,
+  maxSentences: number,
+  maxTokens: number,
+) {
   const messages = [
     {
       role: 'system',
@@ -49,7 +61,7 @@ async function askGroq(apiKey: string, system: string | undefined, user: string,
         body: JSON.stringify({
           model,
           temperature: 0.4,
-          max_tokens: 600,
+          max_tokens: maxTokens,
           messages,
         }),
       })

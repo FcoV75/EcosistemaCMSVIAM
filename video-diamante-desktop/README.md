@@ -30,7 +30,9 @@ Requiere instalar en tu PC:
 
 | Plan | Duración | Imágenes | Videos | Renders/día |
 |------|----------|----------|--------|-------------|
-| Gratuito | máx. 4 min | 3 | 2 | 3 |
-| Premium | 5 min – 1 h | ilimitado* | ilimitado* | 10 |
+| Gratuito | 8 s – 4 min | 10 | 2 | 3 |
+| Premium | 8 s – 1 h | 30 | ilimitado* | 10 |
 
-*Prácticamente sin tope en la interfaz; el servidor limita a 100 MB por paquete.
+Estudio VIAM: imágenes HD, discurso/texto (no letra de canción) y creador MIDI. Gratuito 5 generaciones/día · Premium 20/día.
+
+*El servidor limita a 100 MB por paquete.

@@ -1,8 +1,8 @@
 /* Video Diamante — Motor VIAM v2 */
 
 const LIMITES = {
-    gratuito: { maxSeg: 240, maxImg: 3, maxVid: 2, maxDia: 3, minSeg: 0, etiqueta: "Gratuito" },
-    premium: { maxSeg: 3600, maxImg: 99, maxVid: 99, maxDia: 10, minSeg: 0, etiqueta: "Premium" }
+    gratuito: { maxSeg: 240, maxImg: 10, maxVid: 2, maxDia: 3, minSeg: 8, etiqueta: "Gratuito" },
+    premium: { maxSeg: 3600, maxImg: 30, maxVid: 99, maxDia: 10, minSeg: 8, etiqueta: "Premium" }
 };
 
 let isPremium = false;
@@ -18,6 +18,8 @@ let letraSegmentos = [];
 let letraPalabras = [];
 let imagenEstudioBlob = null;
 let letraEstudioGenerada = "";
+let midiEstudioBlob = null;
+let midiEstudioAudioFile = null;
 let accessToken = localStorage.getItem("video_diamante_access_token") || "";
 
 const LIMITES_ESTUDIO = { gratuito: 5, premium: 20 };
@@ -200,34 +202,42 @@ async function generarImagenIA() {
 async function generarLetraIA() {
     if (!puedeUsarEstudio()) return;
     const tema = $("#estudio-tema-letra")?.value?.trim();
-    if (!tema) { alert("Indica el tema de la canción."); return; }
+    if (!tema) { alert("Indica el producto o el tema del discurso."); return; }
 
     const btn = $("#btn-generar-letra");
     const status = $("#status-letra-estudio");
     const preview = $("#preview-letra-estudio");
     const btnUsar = $("#btn-usar-letra-subtitulos");
-    const genero = $("#estudio-genero")?.value || "pop";
-    const mood = $("#estudio-mood")?.value || "romántico";
+    const tono = $("#estudio-genero")?.value || "cercano";
+    const mood = $("#estudio-mood")?.value || "claro y directo";
+    const duracionSeg = clampDuracionEstudio($("#estudio-duracion-discurso")?.value);
 
-    if (btn) { btn.disabled = true; btn.textContent = "Componiendo letra..."; }
-    if (status) status.textContent = "La IA está escribiendo tu canción...";
+    if (btn) { btn.disabled = true; btn.textContent = "Escribiendo discurso..."; }
+    if (status) status.textContent = `La IA está redactando un discurso de ${duracionSeg} s...`;
 
     try {
-        const { ok, data: d } = await fetchEstudio("/estudio/letra", { tema, genero, mood });
-        if (!ok || !d.letra) throw new Error(d.error || "No se pudo generar la letra.");
+        const { ok, data: d } = await fetchEstudio("/estudio/letra", {
+            tema,
+            tono: `${tono}, ${mood}`,
+            genero: tono,
+            mood,
+            duracionSeg,
+        });
+        const texto = d.discurso || d.letra;
+        if (!ok || !texto) throw new Error(d.error || "No se pudo generar el discurso.");
 
         incrementarEstudioGens();
-        letraEstudioGenerada = d.letra;
+        letraEstudioGenerada = texto;
         const txt = $("#texto-preview-letra");
         if (txt) txt.textContent = letraEstudioGenerada;
         if (preview) preview.style.display = "block";
         if (btnUsar) btnUsar.style.display = "inline-block";
-        if (status) status.textContent = `Letra lista (${d.modelo || "IA"}) — úsala en subtítulos o edítala abajo.`;
+        if (status) status.textContent = `Discurso listo (${d.modelo || "IA"} · ${duracionSeg} s) — úsalo en subtítulos o edítalo abajo.`;
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
-        alert("Error generando letra: " + e.message);
+        alert("Error generando discurso: " + e.message);
     } finally {
-        if (btn) { btn.disabled = false; btn.textContent = "✨ Generar letra"; }
+        if (btn) { btn.disabled = false; btn.textContent = "✨ Generar discurso"; }
     }
 }
 
@@ -242,8 +252,192 @@ function usarLetraEnSubtitulos() {
     if (sec) sec.style.display = "block";
     const chk = $("#chk-subtitulos");
     if (chk) chk.checked = true;
-    $("#status-transcripcion").textContent = "Letra del Estudio VIAM cargada — se sincronizará por renglones al renderizar.";
-    $("#status-letra-estudio").textContent = "Letra aplicada a subtítulos.";
+    $("#status-transcripcion").textContent = "Discurso del Estudio VIAM cargado — se sincronizará por renglones al renderizar.";
+    $("#status-letra-estudio").textContent = "Discurso aplicado a subtítulos.";
+}
+
+function midiU16(n) { return [(n >> 8) & 255, n & 255]; }
+function midiU32(n) { return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]; }
+function midiVarLen(value) {
+    const bytes = [value & 0x7f];
+    let v = value >>> 7;
+    while (v > 0) {
+        bytes.unshift((v & 0x7f) | 0x80);
+        v >>>= 7;
+    }
+    return bytes;
+}
+
+function progresionMidi(estilo) {
+    if (estilo === "energia") return [[60, 64, 67, 72], [62, 65, 69, 74], [64, 67, 71, 76], [62, 65, 69, 74]];
+    if (estilo === "cinematico") return [[53, 60, 64, 67], [50, 57, 62, 65], [48, 55, 60, 64], [55, 62, 67, 71]];
+    if (estilo === "corporativo") return [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]];
+    if (estilo === "regional") return [[67, 71, 74], [65, 69, 72], [64, 67, 71], [62, 65, 69]];
+    return [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]];
+}
+
+function construirArchivoMidi(segundos, estilo) {
+    const tpq = 480;
+    const bpm = estilo === "energia" ? 128 : estilo === "cinematico" ? 84 : 110;
+    const usPQ = Math.round(60000000 / bpm);
+    const ticksPorSeg = (tpq * bpm) / 60;
+    const totalTicks = Math.max(tpq, Math.round(segundos * ticksPorSeg));
+    const chords = progresionMidi(estilo);
+    const beatsPorAcorde = 2;
+    const ticksAcorde = tpq * beatsPorAcorde;
+
+    const events = [
+        { tick: 0, bytes: [0xff, 0x51, 0x03, (usPQ >> 16) & 255, (usPQ >> 8) & 255, usPQ & 255] },
+        { tick: 0, bytes: [0xff, 0x03, 0x09, ...[..."VIAM MIDI"].map((c) => c.charCodeAt(0))] },
+        { tick: 0, bytes: [0xc0, estilo === "regional" ? 25 : estilo === "energia" ? 81 : 89] },
+        { tick: 0, bytes: [0xc1, 33] },
+    ];
+
+    let tick = 0;
+    let i = 0;
+    while (tick < totalTicks) {
+        const chord = chords[i % chords.length];
+        const dur = Math.min(ticksAcorde, totalTicks - tick);
+        const vel = 64 + (i % 3) * 6;
+        events.push({ tick, bytes: [0x91, chord[0] - 12, 72] });
+        chord.forEach((note) => events.push({ tick, bytes: [0x90, note, vel] }));
+        const off = tick + dur;
+        events.push({ tick: off, bytes: [0x81, chord[0] - 12, 0] });
+        chord.forEach((note) => events.push({ tick: off, bytes: [0x80, note, 0] }));
+        const melody = chord[chord.length - 1] + (i % 2 === 0 ? 0 : 2);
+        events.push({ tick, bytes: [0x90, melody, 80] });
+        events.push({ tick: tick + Math.floor(dur * 0.7), bytes: [0x80, melody, 0] });
+        tick += dur;
+        i += 1;
+    }
+
+    events.sort((a, b) => a.tick - b.tick);
+    const body = [];
+    let last = 0;
+    for (const ev of events) {
+        body.push(...midiVarLen(Math.max(0, ev.tick - last)), ...ev.bytes);
+        last = ev.tick;
+    }
+    body.push(...midiVarLen(0), 0xff, 0x2f, 0x00);
+    const track = [0x4d, 0x54, 0x72, 0x6b, ...midiU32(body.length), ...body];
+    const header = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, ...midiU16(tpq)];
+    return new Blob([new Uint8Array([...header, ...track])], { type: "audio/midi" });
+}
+
+function frecuenciaMidi(note) {
+    return 440 * Math.pow(2, (note - 69) / 12);
+}
+
+function muestraMidiEn(t, estilo) {
+    const chords = progresionMidi(estilo);
+    const loopSeg = 8;
+    const acordeDur = loopSeg / chords.length;
+    const local = ((t % loopSeg) + loopSeg) % loopSeg;
+    const idx = Math.min(chords.length - 1, Math.floor(local / acordeDur));
+    const chord = chords[idx];
+    const env = Math.min(1, (local % acordeDur) / 0.04) * Math.min(1, (acordeDur - (local % acordeDur)) / 0.08);
+    let sample = Math.sin(2 * Math.PI * frecuenciaMidi(chord[0] - 12) * t) * 0.22;
+    chord.forEach((note, n) => {
+        sample += Math.sin(2 * Math.PI * frecuenciaMidi(note) * t) * (n === 0 ? 0.16 : 0.07);
+    });
+    return Math.max(-1, Math.min(1, sample * env));
+}
+
+async function midiBufferAMp3(segundos, estilo) {
+    if (typeof lamejs === "undefined" || !lamejs.Mp3Encoder) {
+        throw new Error("Motor MP3 no cargado. Recarga la página (Ctrl+F5).");
+    }
+    const sampleRate = 22050;
+    const total = Math.max(1, Math.ceil(segundos * sampleRate));
+    const encoder = new lamejs.Mp3Encoder(1, sampleRate, 96);
+    const bloque = 1152;
+    const pcm = new Int16Array(bloque);
+    const parts = [];
+    for (let i = 0; i < total; i += bloque) {
+        const n = Math.min(bloque, total - i);
+        for (let j = 0; j < bloque; j++) {
+            const t = (i + j) / sampleRate;
+            const v = j < n ? muestraMidiEn(t, estilo) : 0;
+            pcm[j] = Math.max(-32768, Math.min(32767, Math.round(v * 32767)));
+        }
+        const buf = encoder.encodeBuffer(pcm);
+        if (buf.length > 0) parts.push(buf);
+        if (i % (bloque * 80) === 0) await new Promise((r) => setTimeout(r, 0));
+    }
+    const fin = encoder.flush();
+    if (fin.length > 0) parts.push(fin);
+    return new File([new Blob(parts, { type: "audio/mpeg" })], `estudio-midi-${segundos}s.mp3`, { type: "audio/mpeg" });
+}
+
+async function generarMidiEstudio() {
+    const status = $("#status-midi-estudio");
+    const btn = $("#btn-generar-midi");
+    const btnDl = $("#btn-descargar-midi");
+    const btnUsar = $("#btn-usar-midi-audio");
+    const estilo = $("#estudio-estilo-midi")?.value || "calma";
+    const duracionSeg = clampDuracionEstudio($("#estudio-duracion-midi")?.value);
+
+    if (btn) { btn.disabled = true; btn.textContent = "Componiendo..."; }
+    if (status) status.textContent = `Creando MIDI y audio de ${duracionSeg} s...`;
+
+    try {
+        midiEstudioBlob = construirArchivoMidi(duracionSeg, estilo);
+        midiEstudioAudioFile = await midiBufferAMp3(duracionSeg, estilo);
+        if (btnDl) btnDl.style.display = "inline-block";
+        if (btnUsar) btnUsar.style.display = "inline-block";
+        if (status) {
+            status.textContent = `Listo: ${duracionSeg} s · ${(midiEstudioAudioFile.size / 1024).toFixed(0)} KB. Descarga el .mid o úsalo como audio del video.`;
+        }
+    } catch (e) {
+        if (status) status.textContent = "Error: " + e.message;
+        alert("No se pudo generar el MIDI: " + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "🎹 Generar MIDI y audio"; }
+    }
+}
+
+function descargarMidiEstudio() {
+    if (!midiEstudioBlob) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(midiEstudioBlob);
+    a.download = `estudio-viam-${Date.now()}.mid`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+async function usarMidiComoAudio() {
+    if (!midiEstudioAudioFile) {
+        alert("Primero genera el MIDI.");
+        return;
+    }
+    await cargarAudio(midiEstudioAudioFile);
+    $("#status-midi-estudio").textContent = "Pista MIDI aplicada como audio principal del video.";
+}
+
+function clampDuracionEstudio(seg) {
+    const lim = limitesActuales();
+    const n = Number(seg);
+    if (!Number.isFinite(n)) return lim.minSeg;
+    return Math.max(lim.minSeg, Math.min(lim.maxSeg, Math.round(n)));
+}
+
+function actualizarCamposDuracionEstudio() {
+    const lim = limitesActuales();
+    ["estudio-duracion-discurso", "estudio-duracion-midi"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.min = String(lim.minSeg);
+        el.max = String(lim.maxSeg);
+        const actual = Number(el.value);
+        if (!Number.isFinite(actual) || actual < lim.minSeg) el.value = String(lim.minSeg);
+        if (actual > lim.maxSeg) el.value = String(lim.maxSeg);
+    });
+    const hint = $("#hint-duracion-discurso");
+    if (hint) {
+        hint.textContent = isPremium
+            ? "Premium: 8 segundos a 1 hora. El discurso sale corto o largo según este tiempo."
+            : "Gratis: 8 segundos a 4 minutos. El discurso sale corto o largo según este tiempo.";
+    }
 }
 
 function configurarTabsEstudio() {
@@ -252,8 +446,7 @@ function configurarTabsEstudio() {
             document.querySelectorAll(".tab-estudio").forEach((t) => t.classList.remove("activo"));
             document.querySelectorAll(".panel-estudio").forEach((p) => p.classList.remove("activo"));
             tab.classList.add("activo");
-            const id = tab.dataset.tab;
-            const panel = id === "imagen" ? $("#panel-estudio-imagen") : $("#panel-estudio-letra");
+            const panel = $(`#panel-estudio-${tab.dataset.tab}`);
             if (panel) panel.classList.add("activo");
         });
     });
@@ -577,11 +770,11 @@ function aplicarModoPremiumUI() {
             }
         }
         if (hintEstudio) {
-            hintEstudio.textContent = "Estudio VIAM Creativo desbloqueado: hasta 20 generaciones IA por día (imágenes y letras para tu video).";
+            hintEstudio.textContent = "Estudio VIAM Creativo desbloqueado: hasta 20 generaciones IA por día (imágenes HD, discurso y MIDI). Audio 8 s – 1 h · 30 imágenes en pizarra.";
             hintEstudio.style.color = "#E8DDB5";
         }
         if (hintPizarra) {
-            hintPizarra.textContent = "Pizarra Premium sin límite práctico — alterna todas las imágenes y videos MP4 que necesites.";
+            hintPizarra.textContent = "Pizarra Premium: hasta 30 imágenes y videos MP4. Arrastra para alternar el orden.";
             hintPizarra.style.color = "#E8DDB5";
         }
         if (hintSub) {
@@ -590,11 +783,11 @@ function aplicarModoPremiumUI() {
         }
     } else {
         if (hintEstudio) {
-            hintEstudio.textContent = "Genera imágenes y letras con IA y úsalas directamente en tu video. Gratuito: 5 generaciones/día · Premium: 20/día.";
+            hintEstudio.textContent = "Genera imágenes HD, un discurso de tu producto o tema, y MIDI para musicalizar. Gratuito: 5 generaciones/día · 8 s a 4 min · 10 imágenes.";
             hintEstudio.style.color = "#BCB4B4";
         }
         if (hintPizarra) {
-            hintPizarra.textContent = "Arrastra imágenes y videos en el orden que quieras alternarlos. Reordena arrastrando cada tarjeta. Gratuito: 3 imgs + 2 videos · Premium: sin límite práctico.";
+            hintPizarra.textContent = "Arrastra imágenes y videos en el orden que quieras alternarlos. Reordena arrastrando cada tarjeta. Gratuito: 10 imgs + 2 videos · Premium: 30 imgs.";
             hintPizarra.style.color = "#BCB4B4";
         }
         if (hintSub) {
@@ -603,6 +796,7 @@ function aplicarModoPremiumUI() {
         }
     }
     actualizarCuotaEstudio();
+    actualizarCamposDuracionEstudio();
 }
 
 function mostrarBienvenidaPremium(esNuevo = false) {
@@ -690,12 +884,12 @@ function actualizarIndicadorPlan() {
             : premiumMeta.daysLeft > 0
                 ? ` · ${premiumMeta.daysLeft} días`
                 : "";
-        el.textContent = `💎 Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia}) · audio 10 s – 1 h${dias}`;
+        el.textContent = `💎 Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia}) · audio 8 s – 1 h · ${lim.maxImg} imgs${dias}`;
         el.style.color = "#FFFD00";
         el.title = "Clic para gestionar tu membresía Premium";
         el.style.cursor = "pointer";
     } else {
-        el.textContent = `🆓 Plan Gratuito — ${restantes}/${lim.maxDia} renders hoy · máx. 4 min`;
+        el.textContent = `🆓 Plan Gratuito — ${restantes}/${lim.maxDia} renders hoy · 8 s – 4 min · ${lim.maxImg} imgs`;
         el.style.color = "#D4AF37";
         el.title = "";
         el.style.cursor = "default";
@@ -815,12 +1009,14 @@ function agregarMedios(files, tipoForzado) {
         const imgsActuales = mediaItems.filter((m) => m.tipo === "imagen").length;
         const vidsActuales = mediaItems.filter((m) => m.tipo === "video").length;
 
-        if (!isPremium && esImagen && imgsActuales >= lim.maxImg) {
-            mostrarUpgrade("Límite de imágenes alcanzado en plan gratuito (3).");
+        if (esImagen && imgsActuales >= lim.maxImg) {
+            const msg = `Máximo ${lim.maxImg} imágenes en plan ${lim.etiqueta}.`;
+            if (isPremium) alert(msg);
+            else mostrarUpgrade(msg);
             return;
         }
         if (!isPremium && esVideo && vidsActuales >= lim.maxVid) {
-            mostrarUpgrade("Límite de videos alcanzado en plan gratuito (2).");
+            mostrarUpgrade(`Límite de videos alcanzado en plan gratuito (${lim.maxVid}).`);
             return;
         }
 
@@ -1317,6 +1513,10 @@ function validarProyecto() {
         return false;
     }
     if (!audioFile) { alert("Selecciona o arrastra un archivo de audio."); return false; }
+    if (audioDuracionEst > 0 && audioDuracionEst < lim.minSeg) {
+        alert(`El audio debe durar al menos ${lim.minSeg} segundos (ahora: ${Math.ceil(audioDuracionEst)} s).`);
+        return false;
+    }
 
     const imgs = mediaItems.filter((m) => m.tipo === "imagen");
     const vids = mediaItems.filter((m) => m.tipo === "video");
@@ -1324,19 +1524,20 @@ function validarProyecto() {
         alert("Añade al menos una imagen o video a la pizarra.");
         return false;
     }
+    if (imgs.length > lim.maxImg) {
+        const msg = `Máximo ${lim.maxImg} imágenes en plan ${lim.etiqueta}. Elimina algunas${isPremium ? "." : " o suscríbete a Premium."}`;
+        alert(msg);
+        if (!isPremium) mostrarUpgrade(msg);
+        return false;
+    }
     if (!isPremium) {
-        if (imgs.length > lim.maxImg) {
-            alert("Máximo 3 imágenes en plan gratuito. Elimina algunas o suscríbete a Premium.");
-            mostrarUpgrade("Máximo 3 imágenes en plan gratuito.");
-            return false;
-        }
         if (vids.length > lim.maxVid) {
-            alert("Máximo 2 videos en plan gratuito. Elimina algunos o suscríbete a Premium.");
-            mostrarUpgrade("Máximo 2 videos en plan gratuito.");
+            alert(`Máximo ${lim.maxVid} videos en plan gratuito. Elimina algunos o suscríbete a Premium.`);
+            mostrarUpgrade(`Máximo ${lim.maxVid} videos en plan gratuito.`);
             return false;
         }
         if (audioDuracionEst > lim.maxSeg) {
-            const msg = `Tu audio dura ${formatoDuracion(audioDuracionEst)} min. El plan gratuito permite hasta ${formatoDuracion(lim.maxSeg)} min. Usa un audio más corto o suscríbete a Premium para videos largos.`;
+            const msg = `Tu audio dura ${formatoDuracion(audioDuracionEst)} min. El plan gratuito permite de ${lim.minSeg} s a ${formatoDuracion(lim.maxSeg)} min. Usa un audio más corto o suscríbete a Premium para videos de hasta 1 hora.`;
             alert(msg);
             mostrarUpgrade(msg);
             return false;
@@ -1458,6 +1659,9 @@ function actualizarAvisoAudio(extra = "") {
         st.style.color = "#FF6B6B";
     } else if (isPremium && audioDuracionEst > lim.maxSeg) {
         texto += ` — supera el máximo Premium (1 h)`;
+        st.style.color = "#FF6B6B";
+    } else if (audioDuracionEst > 0 && audioDuracionEst < lim.minSeg) {
+        texto += ` — mínimo ${lim.minSeg} s`;
         st.style.color = "#FF6B6B";
     } else {
         st.style.color = "";
@@ -1585,6 +1789,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     $("#btn-generar-imagen")?.addEventListener("click", generarImagenIA);
     $("#btn-generar-letra")?.addEventListener("click", generarLetraIA);
+    $("#btn-generar-midi")?.addEventListener("click", generarMidiEstudio);
+    $("#btn-descargar-midi")?.addEventListener("click", descargarMidiEstudio);
+    $("#btn-usar-midi-audio")?.addEventListener("click", usarMidiComoAudio);
     $("#btn-anadir-imagen-pizarra")?.addEventListener("click", () => {
         if (!imagenEstudioBlob) return;
         agregarMedioDesdeBlob(imagenEstudioBlob, `estudio-${Date.now()}.jpg`, "imagen");

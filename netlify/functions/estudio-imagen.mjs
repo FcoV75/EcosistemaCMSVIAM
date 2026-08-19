@@ -13,9 +13,9 @@ export default async (req) => {
     const { prompt } = await req.json();
     if (!prompt?.trim()) return Response.json({ error: "Describe la imagen." }, { status: 400 });
 
-    const promptEn = `${prompt.trim()}, cinematic, high quality, 16:9, no text, no watermark`;
+    const promptEn = `${prompt.trim()}, photorealistic, sharp focus, professional lighting, cinematic color grading, highly detailed, 16:9, no text, no watermark, no logo`;
     const seed = Math.abs([...promptEn].reduce((a, c) => a + c.charCodeAt(0), 0)) % 99999;
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptEn)}?width=1280&height=720&nologo=true&seed=${seed}`;
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptEn)}?width=1920&height=1080&nologo=true&enhance=true&seed=${seed}`;
 
     const img = await fetch(url);
     if (!img.ok) return Response.json({ error: "Fallo al generar imagen." }, { status: 502 });
