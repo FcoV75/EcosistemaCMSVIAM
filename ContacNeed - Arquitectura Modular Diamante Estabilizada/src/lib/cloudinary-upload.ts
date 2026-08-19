@@ -3,6 +3,8 @@ const CLOUDINARY_UPLOAD_PRESET = 'contacneed_uploads'
 
 type CloudinaryResourceType = 'image' | 'video' | 'raw' | 'auto'
 
+export type CloudinaryUploadKind = 'image' | 'video' | 'audio' | 'document'
+
 function resolveUploadPreset() {
   const raw = String(import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ?? '').trim()
   if (!raw || raw.includes('=') || raw.startsWith('cloudinary://')) {
@@ -19,10 +21,10 @@ function resolveCloudName() {
 
 function friendlyCloudinaryError(body: string) {
   if (body.includes('Upload preset not found')) {
-    return 'No se encontró el preset de Cloudinary. Usa el enlace directo o contacta soporte.'
+    return 'No se encontró el preset de Cloudinary. Revisa VITE_CLOUDINARY_UPLOAD_PRESET.'
   }
-  if (/pdf/i.test(body) && /not allowed|denied|invalid|unsupported/i.test(body)) {
-    return 'Cloudinary rechazó el PDF. Se reintentará como documento (raw).'
+  if (/pdf/i.test(body) && /not allowed|denied|restricted|unauthorized|forbidden/i.test(body)) {
+    return 'Cloudinary bloqueó el PDF. En Cloudinary → Settings → Security activa la entrega de PDF/ZIP, o súbelo como documento raw.'
   }
   try {
     const parsed = JSON.parse(body) as { error?: { message?: string } }
@@ -30,23 +32,24 @@ function friendlyCloudinaryError(body: string) {
   } catch {
     // ignore
   }
-  return 'No se pudo subir el archivo. Prueba con un enlace directo o un archivo más liviano.'
+  const trimmed = body.replace(/\s+/g, ' ').trim()
+  if (trimmed && trimmed.length < 240) return trimmed
+  return 'No se pudo subir el archivo a Cloudinary.'
 }
 
-/** Elige el endpoint correcto: PDF/Office → raw; audio/video → video; fotos → image. */
-export function resolveCloudinaryResourceType(file: File): CloudinaryResourceType {
+export function classifyUploadFile(file: File): CloudinaryUploadKind {
   const type = (file.type || '').toLowerCase()
   const name = file.name || ''
 
   if (
-    type.startsWith('video/') ||
     type.startsWith('audio/') ||
-    /\.(mp4|mov|webm|mp3|wav|ogg|m4a|aac|flac)$/i.test(name)
+    /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(name)
   ) {
+    return 'audio'
+  }
+  if (type.startsWith('video/') || /\.(mp4|mov|webm)$/i.test(name)) {
     return 'video'
   }
-
-  // PDF y documentos como raw: más fiable en presets unsigned (auto suele tratar PDF como image y fallar).
   if (
     type === 'application/pdf' ||
     type.includes('officedocument') ||
@@ -56,17 +59,47 @@ export function resolveCloudinaryResourceType(file: File): CloudinaryResourceTyp
     type === 'application/zip' ||
     type === 'application/x-zip-compressed' ||
     type === 'text/plain' ||
-    type === 'application/octet-stream' ||
     /\.(pdf|docx?|xlsx?|pptx?|txt|zip|rar|7z)$/i.test(name)
   ) {
-    return 'raw'
+    return 'document'
   }
-
   if (type.startsWith('image/') || /\.(gif|jpe?g|png|webp|svg|bmp|heic)$/i.test(name)) {
     return 'image'
   }
+  // Desconocido: tratar como documento (raw) es más seguro que image
+  return 'document'
+}
 
-  return 'raw'
+/** Elige endpoint Cloudinary. PDF/Office NUNCA van por image (la entrega suele estar restringida). */
+export function resolveCloudinaryResourceType(file: File): CloudinaryResourceType {
+  const kind = classifyUploadFile(file)
+  if (kind === 'audio' || kind === 'video') return 'video'
+  if (kind === 'document') return 'raw'
+  return 'image'
+}
+
+function ensureFileExtension(file: File): File {
+  const kind = classifyUploadFile(file)
+  const name = file.name || 'archivo'
+  if (kind !== 'document') {
+    if (file.type) return file
+    return new File([file], name, { type: file.type || 'application/octet-stream' })
+  }
+
+  let nextName = name
+  if (!/\.[a-z0-9]{2,5}$/i.test(nextName)) {
+    if ((file.type || '').includes('pdf') || /\.pdf/i.test(name)) nextName = `${name}.pdf`
+    else if ((file.type || '').includes('word')) nextName = `${name}.docx`
+    else nextName = `${name}.bin`
+  }
+  // Normaliza PDF a mime correcto (algunos Windows mandan type vacío)
+  const mime =
+    /\.pdf$/i.test(nextName)
+      ? 'application/pdf'
+      : file.type || 'application/octet-stream'
+
+  if (nextName === file.name && mime === file.type) return file
+  return new File([file], nextName, { type: mime, lastModified: file.lastModified })
 }
 
 async function postToCloudinary(
@@ -75,10 +108,13 @@ async function postToCloudinary(
 ): Promise<string> {
   const cloudName = resolveCloudName()
   const preset = resolveUploadPreset()
+  const safeFile = ensureFileExtension(file)
 
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append('file', safeFile, safeFile.name)
   formData.append('upload_preset', preset)
+  // filename_override está permitido en unsigned uploads
+  formData.append('filename_override', safeFile.name)
 
   const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, {
     method: 'POST',
@@ -95,17 +131,35 @@ async function postToCloudinary(
   return payload.secure_url
 }
 
+/**
+ * Sube a Cloudinary.
+ * Documentos/PDF: solo `raw` (sin fallback a image — eso rompe la entrega en cuentas con PDF restringido).
+ */
 export async function uploadFileToCloudinary(file: File): Promise<string> {
+  const kind = classifyUploadFile(file)
   const primary = resolveCloudinaryResourceType(file)
 
   try {
     return await postToCloudinary(file, primary)
   } catch (primaryError) {
-    // PDF a veces falla como image vía auto; reintenta raw / image / auto
-    const fallbacks: CloudinaryResourceType[] = ['raw', 'image', 'auto'].filter(
-      (type) => type !== primary,
-    ) as CloudinaryResourceType[]
+    if (kind === 'document') {
+      // Segundo intento raw con type forzado a octet-stream (algunos PDF problemáticos)
+      try {
+        const forced = new File([file], ensureFileExtension(file).name, {
+          type: 'application/octet-stream',
+          lastModified: file.lastModified,
+        })
+        return await postToCloudinary(forced, 'raw')
+      } catch {
+        throw primaryError instanceof Error
+          ? primaryError
+          : new Error('No se pudo subir el documento a Cloudinary')
+      }
+    }
 
+    const fallbacks: CloudinaryResourceType[] = (['auto', 'image', 'video', 'raw'] as const).filter(
+      (type) => type !== primary,
+    )
     let lastError: unknown = primaryError
     for (const resourceType of fallbacks) {
       try {
@@ -114,9 +168,17 @@ export async function uploadFileToCloudinary(file: File): Promise<string> {
         lastError = error
       }
     }
-
     throw lastError instanceof Error
       ? lastError
       : new Error('No se pudo subir el archivo a Cloudinary')
   }
+}
+
+/** Si un PDF quedó como /image/upload/, fuerza descarga para evitar bloqueo de entrega. */
+export function cloudinaryPdfDeliveryUrl(url: string): string {
+  if (!url) return url
+  if (/\/image\/upload\//i.test(url) && /\.pdf($|\?)/i.test(url)) {
+    return url.replace('/image/upload/', '/image/upload/fl_attachment/')
+  }
+  return url
 }

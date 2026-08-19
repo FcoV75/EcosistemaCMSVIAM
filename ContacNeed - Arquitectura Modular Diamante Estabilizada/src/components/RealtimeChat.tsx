@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { ArrowLeft, FileText, Paperclip, Send, Wifi, WifiOff, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
+import { uploadFileToCloudinary, classifyUploadFile, cloudinaryPdfDeliveryUrl } from '../lib/cloudinary-upload'
 import { chatRoomId, getSupabaseBrowserClient } from '../lib/supabase.browser'
 import { getSupabaseBrowserSessionFn } from '../server/auth.functions'
 import {
@@ -10,10 +10,12 @@ import {
   markMessageReadFn,
   sendMessageFn,
 } from '../server/social.functions'
+import { uploadChatDocumentFn } from '../server/upload.functions'
 import { LinkifiedText } from './LinkifiedText'
 import { PostMedia } from './PostMedia'
 
 const MAX_CHAT_ATTACHMENT_BYTES = 20 * 1024 * 1024
+const MAX_SERVER_DOC_BYTES = 4 * 1024 * 1024
 
 type ChatAttachment = {
   url: string
@@ -117,11 +119,13 @@ function ChatAttachmentView({
   }
 
   const sizeLabel = formatBytes(attachment.sizeBytes)
+  const href = isPdf ? cloudinaryPdfDeliveryUrl(attachment.url) : attachment.url
   return (
     <a
-      href={attachment.url}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
+      download={attachment.fileName || undefined}
       className={`mt-2 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
         mine
           ? 'border-slate-800/30 bg-black/10 text-slate-900 hover:bg-black/15'
@@ -130,7 +134,7 @@ function ChatAttachmentView({
     >
       <FileText size={16} />
       <span className="min-w-0 flex-1 truncate">
-        {attachment.fileName || 'Documento adjunto'}
+        {attachment.fileName || (isPdf ? 'PDF adjunto' : 'Documento adjunto')}
         {sizeLabel ? ` · ${sizeLabel}` : ''}
       </span>
     </a>
@@ -292,12 +296,61 @@ export function RealtimeChat({
       if (payload.file) {
         setUploading(true)
         try {
-          const url = await uploadFileToCloudinary(payload.file)
-          adjunto = {
-            url,
-            mimeType: payload.file.type || null,
-            fileName: payload.file.name || null,
-            sizeBytes: payload.file.size,
+          const kind = classifyUploadFile(payload.file)
+          let url: string
+
+          if (kind === 'document') {
+            // PDF/Office: preferir subida servidor (raw). Si es muy grande o falla, cliente raw.
+            if (payload.file.size <= MAX_SERVER_DOC_BYTES) {
+              const buffer = await payload.file.arrayBuffer()
+              const bytes = new Uint8Array(buffer)
+              let binary = ''
+              const chunk = 0x8000
+              for (let i = 0; i < bytes.length; i += chunk) {
+                binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+              }
+              const base64 = btoa(binary)
+              try {
+                const uploaded = await uploadChatDocumentFn({
+                  data: {
+                    fileName: payload.file.name,
+                    mimeType: payload.file.type || 'application/pdf',
+                    base64,
+                    sizeBytes: payload.file.size,
+                  },
+                })
+                adjunto = {
+                  url: uploaded.url,
+                  mimeType: uploaded.mimeType,
+                  fileName: uploaded.fileName,
+                  sizeBytes: uploaded.sizeBytes,
+                }
+              } catch {
+                const url = await uploadFileToCloudinary(payload.file)
+                adjunto = {
+                  url,
+                  mimeType: payload.file.type || 'application/pdf',
+                  fileName: payload.file.name || null,
+                  sizeBytes: payload.file.size,
+                }
+              }
+            } else {
+              const url = await uploadFileToCloudinary(payload.file)
+              adjunto = {
+                url,
+                mimeType: payload.file.type || 'application/pdf',
+                fileName: payload.file.name || null,
+                sizeBytes: payload.file.size,
+              }
+            }
+          } else {
+            const url = await uploadFileToCloudinary(payload.file)
+            adjunto = {
+              url,
+              mimeType: payload.file.type || null,
+              fileName: payload.file.name || null,
+              sizeBytes: payload.file.size,
+            }
           }
         } finally {
           setUploading(false)
