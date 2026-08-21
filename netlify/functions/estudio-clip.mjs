@@ -1,6 +1,6 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import { LIMITES_CLIP, clamp, esPremiumPayload } from './lib/estudio-limites.mjs';
-import { expandirPromptVisual } from './lib/estudio-prompt-visual.mjs';
+import { expandirPromptVisual, promptImagenReforzado } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
 async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 50000) {
@@ -100,7 +100,7 @@ export default async (req) => {
     const lim = premium ? LIMITES_CLIP.premium : LIMITES_CLIP.free;
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
-    const promptEn = expansion.promptEn;
+    const promptEn = promptImagenReforzado(expansion.promptEn);
 
     let nativo = null;
     try {
