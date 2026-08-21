@@ -17,6 +17,12 @@
 [functions.railway-path-proxy]
   timeout = 300
 
+[functions.estudio-voz]
+  timeout = 60
+
+[functions.estudio-clip]
+  timeout = 60
+
 [functions.download-libro]
   included_files = ["Assets/Docs/**"]
 

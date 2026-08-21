@@ -627,6 +627,123 @@ def estudio_generar_imagen():
     return jsonify({"error": "No se pudo generar la imagen."}), 502
 
 
+@app.route('/estudio/voz', methods=['POST', 'OPTIONS'])
+def estudio_generar_voz():
+    if request.method == 'OPTIONS':
+        return '', 200
+    import base64
+    import requests as http_requests
+    body = request.get_json(silent=True) or {}
+    texto = str(body.get("texto") or body.get("text") or "").strip()
+    if not texto:
+        return jsonify({"error": "Escribe el texto que quieres convertir a voz."}), 400
+    max_seg = int(body.get("maxSeg") or 30)
+    max_seg = max(8, min(240, max_seg))
+    palabras = texto.split()
+    max_palabras = max(18, int(round(max_seg * 2.4)))
+    recortado = len(palabras) > max_palabras
+    if recortado:
+        texto = " ".join(palabras[:max_palabras]) + "."
+    voz = str(body.get("voz") or "femenina").lower()
+    voces_groq = {
+        "femenina": "Celeste-PlayAI",
+        "masculina": "Fritz-PlayAI",
+        "calida": "Deedee-PlayAI",
+        "firme": "Thunder-PlayAI",
+    }
+    groq_key = os.environ.get("GROQ_API_KEY")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
+    if gemini_key:
+        try:
+            modelo = "gemini-2.5-flash-preview-tts"
+            voces = {"femenina": "Kore", "masculina": "Charon", "calida": "Aoede", "firme": "Fenrir"}
+            resp = http_requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={gemini_key}",
+                json={
+                    "contents": [{"parts": [{"text": texto[:2000]}]}],
+                    "generationConfig": {
+                        "responseModalities": ["AUDIO"],
+                        "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voces.get(voz, "Kore")}}},
+                    },
+                },
+                timeout=120,
+            )
+            data = resp.json()
+            if resp.ok:
+                for part in data.get("candidates", [{}])[0].get("content", {}).get("parts", []):
+                    inline = part.get("inlineData") or part.get("inline_data") or {}
+                    if inline.get("data"):
+                        return jsonify({
+                            "success": True,
+                            "audio_base64": inline["data"],
+                            "mime": inline.get("mimeType") or inline.get("mime_type") or "audio/wav",
+                            "modelo": modelo,
+                            "recortado": recortado,
+                            "fuente": "gemini",
+                        })
+        except Exception as exc:
+            print(f"Gemini voz falló: {exc}")
+    if not groq_key:
+        return jsonify({"error": "Configura GEMINI_API_KEY o GROQ_API_KEY para voz IA."}), 500
+    try:
+        resp = http_requests.post(
+            "https://api.groq.com/openai/v1/audio/speech",
+            headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+            json={
+                "model": "playai-tts",
+                "voice": voces_groq.get(voz, "Celeste-PlayAI"),
+                "input": texto[:4000],
+                "response_format": "mp3",
+            },
+            timeout=120,
+        )
+        if resp.ok and resp.content:
+            return jsonify({
+                "success": True,
+                "audio_base64": base64.b64encode(resp.content).decode("ascii"),
+                "mime": "audio/mpeg",
+                "modelo": "playai-tts",
+                "recortado": recortado,
+                "fuente": "groq",
+            })
+        return jsonify({"error": "No se pudo generar la voz."}), 502
+    except Exception as exc:
+        return jsonify({"error": f"Error generando voz: {exc}"}), 502
+
+
+@app.route('/estudio/clip', methods=['POST', 'OPTIONS'])
+def estudio_generar_clip():
+    if request.method == 'OPTIONS':
+        return '', 200
+    import base64
+    import requests as http_requests
+    from urllib.parse import quote
+    body = request.get_json(silent=True) or {}
+    prompt = str(body.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify({"error": "Describe el clip que quieres generar."}), 400
+    duracion = int(body.get("duracionSeg") or body.get("duracion") or 8)
+    duracion = max(8, min(12, duracion))
+    prompt_en = f"{prompt}, photorealistic, cinematic color grading, 16:9, dramatic lighting, no text, no watermark"
+    url = f"https://image.pollinations.ai/prompt/{quote(prompt_en)}?width=1920&height=1080&nologo=true&enhance=true&seed={abs(hash(prompt)) % 99999}"
+    try:
+        img = http_requests.get(url, timeout=90)
+        if img.ok and img.content:
+            return jsonify({
+                "success": True,
+                "tipo": "cinematico",
+                "imagen_base64": base64.b64encode(img.content).decode("ascii"),
+                "mime": img.headers.get("Content-Type", "image/jpeg"),
+                "duracionSeg": duracion,
+                "movimiento": True,
+                "fuente": "pollinations-cinematico",
+                "aviso": f"Clip cinematográfico de {duracion} s: escena IA con movimiento Ken Burns al renderizar.",
+            })
+    except Exception as exc:
+        return jsonify({"error": f"Error generando clip: {exc}"}), 502
+    return jsonify({"error": "No se pudo generar el clip."}), 502
+
+
 @app.route('/renderizar/sesion', methods=['POST', 'OPTIONS'])
 def crear_sesion_render():
     if request.method == 'OPTIONS':
