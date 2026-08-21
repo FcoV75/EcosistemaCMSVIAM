@@ -1,0 +1,17 @@
+Depósito INDAUTOR — Ecosistema CMS VIAM
+Fecha: 21 de agosto de 2026
+Archivo: Ecosistema-CMS-VIAM-deposito-INDAUTOR-2026-08-21.zip
+Commit main: e06993d952b938c755a9eb9bc06acaac19a0fbea (e06993d)
+
+Verifique integridad:
+  sha256sum -c Ecosistema-CMS-VIAM-deposito-INDAUTOR-2026-08-21.zip.sha256
+
+Al grabar el DVD se recomienda DESCOMPRIMIR este ZIP y grabar la
+carpeta (no solo el archivo .zip), para que puedan abrir el código
+en cualquier computadora.
+
+Empiece por:  00-INDAUTOR/01-DATOS-DE-LA-OBRA.txt
+(complete domicilio, RFC y firme).
+
+Este ZIP no incluye claves, node_modules ni historial git.
+Las canciones y letras van en un depósito aparte.
