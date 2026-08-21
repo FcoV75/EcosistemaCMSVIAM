@@ -9,6 +9,12 @@ import json
 import argparse
 import subprocess
 import unicodedata
+from ken_burns import (
+    FACTOR_MOVIMIENTO,
+    MAX_MOVIMIENTO_GRATUITO,
+    MAX_MOVIMIENTO_PREMIUM,
+    recuadro_ken_burns,
+)
 
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -611,21 +617,47 @@ def aplicar_overlays(frame, segundo_actual, duracion_total, texto_escena, palabr
     return f
 
 
+def ampliar_para_movimiento(frame_base, factor=FACTOR_MOVIMIENTO):
+    h, w = frame_base.shape[:2]
+    return cv2.resize(
+        frame_base,
+        (max(w + 8, int(round(w * factor))), max(h + 8, int(round(h * factor)))),
+        interpolation=cv2.INTER_CUBIC,
+    )
+
+
+def aplicar_ken_burns_frame(big, t, estilo, out_w=WIDTH, out_h=HEIGHT):
+    bh, bw = big.shape[:2]
+    x, y, cw, ch = recuadro_ken_burns(t, estilo, bw, bh, out_w, out_h)
+    recorte = big[y:y + ch, x:x + cw]
+    if recorte.size == 0:
+        return cv2.resize(big, (out_w, out_h), interpolation=cv2.INTER_LINEAR)
+    if recorte.shape[1] != out_w or recorte.shape[0] != out_h:
+        return cv2.resize(recorte, (out_w, out_h), interpolation=cv2.INTER_LINEAR)
+    return recorte
+
+
 def escribir_frames_imagen(writer, frame_base, frames_totales, texto_escena, palabras_sub, subtitulos_on,
                            nombre_pista, frame_contador, duracion_total, leyenda_grande=False,
-                           mostrar_marca_agua=False):
+                           mostrar_marca_agua=False, fuente_movimiento=None, estilo_movimiento="zoom_in"):
     cache_clave = None
     cache_frame = None
-    for _ in range(frames_totales):
+    n = max(1, int(frames_totales))
+    for i in range(n):
+        if fuente_movimiento is not None:
+            t = i / max(n - 1, 1)
+            lienzo = aplicar_ken_burns_frame(fuente_movimiento, t, estilo_movimiento)
+        else:
+            lienzo = frame_base
         segundo = frame_contador / FPS
         n_vis = len([p for p in palabras_sub if p["start"] <= segundo]) if palabras_sub else 0
         clave = _clave_overlay(segundo, duracion_total, texto_escena, subtitulos_on, nombre_pista,
                                leyenda_grande, mostrar_marca_agua, n_vis)
-        if clave == cache_clave and cache_frame is not None:
+        if fuente_movimiento is None and clave == cache_clave and cache_frame is not None:
             writer.write(cache_frame)
         else:
             cache_frame = aplicar_overlays(
-                frame_base, segundo, duracion_total, texto_escena, palabras_sub,
+                lienzo, segundo, duracion_total, texto_escena, palabras_sub,
                 subtitulos_on, nombre_pista, leyenda_grande=leyenda_grande,
                 mostrar_marca_agua=mostrar_marca_agua
             )
@@ -733,6 +765,7 @@ def generar_video_cloud():
         letra_palabras, letra_cancion, letra_segmentos, duracion_audio, subtitulos_activos
     )
     print(f"Palabras subtítulo: {len(palabras_sub)}")
+    print(f"Movimiento cinematográfico: máx {MAX_MOVIMIENTO_PREMIUM if es_premium else MAX_MOVIMIENTO_GRATUITO} imágenes")
 
     segmentos = []
     if leyenda_portada or ruta_portada:
@@ -759,6 +792,8 @@ def generar_video_cloud():
     frame_contador = 0
     frames_totales = int(round(FPS * duracion_por_segmento))
     ultimo_frame = None
+    max_movimiento = MAX_MOVIMIENTO_PREMIUM if es_premium else MAX_MOVIMIENTO_GRATUITO
+    usados_movimiento = 0
 
     if leyenda_portada or ruta_portada:
         if ruta_portada and os.path.exists(ruta_portada):
@@ -794,11 +829,21 @@ def generar_video_cloud():
             if img is not None:
                 frame_base = ajustar_proporcion_lienzo(img)
                 ultimo_frame = frame_base.copy()
+                fuente_mov = None
+                estilo_mov = (item.get("estilo_movimiento") or "zoom_in")
+                quiere_mov = bool(item.get("movimiento"))
+                if quiere_mov and usados_movimiento < max_movimiento:
+                    usados_movimiento += 1
+                    fuente_mov = ampliar_para_movimiento(frame_base)
                 frame_contador = escribir_frames_imagen(
                     video_writer, frame_base, frames_totales, texto, palabras_sub,
                     subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
-                    mostrar_marca_agua=mostrar_marca_agua
+                    mostrar_marca_agua=mostrar_marca_agua,
+                    fuente_movimiento=fuente_mov,
+                    estilo_movimiento=estilo_mov,
                 )
+
+    print(f"Imágenes con movimiento Ken Burns: {usados_movimiento}/{max_movimiento}")
 
     if leyenda_cierre or ruta_cierre:
         if ruta_cierre and os.path.exists(ruta_cierre):

@@ -139,6 +139,34 @@
             background: #201F1D;
         }
         .chk-silencio { font-size: 0.8rem; display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+        .chk-movimiento { font-size: 0.8rem; display: flex; align-items: center; gap: 6px; margin: 4px 0; color: #E8DDB5; }
+        .select-movimiento-celda { width: 100%; font-size: 0.78rem; margin: 4px 0 6px; }
+        .preview-kenburns {
+            overflow: hidden;
+            height: 180px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid #555;
+            background: #111;
+        }
+        .preview-kenburns img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            animation: kenburns-preview 9s ease-in-out infinite alternate;
+            transform-origin: 60% 40%;
+        }
+        @keyframes kenburns-preview {
+            from { transform: scale(1) translate(0, 0); }
+            to { transform: scale(1.14) translate(-3%, -2%); }
+        }
+        .cuotas-estudio {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+            margin: 8px 0 12px;
+        }
+        .cuotas-estudio span { font-size: 0.78rem; color: #00FFCC; }
         .btn-eliminar-celda {
             background: var(--color-rojo-boton);
             color: white;
@@ -395,7 +423,7 @@
             <p id="premium-welcome-msg" style="color:#FFFD00;font-weight:bold;font-size:0.95rem;"></p>
             <div class="premium-beneficios" id="premium-beneficios-texto">
                 Tu espacio completo está desbloqueado: videos de <strong>8 segundos a 1 hora</strong>, hasta <strong>10 renders/día</strong>,
-                pizarra de <strong>30 imágenes</strong>, <strong>20 generaciones IA/día</strong> en Estudio VIAM (imagen HD, discurso y MIDI), subtítulos karaoke, tipografía XXL y opción sin marca de agua.
+                pizarra de <strong>30 imágenes</strong>, Estudio VIAM con <strong>voz IA</strong> (hasta 4 min), <strong>movimiento cinematográfico</strong> y <strong>clips IA de 8–12 s</strong>, subtítulos karaoke, tipografía XXL y opción sin marca de agua.
             </div>
             <div class="premium-acciones">
                 <button type="button" class="btn-accion-premium" id="btn-guia-premium">📖 Guía instructiva</button>
@@ -452,12 +480,16 @@
         </div>
 
         <div class="seccion-panel" id="seccion-estudio-viam">
-            <h2>✨ Estudio VIAM Creativo — Fase 1</h2>
-            <p id="hint-estudio" style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Genera imágenes HD, un discurso de tu producto o tema, y una pista MIDI para musicalizar. Gratuito: 5 generaciones/día · Premium: 20/día. Audio del video: 8 s–4 min (gratis) o 8 s–1 h (Premium).</p>
+            <h2>✨ Estudio VIAM Creativo</h2>
+            <p id="hint-estudio" style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Imagen HD, discurso, MIDI, voz IA, movimiento cinematográfico y clip corto. El render armado llega a 4 min (gratis) o 1 h (Premium) con tu audio; la IA generativa se limita a tomas cortas para que sea útil y rentable.</p>
             <span id="status-estudio-cuota" class="badge-estudio"></span>
+            <div class="cuotas-estudio" id="cuotas-estudio-detalle"></div>
             <div class="tabs-estudio">
                 <button type="button" class="tab-estudio activo" data-tab="imagen">🖼️ Imagen IA</button>
                 <button type="button" class="tab-estudio" data-tab="letra">🎙️ Discurso / texto</button>
+                <button type="button" class="tab-estudio" data-tab="voz">🗣️ Voz IA</button>
+                <button type="button" class="tab-estudio" data-tab="movimiento">🎥 Movimiento</button>
+                <button type="button" class="tab-estudio" data-tab="clip">✨ Clip IA</button>
                 <button type="button" class="tab-estudio" data-tab="midi">🎹 MIDI</button>
             </div>
             <div id="panel-estudio-imagen" class="panel-estudio activo">
@@ -465,6 +497,7 @@
                     <label for="estudio-prompt-imagen">Describe la escena visual</label>
                     <textarea id="estudio-prompt-imagen" class="pizarra-letra" style="min-height:80px;" placeholder="Ej: Atardecer dorado sobre el mar de Acapulco, estilo cinematográfico, cálido y nostálgico"></textarea>
                 </div>
+                <label class="chk-movimiento"><input type="checkbox" id="chk-imagen-con-movimiento" checked> Añadir con movimiento cinematográfico (Ken Burns)</label>
                 <button type="button" class="btn-viam-subir" id="btn-generar-imagen">✨ Generar imagen</button>
                 <div id="preview-imagen-estudio" class="preview-estudio" style="display:none;">
                     <img id="img-preview-estudio" alt="Vista previa generada">
@@ -514,8 +547,86 @@
                 </div>
                 <div class="acciones-estudio">
                     <button type="button" class="btn-viam-subir" id="btn-usar-letra-subtitulos" style="background:#28A745;display:none;">📝 Usar en subtítulos</button>
+                    <button type="button" class="btn-viam-subir" id="btn-pasar-discurso-a-voz" style="background:#1E90FF;display:none;">🗣️ Pasar a Voz IA</button>
                 </div>
                 <span id="status-letra-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
+            </div>
+            <div id="panel-estudio-voz" class="panel-estudio">
+                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Convierte tu discurso o un texto propio a locución. Gratuito: <strong>30 s por toma, 3/día</strong>. Premium: <strong>hasta 4 min por toma, 20/día</strong>. El video largo (hasta 1 h) se arma con tu audio o MIDI; la voz IA es para tomas y anuncios, no para narrar una hora.</p>
+                <div class="grupo-control">
+                    <label for="estudio-texto-voz">Texto para locución</label>
+                    <textarea id="estudio-texto-voz" class="pizarra-letra" style="min-height:90px;" placeholder="Pega aquí el discurso o escríbelo. En gratis se recorta a ~30 s de habla."></textarea>
+                </div>
+                <div class="fila-dos">
+                    <div class="grupo-control">
+                        <label for="estudio-voz-estilo">Voz</label>
+                        <select id="estudio-voz-estilo" class="select-tipografia">
+                            <option value="femenina">Femenina</option>
+                            <option value="masculina">Masculina</option>
+                            <option value="calida">Cálida</option>
+                            <option value="firme">Firme</option>
+                        </select>
+                    </div>
+                    <div class="grupo-control">
+                        <label for="estudio-voz-maxseg">Toma máxima (segundos)</label>
+                        <input type="number" id="estudio-voz-maxseg" class="input-texto-premium" min="8" max="30" value="30" step="1">
+                        <p id="hint-duracion-voz" style="font-size:0.78rem;color:#BCB4B4;margin-top:6px;">Gratis: 8–30 s. Premium: 8 s–4 min.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-viam-subir" id="btn-generar-voz">🗣️ Generar voz</button>
+                <div id="preview-voz-estudio" class="preview-estudio" style="display:none;padding:12px;">
+                    <audio id="audio-preview-voz" controls style="width:100%;"></audio>
+                </div>
+                <div class="acciones-estudio">
+                    <button type="button" class="btn-viam-subir" id="btn-usar-voz-audio" style="background:#1E90FF;display:none;">🎵 Usar como audio del video</button>
+                </div>
+                <span id="status-voz-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
+            </div>
+            <div id="panel-estudio-movimiento" class="panel-estudio">
+                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">El movimiento cinematográfico (Ken Burns) da vida a fotos fijas: zoom suave o paneo. Se aplica al renderizar, no gasta API de video. Gratuito: <strong>5 imágenes/día</strong>. Premium: <strong>30/día</strong>.</p>
+                <div class="fila-dos">
+                    <div class="grupo-control">
+                        <label for="estudio-estilo-movimiento">Estilo por defecto</label>
+                        <select id="estudio-estilo-movimiento" class="select-tipografia">
+                            <option value="zoom_in">Zoom hacia adentro</option>
+                            <option value="zoom_out">Zoom hacia afuera</option>
+                            <option value="pan_derecha">Paneo a la derecha</option>
+                            <option value="pan_izquierda">Paneo a la izquierda</option>
+                        </select>
+                    </div>
+                    <div class="grupo-control">
+                        <label class="chk-movimiento" style="margin-top:28px;"><input type="checkbox" id="chk-movimiento-nuevas" checked> Activar en las siguientes imágenes que añada</label>
+                    </div>
+                </div>
+                <p style="font-size:0.82rem;color:#BCB4B4;">También puedes activarlo en cada tarjeta de la pizarra. La cuota se cuenta al renderizar (imágenes con movimiento en ese video).</p>
+                <div id="preview-movimiento-estudio" class="preview-kenburns" style="display:none;">
+                    <img id="img-preview-movimiento" alt="Vista previa de movimiento">
+                </div>
+                <span id="status-movimiento-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
+            </div>
+            <div id="panel-estudio-clip" class="panel-estudio">
+                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Clip corto tipo anuncio (como los de Meta): <strong>8 s</strong> en gratuito (1/día) y <strong>8–12 s</strong> en Premium (5/día). Si el servidor no tiene video nativo, generamos un clip cinematográfico (imagen IA + Ken Burns) listo para la pizarra.</p>
+                <div class="grupo-control">
+                    <label for="estudio-prompt-clip">Describe el clip</label>
+                    <textarea id="estudio-prompt-clip" class="pizarra-letra" style="min-height:80px;" placeholder="Ej: Toma de una panadería al amanecer, vapor del pan, cámara lenta, luz cálida mexicana"></textarea>
+                </div>
+                <div class="grupo-control">
+                    <label for="estudio-duracion-clip">Duración (segundos)</label>
+                    <select id="estudio-duracion-clip" class="select-tipografia">
+                        <option value="8" selected>8 s</option>
+                        <option value="10">10 s (Premium)</option>
+                        <option value="12">12 s (Premium)</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-viam-subir" id="btn-generar-clip">✨ Generar clip</button>
+                <div id="preview-clip-estudio" class="preview-estudio" style="display:none;">
+                    <img id="img-preview-clip" alt="Vista previa del clip" style="display:none;">
+                    <video id="video-preview-clip" controls playsinline style="width:100%;max-height:240px;display:none;"></video>
+                </div>
+                <div class="acciones-estudio">
+                    <button type="button" class="btn-viam-subir" id="btn-anadir-clip-pizarra" style="background:#28A745;display:none;">➕ Añadir a pizarra</button>
+                </div>
+                <span id="status-clip-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
             </div>
             <div id="panel-estudio-midi" class="panel-estudio">
                 <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Crea una pista MIDI y un audio para musicalizar el video el tiempo que pidas (mismos límites de plan: 8 s–4 min gratis o 8 s–1 h Premium).</p>
@@ -640,8 +751,8 @@
                 <li><strong>Audio</strong> — Sube MP3 o genera MIDI en Estudio VIAM (desde 8 s hasta 1 h). WAV se convierte automáticamente.</li>
                 <li><strong>Portada y cierre</strong> — Escribe leyendas y opcionalmente añade imágenes.</li>
                 <li><strong>Subtítulos karaoke</strong> — Pulsa «Transcribir con IA», corrige la letra y activa la casilla de incrustar.</li>
-                <li><strong>Pizarra</strong> — Añade imágenes y videos MP4; arrastra para ordenarlos.</li>
-                <li><strong>Estudio VIAM</strong> — Genera escenas en HD, un discurso de tu producto o tema, y una pista MIDI; llévalos a la pizarra, subtítulos o audio.</li>
+                <li><strong>Estudio VIAM</strong> — Imagen HD, discurso, voz IA (hasta 4 min Premium), movimiento Ken Burns y clip corto 8–12 s; MIDI para musicalizar.</li>
+                <li><strong>Pizarra</strong> — Añade imágenes y videos MP4; activa movimiento en las fotos; arrastra para ordenarlos.</li>
                 <li><strong>Tipografía XXL</strong> — Recomendado para móvil y TV.</li>
                 <li><strong>Marca de agua</strong> — Puedes desactivarla en la sección Premium.</li>
                 <li><strong>Render</strong> — «Comenzar Renderizado Diamante» y espera la notificación (unos minutos).</li>

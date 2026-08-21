@@ -20,9 +20,22 @@ let imagenEstudioBlob = null;
 let letraEstudioGenerada = "";
 let midiEstudioBlob = null;
 let midiEstudioAudioFile = null;
+let vozEstudioAudioFile = null;
+let clipEstudioBlob = null;
+let clipEstudioTipo = "imagen";
+let movimientoPendienteRender = 0;
 let accessToken = localStorage.getItem("video_diamante_access_token") || "";
 
 const LIMITES_ESTUDIO = { gratuito: 5, premium: 20 };
+const LIMITES_VOZ = {
+    gratuito: { maxSeg: 30, maxDia: 3 },
+    premium: { maxSeg: 240, maxDia: 20 }
+};
+const LIMITES_MOVIMIENTO = { gratuito: 5, premium: 30 };
+const LIMITES_CLIP = {
+    gratuito: { minSeg: 8, maxSeg: 8, maxDia: 1 },
+    premium: { minSeg: 8, maxSeg: 12, maxDia: 5 }
+};
 /** Netlify rechaza cuerpos ~>6 MB; margen amplio para multipart (campos + boundary). */
 const LIMITE_SUBIDA_NETLIFY = 3.8 * 1024 * 1024;
 /** A partir de este tamaño siempre se re-encodea el audio antes de subir. */
@@ -69,12 +82,32 @@ async function ensureAccessToken() {
     }
 }
 
-function estudioGensHoy() {
-    return parseInt(localStorage.getItem(`vd_estudio_${hoyKey()}`) || "0", 10);
+function estudioUsoHoy() {
+    const raw = localStorage.getItem(`vd_estudio_uso_${hoyKey()}`);
+    let uso = { imagen: 0, letra: 0, voz: 0, clip: 0, movimiento: 0 };
+    if (raw) {
+        try { uso = { ...uso, ...JSON.parse(raw) }; } catch { /* ignore */ }
+    }
+    const legado = parseInt(localStorage.getItem(`vd_estudio_${hoyKey()}`) || "0", 10);
+    if (!raw && legado > 0) uso.imagen = legado;
+    return uso;
 }
 
-function incrementarEstudioGens() {
-    localStorage.setItem(`vd_estudio_${hoyKey()}`, String(estudioGensHoy() + 1));
+function guardarEstudioUso(uso) {
+    localStorage.setItem(`vd_estudio_uso_${hoyKey()}`, JSON.stringify(uso));
+    const gens = (uso.imagen || 0) + (uso.letra || 0);
+    localStorage.setItem(`vd_estudio_${hoyKey()}`, String(gens));
+}
+
+function estudioGensHoy() {
+    const u = estudioUsoHoy();
+    return (u.imagen || 0) + (u.letra || 0);
+}
+
+function incrementarEstudioGens(tipo = "imagen") {
+    const u = estudioUsoHoy();
+    u[tipo] = (u[tipo] || 0) + 1;
+    guardarEstudioUso(u);
     actualizarCuotaEstudio();
 }
 
@@ -82,14 +115,46 @@ function limiteEstudio() {
     return isPremium ? LIMITES_ESTUDIO.premium : LIMITES_ESTUDIO.gratuito;
 }
 
+function limitesVoz() {
+    return isPremium ? LIMITES_VOZ.premium : LIMITES_VOZ.gratuito;
+}
+
+function limiteMovimiento() {
+    return isPremium ? LIMITES_MOVIMIENTO.premium : LIMITES_MOVIMIENTO.gratuito;
+}
+
+function limitesClip() {
+    return isPremium ? LIMITES_CLIP.premium : LIMITES_CLIP.gratuito;
+}
+
+function restarCuota(max, usado) {
+    return Math.max(0, max - (usado || 0));
+}
+
 function actualizarCuotaEstudio() {
     const el = $("#status-estudio-cuota");
-    if (!el) return;
-    const max = limiteEstudio();
-    const rest = Math.max(0, max - estudioGensHoy());
-    el.textContent = isPremium
-        ? `Estudio IA Premium: ${rest}/${max} generaciones disponibles hoy`
-        : `Generaciones IA hoy: ${rest}/${max} disponibles`;
+    const det = $("#cuotas-estudio-detalle");
+    const uso = estudioUsoHoy();
+    const maxEst = limiteEstudio();
+    const restEst = restarCuota(maxEst, estudioGensHoy());
+    if (el) {
+        el.textContent = isPremium
+            ? `Estudio IA Premium: ${restEst}/${maxEst} imágenes+discurso hoy`
+            : `Imagen y discurso hoy: ${restEst}/${maxEst}`;
+    }
+    if (det) {
+        const v = limitesVoz();
+        const c = limitesClip();
+        det.innerHTML = `
+            <span>🗣️ Voz ${restarCuota(v.maxDia, uso.voz)}/${v.maxDia}</span>
+            <span>🎥 Movimiento ${restarCuota(limiteMovimiento(), uso.movimiento)}/${limiteMovimiento()}</span>
+            <span>✨ Clip ${restarCuota(c.maxDia, uso.clip)}/${c.maxDia}</span>
+        `;
+    }
+    const stMov = $("#status-movimiento-estudio");
+    if (stMov && !clipEstudioBlob) {
+        stMov.textContent = `Cuota de movimiento al renderizar: ${restarCuota(limiteMovimiento(), uso.movimiento)}/${limiteMovimiento()} imágenes con Ken Burns hoy.`;
+    }
 }
 
 function obtenerEscalaTexto() {
@@ -127,7 +192,10 @@ function actualizarPreviewTipografia() {
 
 async function fetchEstudio(endpoint, body) {
     await ensureAccessToken();
-    const fn = endpoint.includes("letra") ? "estudio-letra" : "estudio-imagen";
+    let fn = "estudio-imagen";
+    if (endpoint.includes("letra")) fn = "estudio-letra";
+    else if (endpoint.includes("voz")) fn = "estudio-voz";
+    else if (endpoint.includes("clip")) fn = "estudio-clip";
     const r2 = await fetch(`/.netlify/functions/${fn}`, {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
@@ -149,9 +217,46 @@ function puedeUsarEstudio() {
     return true;
 }
 
-function agregarMedioDesdeBlob(blob, nombre, tipoForzado) {
+function puedeUsarVoz() {
+    const lim = limitesVoz();
+    if ((estudioUsoHoy().voz || 0) >= lim.maxDia) {
+        const msg = `Límite de voz IA: ${lim.maxDia} tomas/día.`;
+        if (isPremium) alert(msg);
+        else mostrarUpgrade(`${msg} En Premium son 20 tomas de hasta 4 min.`);
+        return false;
+    }
+    return true;
+}
+
+function puedeUsarClip() {
+    const lim = limitesClip();
+    if ((estudioUsoHoy().clip || 0) >= lim.maxDia) {
+        const msg = `Límite de clip IA: ${lim.maxDia}/día.`;
+        if (isPremium) alert(msg);
+        else mostrarUpgrade(`${msg} En Premium son 5 clips de 8–12 s.`);
+        return false;
+    }
+    return true;
+}
+
+function estiloMovimientoActual() {
+    return $("#estudio-estilo-movimiento")?.value || "zoom_in";
+}
+
+function movimientoPorDefecto() {
+    return !!$("#chk-movimiento-nuevas")?.checked;
+}
+
+function mostrarPreviewMovimiento(src) {
+    const wrap = $("#preview-movimiento-estudio");
+    const img = $("#img-preview-movimiento");
+    if (img) img.src = src;
+    if (wrap) wrap.style.display = "block";
+}
+
+function agregarMedioDesdeBlob(blob, nombre, tipoForzado, extra = {}) {
     const file = new File([blob], nombre || "estudio-viam.jpg", { type: blob.type || "image/jpeg" });
-    agregarMedios([file], tipoForzado || "imagen");
+    agregarMedios([file], tipoForzado || "imagen", extra);
 }
 
 async function agregarImagenDesdeBase64(b64, mime) {
@@ -178,7 +283,7 @@ async function generarImagenIA() {
         const { ok, data: d } = await fetchEstudio("/estudio/imagen", { prompt });
         if (!ok || !d.imagen_base64) throw new Error(d.error || "No se pudo generar la imagen.");
 
-        incrementarEstudioGens();
+        incrementarEstudioGens("imagen");
         const mime = d.mime || "image/jpeg";
         const bin = atob(d.imagen_base64);
         const arr = new Uint8Array(bin.length);
@@ -190,6 +295,7 @@ async function generarImagenIA() {
         if (img) img.src = url;
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
+        mostrarPreviewMovimiento(url);
         if (status) status.textContent = `Imagen lista (${d.fuente || "IA"}) — añádela a la pizarra o genera otra.`;
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -208,6 +314,7 @@ async function generarLetraIA() {
     const status = $("#status-letra-estudio");
     const preview = $("#preview-letra-estudio");
     const btnUsar = $("#btn-usar-letra-subtitulos");
+    const btnVoz = $("#btn-pasar-discurso-a-voz");
     const tono = $("#estudio-genero")?.value || "cercano";
     const mood = $("#estudio-mood")?.value || "claro y directo";
     const duracionSeg = clampDuracionEstudio($("#estudio-duracion-discurso")?.value);
@@ -226,13 +333,14 @@ async function generarLetraIA() {
         const texto = d.discurso || d.letra;
         if (!ok || !texto) throw new Error(d.error || "No se pudo generar el discurso.");
 
-        incrementarEstudioGens();
+        incrementarEstudioGens("letra");
         letraEstudioGenerada = texto;
         const txt = $("#texto-preview-letra");
         if (txt) txt.textContent = letraEstudioGenerada;
         if (preview) preview.style.display = "block";
         if (btnUsar) btnUsar.style.display = "inline-block";
-        if (status) status.textContent = `Discurso listo (${d.modelo || "IA"} · ${duracionSeg} s) — úsalo en subtítulos o edítalo abajo.`;
+        if (btnVoz) btnVoz.style.display = "inline-block";
+        if (status) status.textContent = `Discurso listo (${d.modelo || "IA"} · ${duracionSeg} s) — úsalo en subtítulos o pásalo a Voz IA.`;
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
         alert("Error generando discurso: " + e.message);
@@ -254,6 +362,150 @@ function usarLetraEnSubtitulos() {
     if (chk) chk.checked = true;
     $("#status-transcripcion").textContent = "Discurso del Estudio VIAM cargado — se sincronizará por renglones al renderizar.";
     $("#status-letra-estudio").textContent = "Discurso aplicado a subtítulos.";
+}
+
+function pasarDiscursoAVoz() {
+    if (!letraEstudioGenerada) {
+        alert("Primero genera un discurso.");
+        return;
+    }
+    const area = $("#estudio-texto-voz");
+    if (area) area.value = letraEstudioGenerada;
+    document.querySelectorAll(".tab-estudio").forEach((t) => t.classList.toggle("activo", t.dataset.tab === "voz"));
+    document.querySelectorAll(".panel-estudio").forEach((p) => p.classList.remove("activo"));
+    $("#panel-estudio-voz")?.classList.add("activo");
+    $("#status-voz-estudio").textContent = "Discurso cargado. Pulsa «Generar voz».";
+}
+
+function blobDesdeBase64(b64, mime) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime || "application/octet-stream" });
+}
+
+async function generarVozIA() {
+    if (!puedeUsarVoz()) return;
+    const texto = $("#estudio-texto-voz")?.value?.trim() || letraEstudioGenerada;
+    if (!texto) {
+        alert("Escribe o pega el texto, o genera un discurso y pásalo a Voz IA.");
+        return;
+    }
+    const btn = $("#btn-generar-voz");
+    const status = $("#status-voz-estudio");
+    const preview = $("#preview-voz-estudio");
+    const audioEl = $("#audio-preview-voz");
+    const btnUsar = $("#btn-usar-voz-audio");
+    const lim = limitesVoz();
+    const maxSeg = Math.max(8, Math.min(lim.maxSeg, Number($("#estudio-voz-maxseg")?.value) || lim.maxSeg));
+    const voz = $("#estudio-voz-estilo")?.value || "femenina";
+
+    if (btn) { btn.disabled = true; btn.textContent = "Generando locución..."; }
+    if (status) status.textContent = `Creando voz IA (máx. ${maxSeg} s)...`;
+
+    try {
+        const { ok, data: d } = await fetchEstudio("/estudio/voz", { texto, voz, maxSeg });
+        if (!ok || !d.audio_base64) throw new Error(d.error || "No se pudo generar la voz.");
+        incrementarEstudioGens("voz");
+        const mime = d.mime || "audio/mpeg";
+        const blob = blobDesdeBase64(d.audio_base64, mime);
+        const ext = mime.includes("wav") ? "wav" : "mp3";
+        vozEstudioAudioFile = new File([blob], `estudio-voz-${Date.now()}.${ext}`, { type: mime });
+        const url = URL.createObjectURL(vozEstudioAudioFile);
+        if (audioEl) audioEl.src = url;
+        if (preview) preview.style.display = "block";
+        if (btnUsar) btnUsar.style.display = "inline-block";
+        const extra = d.recortado ? " Texto recortado al límite de la toma." : "";
+        if (status) {
+            status.textContent = `Voz lista (${d.fuente || d.modelo || "IA"}).${extra} Úsala como audio del video.`;
+        }
+    } catch (e) {
+        if (status) status.textContent = "Error: " + e.message;
+        alert("Error generando voz: " + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "🗣️ Generar voz"; }
+    }
+}
+
+async function usarVozComoAudio() {
+    if (!vozEstudioAudioFile) {
+        alert("Primero genera la voz.");
+        return;
+    }
+    await cargarAudio(vozEstudioAudioFile);
+    $("#status-voz-estudio").textContent = "Locución aplicada como audio principal del video.";
+}
+
+async function generarClipIA() {
+    if (!puedeUsarClip()) return;
+    const prompt = $("#estudio-prompt-clip")?.value?.trim();
+    if (!prompt) { alert("Describe el clip que deseas generar."); return; }
+    const lim = limitesClip();
+    let duracionSeg = Number($("#estudio-duracion-clip")?.value) || lim.minSeg;
+    duracionSeg = Math.max(lim.minSeg, Math.min(lim.maxSeg, duracionSeg));
+
+    const btn = $("#btn-generar-clip");
+    const status = $("#status-clip-estudio");
+    const preview = $("#preview-clip-estudio");
+    const img = $("#img-preview-clip");
+    const vid = $("#video-preview-clip");
+    const btnAdd = $("#btn-anadir-clip-pizarra");
+    if (btn) { btn.disabled = true; btn.textContent = "Generando clip..."; }
+    if (status) status.textContent = `Creando clip de ${duracionSeg} s...`;
+
+    try {
+        const { ok, data: d } = await fetchEstudio("/estudio/clip", { prompt, duracionSeg });
+        if (!ok) throw new Error(d.error || "No se pudo generar el clip.");
+        incrementarEstudioGens("clip");
+        clipEstudioBlob = null;
+        if (img) img.style.display = "none";
+        if (vid) { vid.style.display = "none"; vid.removeAttribute("src"); }
+
+        if (d.video_url || d.video_base64) {
+            let blob;
+            if (d.video_base64) blob = blobDesdeBase64(d.video_base64, d.mime || "video/mp4");
+            else {
+                const vr = await fetch(d.video_url);
+                if (!vr.ok) throw new Error("No se pudo descargar el clip de video.");
+                blob = await vr.blob();
+            }
+            clipEstudioBlob = blob;
+            clipEstudioTipo = "video";
+            const url = URL.createObjectURL(blob);
+            if (vid) { vid.src = url; vid.style.display = "block"; }
+        } else if (d.imagen_base64) {
+            clipEstudioBlob = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
+            clipEstudioTipo = "cinematico";
+            const url = URL.createObjectURL(clipEstudioBlob);
+            if (img) { img.src = url; img.style.display = "block"; }
+            mostrarPreviewMovimiento(url);
+        } else {
+            throw new Error("Respuesta de clip incompleta.");
+        }
+        if (preview) preview.style.display = "block";
+        if (btnAdd) btnAdd.style.display = "inline-block";
+        if (status) {
+            status.textContent = d.aviso
+                || `Clip listo (${d.fuente || "IA"} · ${d.duracionSeg || duracionSeg} s). Añádelo a la pizarra.`;
+        }
+    } catch (e) {
+        if (status) status.textContent = "Error: " + e.message;
+        alert("Error generando clip: " + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "✨ Generar clip"; }
+    }
+}
+
+function anadirClipAPizarra() {
+    if (!clipEstudioBlob) return;
+    if (clipEstudioTipo === "video") {
+        agregarMedioDesdeBlob(clipEstudioBlob, `estudio-clip-${Date.now()}.mp4`, "video");
+        $("#status-clip-estudio").textContent = "Clip de video añadido a la pizarra.";
+        return;
+    }
+    const file = new File([clipEstudioBlob], `estudio-clip-${Date.now()}.jpg`, { type: clipEstudioBlob.type || "image/jpeg" });
+    agregarMedios([file], "imagen", { movimiento: true, movimientoIncluido: true, estilo_movimiento: estiloMovimientoActual() });
+    $("#status-clip-estudio").textContent = "Clip cinematográfico añadido con movimiento Ken Burns.";
 }
 
 function midiU16(n) { return [(n >> 8) & 255, n & 255]; }
@@ -432,6 +684,30 @@ function actualizarCamposDuracionEstudio() {
         if (!Number.isFinite(actual) || actual < lim.minSeg) el.value = String(lim.minSeg);
         if (actual > lim.maxSeg) el.value = String(lim.maxSeg);
     });
+    const voz = limitesVoz();
+    const vozEl = $("#estudio-voz-maxseg");
+    if (vozEl) {
+        vozEl.min = "8";
+        vozEl.max = String(voz.maxSeg);
+        const actual = Number(vozEl.value);
+        if (!Number.isFinite(actual) || actual < 8) vozEl.value = String(Math.min(30, voz.maxSeg));
+        if (actual > voz.maxSeg) vozEl.value = String(voz.maxSeg);
+    }
+    const hintVoz = $("#hint-duracion-voz");
+    if (hintVoz) {
+        hintVoz.textContent = isPremium
+            ? "Premium: 8 segundos a 4 minutos por toma (20/día). El video de hasta 1 h se arma con este audio, MIDI o tu pista."
+            : "Gratis: 8 a 30 segundos por toma (3/día). Premium sube a 4 min y 20 tomas/día.";
+    }
+    const clipSel = $("#estudio-duracion-clip");
+    if (clipSel) {
+        const c = limitesClip();
+        Array.from(clipSel.options).forEach((opt) => {
+            const n = Number(opt.value);
+            opt.disabled = n > c.maxSeg || n < c.minSeg;
+        });
+        if (Number(clipSel.value) > c.maxSeg) clipSel.value = String(c.maxSeg);
+    }
     const hint = $("#hint-duracion-discurso");
     if (hint) {
         hint.textContent = isPremium
@@ -706,6 +982,34 @@ function mostrarGraciasCompra() {
     }
 }
 
+function aplicarCuotaMovimientoEnLista(lista) {
+    const max = limiteMovimiento();
+    let remaining = Math.max(0, max - (estudioUsoHoy().movimiento || 0));
+    let cobrados = 0;
+    let recortados = 0;
+    for (let i = 0; i < lista.length; i++) {
+        const item = lista[i];
+        if (!item.movimiento) continue;
+        if (mediaItems[i]?.movimientoIncluido) continue;
+        if (remaining <= 0) {
+            item.movimiento = false;
+            recortados += 1;
+        } else {
+            remaining -= 1;
+            cobrados += 1;
+        }
+    }
+    return { cobrados, recortados };
+}
+
+function registrarMovimientoRender(cantidad) {
+    if (cantidad <= 0) return;
+    const u = estudioUsoHoy();
+    u.movimiento = (u.movimiento || 0) + cantidad;
+    guardarEstudioUso(u);
+    actualizarCuotaEstudio();
+}
+
 function limitesActuales() {
     return isPremium ? LIMITES.premium : LIMITES.gratuito;
 }
@@ -770,11 +1074,11 @@ function aplicarModoPremiumUI() {
             }
         }
         if (hintEstudio) {
-            hintEstudio.textContent = "Estudio VIAM Creativo desbloqueado: hasta 20 generaciones IA por día (imágenes HD, discurso y MIDI). Audio 8 s – 1 h · 30 imágenes en pizarra.";
+            hintEstudio.textContent = "Estudio VIAM Premium: voz IA hasta 4 min (20/día), movimiento Ken Burns en 30 imágenes, clips 8–12 s (5/día), 20 imágenes+discurso/día, audio 8 s–1 h.";
             hintEstudio.style.color = "#E8DDB5";
         }
         if (hintPizarra) {
-            hintPizarra.textContent = "Pizarra Premium: hasta 30 imágenes y videos MP4. Arrastra para alternar el orden.";
+            hintPizarra.textContent = "Pizarra Premium: hasta 30 imágenes y videos MP4. Activa movimiento cinematográfico en cada foto. Arrastra para alternar el orden.";
             hintPizarra.style.color = "#E8DDB5";
         }
         if (hintSub) {
@@ -783,11 +1087,11 @@ function aplicarModoPremiumUI() {
         }
     } else {
         if (hintEstudio) {
-            hintEstudio.textContent = "Genera imágenes HD, un discurso de tu producto o tema, y MIDI para musicalizar. Gratuito: 5 generaciones/día · 8 s a 4 min · 10 imágenes.";
+            hintEstudio.textContent = "Imagen HD, discurso, MIDI, voz IA (30 s, 3/día), movimiento (5/día) y clip 8 s (1/día). Audio del video: 8 s a 4 min. Premium desbloquea tomas de 4 min, 30 movimientos y clips 8–12 s.";
             hintEstudio.style.color = "#BCB4B4";
         }
         if (hintPizarra) {
-            hintPizarra.textContent = "Arrastra imágenes y videos en el orden que quieras alternarlos. Reordena arrastrando cada tarjeta. Gratuito: 10 imgs + 2 videos · Premium: 30 imgs.";
+            hintPizarra.textContent = "Arrastra imágenes y videos. Activa movimiento Ken Burns en las fotos (5/día gratis). Gratuito: 10 imgs + 2 videos · Premium: 30 imgs.";
             hintPizarra.style.color = "#BCB4B4";
         }
         if (hintSub) {
@@ -998,7 +1302,7 @@ function configurarDragZone(zona, onFiles) {
     });
 }
 
-function agregarMedios(files, tipoForzado) {
+function agregarMedios(files, tipoForzado, extra = {}) {
     const lim = limitesActuales();
 
     Array.from(files).forEach((file) => {
@@ -1020,12 +1324,19 @@ function agregarMedios(files, tipoForzado) {
             return;
         }
 
+        const movimiento = esImagen
+            ? (typeof extra.movimiento === "boolean" ? extra.movimiento : movimientoPorDefecto())
+            : false;
+
         mediaItems.push({
             id: Date.now() + Math.random(),
             tipo: esVideo ? "video" : "imagen",
             file,
-            texto: "",
-            silenciado: true
+            texto: extra.texto || "",
+            silenciado: true,
+            movimiento,
+            movimientoIncluido: !!extra.movimientoIncluido,
+            estilo_movimiento: extra.estilo_movimiento || estiloMovimientoActual()
         });
     });
     renderizarPizarras();
@@ -1060,6 +1371,15 @@ function renderizarPizarras() {
         const muteHtml = item.tipo === "video"
             ? `<label class="chk-silencio"><input type="checkbox" class="chk-mute" data-index="${index}" ${item.silenciado ? "checked" : ""}> Silenciar audio del clip</label>`
             : "";
+        const movHtml = item.tipo === "imagen"
+            ? `<label class="chk-movimiento"><input type="checkbox" class="chk-mov" data-index="${index}" ${item.movimiento ? "checked" : ""}> Movimiento cinematográfico</label>
+               <select class="select-tipografia select-movimiento-celda" data-index="${index}" ${item.movimiento ? "" : "disabled"}>
+                 <option value="zoom_in"${item.estilo_movimiento === "zoom_in" ? " selected" : ""}>Zoom adentro</option>
+                 <option value="zoom_out"${item.estilo_movimiento === "zoom_out" ? " selected" : ""}>Zoom afuera</option>
+                 <option value="pan_derecha"${item.estilo_movimiento === "pan_derecha" ? " selected" : ""}>Paneo derecha</option>
+                 <option value="pan_izquierda"${item.estilo_movimiento === "pan_izquierda" ? " selected" : ""}>Paneo izquierda</option>
+               </select>`
+            : "";
 
         celda.innerHTML = `
             <span class="tipo-badge">${badge}<span class="orden-badge">#${index + 1}</span></span>
@@ -1067,6 +1387,7 @@ function renderizarPizarras() {
             ${preview}
             <input type="text" class="input-subtitulo input-texto-premium" data-index="${index}" placeholder="Texto para esta escena..." value="${item.texto.replace(/"/g, "&quot;")}">
             ${muteHtml}
+            ${movHtml}
             <button type="button" class="btn-eliminar-celda" data-index="${index}">Remover</button>
         `;
         cont.appendChild(celda);
@@ -1082,6 +1403,21 @@ function renderizarPizarras() {
         chk.addEventListener("change", function () {
             const i = parseInt(this.dataset.index, 10);
             if (mediaItems[i]) mediaItems[i].silenciado = this.checked;
+        });
+    });
+    document.querySelectorAll(".chk-mov").forEach((chk) => {
+        chk.addEventListener("change", function () {
+            const i = parseInt(this.dataset.index, 10);
+            if (!mediaItems[i]) return;
+            mediaItems[i].movimiento = this.checked;
+            const sel = cont.querySelector(`.select-movimiento-celda[data-index="${i}"]`);
+            if (sel) sel.disabled = !this.checked;
+        });
+    });
+    document.querySelectorAll(".select-movimiento-celda").forEach((sel) => {
+        sel.addEventListener("change", function () {
+            const i = parseInt(this.dataset.index, 10);
+            if (mediaItems[i]) mediaItems[i].estilo_movimiento = this.value;
         });
     });
     document.querySelectorAll(".btn-eliminar-celda").forEach((btn) => {
@@ -1565,6 +1901,8 @@ window.verificarEstatusRenderizado = function () {
                 clearInterval(window.renderInterval);
                 window.renderInterval = null;
                 incrementarRenders();
+                registrarMovimientoRender(movimientoPendienteRender);
+                movimientoPendienteRender = 0;
                 if (statusText) statusText.textContent = "¡Video listo! Descargando...";
                 try {
                     await descargarVideoFinal();
@@ -1598,8 +1936,15 @@ window.generarVideo = async function () {
             tipo: item.tipo,
             texto: item.texto,
             silenciado: item.silenciado,
-            duracion: 5.0
+            duracion: 5.0,
+            movimiento: !!(item.tipo === "imagen" && item.movimiento),
+            estilo_movimiento: item.estilo_movimiento || "zoom_in"
         }));
+        const cuotaMov = aplicarCuotaMovimientoEnLista(lista);
+        movimientoPendienteRender = cuotaMov.cobrados;
+        if (cuotaMov.recortados > 0) {
+            alert(`La cuota de movimiento de hoy es ${limiteMovimiento()} imágenes. ${cuotaMov.recortados} se renderizarán fijas. Mañana se reinicia, o activa Premium (30/día).`);
+        }
 
         const subtitulosOn = $("#chk-subtitulos")?.checked;
         const letra = $("#letra-cancion")?.value || letraGuardada || "";
@@ -1794,10 +2139,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#btn-usar-midi-audio")?.addEventListener("click", usarMidiComoAudio);
     $("#btn-anadir-imagen-pizarra")?.addEventListener("click", () => {
         if (!imagenEstudioBlob) return;
-        agregarMedioDesdeBlob(imagenEstudioBlob, `estudio-${Date.now()}.jpg`, "imagen");
+        agregarMedioDesdeBlob(imagenEstudioBlob, `estudio-${Date.now()}.jpg`, "imagen", {
+            movimiento: !!$("#chk-imagen-con-movimiento")?.checked,
+            estilo_movimiento: estiloMovimientoActual()
+        });
         $("#status-imagen-estudio").textContent = "Imagen añadida a la pizarra.";
     });
     $("#btn-usar-letra-subtitulos")?.addEventListener("click", usarLetraEnSubtitulos);
+    $("#btn-pasar-discurso-a-voz")?.addEventListener("click", pasarDiscursoAVoz);
+    $("#btn-generar-voz")?.addEventListener("click", generarVozIA);
+    $("#btn-usar-voz-audio")?.addEventListener("click", usarVozComoAudio);
+    $("#btn-generar-clip")?.addEventListener("click", generarClipIA);
+    $("#btn-anadir-clip-pizarra")?.addEventListener("click", anadirClipAPizarra);
 
     $("#input-audio-real")?.addEventListener("change", (e) => {
         if (e.target.files[0]) cargarAudio(e.target.files[0]);

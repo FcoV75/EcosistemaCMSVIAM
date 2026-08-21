@@ -9,6 +9,8 @@ export const RATE_LIMITS = {
   render: { free: 3, premium: 10, windowMs: 86400000 },
   transcribe: { free: 15, premium: 50, windowMs: 86400000 },
   estudio: { free: 3, premium: 20, windowMs: 86400000 },
+  estudio_voz: { free: 3, premium: 20, windowMs: 86400000 },
+  estudio_clip: { free: 1, premium: 5, windowMs: 86400000 },
 };
 
 const CORS_HEADERS = {
@@ -73,10 +75,18 @@ export async function enforceRateLimit(payload, action) {
     const key = `${action}:${tier}:${payload.sub}`;
     const result = await consumeRateLimit(key, max, limits.windowMs);
     if (!result.allowed) {
+      const nombres = {
+        estudio_voz: 'voz IA',
+        estudio_clip: 'clip IA',
+        estudio: 'Estudio IA',
+        render: 'renders',
+        transcribe: 'transcripciones',
+      };
+      const etiqueta = nombres[action] || action;
       return {
         ok: false,
         status: 429,
-        error: `Límite diario de ${action} alcanzado (${max}/día). Vuelve mañana o activa Premium.`,
+        error: `Límite diario de ${etiqueta} alcanzado (${max}/día). Vuelve mañana o activa Premium.`,
       };
     }
     return { ok: true, remaining: result.remaining };
