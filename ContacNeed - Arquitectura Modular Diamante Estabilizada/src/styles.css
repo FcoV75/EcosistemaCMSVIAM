@@ -6,6 +6,11 @@ body,
   min-height: 100%;
 }
 
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -15,6 +20,16 @@ body {
 .cn-glass {
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* En iPhone el blur en muchas tarjetas puede tumbar Safari (pantalla blanca / sale de la pizarra). */
+@media (hover: none) and (pointer: coarse) {
+  .cn-glass {
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 .cn-glow-gold {

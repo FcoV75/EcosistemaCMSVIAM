@@ -1,3 +1,5 @@
+import { isAppleTouchDevice } from './device'
+
 const POPUP_NAME = 'viam-radio-popup'
 const POPUP_FEATURES =
   'popup=yes,width=420,height=640,left=120,top=60,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no'
@@ -16,7 +18,21 @@ export function openRadioPopup(): Window | null {
     return popupRef
   }
 
-  popupRef = window.open(`${window.location.origin}/radio`, POPUP_NAME, POPUP_FEATURES)
+  const url = `${window.location.origin}/radio`
+
+  // Safari/Chrome iOS: ventana nombrada o el 3er argumento (features) suele NAVEGAR
+  // la pestaña actual y saca a la persona de la pizarra.
+  if (isAppleTouchDevice()) {
+    popupRef = window.open(url, '_blank')
+    try {
+      if (popupRef) popupRef.opener = null
+    } catch {
+      /* ignore */
+    }
+    return popupRef
+  }
+
+  popupRef = window.open(url, POPUP_NAME, POPUP_FEATURES)
   return popupRef
 }
 

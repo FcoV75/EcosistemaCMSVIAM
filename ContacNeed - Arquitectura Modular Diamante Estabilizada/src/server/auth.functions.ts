@@ -82,41 +82,46 @@ export const getSupabaseBrowserSessionFn = createServerFn({ method: 'GET' }).han
 })
 
 export const getSessionContextFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const supabase = createSupabaseServerClient()
-  const user = await getServerUser()
-  if (!user) return { user: null, profile: null, isAdmin: false }
-
   try {
-    const profile = await getServerProfile(user.id)
-    if (profile?.bloqueado) {
-      await supabase.auth.signOut()
-      return { user: null, profile: null, isAdmin: false }
-    }
+    const supabase = createSupabaseServerClient()
+    const user = await getServerUser()
+    if (!user) return { user: null, profile: null, isAdmin: false }
 
-    return {
-      user: { id: user.id, email: user.email ?? undefined },
-      profile: profile
-        ? {
-            nombre: profile.nombre,
-            estado: profile.estado,
-            municipio: profile.municipio,
-            habilidad_empirica: profile.habilidad_empirica,
-            descripcion_profesion: profile.descripcion_profesion,
-            es_pro: Boolean(profile.es_pro),
-            verificado: Boolean(profile.verificado),
-            es_fundador: Boolean(profile.es_fundador),
-            avatar_url: profile.avatar_url,
-            bloqueado: Boolean(profile.bloqueado),
-          }
-        : null,
-      isAdmin: Boolean(profile?.is_admin),
+    try {
+      const profile = await getServerProfile(user.id)
+      if (profile?.bloqueado) {
+        await supabase.auth.signOut()
+        return { user: null, profile: null, isAdmin: false }
+      }
+
+      return {
+        user: { id: user.id, email: user.email ?? undefined },
+        profile: profile
+          ? {
+              nombre: profile.nombre,
+              estado: profile.estado,
+              municipio: profile.municipio,
+              habilidad_empirica: profile.habilidad_empirica,
+              descripcion_profesion: profile.descripcion_profesion,
+              es_pro: Boolean(profile.es_pro),
+              verificado: Boolean(profile.verificado),
+              es_fundador: Boolean(profile.es_fundador),
+              avatar_url: profile.avatar_url,
+              bloqueado: Boolean(profile.bloqueado),
+            }
+          : null,
+        isAdmin: Boolean(profile?.is_admin),
+      }
+    } catch {
+      return {
+        user: { id: user.id, email: user.email ?? undefined },
+        profile: null,
+        isAdmin: false,
+      }
     }
-  } catch {
-    return {
-      user: { id: user.id, email: user.email ?? undefined },
-      profile: null,
-      isAdmin: false,
-    }
+  } catch (err) {
+    console.warn('getSessionContextFn no pudo leer sesión', err)
+    return { user: null, profile: null, isAdmin: false }
   }
 })
 

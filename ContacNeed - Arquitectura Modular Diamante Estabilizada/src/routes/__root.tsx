@@ -6,19 +6,37 @@ import { IdentityProvider } from '../lib/identity-context'
 import { OnboardingProvider } from '../lib/onboarding-context'
 import { UserProvider } from '../store/userContext'
 import { createAppQueryClient } from '../lib/query-client'
+import { RootErrorBoundary, StayOnBoardFallback } from '../components/RootErrorBoundary'
 import { getSessionContextFn } from '../server/auth.functions'
 import appCss from '../styles.css?url'
+
+function RootRouteError() {
+  return (
+    <html lang="es">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <title>ContacNeed</title>
+      </head>
+      <body style={{ margin: 0, background: '#020617' }}>
+        <StayOnBoardFallback onRetry={() => window.location.assign('/')} />
+        <Scripts />
+      </body>
+    </html>
+  )
+}
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       { title: 'ContacNeed | Red Social de Oficios' },
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   beforeLoad: async () => getSessionContextFn(),
+  errorComponent: RootRouteError,
   component: RootLayout,
 })
 
@@ -33,6 +51,7 @@ function RootLayout() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
+          <RootErrorBoundary>
           <IdentityProvider user={user} profile={profile} isAdmin={isAdmin}>
             <OnboardingProvider>
               <UserProvider>
@@ -42,6 +61,7 @@ function RootLayout() {
               </UserProvider>
             </OnboardingProvider>
           </IdentityProvider>
+          </RootErrorBoundary>
         </QueryClientProvider>
         <Scripts />
       </body>
