@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Camera, ImageIcon, RefreshCw, Sparkles, X } from 'lucide-react'
 
@@ -13,7 +13,7 @@ import { Link } from '@tanstack/react-router'
 import { useBrowseSearch } from '../lib/browse-context'
 import { useIdentity } from '../lib/identity-context'
 
-import { fetchPublicPosts } from '../lib/posts-client'
+import { fetchPublicPosts, FEED_PAGE_SIZE } from '../lib/posts-client'
 
 import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
 
@@ -64,19 +64,25 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
 
 
-  const postsQuery = useQuery({
-
+  const postsQuery = useInfiniteQuery({
     queryKey: ['posts', selectedState],
-
-    queryFn: () => fetchPublicPosts(selectedState || undefined),
-
-    refetchInterval: 12_000,
-
+    queryFn: ({ pageParam }) =>
+      fetchPublicPosts(selectedState || undefined, { offset: pageParam, limit: FEED_PAGE_SIZE }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length < FEED_PAGE_SIZE) return undefined
+      return allPages.reduce((total, page) => total + page.length, 0)
+    },
+    refetchInterval: false,
     refetchIntervalInBackground: false,
-
-    refetchOnWindowFocus: true,
-
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
   })
+
+  const feedPosts = useMemo(
+    () => postsQuery.data?.pages.flat() ?? [],
+    [postsQuery.data],
+  )
 
   useEffect(() => {
     if (!highlightPostId || postsQuery.isLoading) return
@@ -85,10 +91,28 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
     target.scrollIntoView({ behavior: 'smooth', block: 'center' })
     onHighlightDone?.()
-  }, [highlightPostId, postsQuery.isLoading, postsQuery.data, onHighlightDone])
+  }, [highlightPostId, postsQuery.isLoading, feedPosts, onHighlightDone])
+
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const fetchingMore = postsQuery.isFetchingNextPage
+  const canLoadMore = Boolean(postsQuery.hasNextPage) && !deferredSearch.trim()
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && /iPhone|iPod/i.test(navigator.userAgent)) return
+    const el = loadMoreRef.current
+    if (!el || !canLoadMore || fetchingMore) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void postsQuery.fetchNextPage()
+      },
+      { rootMargin: '80px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [canLoadMore, fetchingMore, postsQuery.fetchNextPage])
 
   const filteredPosts = useMemo(() => {
-    const posts = postsQuery.data ?? []
+    const posts = feedPosts
     const q = deferredSearch.trim().toLowerCase()
     if (!q) return posts
 
@@ -104,7 +128,7 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
         .toLowerCase()
       return haystack.includes(q)
     })
-  }, [postsQuery.data, deferredSearch])
+  }, [feedPosts, deferredSearch])
 
 
 
@@ -259,6 +283,19 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
         ))}
 
       </div>
+
+      {canLoadMore && (
+        <div ref={loadMoreRef} className="flex justify-center pt-1">
+          <button
+            type="button"
+            onClick={() => void postsQuery.fetchNextPage()}
+            disabled={fetchingMore}
+            className="rounded-xl border border-purple-500/30 bg-purple-950/40 px-4 py-2 text-sm font-medium text-purple-100"
+          >
+            {fetchingMore ? 'Cargando más…' : 'Cargar más publicaciones'}
+          </button>
+        </div>
+      )}
 
     </section>
 

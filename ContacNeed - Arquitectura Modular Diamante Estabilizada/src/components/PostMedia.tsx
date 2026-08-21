@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { isCloudinaryUrl, isYouTubeUrl, toYouTubeEmbedUrl } from '../lib/youtube'
+import { toFeedImageUrl } from '../lib/media-url'
+import { isCloudinaryUrl, isYouTubeUrl, toYouTubeEmbedUrl, toYouTubeThumbnail } from '../lib/youtube'
 
 type PostMediaProps = {
   mediaUrl?: string | null
@@ -16,6 +17,7 @@ function resolveMediaUrl({ mediaUrl, imageUrl, videoUrl }: PostMediaProps) {
 
 function SafeCloudinaryImage({ src, alt }: { src: string; alt: string }) {
   const [failed, setFailed] = useState(false)
+  const displaySrc = toFeedImageUrl(src)
 
   if (failed) {
     return (
@@ -27,12 +29,87 @@ function SafeCloudinaryImage({ src, alt }: { src: string; alt: string }) {
 
   return (
     <img
-      src={src}
+      src={displaySrc}
       alt={alt}
       className="h-full w-full object-contain"
       loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
     />
+  )
+}
+
+function LazyYouTube({ url, compact }: { url: string; compact?: boolean }) {
+  const [active, setActive] = useState(false)
+  const embedUrl = toYouTubeEmbedUrl(url) ?? url
+  const thumb = toYouTubeThumbnail(url)
+
+  if (active) {
+    return (
+      <iframe
+        src={embedUrl}
+        className="absolute inset-0 h-full w-full border-0"
+        title="Video de publicación"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setActive(true)}
+      className="absolute inset-0 flex h-full w-full items-center justify-center bg-black"
+      aria-label="Reproducir video de YouTube"
+    >
+      {thumb ? (
+        <img
+          src={thumb}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-90"
+          loading="lazy"
+          decoding="async"
+        />
+      ) : null}
+      <span
+        className={`relative z-10 rounded-full bg-red-600 font-bold text-white shadow-lg ${compact ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'}`}
+      >
+        Ver video
+      </span>
+    </button>
+  )
+}
+
+function LazyVimeo({ videoId, compact }: { videoId: string; compact?: boolean }) {
+  const [active, setActive] = useState(false)
+
+  if (active) {
+    return (
+      <iframe
+        src={`https://player.vimeo.com/video/${videoId}?playsinline=1`}
+        className="absolute inset-0 h-full w-full border-0"
+        title="Video Vimeo"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+      />
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setActive(true)}
+      className="absolute inset-0 flex h-full w-full items-center justify-center bg-slate-950"
+      aria-label="Reproducir video de Vimeo"
+    >
+      <span
+        className={`rounded-full bg-sky-600 font-bold text-white ${compact ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'}`}
+      >
+        Ver video
+      </span>
+    </button>
   )
 }
 
@@ -64,8 +141,8 @@ export function PostMedia(props: PostMediaProps) {
     const url = resolveMediaUrl(props)
     if (!url) return null
     const compact = Boolean(props.compact)
-    const maxH = compact ? 'max-h-56' : 'max-h-[520px]'
-    const minH = compact ? 'min-h-[120px]' : 'min-h-[200px]'
+    const maxH = compact ? 'max-h-56' : 'max-h-[420px]'
+    const minH = compact ? 'min-h-[120px]' : 'min-h-[180px]'
 
     const embedUrl = toYouTubeEmbedUrl(url)
     const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/i)
@@ -74,7 +151,13 @@ export function PostMedia(props: PostMediaProps) {
       return (
         <MediaFrame compact={compact}>
           <div className={`aspect-video w-full bg-black ${compact ? 'max-h-56' : ''}`}>
-            <video src={url} controls playsInline className="h-full w-full object-contain" />
+            <video
+              src={url}
+              controls
+              playsInline
+              preload="none"
+              className="h-full w-full object-contain"
+            />
           </div>
         </MediaFrame>
       )
@@ -84,14 +167,7 @@ export function PostMedia(props: PostMediaProps) {
       return (
         <MediaFrame compact={compact}>
           <div className="relative aspect-video w-full bg-black">
-            <iframe
-              src={embedUrl ?? url}
-              className="absolute inset-0 h-full w-full border-0"
-              title="Video de publicación"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
+            <LazyYouTube url={url} compact={compact} />
           </div>
         </MediaFrame>
       )
@@ -101,13 +177,7 @@ export function PostMedia(props: PostMediaProps) {
       return (
         <MediaFrame compact={compact}>
           <div className="relative aspect-video w-full bg-black">
-            <iframe
-              src={`https://player.vimeo.com/video/${vimeoMatch[1]}?playsinline=1`}
-              className="absolute inset-0 h-full w-full border-0"
-              title="Video Vimeo"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
-            />
+            <LazyVimeo videoId={vimeoMatch[1]} compact={compact} />
           </div>
         </MediaFrame>
       )

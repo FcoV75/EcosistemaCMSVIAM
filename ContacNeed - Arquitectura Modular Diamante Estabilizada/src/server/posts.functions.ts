@@ -8,6 +8,8 @@ import { getDailyPostLimit, getStartOfTodayIso } from '../lib/plan-limits'
 type GetPostsInput = {
   estado?: string
   includePending?: boolean
+  limit?: number
+  offset?: number
 }
 
 type PublicacionRow = {
@@ -205,6 +207,11 @@ export const getPosts = createServerFn({ method: 'GET' })
     if (estado) {
       query = query.eq('estado', estado)
     }
+
+    const offset = Math.max(0, Number(data?.offset) || 0)
+    const defaultLimit = includePending ? 100 : 8
+    const limit = Math.min(Math.max(Number(data?.limit) || defaultLimit, 1), includePending ? 200 : 24)
+    query = query.range(offset, offset + limit - 1)
 
     const { data: posts, error } = await query
     if (error) throw error

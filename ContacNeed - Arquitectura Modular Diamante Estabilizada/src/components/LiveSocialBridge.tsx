@@ -18,6 +18,7 @@ export function LiveSocialBridge() {
 
     let cancelled = false
     let channel: ReturnType<ReturnType<typeof getSupabaseBrowserClient>['channel']> | null = null
+    let postsBumpTimer: ReturnType<typeof setTimeout> | null = null
 
     async function connect() {
       try {
@@ -32,7 +33,11 @@ export function LiveSocialBridge() {
         if (cancelled) return
 
         const bumpPosts = () => {
-          queryClient.invalidateQueries({ queryKey: ['posts'] })
+          if (postsBumpTimer) return
+          postsBumpTimer = setTimeout(() => {
+            postsBumpTimer = null
+            queryClient.invalidateQueries({ queryKey: ['posts'] })
+          }, 20_000)
         }
         const bumpSocial = () => {
           queryClient.invalidateQueries({ queryKey: ['inbox'] })
@@ -107,6 +112,7 @@ export function LiveSocialBridge() {
 
     return () => {
       cancelled = true
+      if (postsBumpTimer) clearTimeout(postsBumpTimer)
       if (channel) {
         try {
           const supabase = getSupabaseBrowserClient()

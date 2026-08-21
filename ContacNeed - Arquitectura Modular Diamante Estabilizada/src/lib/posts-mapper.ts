@@ -1,5 +1,6 @@
 import { toYouTubeEmbedUrl } from './youtube'
 import { resolveAvatarUrl } from './default-avatar'
+import { toFeedAvatarUrl } from './media-url'
 
 export type MappedPost = {
   id: string
@@ -76,7 +77,7 @@ export function mapPublicacionToPost(post: {
     commentList: [],
     authorData: {
       name: post.perfiles?.nombre ?? 'Usuario',
-      avatar: resolveAvatarUrl(post.perfiles?.avatar_url, userId, post.perfiles?.nombre),
+      avatar: toFeedAvatarUrl(resolveAvatarUrl(post.perfiles?.avatar_url, userId, post.perfiles?.nombre)),
       title: profession,
       verified: Boolean(post.perfiles?.verificado),
       isFounder: Boolean(post.perfiles?.es_fundador),
