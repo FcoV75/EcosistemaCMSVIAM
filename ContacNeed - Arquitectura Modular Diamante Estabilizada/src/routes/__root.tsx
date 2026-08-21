@@ -6,6 +6,7 @@ import { IdentityProvider } from '../lib/identity-context'
 import { OnboardingProvider } from '../lib/onboarding-context'
 import { UserProvider } from '../store/userContext'
 import { createAppQueryClient } from '../lib/query-client'
+import { RootErrorBoundary } from '../components/RootErrorBoundary'
 import { getSessionContextFn } from '../server/auth.functions'
 import appCss from '../styles.css?url'
 
@@ -13,7 +14,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       { title: 'ContacNeed | Red Social de Oficios' },
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
@@ -33,6 +34,7 @@ function RootLayout() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
+          <RootErrorBoundary>
           <IdentityProvider user={user} profile={profile} isAdmin={isAdmin}>
             <OnboardingProvider>
               <UserProvider>
@@ -42,6 +44,7 @@ function RootLayout() {
               </UserProvider>
             </OnboardingProvider>
           </IdentityProvider>
+          </RootErrorBoundary>
         </QueryClientProvider>
         <Scripts />
       </body>

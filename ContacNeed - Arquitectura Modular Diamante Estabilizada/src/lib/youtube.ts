@@ -8,12 +8,15 @@ export function extractYouTubeId(url: string): string | null {
 
 export function toYouTubeEmbedUrl(url: string | null | undefined): string | null {
   if (!url) return null
-  if (url.includes('youtube.com/embed/')) return url
+  if (url.includes('youtube.com/embed/')) {
+    if (/[?&]playsinline=/.test(url)) return url
+    return url.includes('?') ? `${url}&playsinline=1` : `${url}?playsinline=1`
+  }
 
   const videoId = extractYouTubeId(url)
   if (!videoId) return null
 
-  return `https://www.youtube.com/embed/${videoId}`
+          return `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0`
 }
 
 export function isYouTubeUrl(url: string): boolean {

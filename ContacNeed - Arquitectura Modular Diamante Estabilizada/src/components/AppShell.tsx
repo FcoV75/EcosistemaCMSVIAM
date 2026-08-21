@@ -53,7 +53,7 @@ export function AppShell({
   }
 
   const handleGateOpen = useCallback(() => {
-    openAuth('login', true)
+    openAuth('login', false)
   }, [])
 
   const handleSignOut = async () => {
@@ -210,12 +210,9 @@ export function AppShell({
           required={authModal.required}
           onClose={() => setAuthModal((prev) => ({ ...prev, open: false, required: false }))}
         />
-        <GuestBrowseGate onGateOpen={handleGateOpen} />
+        <GuestBrowseGate onAskAuth={handleGateOpen} />
         <LastSeenPing />
         <LiveSocialBridge />
-        {authModal.required && authModal.open && (
-          <div className="fixed inset-0 z-[54] bg-black/40 backdrop-blur-[1px]" aria-hidden />
-        )}
       </div>
   )
 }

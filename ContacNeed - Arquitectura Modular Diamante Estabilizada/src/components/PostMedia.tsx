@@ -74,7 +74,7 @@ export function PostMedia(props: PostMediaProps) {
       return (
         <MediaFrame compact={compact}>
           <div className={`aspect-video w-full bg-black ${compact ? 'max-h-56' : ''}`}>
-            <video src={url} controls className="h-full w-full object-contain" />
+            <video src={url} controls playsInline className="h-full w-full object-contain" />
           </div>
         </MediaFrame>
       )
@@ -88,8 +88,9 @@ export function PostMedia(props: PostMediaProps) {
               src={embedUrl ?? url}
               className="absolute inset-0 h-full w-full border-0"
               title="Video de publicación"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           </div>
         </MediaFrame>

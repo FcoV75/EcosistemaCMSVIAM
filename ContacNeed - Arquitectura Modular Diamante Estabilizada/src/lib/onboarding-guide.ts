@@ -9,6 +9,7 @@ import {
   Store,
   UserPlus,
 } from 'lucide-react'
+import { storageGet, storageSet } from './safe-storage'
 
 export const ONBOARDING_STORAGE_KEY = 'contacneed_onboarding_v2_dismissed'
 export const ONBOARDING_STORAGE_KEY_LEGACY = 'contacneed_onboarding_v1_dismissed'
@@ -93,19 +94,19 @@ export function shouldShowOnboardingAuto(): boolean {
   if (typeof window === 'undefined') return false
   const path = window.location.pathname
   if (path === '/login' || path === '/registro' || path.startsWith('/auth/')) return false
-  if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === '1') return false
-  if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY_LEGACY) === '1') return false
-  if (window.sessionStorage.getItem(ONBOARDING_SESSION_KEY) === '1') return false
+  if (storageGet('local', ONBOARDING_STORAGE_KEY) === '1') return false
+  if (storageGet('local', ONBOARDING_STORAGE_KEY_LEGACY) === '1') return false
+  if (storageGet('session', ONBOARDING_SESSION_KEY) === '1') return false
   return true
 }
 
 export function markOnboardingSeenThisSession() {
   if (typeof window === 'undefined') return
-  window.sessionStorage.setItem(ONBOARDING_SESSION_KEY, '1')
+  storageSet('session', ONBOARDING_SESSION_KEY, '1')
 }
 
 export function dismissOnboardingForever() {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(ONBOARDING_STORAGE_KEY, '1')
+  storageSet('local', ONBOARDING_STORAGE_KEY, '1')
   markOnboardingSeenThisSession()
 }
