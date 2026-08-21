@@ -1,17 +1,44 @@
-Depósito INDAUTOR — Ecosistema CMS VIAM
-Fecha: 21 de agosto de 2026
-Archivo: Ecosistema-CMS-VIAM-deposito-INDAUTOR-2026-08-21.zip
-Commit main: e06993d952b938c755a9eb9bc06acaac19a0fbea (e06993d)
+Depósitos INDAUTOR — 21 de agosto de 2026
+Titular: Francisco Valdez
 
-Verifique integridad:
+============================================================
+1) PROGRAMA DE CÓMPUTO — Ecosistema CMS VIAM
+============================================================
+Archivo: Ecosistema-CMS-VIAM-deposito-INDAUTOR-2026-08-21.zip  (~42 MB)
+SHA-256: 1fbbd8c95d8b5ba8ec957e730b565aaa1bfd6a75a557a96d6e3fafa41cc29e37
+
+Código, estructura, logos y PDF literarios de Assets/Docs.
+Sin claves ni node_modules.
+
+============================================================
+2) CANCIONES, LETRAS Y FONOGRAMAS — IA VIAM
+============================================================
+Fonogramas completos (396 MP3 + fichas):
+  IA-VIAM-Canciones-Letras-INDAUTOR-2026-08-21.zip  (~3.0 GB)
+  SHA-256: ec020414f7da804a93b5241c8eb64d3f25ea08981a78e01f50f187d97d95b542
+
+  Este ZIP pesa ~3 GB (no cabe en GitHub). Está en esta carpeta
+  del workspace para descargarlo y grabarlo en DVD.
+
+Catálogo liviano (títulos, fichas de letra, playlist; SIN audio):
+  IA-VIAM-Canciones-Letras-INDAUTOR-2026-08-21-catalogo-sin-audio.zip  (~2.7 MB)
+
+Estaciones del catálogo:
+  - Balada Pop Jazz Blues Soul
+  - Instrumentales con Frecuencia
+  - Regional Tropical Latina
+  - Rítmica DJ Tecno Electrónica
+  - Rock Sinfonic Metal Gótica
+  - Sentimiento Musical Multilingüe
+  - Sincronía Nexus (FiltroNexus)
+
+Al grabar el DVD de música: DESCOMPRIMA y grabe la carpeta.
+En 02-LETRAS/ puede pegar la letra escrita en cada ficha;
+la letra cantada ya está fijada en el MP3.
+
+Complete domicilio, RFC y firme 00-INDAUTOR/01-DATOS-DE-LA-OBRA.txt
+en cada paquete.
+
+Verifique:
   sha256sum -c Ecosistema-CMS-VIAM-deposito-INDAUTOR-2026-08-21.zip.sha256
-
-Al grabar el DVD se recomienda DESCOMPRIMIR este ZIP y grabar la
-carpeta (no solo el archivo .zip), para que puedan abrir el código
-en cualquier computadora.
-
-Empiece por:  00-INDAUTOR/01-DATOS-DE-LA-OBRA.txt
-(complete domicilio, RFC y firme).
-
-Este ZIP no incluye claves, node_modules ni historial git.
-Las canciones y letras van en un depósito aparte.
+  sha256sum -c IA-VIAM-Canciones-Letras-INDAUTOR-2026-08-21.zip.sha256

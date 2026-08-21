@@ -1,0 +1,31 @@
+CÓMO GRABAR EL DVD DE MÚSICA E INDAUTOR
+=======================================
+
+1) Descomprima este ZIP. Debe ver las carpetas:
+     00-INDAUTOR   ficha, catálogo, hashes, logo
+     01-FONOGRAMAS  los MP3 (el máster depositado)
+     02-LETRAS      una ficha .txt por pista
+     03-LISTAS-OFICIALES  la playlist radio-oficial.js
+
+2) (Recomendado) Pegue en cada ficha de 02-LETRAS la letra
+   escrita, si la tiene en Word/cuaderno. Si no, igual vale:
+   la letra cantada ya está fijada en el MP3.
+
+3) Grabe en DVD-R la CARPETA descomprimida (no solo el .zip),
+   etiquete:
+     IA VIAM — Canciones, letras y fonogramas
+     Francisco Valdez — 21 agosto 2026
+
+4) En INDAUTOR puede presentar:
+   - Obra musical (con o sin letra)
+   - Fonograma
+   A veces conviene un registro del CATÁLOGO como conjunto
+   y, si más adelante una canción destaca, registrarla sola.
+
+5) Las pistas de Instrumentales con Frecuencia y Sincronía
+   Nexus no llevan letra; se registran como obra musical
+   instrumental / fonograma.
+
+6) Haga 2 o 3 discos idénticos.
+
+Este paquete no sustituye asesoría legal.
