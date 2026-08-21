@@ -23,6 +23,12 @@ export function isYouTubeUrl(url: string): boolean {
   return Boolean(extractYouTubeId(url) || url.includes('youtube.com/embed/'))
 }
 
+export function toYouTubeThumbnail(url: string): string | null {
+  const videoId = extractYouTubeId(url)
+  if (!videoId) return null
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+}
+
 export function isCloudinaryUrl(url: string): boolean {
   return /res\.cloudinary\.com/i.test(url)
 }
