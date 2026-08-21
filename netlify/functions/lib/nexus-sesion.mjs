@@ -54,6 +54,14 @@ export function hidratarSesion(previa, now = Date.now()) {
   };
 }
 
+export function restanteMsDe(sesion, { now = Date.now(), plan = PLAN_PUBLICO, permanente = false } = {}) {
+  if (permanente) return null;
+  const cfg = PLANES[plan] || PLANES.publico;
+  const s = hidratarSesion(sesion, now);
+  if (!s.startedAt) return cfg.ventanaMs;
+  return Math.max(0, s.startedAt + cfg.ventanaMs - now);
+}
+
 export function recortarHistoria(historia) {
   const list = Array.isArray(historia) ? historia : [];
   return list.slice(-MAX_HISTORIA);

@@ -5,6 +5,7 @@ import {
   autorizarTurno,
   hidratarSesion,
   registrarTurno,
+  restanteMsDe,
   sesionVacia,
 } from '../netlify/functions/lib/nexus-sesion.mjs';
 
@@ -51,6 +52,15 @@ assert(!miembroTarde.ok && /30 minutos/.test(miembroTarde.error), 'cierra a los 
 
 const owner = autorizarTurno(s, { now: t0 + 3 * 60 * 60 * 1000, plan: PLAN_MIEMBRO, permanente: true });
 assert(owner.ok && owner.restanteMs === null, 'propietario sin reloj');
+
+const restanteA1min = restanteMsDe(
+  registrarTurno(sesionVacia(t0), { mensaje: 'a', reply: 'b', musica: { frecuenciaHz: 528 }, now: t0 }),
+  { now: t0 + 60_000, plan: PLAN_PUBLICO },
+);
+assert(restanteA1min === PLANES.publico.ventanaMs - 60_000, 'reloj público descuenta el minuto real');
+
+const restanteOwner = restanteMsDe(s, { plan: PLAN_MIEMBRO, permanente: true });
+assert(restanteOwner === null, 'reloj del propietario no cuenta');
 
 const otroDia = hidratarSesion(s, t0 + 26 * 60 * 60 * 1000);
 assert(otroDia.mensajes === 0 && !otroDia.musica, 'nuevo día reinicia');

@@ -214,29 +214,9 @@
       display: none;
     }
     .organo-host { margin-top: 1.25rem; }
-    .nexus-hilo {
-      display: none;
-      max-height: 320px;
-      overflow-y: auto;
-      margin: 1rem 0;
-      padding: 0.75rem;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: rgba(0,0,0,0.25);
-    }
-    .nexus-hilo-user, .nexus-hilo-ia {
-      margin: 0.45rem 0;
-      padding: 0.7rem 0.9rem;
-      border-radius: 12px;
-      white-space: pre-wrap;
-      line-height: 1.55;
-      font-size: 0.95rem;
-    }
-    .nexus-hilo-user { background: rgba(158, 214, 255, 0.15); margin-left: 1.5rem; }
-    .nexus-hilo-ia { background: rgba(169, 112, 255, 0.18); margin-right: 1.5rem; }
-    #nexus-reloj { margin: 0.6rem 0 0; color: #fff2bf; font-size: 0.92rem; }
   </style>
   <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
+  <link rel="stylesheet" href="/Assets/nexus-platica.css" />
   <link rel="stylesheet" href="/Assets/organo-piloto.css" />
 </head>
 <body>
@@ -266,15 +246,20 @@
       <p>Hoy puedes sostener una <strong>plática continua de hasta 30 minutos</strong>. La música instrumental y la frecuencia en segundo plano se generan <strong>solo en el primer consejo del día</strong>; después seguimos conversando sin interrumpir esa pieza.</p>
 
       <div class="organo-host" id="organo-piloto-root"></div>
-      
-      <div class="chat-container">
-        <textarea id="user-input" placeholder="Cuéntame qué sientes…"></textarea>
-        <button id="send-btn" class="btn" onclick="askIA()">Recibir consejo y frecuencia</button>
-        <p id="nexus-reloj" aria-live="polite"></p>
-        <div id="loading">Sincronía Nexus está sintonizando contigo… un momento de paciencia.</div>
-      </div>
 
-      <div id="nexus-hilo" class="nexus-hilo" aria-live="polite"></div>
+      <div class="nexus-salon" id="nexus-salon-miembro">
+        <div class="nexus-reloj-wrap">
+          <p id="nexus-reloj" class="nexus-reloj">Hoy te acompaño hasta 30 minutos. El tiempo aparece aquí, en voz baja.</p>
+          <div class="nexus-reloj-barra" hidden><span></span></div>
+        </div>
+        <div id="nexus-hilo" class="nexus-hilo" aria-live="polite"></div>
+        <div id="loading">Sincronía Nexus está sintonizando contigo… un momento de paciencia.</div>
+        <p class="nexus-salon-nota" id="nexus-nota-miembro">Escribe debajo cuando quieras. Enter envía; Shift+Enter abre un renglón. Estoy escuchando.</p>
+        <div class="nexus-composer chat-container" style="margin-bottom:0;">
+          <textarea id="user-input" placeholder="Cuéntame qué sientes…"></textarea>
+          <button id="send-btn" class="btn" onclick="askIA()">Recibir consejo y frecuencia</button>
+        </div>
+      </div>
 
       <div id="ia-response">
         <div id="ia-response-label">Sincronía Nexus te sugiere</div>
@@ -378,15 +363,17 @@
     async function askIA() {
       const input = document.getElementById('user-input').value.trim();
       if(!input) {
-        alert('Comparte primero lo que sientes o te preocupa; estoy aquí para escucharte.');
+        document.getElementById('user-input')?.focus();
         return;
       }
 
       const btn = document.getElementById('send-btn');
       const loading = document.getElementById('loading');
+      const hilo = document.getElementById('nexus-hilo');
 
       btn.disabled = true;
       loading.style.display = 'block';
+      if (window.NexusPlatica) NexusPlatica.pintarEscribiendo(hilo);
 
       try {
         const headers = await authHeaders({ 'Content-Type': 'application/json' });
@@ -407,9 +394,12 @@
         aplicarRespuestaPlatica(input, data);
         document.getElementById('user-input').value = '';
         document.getElementById('send-btn').textContent = 'Continuar la plática';
+        document.getElementById('user-input')?.focus();
 
       } catch (err) {
-        alert(err.message);
+        if (window.NexusPlatica) NexusPlatica.quitarEscribiendo(hilo);
+        const nota = document.getElementById('nexus-nota-miembro');
+        if (nota) nota.textContent = err.message;
       } finally {
         btn.disabled = false;
         loading.style.display = 'none';
@@ -425,11 +415,24 @@
       const hilo = document.getElementById('nexus-hilo');
       const musica = data.musicaDelDia || data;
 
+      NexusPlatica.quitarEscribiendo(hilo);
       NexusPlatica.pintarHilo(hilo, 'user', mensajeUsuario);
       NexusPlatica.pintarHilo(hilo, 'ia', data.reply || '');
-      NexusPlatica.iniciarReloj(document.getElementById('nexus-reloj'), data.sesion?.restanteMs);
+      NexusPlatica.iniciarReloj(document.getElementById('nexus-reloj'), data.sesion?.restanteMs, {
+        plan: 'miembro',
+        permanente: Boolean(data.sesion?.permanente),
+        onEnd: () => NexusPlatica.cerrarComposer({
+          input: document.getElementById('user-input'),
+          button: document.getElementById('send-btn'),
+          nota: document.getElementById('nexus-nota-miembro'),
+        }),
+      });
 
-      responseText.textContent = data.reply;
+      if (data.esPrimera) {
+        responseText.textContent = data.reply;
+      } else if (responseText) {
+        responseText.textContent = '';
+      }
       if (musica.frecuenciaHz) {
         freqBadges.innerHTML = [
           `<span class="freq-badge">${musica.frecuenciaHz} Hz · ${musica.frecuenciaEtiqueta || 'Frecuencia'} (segundo plano)</span>`,
@@ -466,6 +469,10 @@
       setMensaje: (texto) => { document.getElementById('user-input').value = texto; },
       onRespuesta: aplicarRespuestaOrgano,
     });
+
+    if (window.NexusPlatica) {
+      NexusPlatica.configurarEnvio(document.getElementById('user-input'), askIA);
+    }
 
     function logout() {
       NexusSantuario.detenerSintesis();

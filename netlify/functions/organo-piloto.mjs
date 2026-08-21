@@ -14,7 +14,7 @@ import {
   normalizarDiagnostico,
   parsearRespuestaIA,
 } from './lib/nexus-frequencies.mjs';
-import { PLAN_MIEMBRO, PLAN_PUBLICO, payloadMusica } from './lib/nexus-sesion.mjs';
+import { PLAN_MIEMBRO, PLAN_PUBLICO, payloadMusica, restanteMsDe } from './lib/nexus-sesion.mjs';
 import { abrirTurnoChat, confirmarTurnoChat } from './lib/nexus-sesion-store.mjs';
 import { consultarGroqNexus, groqKey } from './lib/nexus-groq.mjs';
 import { contratoPublico, modoValido } from './lib/organo-contratos.mjs';
@@ -259,7 +259,7 @@ async function turno({ req, body, publico }) {
     nuevaMusica = Boolean(musica.audioUrl);
   }
 
-  await confirmarTurnoChat(claveSesion, turnoChat.sesion, {
+  const nextChat = await confirmarTurnoChat(claveSesion, turnoChat.sesion, {
     mensaje,
     reply: parsed.respuesta || rawText,
     musica,
@@ -295,7 +295,10 @@ async function turno({ req, body, publico }) {
       memoriaGuardada,
       sesion: {
         plan: publico ? 'publico' : 'miembro',
-        restanteMs: esPermanente ? null : turnoChat.restanteMs,
+        restanteMs: restanteMsDe(nextChat, {
+          plan: publico ? PLAN_PUBLICO : PLAN_MIEMBRO,
+          permanente: esPermanente,
+        }),
         etiqueta: publico ? '10 minutos' : '30 minutos',
         permanente: Boolean(esPermanente),
         esPrimera: turnoChat.esPrimera,

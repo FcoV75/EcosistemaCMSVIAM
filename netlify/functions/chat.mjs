@@ -6,7 +6,7 @@ import {
   normalizarDiagnostico,
   parsearRespuestaIA,
 } from './lib/nexus-frequencies.mjs';
-import { PLAN_PUBLICO, payloadMusica } from './lib/nexus-sesion.mjs';
+import { PLAN_PUBLICO, payloadMusica, restanteMsDe } from './lib/nexus-sesion.mjs';
 import { abrirTurnoChat, confirmarTurnoChat } from './lib/nexus-sesion-store.mjs';
 import {
   PROMPT_PRIMERA_PUBLICA,
@@ -91,7 +91,7 @@ export default async (req) => {
       nuevaMusica,
       sesion: {
         plan: 'publico',
-        restanteMs: turno.restanteMs,
+        restanteMs: restanteMsDe(next, { plan: PLAN_PUBLICO }),
         etiqueta: '10 minutos',
         mensajes: next.mensajes,
       },

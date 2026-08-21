@@ -12,7 +12,7 @@ import {
   normalizarDiagnostico,
   parsearRespuestaIA,
 } from './lib/nexus-frequencies.mjs';
-import { PLAN_MIEMBRO, payloadMusica } from './lib/nexus-sesion.mjs';
+import { PLAN_MIEMBRO, payloadMusica, restanteMsDe } from './lib/nexus-sesion.mjs';
 import { abrirTurnoChat, confirmarTurnoChat } from './lib/nexus-sesion-store.mjs';
 import {
   PROMPT_PRIMERA_MIEMBRO,
@@ -135,7 +135,7 @@ async function procesarChat(claveSesion, message, esPermanente) {
     nuevaMusica,
     sesion: {
       plan: 'miembro',
-      restanteMs: esPermanente ? null : turno.restanteMs,
+      restanteMs: restanteMsDe(next, { plan: PLAN_MIEMBRO, permanente: esPermanente }),
       etiqueta: '30 minutos',
       permanente: Boolean(esPermanente),
       mensajes: next.mensajes,

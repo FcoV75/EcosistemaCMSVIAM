@@ -37,15 +37,10 @@
     input,select,textarea { width:100%; border-radius:10px; border:1px solid rgba(255,255,255,.3); padding:.6rem .65rem; background:rgba(0,0,0,.28); color:#fff; font:inherit; }
     textarea { min-height:110px; resize:vertical; }
     .btn { margin-top:.9rem; border:0; border-radius:999px; padding:.64rem 1rem; font-weight:700; cursor:pointer; background:var(--accent); color:#17141a; }
-    .nexus-hilo { display:none; max-height:280px; overflow-y:auto; margin:1rem 0 0; padding:.75rem; border-radius:12px; border:1px solid var(--line); background:rgba(0,0,0,.25); }
-    .nexus-hilo-user, .nexus-hilo-ia { margin:.45rem 0; padding:.7rem .9rem; border-radius:12px; white-space:pre-wrap; line-height:1.55; font-size:.95rem; }
-    .nexus-hilo-user { background:rgba(158,214,255,.15); margin-left:1.4rem; }
-    .nexus-hilo-ia { background:rgba(169,112,255,.18); margin-right:1.4rem; }
-    #platica-publica { display:none; margin-top:1rem; }
-    #nexus-reloj-publica { color:#fff2bf; font-size:.92rem; margin:.4rem 0 0; }
     @media (max-width: 680px) { .purpose { grid-template-columns:1fr; } .purpose img { max-width:190px; } }
   </style>
   <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
+  <link rel="stylesheet" href="/Assets/nexus-platica.css" />
   <link rel="stylesheet" href="/Assets/organo-piloto.css" />
 </head>
 <body>
@@ -182,11 +177,17 @@
         <h3 style="color: #fff2bf; margin-top: 0; font-family: Cinzel, serif;">Sincronía Nexus te sugiere</h3>
         <div id="ia-response" style="white-space: pre-wrap; font-size: 1.05rem; line-height: 1.6;"></div>
         <div id="public-freq-badges" style="margin-top: 1rem;"></div>
-        <div id="nexus-hilo-publico" class="nexus-hilo" aria-live="polite"></div>
-        <div id="platica-publica">
-          <p id="nexus-reloj-publica" aria-live="polite"></p>
-          <textarea id="nexus-followup" placeholder="Sigue la plática… (hasta 10 minutos, sin música nueva)"></textarea>
-          <button class="btn" type="button" id="btn-seguir-platica" style="background:#a970ff;color:#fff;">Continuar la plática</button>
+        <div id="platica-publica" class="nexus-salon" style="display:none;">
+          <div class="nexus-reloj-wrap">
+            <p id="nexus-reloj-publica" class="nexus-reloj">Te escucho aquí, con calma.</p>
+            <div class="nexus-reloj-barra" hidden><span></span></div>
+          </div>
+          <div id="nexus-hilo-publico" class="nexus-hilo" aria-live="polite"></div>
+          <p class="nexus-salon-nota" id="nexus-nota-publica">Escribe debajo. Enter envía; Shift+Enter hace un renglón nuevo. El tiempo corre en silencio, sin prisa.</p>
+          <div class="nexus-composer">
+            <textarea id="nexus-followup" placeholder="Sigue la plática… te escucho."></textarea>
+            <button class="btn" type="button" id="btn-seguir-platica" style="background:#a970ff;color:#fff;">Continuar la plática</button>
+          </div>
         </div>
       </div>
       <p>Escucha tu muestra: una pieza instrumental del catálogo con la frecuencia terapéutica en <strong>segundo plano</strong> (bajo volumen) para tu subconsciente. Duración de muestra: <strong>2 minutos</strong>.</p>
@@ -292,12 +293,14 @@ Mente abierta a consejos: ${data.mente_abierta}`;
         });
       }
 
-      function mostrarRespuestaPublica(mensajeUsuario, result) {
+      function mostrarRespuestaPublica(mensajeUsuario, result, { seguimiento = false } = {}) {
         const musica = result.musicaDelDia || result;
-        if (result.reply) {
-          document.getElementById('ia-response').textContent = result.reply;
-        } else {
-          document.getElementById('ia-response').textContent = 'No se recibió respuesta válida. Intenta de nuevo.';
+        const hilo = document.getElementById('nexus-hilo-publico');
+        const salon = document.getElementById('platica-publica');
+        const respuestaCaja = document.getElementById('ia-response');
+
+        if (!seguimiento && result.reply) {
+          respuestaCaja.textContent = result.reply;
         }
         const badges = document.getElementById('public-freq-badges');
         if (badges && musica.frecuenciaHz) {
@@ -308,14 +311,26 @@ Mente abierta a consejos: ${data.mente_abierta}`;
           NexusSantuario.reproducirExperiencia(musica.audioUrl ? musica : result, 'custom-frequency-player', 'freq-nota-publica');
         }
         document.getElementById('ia-response-container').style.display = 'block';
-        document.getElementById('platica-publica').style.display = 'block';
-        const hilo = document.getElementById('nexus-hilo-publico');
+        salon.style.display = 'flex';
         if (window.NexusPlatica) {
-          NexusPlatica.pintarHilo(hilo, 'user', resumenHilo(mensajeUsuario));
+          NexusPlatica.quitarEscribiendo(hilo);
+          NexusPlatica.pintarHilo(hilo, 'user', seguimiento ? mensajeUsuario : resumenHilo(mensajeUsuario));
           NexusPlatica.pintarHilo(hilo, 'ia', result.reply || '');
-          NexusPlatica.iniciarReloj(document.getElementById('nexus-reloj-publica'), result.sesion?.restanteMs);
+          NexusPlatica.iniciarReloj(document.getElementById('nexus-reloj-publica'), result.sesion?.restanteMs, {
+            plan: 'publico',
+            onEnd: () => NexusPlatica.cerrarComposer({
+              input: document.getElementById('nexus-followup'),
+              button: document.getElementById('btn-seguir-platica'),
+              nota: document.getElementById('nexus-nota-publica'),
+            }),
+          });
         }
-        document.getElementById('tu-frecuencia').scrollIntoView({behavior: 'smooth'});
+        if (!seguimiento) {
+          document.getElementById('tu-frecuencia').scrollIntoView({ behavior: 'smooth' });
+        } else {
+          hilo.scrollTop = hilo.scrollHeight;
+          document.getElementById('nexus-followup')?.focus();
+        }
       }
 
       function resumenHilo(texto) {
@@ -328,11 +343,13 @@ Mente abierta a consejos: ${data.mente_abierta}`;
         const input = document.getElementById('nexus-followup');
         const mensaje = (input?.value || '').trim();
         if (!mensaje) {
-          alert('Escribe lo que quieres seguir conversando.');
+          input?.focus();
           return;
         }
         const btn = document.getElementById('btn-seguir-platica');
+        const hilo = document.getElementById('nexus-hilo-publico');
         btn.disabled = true;
+        if (window.NexusPlatica) NexusPlatica.pintarEscribiendo(hilo);
         try {
           const res = await fetch('/.netlify/functions/chat', {
             method: 'POST',
@@ -342,14 +359,19 @@ Mente abierta a consejos: ${data.mente_abierta}`;
           const result = await res.json();
           if (!res.ok || result.error) throw new Error(result.error || 'Error de red con la IA');
           input.value = '';
-          mostrarRespuestaPublica(mensaje, result);
+          mostrarRespuestaPublica(mensaje, result, { seguimiento: true });
         } catch (err) {
-          alert(err.message);
+          if (window.NexusPlatica) NexusPlatica.quitarEscribiendo(hilo);
+          const nota = document.getElementById('nexus-nota-publica');
+          if (nota) nota.textContent = err.message;
         } finally {
           btn.disabled = false;
         }
       }
       document.getElementById('btn-seguir-platica')?.addEventListener('click', continuarPlaticaPublica);
+      if (window.NexusPlatica) {
+        NexusPlatica.configurarEnvio(document.getElementById('nexus-followup'), continuarPlaticaPublica);
+      }
     </script>
 
 
