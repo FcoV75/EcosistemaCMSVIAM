@@ -1,4 +1,6 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
+import { expandirPromptVisual } from './lib/estudio-prompt-visual.mjs';
+import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
 export default async (req) => {
   const guard = await guardRailwayRequest(req, {
@@ -8,27 +10,27 @@ export default async (req) => {
   if (guard.preflight) return guard.preflight;
   if (!guard.ok) return jsonResponse({ error: guard.error }, guard.status);
 
-  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
   try {
     const { prompt } = await req.json();
-    if (!prompt?.trim()) return Response.json({ error: "Describe la imagen." }, { status: 400 });
+    if (!prompt?.trim()) return jsonResponse({ error: 'Describe la imagen.' }, 400);
 
-    const promptEn = `${prompt.trim()}, photorealistic, sharp focus, professional lighting, cinematic color grading, highly detailed, 16:9, no text, no watermark, no logo`;
-    const seed = Math.abs([...promptEn].reduce((a, c) => a + c.charCodeAt(0), 0)) % 99999;
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptEn)}?width=1920&height=1080&nologo=true&enhance=true&seed=${seed}`;
+    const expansion = await expandirPromptVisual(prompt, { modo: 'imagen' });
+    const imagen = await generarImagenEstudio(expansion.promptEn, {
+      width: 1920,
+      height: 1080,
+      seed: Date.now() % 99999,
+    });
+    if (!imagen) return jsonResponse({ error: 'Fallo al generar imagen.' }, 502);
 
-    const img = await fetch(url);
-    if (!img.ok) return Response.json({ error: "Fallo al generar imagen." }, { status: 502 });
-
-    const buf = await img.arrayBuffer();
-    const b64 = Buffer.from(buf).toString("base64");
-    return Response.json({
+    return jsonResponse({
       success: true,
-      imagen_base64: b64,
-      mime: img.headers.get("content-type") || "image/jpeg",
-      fuente: "pollinations"
+      imagen_base64: imagen.imagen_base64,
+      mime: imagen.mime,
+      fuente: imagen.fuente,
+      resumen: expansion.resumen || '',
     });
   } catch (e) {
-    return Response.json({ error: String(e) }, { status: 500 });
+    return jsonResponse({ error: String(e) }, 500);
   }
 };

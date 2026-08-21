@@ -524,9 +524,10 @@
                 <button type="button" class="tab-estudio" data-tab="midi">🎹 MIDI</button>
             </div>
             <div id="panel-estudio-imagen" class="panel-estudio activo">
+                <p style="font-size:0.82rem;color:#BCB4B4;margin:0 0 10px;">Nombra todos los sujetos (si pides venado y cebra, deben salir los dos). La IA traduce tu escena al inglés del modelo para que no se vaya a un cielo genérico.</p>
                 <div class="grupo-control">
                     <label for="estudio-prompt-imagen">Describe la escena visual</label>
-                    <textarea id="estudio-prompt-imagen" class="pizarra-letra" style="min-height:80px;" placeholder="Ej: Atardecer dorado sobre el mar de Acapulco, estilo cinematográfico, cálido y nostálgico"></textarea>
+                    <textarea id="estudio-prompt-imagen" class="pizarra-letra" style="min-height:80px;" placeholder="Ej: Un venado y una cebra juntos en una montaña, observando un atardecer entre vegetación exuberante"></textarea>
                 </div>
                 <label class="chk-movimiento"><input type="checkbox" id="chk-imagen-con-movimiento" checked> Añadir con movimiento cinematográfico (Ken Burns)</label>
                 <button type="button" class="btn-viam-subir" id="btn-generar-imagen">✨ Generar imagen</button>
@@ -636,10 +637,10 @@
                 <span id="status-movimiento-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
             </div>
             <div id="panel-estudio-clip" class="panel-estudio">
-                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Clip corto tipo anuncio: <strong>8 s</strong> en gratuito (1/día) y <strong>8–12 s</strong> en Premium (5/día). La IA arma la escena que pediste y el navegador graba el movimiento Ken Burns de esa duración — no se queda en una foto fija.</p>
+                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Clip corto tipo anuncio: <strong>8 s</strong> en gratuito (1/día) y <strong>8–12 s</strong> en Premium (5/día). Describe el lugar, los objetos y el movimiento de cámara. La IA respeta esa escena (no un cielo suelto) y graba el zoom en la duración pedida.</p>
                 <div class="grupo-control">
                     <label for="estudio-prompt-clip">Describe el clip</label>
-                    <textarea id="estudio-prompt-clip" class="pizarra-letra" style="min-height:80px;" placeholder="Ej: Toma de una panadería al amanecer, vapor del pan, cámara lenta, luz cálida mexicana"></textarea>
+                    <textarea id="estudio-prompt-clip" class="pizarra-letra" style="min-height:80px;" placeholder="Ej: Toma de una panadería al amanecer, vapor del pan recién horneado, zoom lento hasta el pan en primer plano"></textarea>
                 </div>
                 <div class="grupo-control">
                     <label for="estudio-duracion-clip">Duración (segundos)</label>
