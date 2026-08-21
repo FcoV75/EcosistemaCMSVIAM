@@ -27,28 +27,37 @@ export async function getContacNeedProStatus(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<ContacNeedProStatus> {
-  const { data, error } = await supabase
-    .from('ecosistema_entitlements')
-    .select('plan, expires_at, status, metadata')
-    .eq('user_id', userId)
-    .eq('producto', 'contacneed_pro')
-    .eq('status', 'active')
-    .maybeSingle()
+  try {
+    const { data, error } = await supabase
+      .from('ecosistema_entitlements')
+      .select('plan, expires_at, status, metadata')
+      .eq('user_id', userId)
+      .eq('producto', 'contacneed_pro')
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle()
 
-  if (error) throw error
-  if (!data || !entitlementVigente(data)) {
+    if (error) {
+      console.warn('ContacNeed PRO entitlement:', error.message)
+      return { active: false, plan: null, expiresAt: null, permanent: false }
+    }
+    if (!data || !entitlementVigente(data)) {
+      return { active: false, plan: null, expiresAt: null, permanent: false }
+    }
+
+    const meta = (data.metadata || {}) as Record<string, unknown>
+    const permanent =
+      meta.permanent === true || data.plan === 'propietario' || !data.expires_at
+
+    return {
+      active: true,
+      plan: planToProfile(data.plan),
+      expiresAt: data.expires_at,
+      permanent,
+    }
+  } catch (err) {
+    console.warn('ContacNeed PRO entitlement:', err)
     return { active: false, plan: null, expiresAt: null, permanent: false }
-  }
-
-  const meta = (data.metadata || {}) as Record<string, unknown>
-  const permanent =
-    meta.permanent === true || data.plan === 'propietario' || !data.expires_at
-
-  return {
-    active: true,
-    plan: planToProfile(data.plan),
-    expiresAt: data.expires_at,
-    permanent,
   }
 }
 

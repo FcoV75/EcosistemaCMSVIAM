@@ -91,6 +91,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
 
 export function shouldShowOnboardingAuto(): boolean {
   if (typeof window === 'undefined') return false
+  const path = window.location.pathname
+  if (path === '/login' || path === '/registro' || path.startsWith('/auth/')) return false
   if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === '1') return false
   if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY_LEGACY) === '1') return false
   if (window.sessionStorage.getItem(ONBOARDING_SESSION_KEY) === '1') return false

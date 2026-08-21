@@ -135,28 +135,52 @@ export const getServerProfileFn = createServerFn({ method: 'GET' })
 
 type SignInInput = { email: string; password: string }
 
+function mapSignInError(message: string) {
+  const msg = message.toLowerCase()
+  if (msg.includes('email not confirmed')) {
+    return 'Debes confirmar tu correo antes de entrar. Revisa tu bandeja de entrada y la carpeta de spam.'
+  }
+  if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('invalid_credentials')) {
+    return 'Correo o contraseña incorrectos.'
+  }
+  if (msg.includes('too many requests') || msg.includes('rate limit')) {
+    return 'Demasiados intentos. Espera un minuto y vuelve a entrar.'
+  }
+  if (msg.includes('network') || msg.includes('fetch')) {
+    return 'No se pudo conectar con la cuenta. Intenta de nuevo en unos segundos.'
+  }
+  return message || 'No se pudo iniciar sesión.'
+}
+
 export const signInFn = createServerFn({ method: 'POST' })
   .inputValidator((d: SignInInput) => d)
   .handler(async ({ data }) => {
-    const supabase = createSupabaseServerClient()
-    const { data: authData, error } = await supabase.auth.signInWithPassword({
-      email: data.email.trim(),
-      password: data.password,
-    })
-    if (error) {
-      const msg = error.message
-      if (msg.toLowerCase().includes('email not confirmed')) {
-        throw new Error(
-          'Debes confirmar tu correo antes de entrar. Revisa tu bandeja de entrada y la carpeta de spam.',
-        )
-      }
-      throw new Error(msg)
+    const email = String(data.email || '').trim().toLowerCase()
+    const password = String(data.password || '')
+    if (!email || !password) {
+      throw new Error('Escribe tu correo y contraseña.')
     }
 
-    const profile = authData.user ? await getServerProfile(authData.user.id) : null
-    if (profile?.bloqueado) {
-      await supabase.auth.signOut()
-      throw new Error('Tu cuenta está suspendida. Contacta soporte.')
+    const supabase = createSupabaseServerClient()
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (error) {
+      throw new Error(mapSignInError(error.message))
+    }
+
+    try {
+      const profile = authData.user ? await getServerProfile(authData.user.id) : null
+      if (profile?.bloqueado) {
+        await supabase.auth.signOut()
+        throw new Error('Tu cuenta está suspendida. Contacta soporte.')
+      }
+    } catch (profileError) {
+      if (profileError instanceof Error && profileError.message.includes('suspendida')) {
+        throw profileError
+      }
+      console.warn('signIn: perfil no bloqueó el ingreso', profileError)
     }
 
     return { success: true }
