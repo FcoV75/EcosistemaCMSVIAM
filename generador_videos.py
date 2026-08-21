@@ -9,10 +9,14 @@ import json
 import argparse
 import subprocess
 import unicodedata
+from audio_rieles import VOLUMEN_FONDO_DEFAULT, comando_mezcla_rieles
 from ken_burns import (
+    CICLO_KEN_BURNS_SEG,
     FACTOR_MOVIMIENTO,
     MAX_MOVIMIENTO_GRATUITO,
     MAX_MOVIMIENTO_PREMIUM,
+    progreso_ken_burns,
+    quiere_movimiento,
     recuadro_ken_burns,
 )
 
@@ -111,10 +115,11 @@ def _aplicar_escala_tipografia(escala_texto):
     escala = max(1.0, min(6.0, float(escala_texto or 6.0)))
     TAM_LEYENDA_PORTADA = max(TAM_MINIMO_FUENTE, int(38 * escala))
     TAM_SUBTITULO = max(TAM_MINIMO_FUENTE, int(40 * escala))
-    TAM_NOMBRE_PISTA = max(TAM_MINIMO_FUENTE, int(32 * escala))
+    # El título de pista no usa la escala XXL: a ×6 llegaba a 192 px y tapaba la escena.
+    TAM_NOMBRE_PISTA = max(26, int(18 * min(escala, 2.6)))
     TAM_TEXTO_ESCENA = max(TAM_MINIMO_FUENTE, int(36 * escala))
     TAM_MARCA_AGUA = max(18, int(22 * (escala / 2)))
-    print(f"Tipografía escala x{escala}: sub={TAM_SUBTITULO} escena={TAM_TEXTO_ESCENA}")
+    print(f"Tipografía escala x{escala}: sub={TAM_SUBTITULO} escena={TAM_TEXTO_ESCENA} pista={TAM_NOMBRE_PISTA}")
 
 
 def _fuente_pillow(tamano):
@@ -645,7 +650,7 @@ def escribir_frames_imagen(writer, frame_base, frames_totales, texto_escena, pal
     n = max(1, int(frames_totales))
     for i in range(n):
         if fuente_movimiento is not None:
-            t = i / max(n - 1, 1)
+            t = progreso_ken_burns(frame_contador, FPS, CICLO_KEN_BURNS_SEG)
             lienzo = aplicar_ken_burns_frame(fuente_movimiento, t, estilo_movimiento)
         else:
             lienzo = frame_base
@@ -758,6 +763,21 @@ def generar_video_cloud():
 
     _resolver_ruta_fuente()
     _aplicar_escala_tipografia(config.get("escala_texto", 6.0))
+    ruta_fondo = config.get("ruta_audio_fondo") or ""
+    if ruta_fondo and os.path.exists(ruta_fondo) and os.path.exists(ruta_audio) and os.path.abspath(ruta_fondo) != os.path.abspath(ruta_audio):
+        mezcla = "/tmp/audio_rieles_mezcla.mp3"
+        try:
+            vol_fondo = float(config.get("volumen_fondo", VOLUMEN_FONDO_DEFAULT))
+        except (TypeError, ValueError):
+            vol_fondo = VOLUMEN_FONDO_DEFAULT
+        dur_voz = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
+        cmd = comando_mezcla_rieles(ffmpeg_bin, ruta_audio, ruta_fondo, mezcla, dur_voz, vol_fondo)
+        print(f"Mezclando riel de locución con fondo (vol={vol_fondo})")
+        mix = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if mix.returncode == 0 and os.path.exists(mezcla) and os.path.getsize(mezcla) > 800:
+            ruta_audio = mezcla
+        else:
+            print(f"Aviso: no se pudo mezclar el fondo: {(mix.stderr or mix.stdout or '')[:300]}")
     duracion_audio = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
     print(f"Duración audio: {duracion_audio:.2f}s | FPS: {FPS} | Pista: {nombre_pista}")
 
@@ -792,20 +812,36 @@ def generar_video_cloud():
     frame_contador = 0
     frames_totales = int(round(FPS * duracion_por_segmento))
     ultimo_frame = None
+    ultima_fuente_mov = None
+    ultimo_estilo_mov = "zoom_in"
     max_movimiento = MAX_MOVIMIENTO_PREMIUM if es_premium else MAX_MOVIMIENTO_GRATUITO
     usados_movimiento = 0
 
+    def tomar_movimiento(forzar=False):
+        nonlocal usados_movimiento
+        if not forzar and usados_movimiento >= max_movimiento:
+            return None
+        usados_movimiento += 1
+        return True
+
     if leyenda_portada or ruta_portada:
+        fuente_mov = None
         if ruta_portada and os.path.exists(ruta_portada):
             img = cargar_imagen_alta_calidad(ruta_portada)
             frame_base = ajustar_proporcion_lienzo(img) if img is not None else crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
+            if img is not None and tomar_movimiento():
+                fuente_mov = ampliar_para_movimiento(frame_base)
         else:
             frame_base = crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
         ultimo_frame = frame_base.copy()
+        if fuente_mov is not None:
+            ultima_fuente_mov = fuente_mov
+            ultimo_estilo_mov = "zoom_in"
         frame_contador = escribir_frames_imagen(
             video_writer, frame_base, frames_totales, leyenda_portada, palabras_sub,
             subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
-            leyenda_grande=bool(leyenda_portada), mostrar_marca_agua=mostrar_marca_agua
+            leyenda_grande=bool(leyenda_portada), mostrar_marca_agua=mostrar_marca_agua,
+            fuente_movimiento=fuente_mov, estilo_movimiento="zoom_in",
         )
 
     for item in linea_tiempo:
@@ -824,6 +860,7 @@ def generar_video_cloud():
             )
             if ultimo_vid is not None:
                 ultimo_frame = ultimo_vid
+                ultima_fuente_mov = None
         else:
             img = cargar_imagen_alta_calidad(ruta)
             if img is not None:
@@ -831,10 +868,12 @@ def generar_video_cloud():
                 ultimo_frame = frame_base.copy()
                 fuente_mov = None
                 estilo_mov = (item.get("estilo_movimiento") or "zoom_in")
-                quiere_mov = bool(item.get("movimiento"))
-                if quiere_mov and usados_movimiento < max_movimiento:
-                    usados_movimiento += 1
+                if quiere_movimiento(item.get("movimiento")) and tomar_movimiento():
                     fuente_mov = ampliar_para_movimiento(frame_base)
+                    ultima_fuente_mov = fuente_mov
+                    ultimo_estilo_mov = estilo_mov
+                else:
+                    ultima_fuente_mov = None
                 frame_contador = escribir_frames_imagen(
                     video_writer, frame_base, frames_totales, texto, palabras_sub,
                     subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
@@ -846,16 +885,23 @@ def generar_video_cloud():
     print(f"Imágenes con movimiento Ken Burns: {usados_movimiento}/{max_movimiento}")
 
     if leyenda_cierre or ruta_cierre:
+        fuente_mov = None
         if ruta_cierre and os.path.exists(ruta_cierre):
             img = cargar_imagen_alta_calidad(ruta_cierre)
             frame_base = ajustar_proporcion_lienzo(img) if img is not None else crear_lienzo_portada_cierre(leyenda_cierre, WIDTH, HEIGHT)
+            if img is not None and tomar_movimiento():
+                fuente_mov = ampliar_para_movimiento(frame_base)
         else:
             frame_base = crear_lienzo_portada_cierre(leyenda_cierre, WIDTH, HEIGHT)
         ultimo_frame = frame_base.copy()
+        if fuente_mov is not None:
+            ultima_fuente_mov = fuente_mov
+            ultimo_estilo_mov = "zoom_out"
         frame_contador = escribir_frames_imagen(
             video_writer, frame_base, frames_totales, leyenda_cierre, palabras_sub,
             subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
-            leyenda_grande=bool(leyenda_cierre), mostrar_marca_agua=mostrar_marca_agua
+            leyenda_grande=bool(leyenda_cierre), mostrar_marca_agua=mostrar_marca_agua,
+            fuente_movimiento=fuente_mov, estilo_movimiento="zoom_out",
         )
 
     frames_objetivo_total = max(1, int(round(FPS * duracion_audio)))
@@ -865,7 +911,9 @@ def generar_video_cloud():
         frame_contador = escribir_frames_imagen(
             video_writer, ultimo_frame, faltan, "", palabras_sub,
             subtitulos_activos, nombre_pista, frame_contador, duracion_audio,
-            mostrar_marca_agua=mostrar_marca_agua
+            mostrar_marca_agua=mostrar_marca_agua,
+            fuente_movimiento=ultima_fuente_mov,
+            estilo_movimiento=ultimo_estilo_mov,
         )
 
     video_writer.release()

@@ -9,6 +9,11 @@ let isPremium = false;
 let premiumMeta = { daysLeft: 0, status: "", permanent: false };
 let audioFile = null;
 let audioDuracionEst = 0;
+let rielVozFile = null;
+let rielFondoFile = null;
+let duracionRielVoz = 0;
+let duracionRielFondo = 0;
+let nombrePistaEditado = false;
 let portadaFile = null;
 let cierreFile = null;
 let mediaItems = [];
@@ -254,6 +259,116 @@ function mostrarPreviewMovimiento(src) {
     if (wrap) wrap.style.display = "block";
 }
 
+function nombrePistaSucio(nombre) {
+    const base = String(nombre || "").replace(/\.[^.]+$/, "").trim();
+    if (!base) return true;
+    if (/^(estudio-voz|estudio-midi|estudio-clip|estudio|audio[_-]?temp|pista)[-_\s]?\d*$/i.test(base)) return true;
+    if (/^[\d_\-\s.]+$/.test(base)) return true;
+    return base.length < 3;
+}
+
+function sugerirNombrePista(file, riel) {
+    const crudo = String(file?.name || "");
+    const base = crudo.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    if (!nombrePistaSucio(crudo) && base.length >= 3) return base.slice(0, 80);
+    return riel === "voz" ? "Locución VIAM" : "Pista VIAM";
+}
+
+function nombrePistaParaVideo() {
+    const escrito = $("#nombre-pista-video")?.value?.trim();
+    if (escrito) return escrito.slice(0, 80);
+    if (rielFondoFile && !nombrePistaSucio(rielFondoFile.name)) {
+        return sugerirNombrePista(rielFondoFile, "fondo");
+    }
+    if (rielVozFile) return sugerirNombrePista(rielVozFile, "voz");
+    return "Pista VIAM";
+}
+
+function rellenarNombrePistaSiVacio(sugerido) {
+    const el = $("#nombre-pista-video");
+    if (!el || nombrePistaEditado) return;
+    if (el.value.trim() && !nombrePistaSucio(el.value)) return;
+    el.value = sugerido;
+}
+
+function mimeRecorderPreferido() {
+    if (typeof MediaRecorder === "undefined") return "";
+    const candidatos = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+    return candidatos.find((m) => MediaRecorder.isTypeSupported?.(m)) || "";
+}
+
+function dibujarKenBurnsCanvas(ctx, img, t, w, h, estilo) {
+    const te = Math.max(0, Math.min(1, t));
+    const ease = te * te * (3 - 2 * te);
+    const factor = 1.45;
+    let scale = factor;
+    if (estilo === "zoom_in") scale = 1 + ease * (factor - 1);
+    else if (estilo === "zoom_out") scale = factor - ease * (factor - 1);
+    const imgRatio = img.width / Math.max(1, img.height);
+    const canvasRatio = w / h;
+    let dw;
+    let dh;
+    if (imgRatio > canvasRatio) {
+        dh = h * scale;
+        dw = dh * imgRatio;
+    } else {
+        dw = w * scale;
+        dh = dw / imgRatio;
+    }
+    let x = (w - dw) / 2;
+    let y = (h - dh) / 2;
+    if (estilo === "pan_derecha") x = (w - dw) * ease;
+    else if (estilo === "pan_izquierda") x = (w - dw) * (1 - ease);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, x, y, dw, dh);
+}
+
+async function grabarClipKenBurns(imageBlob, duracionSeg, estilo) {
+    const mime = mimeRecorderPreferido();
+    if (!mime || typeof document.createElement("canvas").captureStream !== "function") {
+        throw new Error("Este navegador no puede grabar el clip en video.");
+    }
+    const img = await createImageBitmap(imageBlob);
+    const w = 1280;
+    const h = 720;
+    const fps = 24;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const stream = canvas.captureStream(fps);
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_400_000 });
+    const chunks = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    const terminado = new Promise((resolve, reject) => {
+        rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
+        rec.onerror = () => reject(new Error("No se pudo grabar el movimiento del clip."));
+    });
+    const total = Math.max(24, Math.round(Number(duracionSeg) * fps));
+    rec.start(120);
+    await new Promise((resolve) => {
+        let i = 0;
+        const tick = () => {
+            const t = i / Math.max(total - 1, 1);
+            dibujarKenBurnsCanvas(ctx, img, t, w, h, estilo || "zoom_in");
+            i += 1;
+            if (i >= total) {
+                setTimeout(() => {
+                    rec.stop();
+                    resolve();
+                }, 80);
+                return;
+            }
+            setTimeout(tick, 1000 / fps);
+        };
+        tick();
+    });
+    const blob = await terminado;
+    if (!blob || blob.size < 8000) throw new Error("El clip de video quedó vacío.");
+    return blob;
+}
+
 function agregarMedioDesdeBlob(blob, nombre, tipoForzado, extra = {}) {
     const file = new File([blob], nombre || "estudio-viam.jpg", { type: blob.type || "image/jpeg" });
     agregarMedios([file], tipoForzado || "imagen", extra);
@@ -417,7 +532,7 @@ async function generarVozIA() {
         if (btnUsar) btnUsar.style.display = "inline-block";
         const extra = d.recortado ? " Texto recortado al límite de la toma." : "";
         if (status) {
-            status.textContent = `Voz lista (${d.fuente || d.modelo || "IA"}).${extra} Úsala como audio del video.`;
+            status.textContent = `Voz lista (${d.fuente || d.modelo || "IA"}).${extra} Ponla en el riel de locución; el MP3 o MIDI se queda en el riel de fondo.`;
         }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -432,8 +547,8 @@ async function usarVozComoAudio() {
         alert("Primero genera la voz.");
         return;
     }
-    await cargarAudio(vozEstudioAudioFile);
-    $("#status-voz-estudio").textContent = "Locución aplicada como audio principal del video.";
+    await cargarAudio(vozEstudioAudioFile, "voz");
+    $("#status-voz-estudio").textContent = "Locución en el riel 1. El MP3 o MIDI de fondo no se toca.";
 }
 
 async function generarClipIA() {
@@ -474,17 +589,34 @@ async function generarClipIA() {
             const url = URL.createObjectURL(blob);
             if (vid) { vid.src = url; vid.style.display = "block"; }
         } else if (d.imagen_base64) {
-            clipEstudioBlob = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
-            clipEstudioTipo = "cinematico";
-            const url = URL.createObjectURL(clipEstudioBlob);
-            if (img) { img.src = url; img.style.display = "block"; }
-            mostrarPreviewMovimiento(url);
+            const still = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
+            const urlStill = URL.createObjectURL(still);
+            if (img) { img.src = urlStill; img.style.display = "block"; }
+            mostrarPreviewMovimiento(urlStill);
+            if (status) status.textContent = `Escena lista. Grabando movimiento Ken Burns de ${duracionSeg} s…`;
+            try {
+                const videoBlob = await grabarClipKenBurns(still, duracionSeg, estiloMovimientoActual());
+                clipEstudioBlob = videoBlob;
+                clipEstudioTipo = "video";
+                const urlVid = URL.createObjectURL(videoBlob);
+                if (vid) { vid.src = urlVid; vid.style.display = "block"; }
+                if (img) img.style.display = "none";
+            } catch (grabErr) {
+                clipEstudioBlob = still;
+                clipEstudioTipo = "cinematico";
+                console.warn("Clip Ken Burns:", grabErr);
+                if (status) {
+                    status.textContent = `La escena se generó, pero este navegador no grabó el video. Al renderizar se aplicará el movimiento (${grabErr.message}).`;
+                }
+            }
         } else {
             throw new Error("Respuesta de clip incompleta.");
         }
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
-        if (status) {
+        if (status && clipEstudioTipo === "video") {
+            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s con movimiento listo. Añádelo a la pizarra.`;
+        } else if (status && clipEstudioTipo !== "cinematico") {
             status.textContent = d.aviso
                 || `Clip listo (${d.fuente || "IA"} · ${d.duracionSeg || duracionSeg} s). Añádelo a la pizarra.`;
         }
@@ -499,13 +631,14 @@ async function generarClipIA() {
 function anadirClipAPizarra() {
     if (!clipEstudioBlob) return;
     if (clipEstudioTipo === "video") {
-        agregarMedioDesdeBlob(clipEstudioBlob, `estudio-clip-${Date.now()}.mp4`, "video");
-        $("#status-clip-estudio").textContent = "Clip de video añadido a la pizarra.";
+        const ext = (clipEstudioBlob.type || "").includes("mp4") ? "mp4" : "webm";
+        agregarMedioDesdeBlob(clipEstudioBlob, `estudio-clip-${Date.now()}.${ext}`, "video");
+        $("#status-clip-estudio").textContent = "Clip de video con movimiento añadido a la pizarra.";
         return;
     }
     const file = new File([clipEstudioBlob], `estudio-clip-${Date.now()}.jpg`, { type: clipEstudioBlob.type || "image/jpeg" });
     agregarMedios([file], "imagen", { movimiento: true, movimientoIncluido: true, estilo_movimiento: estiloMovimientoActual() });
-    $("#status-clip-estudio").textContent = "Clip cinematográfico añadido con movimiento Ken Burns.";
+    $("#status-clip-estudio").textContent = "Escena añadida; el movimiento Ken Burns se aplica al renderizar.";
 }
 
 function midiU16(n) { return [(n >> 8) & 255, n & 255]; }
@@ -638,7 +771,7 @@ async function generarMidiEstudio() {
         if (btnDl) btnDl.style.display = "inline-block";
         if (btnUsar) btnUsar.style.display = "inline-block";
         if (status) {
-            status.textContent = `Listo: ${duracionSeg} s · ${(midiEstudioAudioFile.size / 1024).toFixed(0)} KB. Descarga el .mid o úsalo como audio del video.`;
+            status.textContent = `Listo: ${duracionSeg} s · ${(midiEstudioAudioFile.size / 1024).toFixed(0)} KB. Descarga el .mid o ponlo en el riel de fondo.`;
         }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -662,8 +795,8 @@ async function usarMidiComoAudio() {
         alert("Primero genera el MIDI.");
         return;
     }
-    await cargarAudio(midiEstudioAudioFile);
-    $("#status-midi-estudio").textContent = "Pista MIDI aplicada como audio principal del video.";
+    await cargarAudio(midiEstudioAudioFile, "fondo");
+    $("#status-midi-estudio").textContent = "MIDI en el riel 2 de fondo. La locución se queda en el riel 1.";
 }
 
 function clampDuracionEstudio(seg) {
@@ -811,27 +944,27 @@ async function comprimirImagenParaRender(file, maxW = 1280, maxH = 720, calidad 
     return new File([blob], nombre, { type: "image/jpeg" });
 }
 
-async function prepararArchivosRender({ audio, portada, cierre, mediaItems }) {
+async function prepararArchivosRender({ audio, audioFondo, portada, cierre, mediaItems }) {
     const archivos = [];
-    if (audio) {
-        let audioSubida = audio;
-        const necesitaReducir = audio.size > UMBRAL_COMPRESION_AUDIO || esAudioSinComprimir(audio);
+    async function prepararAudio(file, campo, etiqueta) {
+        let audioSubida = file;
+        const necesitaReducir = file.size > UMBRAL_COMPRESION_AUDIO || esAudioSinComprimir(file);
         if (necesitaReducir) {
             logAudioAviso(
-                esAudioSinComprimir(audio)
-                    ? "Audio sin comprimir — convirtiendo a MP3 ligero para subida..."
-                    : `Audio ${(audio.size / (1024 * 1024)).toFixed(1)} MB — comprimiendo para subida segura...`
+                esAudioSinComprimir(file)
+                    ? `${etiqueta} sin comprimir — convirtiendo a MP3 ligero para subida...`
+                    : `${etiqueta} ${(file.size / (1024 * 1024)).toFixed(1)} MB — comprimiendo para subida segura...`
             );
-            audioSubida = await comprimirAudioParaSubida(audio);
+            audioSubida = await comprimirAudioParaSubida(file);
             if (
-                esAudioYaComprimido(audio) &&
-                audioSubida.size >= audio.size &&
-                audio.size <= LIMITE_SUBIDA_NETLIFY
+                esAudioYaComprimido(file) &&
+                audioSubida.size >= file.size &&
+                file.size <= LIMITE_SUBIDA_NETLIFY
             ) {
                 logAudioAviso("La compresión no redujo el peso — se usa el MP3 original.");
-                audioSubida = audio;
+                audioSubida = file;
             } else {
-                logAudioOk(`Audio listo para render (${(audioSubida.size / (1024 * 1024)).toFixed(1)} MB MP3)`);
+                logAudioOk(`${etiqueta} listo para render (${(audioSubida.size / (1024 * 1024)).toFixed(1)} MB MP3)`);
             }
         }
         if (audioSubida.size > LIMITE_SUBIDA_NETLIFY) {
@@ -843,8 +976,10 @@ async function prepararArchivosRender({ audio, portada, cierre, mediaItems }) {
                 `El audio sigue pesando ${(audioSubida.size / (1024 * 1024)).toFixed(1)} MB tras comprimir. Usa un MP3 más corto o a menor bitrate.`
             );
         }
-        archivos.push({ campo: "audio", file: audioSubida, etiqueta: audioSubida.name });
+        archivos.push({ campo, file: audioSubida, etiqueta: etiqueta || audioSubida.name });
     }
+    if (audio) await prepararAudio(audio, "audio", audio.name || "locución");
+    if (audioFondo) await prepararAudio(audioFondo, "audio_fondo", audioFondo.name || "fondo");
     if (portada) {
         const img = await comprimirImagenParaRender(portada);
         archivos.push({ campo: "portada_file", file: img, etiqueta: img.name });
@@ -888,7 +1023,7 @@ async function subirArchivoRenderSesion(uploadId, campo, file, { reintento = tru
         String(d.error || d.detalle || d.message || "")
     );
 
-    if (es413 && reintento && campo === "audio") {
+    if (es413 && reintento && (campo === "audio" || campo === "audio_fondo")) {
         logAudioAviso("Subida rechazada (413) — recomprimiendo audio más agresivo...");
         const masLiviano = await comprimirAudioParaSubida(file, { forzarAgresivo: true });
         if (masLiviano.size >= file.size && file.size > LIMITE_SUBIDA_NETLIFY * 0.98) {
@@ -1074,7 +1209,7 @@ function aplicarModoPremiumUI() {
             }
         }
         if (hintEstudio) {
-            hintEstudio.textContent = "Estudio VIAM Premium: voz IA hasta 4 min (20/día), movimiento Ken Burns en 30 imágenes, clips 8–12 s (5/día), 20 imágenes+discurso/día, audio 8 s–1 h.";
+            hintEstudio.textContent = "Estudio VIAM Premium: voz IA hasta 4 min (20/día) en el riel de locución, MIDI/MP3 en el riel de fondo, movimiento Ken Burns en 30 imágenes, clips 8–12 s (5/día).";
             hintEstudio.style.color = "#E8DDB5";
         }
         if (hintPizarra) {
@@ -1087,7 +1222,7 @@ function aplicarModoPremiumUI() {
         }
     } else {
         if (hintEstudio) {
-            hintEstudio.textContent = "Imagen HD, discurso, MIDI, voz IA (30 s, 3/día), movimiento (5/día) y clip 8 s (1/día). Audio del video: 8 s a 4 min. Premium desbloquea tomas de 4 min, 30 movimientos y clips 8–12 s.";
+            hintEstudio.textContent = "Imagen HD, discurso, MIDI en riel de fondo, voz IA (30 s, 3/día) en riel de locución, movimiento (5/día) y clip 8 s (1/día).";
             hintEstudio.style.color = "#BCB4B4";
         }
         if (hintPizarra) {
@@ -1807,7 +1942,7 @@ async function transcribirConGroq(audioFile) {
 }
 
 async function transcribirAudio() {
-    if (!audioFile) { alert("Carga audio primero."); return; }
+    if (!audioFile) { alert("Pon una locución o un MP3 en los rieles de audio."); return; }
     const btn = $("#btn-transcribir");
     const area = $("#letra-cancion");
     const status = $("#status-transcripcion");
@@ -1848,7 +1983,10 @@ function validarProyecto() {
         }
         return false;
     }
-    if (!audioFile) { alert("Selecciona o arrastra un archivo de audio."); return false; }
+    if (!rielVozFile && !rielFondoFile) {
+        alert("Pon una locución en el riel 1, un MP3/MIDI en el riel 2, o ambos.");
+        return false;
+    }
     if (audioDuracionEst > 0 && audioDuracionEst < lim.minSeg) {
         alert(`El audio debe durar al menos ${lim.minSeg} segundos (ahora: ${Math.ceil(audioDuracionEst)} s).`);
         return false;
@@ -1960,12 +2098,14 @@ window.generarVideo = async function () {
             es_premium: isPremium,
             sin_marca_agua: !!(isPremium && $("#chk-sin-marca-agua")?.checked),
             escala_texto: obtenerEscalaTexto(),
-            nombre_pista: audioFile ? audioFile.name.replace(/\.[^.]+$/, "") : "Pista VIAM"
+            nombre_pista: nombrePistaParaVideo(),
+            volumen_fondo: 0.24
         };
 
         if (statusText) statusText.textContent = "Optimizando imágenes y audio...";
         const archivos = await prepararArchivosRender({
-            audio: audioFile,
+            audio: rielVozFile || rielFondoFile,
+            audioFondo: rielVozFile && rielFondoFile ? rielFondoFile : null,
             portada: portadaFile,
             cierre: cierreFile,
             mediaItems
@@ -1991,13 +2131,27 @@ window.generarVideo = async function () {
     }
 };
 
-function actualizarAvisoAudio(extra = "") {
-    const st = $("#status-audio");
-    if (!st || !audioFile) return;
+function sincronizarAudioPrincipal() {
+    audioFile = rielVozFile || rielFondoFile;
+    audioDuracionEst = rielVozFile ? duracionRielVoz : duracionRielFondo;
+}
+
+function actualizarAvisoAudio(extra = "", riel = "fondo") {
+    const st = riel === "voz" ? $("#status-audio-voz") : $("#status-audio");
+    const file = riel === "voz" ? rielVozFile : rielFondoFile;
+    const dur = riel === "voz" ? duracionRielVoz : duracionRielFondo;
+    if (!st) return;
+    if (!file) {
+        st.style.color = "";
+        st.textContent = riel === "voz"
+            ? "Vacío — usa Voz IA o sube un speech"
+            : "Vacío — sube un MP3 o genera MIDI";
+        return;
+    }
     const lim = limitesActuales();
-    const seg = Math.ceil(audioDuracionEst);
-    const mb = (audioFile.size / (1024 * 1024)).toFixed(1);
-    let texto = `🎵 ${audioFile.name} (${seg}s · ${formatoDuracion(audioDuracionEst)} min · ${mb} MB)`;
+    const seg = Math.ceil(dur);
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    let texto = `${file.name} (${seg}s · ${formatoDuracion(dur)} min · ${mb} MB)`;
     if (extra) texto += ` · ${extra}`;
     if (!isPremium && audioDuracionEst > lim.maxSeg) {
         texto += ` — supera el límite gratuito (${formatoDuracion(lim.maxSeg)} min)`;
@@ -2014,8 +2168,8 @@ function actualizarAvisoAudio(extra = "") {
     st.textContent = texto;
 }
 
-async function cargarAudio(file) {
-    const st = $("#status-audio");
+async function cargarAudio(file, riel = "fondo") {
+    const st = riel === "voz" ? $("#status-audio-voz") : $("#status-audio");
     if (st) {
         st.textContent = "Analizando audio...";
         st.style.color = "#00FFCC";
@@ -2088,9 +2242,17 @@ async function cargarAudio(file) {
         logAudioOk(`Audio cargado (${finalFile.name}, ${mbEntrada} MB) sin reconversión.`);
     }
 
-    audioFile = finalFile;
-    audioDuracionEst = await estimarDuracionAudio(finalFile);
-    actualizarAvisoAudio(notaConversion);
+    const dur = await estimarDuracionAudio(finalFile);
+    if (riel === "voz") {
+        rielVozFile = finalFile;
+        duracionRielVoz = dur;
+    } else {
+        rielFondoFile = finalFile;
+        duracionRielFondo = dur;
+    }
+    sincronizarAudioPrincipal();
+    actualizarAvisoAudio(notaConversion, riel);
+    rellenarNombrePistaSiVacio(sugerirNombrePista(finalFile, riel));
     const sec = $("#seccion-subtitulos");
     if (sec) sec.style.display = "block";
 }
@@ -2153,12 +2315,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#btn-anadir-clip-pizarra")?.addEventListener("click", anadirClipAPizarra);
 
     $("#input-audio-real")?.addEventListener("change", (e) => {
-        if (e.target.files[0]) cargarAudio(e.target.files[0]);
+        if (e.target.files[0]) cargarAudio(e.target.files[0], "fondo");
+    });
+    $("#input-audio-voz")?.addEventListener("change", (e) => {
+        if (e.target.files[0]) cargarAudio(e.target.files[0], "voz");
+    });
+    $("#nombre-pista-video")?.addEventListener("input", () => {
+        nombrePistaEditado = true;
     });
     configurarDragZone($("#zona-audio"), (files) => {
         const f = Array.from(files).find((x) => esArchivoAudio(x));
-        if (f) cargarAudio(f);
-        else alert("Arrastra un archivo de audio (MP3 recomendado).");
+        if (f) cargarAudio(f, "fondo");
+        else alert("Arrastra un MP3 o MIDI convertido para el riel de fondo.");
+    });
+    configurarDragZone($("#zona-audio-voz"), (files) => {
+        const f = Array.from(files).find((x) => esArchivoAudio(x));
+        if (f) cargarAudio(f, "voz");
+        else alert("Arrastra un audio de locución al riel 1.");
     });
 
     $("#input-portada-img")?.addEventListener("change", (e) => {
