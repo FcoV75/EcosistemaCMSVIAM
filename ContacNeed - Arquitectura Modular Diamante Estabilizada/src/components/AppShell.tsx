@@ -197,7 +197,7 @@ export function AppShell({
           />
         </div>
 
-        <SupportBot />
+        <SupportBot selectedState={selectedState} />
         <StripeSubscriptionModal
           open={showStripeModal}
           onClose={onCloseStripe}

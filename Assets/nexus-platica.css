@@ -1,0 +1,117 @@
+/* Salón de plática continua: espacio amplio, reloj discreto, tono sereno. */
+.nexus-salon {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  padding: 0.9rem 0.9rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, rgba(12, 10, 28, 0.55), rgba(7, 8, 20, 0.72));
+}
+
+.nexus-reloj-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.nexus-reloj,
+#nexus-reloj,
+#nexus-reloj-publica {
+  margin: 0;
+  color: #c9d6ea;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.nexus-reloj-barra {
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.nexus-reloj-barra > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(169, 112, 255, 0.75), rgba(242, 207, 131, 0.7));
+  transition: width 0.8s ease;
+}
+
+.nexus-hilo {
+  display: none;
+  min-height: min(42vh, 340px);
+  max-height: min(58vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  scroll-behavior: smooth;
+}
+
+.nexus-hilo-user,
+.nexus-hilo-ia {
+  margin: 0.5rem 0;
+  padding: 0.8rem 1rem;
+  border-radius: 14px;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.nexus-hilo-user {
+  background: rgba(158, 214, 255, 0.14);
+  margin-left: 12%;
+}
+
+.nexus-hilo-ia {
+  background: rgba(169, 112, 255, 0.16);
+  margin-right: 8%;
+}
+
+.nexus-hilo-firma {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff2bf;
+  opacity: 0.85;
+  margin-bottom: 0.35rem;
+}
+
+.nexus-hilo-escribiendo {
+  font-style: italic;
+  opacity: 0.88;
+}
+
+.nexus-composer textarea {
+  min-height: 96px;
+  margin-bottom: 0.55rem;
+}
+
+.nexus-composer .btn {
+  margin-top: 0;
+}
+
+.nexus-salon-nota {
+  font-size: 0.8rem;
+  color: #a8b4c8;
+  margin: 0;
+  line-height: 1.45;
+}
+
+@media (max-width: 680px) {
+  .nexus-hilo {
+    min-height: 38vh;
+    max-height: 52vh;
+  }
+  .nexus-hilo-user { margin-left: 6%; }
+  .nexus-hilo-ia { margin-right: 4%; }
+}

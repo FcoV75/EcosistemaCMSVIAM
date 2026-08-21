@@ -1,4 +1,3 @@
-import { getStore } from '@netlify/blobs';
 import {
   esCodigoPropietarioNexus,
   esMembresiaPermanente,
@@ -13,50 +12,33 @@ import {
   normalizarDiagnostico,
   parsearRespuestaIA,
 } from './lib/nexus-frequencies.mjs';
-
-const SYSTEM_PROMPT = `Eres Sincronía Nexus, el Santuario de acompañamiento emocional del Ecosistema CMS VIAM.
-
-Tu voz es cálida, amorosa y serena. Filosofía: amor consciente + estoicismo aplicable (aceptar lo inevitable, actuar sobre lo posible) con suavidad que acaricia al consciente y abre puertas al inconsciente. Nunca menciones Groq, OpenAI ni proveedores técnicos.
-
-Proceso:
-1. Escucha con empatía profunda la situación del usuario.
-2. Formula un diagnóstico emocional breve (raíz simbólica, no clínico).
-3. Ofrece consejos meditados, aplicables y esperanzadores — con disciplina amable, no sermones fríos.
-4. Elige la frecuencia Solfeggio más adecuada según su estado:
-   - 174 Hz: dolor físico/emocional, tensión
-   - 285 Hz: sanación, regeneración
-   - 417 Hz: bloqueos, miedo al cambio, transformación
-   - 528 Hz: estrés, necesidad de paz y amor propio
-   - 639 Hz: relaciones, empatía, unión
-   - 741 Hz: confusión mental, necesidad de claridad
-   - 852 Hz: intuición, despertar interior
-   - 963 Hz: conexión espiritual, propósito, unidad
-5. Opcional: onda cerebral complementaria (delta=sueño reparador, theta=meditación, alpha=relajación profunda).
-6. Decide fuente_audio ("catalogo" o "generada") según qué capa de frecuencia subconsciente conviene — en ambos casos el usuario escuchará una pieza instrumental del catálogo; la frecuencia va en segundo plano a bajo volumen.
-
-Responde ÚNICAMENTE con JSON válido (sin markdown):
-{
-  "respuesta": "Texto cálido para el usuario (3-5 párrafos, tú). Cierra invitando a escuchar la pista y practicar el consejo con paciencia.",
-  "frecuencia_hz": 528,
-  "frecuencia_etiqueta": "Amor y paz",
-  "onda_cerebral": "theta",
-  "fuente_audio": "catalogo",
-  "diagnostico_breve": "Una línea del estado emocional detectado"
-}`;
-
-function groqKey() {
-  try {
-    if (typeof Netlify !== 'undefined' && Netlify.env?.get) {
-      return Netlify.env.get('GROQ_API_KEY') || '';
-    }
-  } catch {
-    /* ignore */
-  }
-  return process.env.GROQ_API_KEY || '';
-}
+import { PLAN_MIEMBRO, payloadMusica, restanteMsDe } from './lib/nexus-sesion.mjs';
+import { abrirTurnoChat, confirmarTurnoChat } from './lib/nexus-sesion-store.mjs';
+import {
+  PROMPT_PRIMERA_MIEMBRO,
+  PROMPT_SEGUIMIENTO_MIEMBRO,
+  consultarGroqNexus,
+  groqKey,
+} from './lib/nexus-groq.mjs';
 
 function claveUso(memberData, normalized, userId) {
   return memberData?.legacy_code || normalized || (userId ? `USER-${userId}` : null);
+}
+
+function empaquetarMusica(diag, pista) {
+  const freqInfo = FRECUENCIAS_SOLFEGGIO[diag.frecuenciaHz];
+  const ondaInfo = diag.ondaCerebral ? ONDAS_CEREBRALES[diag.ondaCerebral] : null;
+  return {
+    frecuenciaHz: diag.frecuenciaHz,
+    frecuenciaEtiqueta: diag.frecuenciaEtiqueta,
+    frecuenciaProposito: freqInfo?.proposito || '',
+    ondaCerebral: diag.ondaCerebral,
+    ondaEtiqueta: ondaInfo?.etiqueta || null,
+    fuenteAudio: diag.fuenteAudio,
+    diagnosticoBreve: diag.diagnosticoBreve,
+    audioUrl: pista?.url || null,
+    tituloPista: pista?.titulo || '',
+  };
 }
 
 export default async (req) => {
@@ -83,11 +65,11 @@ export default async (req) => {
       if (estado.status === 'expired') {
         return Response.json({ error: 'Tu membresía ha concluido. Renueva para continuar en el Santuario.' }, { status: 403 });
       }
-      return await procesarChat(normalized, memberData, message, true);
+      return await procesarChat(`member:${normalized}`, message, true);
     }
 
     const resuelto = await obtenerMiembro(normalized, user?.id);
-    let memberData = resuelto.memberData;
+    const memberData = resuelto.memberData;
     const clave = resuelto.normalized || normalized || claveUso(memberData, null, user?.id);
 
     if (!memberData || !clave) {
@@ -104,99 +86,62 @@ export default async (req) => {
     }
 
     const esPermanente = esMembresiaPermanente(clave, memberData);
-    return await procesarChat(clave, memberData, message, esPermanente);
+    return await procesarChat(`member:${clave}`, message, esPermanente);
   } catch (err) {
     console.error('member-chat:', err);
     return Response.json({ error: 'Ocurrió un error interno en el Santuario.' }, { status: 500 });
   }
 };
 
-async function procesarChat(clave, memberData, message, esPermanente) {
-  const store = getStore('nexus-members');
-  const today = new Date().toISOString().split('T')[0];
-
-  let datosUso = memberData;
-  if (!datosUso.usage) datosUso.usage = {};
-
-  const blobExistente = await store.get(clave, { type: 'json' });
-  if (blobExistente?.usage) {
-    datosUso = { ...datosUso, usage: { ...blobExistente.usage } };
-  }
-
-  const usageToday = datosUso.usage[today] || 0;
-  if (!esPermanente && usageToday >= 3) {
-    return Response.json({
-      error: 'Has alcanzado el límite de 3 conversaciones diarias. Date tiempo para integrar los consejos de hoy; mañana el Santuario te esperará de nuevo.',
-    }, { status: 429 });
-  }
-
-  const apiKey = groqKey();
-  if (!apiKey) {
+async function procesarChat(claveSesion, message, esPermanente) {
+  if (!groqKey()) {
     return Response.json({ error: 'El Santuario no está configurado (GROQ_API_KEY).' }, { status: 503 });
   }
 
-  const groqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
-  let aiData = null;
-  let lastError = null;
-  for (const model of groqModels) {
-    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.65,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: message.trim() },
-        ],
-      }),
-    });
-
-    aiData = await groqResponse.json();
-    if (groqResponse.ok && aiData?.choices?.[0]?.message?.content) break;
-    lastError = aiData;
-    aiData = null;
+  const turno = await abrirTurnoChat(claveSesion, { plan: PLAN_MIEMBRO, permanente: esPermanente });
+  if (!turno.ok) {
+    return Response.json({ error: turno.error, sesion: { restanteMs: 0, plan: 'miembro' } }, { status: 429 });
   }
 
-  if (!aiData) {
-    console.error('Groq Nexus:', lastError);
+  const { raw } = await consultarGroqNexus({
+    system: turno.esPrimera ? PROMPT_PRIMERA_MIEMBRO : PROMPT_SEGUIMIENTO_MIEMBRO,
+    historia: turno.sesion.historia,
+    message: message.trim(),
+  });
+  if (!raw) {
     return Response.json({ error: 'Sincronía Nexus no pudo sintonizar en este momento. Intenta de nuevo.' }, { status: 502 });
   }
 
-  const rawText = aiData.choices[0].message.content;
-  const parsed = parsearRespuestaIA(rawText);
-  const diag = normalizarDiagnostico(parsed);
-  const semilla = `${clave}:${today}:${message.trim().slice(0, 40)}`;
-
-  const pista = elegirPistaCatalogo(diag.frecuenciaHz, semilla);
-  const freqInfo = FRECUENCIAS_SOLFEGGIO[diag.frecuenciaHz];
-  const ondaInfo = diag.ondaCerebral ? ONDAS_CEREBRALES[diag.ondaCerebral] : null;
-
-  if (!esPermanente) {
-    datosUso.usage[today] = usageToday + 1;
-    await store.setJSON(clave, {
-      ...datosUso,
-      producto: memberData.producto || 'sincronia_nexus',
-      startDate: memberData.startDate || Date.now(),
-      durationDays: memberData.durationDays || 30,
-    });
+  const parsed = parsearRespuestaIA(raw);
+  const reply = parsed.respuesta || raw;
+  let musica = turno.sesion.musica;
+  let nuevaMusica = false;
+  if (turno.esPrimera) {
+    const diag = normalizarDiagnostico(parsed);
+    const pista = elegirPistaCatalogo(diag.frecuenciaHz, `${claveSesion}:${turno.sesion.day}`);
+    musica = empaquetarMusica(diag, pista);
+    nuevaMusica = Boolean(musica.audioUrl);
   }
 
+  const next = await confirmarTurnoChat(claveSesion, turno.sesion, {
+    mensaje: message.trim(),
+    reply,
+    musica,
+  });
+
   return Response.json({
-    reply: parsed.respuesta || rawText,
-    frecuenciaHz: diag.frecuenciaHz,
-    frecuenciaEtiqueta: diag.frecuenciaEtiqueta,
-    frecuenciaProposito: freqInfo?.proposito || '',
-    ondaCerebral: diag.ondaCerebral,
-    ondaEtiqueta: ondaInfo?.etiqueta || null,
-    fuenteAudio: diag.fuenteAudio,
-    diagnosticoBreve: diag.diagnosticoBreve,
-    audioUrl: pista.url,
-    tituloPista: pista.titulo,
-    consultasRestantes: esPermanente ? null : Math.max(0, 3 - (usageToday + 1)),
+    reply,
+    esPrimera: turno.esPrimera,
+    nuevaMusica,
+    sesion: {
+      plan: 'miembro',
+      restanteMs: restanteMsDe(next, { plan: PLAN_MIEMBRO, permanente: esPermanente }),
+      etiqueta: '30 minutos',
+      permanente: Boolean(esPermanente),
+      mensajes: next.mensajes,
+    },
+    musicaDelDia: musica,
+    consultasRestantes: null,
+    ...payloadMusica(musica),
   });
 }
-

@@ -40,6 +40,8 @@
     @media (max-width: 680px) { .purpose { grid-template-columns:1fr; } .purpose img { max-width:190px; } }
   </style>
   <link rel="stylesheet" href="/Assets/ecosistema-banner.css" />
+  <link rel="stylesheet" href="/Assets/nexus-platica.css" />
+  <link rel="stylesheet" href="/Assets/organo-piloto.css" />
 </head>
 <body>
   <div class="wrap">
@@ -64,6 +66,12 @@
         <img src="/Assets/Images/SincNex_logo.png" alt="Imagen conceptual de Sincronía NEXUS" loading="lazy" />
         <p>Sincronía NEXUS integra un enfoque emocional, atención intencional profunda y acompañamiento personalizado para fortalecer tu claridad, concentración y bienestar físico y mental. El sistema está orientado a miembros que desean una ruta de transformación con seguimiento y compromiso.</p>
       </div>
+    </section>
+
+    <section class="panel" id="organo-piloto">
+      <h2>Órgano piloto · Presencia</h2>
+      <p>Sincronía Nexus ya no espera a las gafas para tener oídos y voz. Aquí empieza el contrato: faro visible, modos, y veto humano. La muestra pública es de un turno al día; el Santuario guarda solo resúmenes, nunca el audio ni el video.</p>
+      <div id="organo-piloto-root"></div>
     </section>
 
     <section class="panel">
@@ -153,7 +161,7 @@
           </label>
         </div>
 
-        <p style="font-size: 0.95rem; color: var(--accent2); margin-top: 1.5rem; margin-bottom: 1rem; border: 1px solid var(--line); padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.3); line-height: 1.65;">Ahora que has respondido con honestidad y profundidad a todo esto, prepárate para que Sincronía Nexus transforme tu mente y tu vida como una compañera fiel. Espera tus resultados después de <strong>Activar nuestra IA</strong> y disfruta tu Frecuencia Personalizada. Sanación de mente y cuerpo a tu alcance. Gracias por estar aquí.</p>
+        <p style="font-size: 0.95rem; color: var(--accent2); margin-top: 1.5rem; margin-bottom: 1rem; border: 1px solid var(--line); padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.3); line-height: 1.65;">El primer consejo del día genera tu frecuencia. Después puedes seguir platicando hasta <strong>10 minutos</strong> sin que se arme otra pista. En el Santuario esa ventana es de 30 minutos y la pieza suena completa.</p>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
           <button class="btn" type="submit">Enviar formulario NEXUS</button>
           <button class="btn" type="button" onclick="activateIA()" style="background: #a970ff; color: #fff;">Activación de nuestra IA NEXUS</button>
@@ -169,6 +177,18 @@
         <h3 style="color: #fff2bf; margin-top: 0; font-family: Cinzel, serif;">Sincronía Nexus te sugiere</h3>
         <div id="ia-response" style="white-space: pre-wrap; font-size: 1.05rem; line-height: 1.6;"></div>
         <div id="public-freq-badges" style="margin-top: 1rem;"></div>
+        <div id="platica-publica" class="nexus-salon" style="display:none;">
+          <div class="nexus-reloj-wrap">
+            <p id="nexus-reloj-publica" class="nexus-reloj">Te escucho aquí, con calma.</p>
+            <div class="nexus-reloj-barra" hidden><span></span></div>
+          </div>
+          <div id="nexus-hilo-publico" class="nexus-hilo" aria-live="polite"></div>
+          <p class="nexus-salon-nota" id="nexus-nota-publica">Escribe debajo. Enter envía; Shift+Enter hace un renglón nuevo. El tiempo corre en silencio, sin prisa.</p>
+          <div class="nexus-composer">
+            <textarea id="nexus-followup" placeholder="Sigue la plática… te escucho."></textarea>
+            <button class="btn" type="button" id="btn-seguir-platica" style="background:#a970ff;color:#fff;">Continuar la plática</button>
+          </div>
+        </div>
       </div>
       <p>Escucha tu muestra: una pieza instrumental del catálogo con la frecuencia terapéutica en <strong>segundo plano</strong> (bajo volumen) para tu subconsciente. Duración de muestra: <strong>2 minutos</strong>.</p>
       <audio id="custom-frequency-player" controls controlsList="nodownload" preload="none" style="width:min(520px,100%); margin-bottom: 1rem;">
@@ -177,20 +197,25 @@
       </audio>
       <div id="freq-nota-publica" style="display:none; font-size:0.92rem; color:#cbd5e1; line-height:1.6; margin-bottom:1rem; padding:1rem; border-radius:8px; background:rgba(0,0,0,0.25); border:1px solid var(--line);"></div>
       <script src="/Assets/nexus-santuario.js"></script>
+      <script src="/Assets/nexus-platica.js"></script>
       <script>
         const fp = document.getElementById('custom-frequency-player');
         if (fp) {
+          let muestraAudioCerrada = false;
           fp.addEventListener('timeupdate', () => {
-            if (fp.currentTime >= 120) {
-              fp.pause();
-              fp.currentTime = 0;
-              NexusSantuario.detenerSintesis();
-              alert('Has llegado al límite de los 2 minutos gratuitos. Dentro del Santuario de miembros disfrutarás la pieza completa con tu frecuencia en segundo plano.');
+            if (muestraAudioCerrada || fp.currentTime < 120) return;
+            muestraAudioCerrada = true;
+            fp.pause();
+            if (window.NexusSantuario) NexusSantuario.detenerSintesis();
+            const nota = document.getElementById('freq-nota-publica');
+            if (nota) {
+              nota.style.display = 'block';
+              nota.textContent = 'La muestra de audio de 2 minutos llegó a su fin. Tú y yo seguimos platicando; el tiempo de la conversación no se corta. En el Santuario la pieza suena completa.';
             }
           });
         }
       </script>
-      <p style="font-size: 0.9rem; color: #a1a1aa;">Para escuchar la totalidad de tu frecuencia y acceder a consejos ilimitados en el Santuario, conviértete en miembro activo.</p>
+      <p style="font-size: 0.9rem; color: #a1a1aa;">La muestra de audio dura 2 minutos. La plática gratuita sigue hasta 10 minutos. En el Santuario la pieza suena completa y la plática se extiende a 30 minutos.</p>
       
       <a href="/#pago-general" class="btn" style="background: var(--accent); color: var(--panel); text-decoration: none; padding: 0.6rem 1rem; border-radius: 6px; display: inline-block;">Conviértete en miembro</a>
       <button class="btn" onclick="openMemberModal()" style="background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 0.6rem 1rem; border-radius: 6px; display: inline-block; margin-left: 0.5rem;">Ya soy miembro</button>
@@ -262,20 +287,7 @@ Mente abierta a consejos: ${data.mente_abierta}`;
            
            setTimeout(() => {
               modal.close();
-              if (result.reply) {
-                 document.getElementById('ia-response').textContent = result.reply;
-              } else {
-                 document.getElementById('ia-response').textContent = 'No se recibió respuesta válida. Intenta de nuevo.';
-              }
-              const badges = document.getElementById('public-freq-badges');
-              if (badges && result.frecuenciaHz) {
-                badges.innerHTML = `<span style="display:inline-block;margin:0.25rem;padding:0.35rem 0.75rem;border-radius:999px;background:rgba(169,112,255,0.25);border:1px solid #a970ff;font-size:0.85rem;">${result.frecuenciaHz} Hz · ${result.frecuenciaEtiqueta || 'Frecuencia'} en segundo plano</span>`;
-              }
-              if (result.audioUrl) {
-                NexusSantuario.reproducirExperiencia(result, 'custom-frequency-player', 'freq-nota-publica');
-              }
-              document.getElementById('ia-response-container').style.display = 'block';
-              document.getElementById('tu-frecuencia').scrollIntoView({behavior: 'smooth'});
+              mostrarRespuestaPublica(promptMessage, result);
            }, 2500);
         })
         .catch(err => {
@@ -283,6 +295,94 @@ Mente abierta a consejos: ${data.mente_abierta}`;
            alert("Hubo un error de conexión con la IA: " + err.message);
            modal.close();
         });
+      }
+
+      function mostrarRespuestaPublica(mensajeUsuario, result, { seguimiento = false } = {}) {
+        const musica = result.musicaDelDia || result;
+        const hilo = document.getElementById('nexus-hilo-publico');
+        const salon = document.getElementById('platica-publica');
+        const respuestaCaja = document.getElementById('ia-response');
+
+        if (!seguimiento && result.reply) {
+          respuestaCaja.textContent = result.reply;
+        }
+        const badges = document.getElementById('public-freq-badges');
+        if (badges && musica.frecuenciaHz) {
+          const extra = result.nuevaMusica === false ? ' · misma del día' : ' en segundo plano';
+          badges.innerHTML = `<span style="display:inline-block;margin:0.25rem;padding:0.35rem 0.75rem;border-radius:999px;background:rgba(169,112,255,0.25);border:1px solid #a970ff;font-size:0.85rem;">${musica.frecuenciaHz} Hz · ${musica.frecuenciaEtiqueta || 'Frecuencia'}${extra}</span>`;
+        }
+        if (result.nuevaMusica !== false && result.audioUrl) {
+          NexusSantuario.reproducirExperiencia(musica.audioUrl ? musica : result, 'custom-frequency-player', 'freq-nota-publica');
+        }
+        document.getElementById('ia-response-container').style.display = 'block';
+        salon.style.display = 'flex';
+        if (window.NexusPlatica) {
+          NexusPlatica.quitarEscribiendo(hilo);
+          if (!seguimiento) {
+            NexusPlatica.pintarHilo(hilo, 'user', resumenHilo(mensajeUsuario));
+          }
+          NexusPlatica.pintarHilo(hilo, 'ia', result.reply || 'Sigo aquí. ¿Quieres contarme un poco más?');
+          NexusPlatica.iniciarReloj(document.getElementById('nexus-reloj-publica'), result.sesion?.restanteMs, {
+            plan: 'publico',
+            onEnd: () => NexusPlatica.cerrarComposer({
+              input: document.getElementById('nexus-followup'),
+              button: document.getElementById('btn-seguir-platica'),
+              nota: document.getElementById('nexus-nota-publica'),
+            }),
+          });
+        }
+        if (!seguimiento) {
+          document.getElementById('tu-frecuencia').scrollIntoView({ behavior: 'smooth' });
+        } else {
+          hilo.scrollTop = hilo.scrollHeight;
+          document.getElementById('nexus-followup')?.focus();
+        }
+      }
+
+      function resumenHilo(texto) {
+        const t = String(texto || '').trim();
+        if (t.length < 220) return t;
+        return t.slice(0, 220) + '…';
+      }
+
+      async function continuarPlaticaPublica() {
+        const input = document.getElementById('nexus-followup');
+        const mensaje = (input?.value || '').trim();
+        if (!mensaje) {
+          input?.focus();
+          return;
+        }
+        const btn = document.getElementById('btn-seguir-platica');
+        const hilo = document.getElementById('nexus-hilo-publico');
+        btn.disabled = true;
+        input.value = '';
+        if (window.NexusPlatica) {
+          NexusPlatica.pintarHilo(hilo, 'user', mensaje);
+          NexusPlatica.pintarEscribiendo(hilo);
+        }
+        const nota = document.getElementById('nexus-nota-publica');
+        if (nota) nota.textContent = 'Te leo con calma… un momento.';
+        try {
+          const res = await fetch('/.netlify/functions/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: mensaje }),
+          });
+          const result = await res.json();
+          if (!res.ok || result.error) throw new Error(result.error || 'Error de red con la IA');
+          if (nota) nota.textContent = 'Escribe debajo. Enter envía; Shift+Enter hace un renglón nuevo. El tiempo corre en silencio, sin prisa.';
+          mostrarRespuestaPublica(mensaje, result, { seguimiento: true });
+        } catch (err) {
+          if (window.NexusPlatica) NexusPlatica.quitarEscribiendo(hilo);
+          const nota = document.getElementById('nexus-nota-publica');
+          if (nota) nota.textContent = err.message;
+        } finally {
+          btn.disabled = false;
+        }
+      }
+      document.getElementById('btn-seguir-platica')?.addEventListener('click', continuarPlaticaPublica);
+      if (window.NexusPlatica) {
+        NexusPlatica.configurarEnvio(document.getElementById('nexus-followup'), continuarPlaticaPublica);
       }
     </script>
 
@@ -366,6 +466,39 @@ Mente abierta a consejos: ${data.mente_abierta}`;
       }
     </script>
 
+  <script src="/Assets/organo-piloto.js"></script>
+  <script>
+    NexusOrgano.montar({
+      root: 'organo-piloto-root',
+      ambito: 'publico',
+      getMensaje() {
+        const form = document.getElementById('nexus-form');
+        if (!form) return '';
+        const d = Object.fromEntries(new FormData(form).entries());
+        const partes = [d.situacion, d.como_te_sientes, d.emocion_desear].filter(Boolean);
+        return partes.join('\n') || (document.querySelector('#nexus-form textarea')?.value || '').trim();
+      },
+      setMensaje(texto) {
+        const situacion = document.querySelector('#nexus-form textarea[name="situacion"]');
+        if (situacion) situacion.value = texto;
+      },
+      onRespuesta(data) {
+        if (typeof mostrarRespuestaPublica === 'function') {
+          mostrarRespuestaPublica('(presencia)', data);
+          return;
+        }
+        const box = document.getElementById('ia-response-container');
+        const reply = document.getElementById('ia-response');
+        if (box && reply) {
+          box.style.display = 'block';
+          reply.textContent = data.reply || '';
+        }
+        if (data.nuevaMusica && data.audioUrl && window.NexusSantuario) {
+          NexusSantuario.reproducirExperiencia(data.musicaDelDia || data, 'custom-frequency-player', 'freq-nota-publica');
+        }
+      },
+    });
+  </script>
   <script src="/Assets/ecosistema-banner.js" defer></script>
 </body>
 </html>

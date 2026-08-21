@@ -5,6 +5,18 @@
 [functions]
   directory = "netlify/functions"
 
+[functions.organo-piloto]
+  timeout = 26
+
+[functions.organo-transcribe]
+  timeout = 26
+
+[functions.chat]
+  timeout = 26
+
+[functions.member-chat]
+  timeout = 26
+
 [functions.transcribe-audio]
   timeout = 26
 
