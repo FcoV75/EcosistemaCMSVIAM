@@ -731,7 +731,10 @@ def estudio_generar_clip():
         return jsonify({"error": "Describe el clip que quieres generar."}), 400
     duracion = int(body.get("duracionSeg") or body.get("duracion") or 8)
     duracion = max(8, min(12, duracion))
-    prompt_en = f"Cinematic 16:9 film still that faithfully depicts: {prompt}. Photorealistic, dramatic lighting, no text, no watermark"
+    prompt_en = (
+        "Photorealistic cinematic 16:9 film still. OBEY THIS SCENE EXACTLY, include every named subject, "
+        f"do not replace it with only sky or clouds: {prompt}. Sharp details, no text, no watermark"
+    )
     url = f"https://image.pollinations.ai/prompt/{quote(prompt_en)}?width=1280&height=720&nologo=true&enhance=true&model=flux&seed={abs(hash(prompt)) % 99999}"
     try:
         img = http_requests.get(url, timeout=90)

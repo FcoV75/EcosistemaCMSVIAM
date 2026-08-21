@@ -345,19 +345,17 @@ async function grabarClipKenBurns(imageBlob, duracionSeg, estilo) {
         rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
         rec.onerror = () => reject(new Error("No se pudo grabar el movimiento del clip."));
     });
-    const total = Math.max(24, Math.round(Number(duracionSeg) * fps));
-    rec.start(120);
+    const ms = Math.max(1000, Number(duracionSeg) * 1000);
+    rec.start();
+    const inicio = performance.now();
     await new Promise((resolve) => {
-        let i = 0;
         const tick = () => {
-            const t = i / Math.max(total - 1, 1);
+            const elapsed = performance.now() - inicio;
+            const t = Math.min(1, elapsed / ms);
             dibujarKenBurnsCanvas(ctx, img, t, w, h, estilo || "zoom_in");
-            i += 1;
-            if (i >= total) {
-                setTimeout(() => {
-                    rec.stop();
-                    resolve();
-                }, 80);
+            if (elapsed >= ms) {
+                rec.stop();
+                resolve();
                 return;
             }
             setTimeout(tick, 1000 / fps);
@@ -367,6 +365,15 @@ async function grabarClipKenBurns(imageBlob, duracionSeg, estilo) {
     const blob = await terminado;
     if (!blob || blob.size < 8000) throw new Error("El clip de video quedó vacío.");
     return blob;
+}
+
+function estiloMovimientoDesdePrompt(prompt) {
+    const p = String(prompt || "").toLowerCase();
+    if (/zoom.{0,24}(afuera|out|atrás|atras|alej)/.test(p) || /alej(ando|amiento)/.test(p)) return "zoom_out";
+    if (/paneo?.{0,16}(izq|left)/.test(p)) return "pan_izquierda";
+    if (/paneo?.{0,16}(der|right)/.test(p)) return "pan_derecha";
+    if (/zoom|acerc|progresivo|acabando en|hacia el /.test(p)) return "zoom_in";
+    return estiloMovimientoActual();
 }
 
 function agregarMedioDesdeBlob(blob, nombre, tipoForzado, extra = {}) {
@@ -411,7 +418,10 @@ async function generarImagenIA() {
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
         mostrarPreviewMovimiento(url);
-        if (status) status.textContent = `Imagen lista (${d.fuente || "IA"}) — añádela a la pizarra o genera otra.`;
+        if (status) {
+            const extra = d.resumen ? ` · ${d.resumen}` : "";
+            status.textContent = `Imagen lista (${d.fuente || "IA"})${extra} — añádela a la pizarra o genera otra.`;
+        }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
         alert("Error generando imagen: " + e.message);
@@ -595,7 +605,7 @@ async function generarClipIA() {
             mostrarPreviewMovimiento(urlStill);
             if (status) status.textContent = `Escena lista. Grabando movimiento Ken Burns de ${duracionSeg} s…`;
             try {
-                const videoBlob = await grabarClipKenBurns(still, duracionSeg, estiloMovimientoActual());
+                const videoBlob = await grabarClipKenBurns(still, duracionSeg, estiloMovimientoDesdePrompt(prompt));
                 clipEstudioBlob = videoBlob;
                 clipEstudioTipo = "video";
                 const urlVid = URL.createObjectURL(videoBlob);
@@ -615,7 +625,8 @@ async function generarClipIA() {
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
         if (status && clipEstudioTipo === "video") {
-            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s con movimiento listo. Añádelo a la pizarra.`;
+            const extra = d.resumen ? ` · ${d.resumen}` : "";
+            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s con movimiento listo${extra}. Añádelo a la pizarra.`;
         } else if (status && clipEstudioTipo !== "cinematico") {
             status.textContent = d.aviso
                 || `Clip listo (${d.fuente || "IA"} · ${d.duracionSeg || duracionSeg} s). Añádelo a la pizarra.`;
@@ -637,7 +648,7 @@ function anadirClipAPizarra() {
         return;
     }
     const file = new File([clipEstudioBlob], `estudio-clip-${Date.now()}.jpg`, { type: clipEstudioBlob.type || "image/jpeg" });
-    agregarMedios([file], "imagen", { movimiento: true, movimientoIncluido: true, estilo_movimiento: estiloMovimientoActual() });
+    agregarMedios([file], "imagen", { movimiento: true, movimientoIncluido: true, estilo_movimiento: estiloMovimientoDesdePrompt($("#estudio-prompt-clip")?.value) });
     $("#status-clip-estudio").textContent = "Escena añadida; el movimiento Ken Burns se aplica al renderizar.";
 }
 

@@ -1,21 +1,7 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import { LIMITES_CLIP, clamp, esPremiumPayload } from './lib/estudio-limites.mjs';
-
-async function generarImagenCine(prompt) {
-  const escena = prompt.trim();
-  const promptEn = `Cinematic 16:9 film still that faithfully depicts: ${escena}. Keep the subject, place and mood of that description. Photorealistic, dramatic lighting, shallow depth of field, no text, no watermark, no logo, no letters`;
-  const seed = Math.abs([...escena].reduce((a, c) => a + c.charCodeAt(0), 0) + Date.now()) % 99999;
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptEn)}?width=1280&height=720&nologo=true&enhance=true&model=flux&seed=${seed}`;
-  const img = await fetch(url);
-  if (!img.ok) return null;
-  const buf = Buffer.from(await img.arrayBuffer());
-  if (buf.length < 2000) return null;
-  return {
-    imagen_base64: buf.toString('base64'),
-    mime: img.headers.get('content-type') || 'image/jpeg',
-    fuente: 'pollinations-cinematico',
-  };
-}
+import { expandirPromptVisual } from './lib/estudio-prompt-visual.mjs';
+import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
 async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 50000) {
   const inicio = Date.now();
@@ -35,7 +21,7 @@ async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 50000) {
   return null;
 }
 
-async function generarClipFal(prompt, segundos) {
+async function generarClipFal(promptEn, segundos) {
   const key = (process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
   if (!key) return null;
   const model = process.env.FAL_VIDEO_MODEL || 'fal-ai/ltx-video';
@@ -48,8 +34,8 @@ async function generarClipFal(prompt, segundos) {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      prompt: `${prompt.trim()}, cinematic, photorealistic, 16:9, smooth camera motion, no text, no watermark`,
-      negative_prompt: 'text, watermark, logo, distortion, low quality',
+      prompt: `${promptEn}, cinematic camera, photorealistic, 16:9, smooth motion, no text, no watermark`,
+      negative_prompt: 'text, watermark, logo, distortion, low quality, empty sky, missing subjects',
       num_frames: frames,
     }),
   });
@@ -67,7 +53,7 @@ async function generarClipFal(prompt, segundos) {
   return { video_url: videoUrl, fuente: 'fal', mime: 'video/mp4' };
 }
 
-async function generarClipReplicate(prompt, segundos) {
+async function generarClipReplicate(promptEn, segundos) {
   const token = (process.env.REPLICATE_API_TOKEN || '').trim();
   if (!token) return null;
   const model = process.env.REPLICATE_VIDEO_MODEL || 'wavespeedai/wan-2.1-t2v-480p';
@@ -80,7 +66,7 @@ async function generarClipReplicate(prompt, segundos) {
     },
     body: JSON.stringify({
       input: {
-        prompt: `${prompt.trim()}, cinematic, 16:9, no text`,
+        prompt: `${promptEn}, cinematic, 16:9, no text`,
         duration: segundos,
       },
     }),
@@ -113,16 +99,18 @@ export default async (req) => {
     const premium = esPremiumPayload(guard.payload);
     const lim = premium ? LIMITES_CLIP.premium : LIMITES_CLIP.free;
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
+    const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
+    const promptEn = expansion.promptEn;
 
     let nativo = null;
     try {
-      nativo = await generarClipFal(prompt, duracion);
+      nativo = await generarClipFal(promptEn, duracion);
     } catch (err) {
       console.warn('Fal clip:', err?.message || err);
     }
     if (!nativo) {
       try {
-        nativo = await generarClipReplicate(prompt, duracion);
+        nativo = await generarClipReplicate(promptEn, duracion);
       } catch (err) {
         console.warn('Replicate clip:', err?.message || err);
       }
@@ -135,10 +123,15 @@ export default async (req) => {
         mime: nativo.mime,
         duracionSeg: duracion,
         fuente: nativo.fuente,
+        resumen: expansion.resumen || '',
       });
     }
 
-    const cine = await generarImagenCine(prompt);
+    const cine = await generarImagenEstudio(promptEn, {
+      width: 1920,
+      height: 1080,
+      seed: Date.now() % 99999,
+    });
     if (!cine) {
       return jsonResponse({
         error: 'No se pudo generar el clip. Intenta de nuevo o usa Imagen IA + Movimiento.',
@@ -153,7 +146,8 @@ export default async (req) => {
       duracionSeg: duracion,
       fuente: cine.fuente,
       movimiento: true,
-            aviso: `Clip cinematográfico de ${duracion} s listo: la escena sigue tu descripción y el navegador arma el movimiento Ken Burns de ${duracion} s.`,
+      resumen: expansion.resumen || '',
+      aviso: `Clip de ${duracion} s: escena según tu descripción; el navegador graba el movimiento.`,
     });
   } catch (e) {
     return jsonResponse({ error: String(e?.message || e) }, 500);
