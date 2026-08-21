@@ -65,7 +65,7 @@ export function AuthModal({ open, onClose, initialTab = 'login', required = fals
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div
         className={`cn-glass relative flex w-full flex-col rounded-2xl border border-amber-500/25 shadow-2xl ${
           tab === 'register' ? 'max-h-[92vh] max-w-2xl' : 'max-w-md'

@@ -9,3 +9,6 @@ __pycache__/
 **/.env
 **/.env.local
 contacneed6.txt
+
+# Fonogramas completos (~3 GB). El catálogo liviano sí se versiona.
+INDAUTOR-deposito/IA-VIAM-Canciones-Letras-INDAUTOR-2026-08-21.zip

@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { Camera, ImageIcon, RefreshCw, X } from 'lucide-react'
+import { Camera, ImageIcon, RefreshCw, Sparkles, X } from 'lucide-react'
 
 import { useEffect, useDeferredValue, useMemo, useRef, useState } from 'react'
 
@@ -13,12 +13,13 @@ import { Link } from '@tanstack/react-router'
 import { useBrowseSearch } from '../lib/browse-context'
 import { useIdentity } from '../lib/identity-context'
 
-import { fetchPublicPosts } from '../lib/posts-client'
+import { fetchPublicPosts, FEED_PAGE_SIZE } from '../lib/posts-client'
 
 import { uploadFileToCloudinary } from '../lib/cloudinary-upload'
 
 import { createPostFn } from '../server/posts.functions'
 import { getPlanUsageFn } from '../server/plan.functions'
+import { sugerirPublicacionPizarraFn } from '../server/support.functions'
 
 import type { MexicoState } from '../lib/mexico-states'
 
@@ -63,19 +64,25 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
 
 
-  const postsQuery = useQuery({
-
+  const postsQuery = useInfiniteQuery({
     queryKey: ['posts', selectedState],
-
-    queryFn: () => fetchPublicPosts(selectedState || undefined),
-
-    refetchInterval: 12_000,
-
+    queryFn: ({ pageParam }) =>
+      fetchPublicPosts(selectedState || undefined, { offset: pageParam, limit: FEED_PAGE_SIZE }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length < FEED_PAGE_SIZE) return undefined
+      return allPages.reduce((total, page) => total + page.length, 0)
+    },
+    refetchInterval: false,
     refetchIntervalInBackground: false,
-
-    refetchOnWindowFocus: true,
-
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
   })
+
+  const feedPosts = useMemo(
+    () => postsQuery.data?.pages.flat() ?? [],
+    [postsQuery.data],
+  )
 
   useEffect(() => {
     if (!highlightPostId || postsQuery.isLoading) return
@@ -84,10 +91,28 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
     target.scrollIntoView({ behavior: 'smooth', block: 'center' })
     onHighlightDone?.()
-  }, [highlightPostId, postsQuery.isLoading, postsQuery.data, onHighlightDone])
+  }, [highlightPostId, postsQuery.isLoading, feedPosts, onHighlightDone])
+
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const fetchingMore = postsQuery.isFetchingNextPage
+  const canLoadMore = Boolean(postsQuery.hasNextPage) && !deferredSearch.trim()
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && /iPhone|iPod/i.test(navigator.userAgent)) return
+    const el = loadMoreRef.current
+    if (!el || !canLoadMore || fetchingMore) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void postsQuery.fetchNextPage()
+      },
+      { rootMargin: '80px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [canLoadMore, fetchingMore, postsQuery.fetchNextPage])
 
   const filteredPosts = useMemo(() => {
-    const posts = postsQuery.data ?? []
+    const posts = feedPosts
     const q = deferredSearch.trim().toLowerCase()
     if (!q) return posts
 
@@ -103,7 +128,7 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
         .toLowerCase()
       return haystack.includes(q)
     })
-  }, [postsQuery.data, deferredSearch])
+  }, [feedPosts, deferredSearch])
 
 
 
@@ -259,6 +284,19 @@ export function Feed({ selectedState, highlightPostId, onHighlightDone }: FeedPr
 
       </div>
 
+      {canLoadMore && (
+        <div ref={loadMoreRef} className="flex justify-center pt-1">
+          <button
+            type="button"
+            onClick={() => void postsQuery.fetchNextPage()}
+            disabled={fetchingMore}
+            className="rounded-xl border border-purple-500/30 bg-purple-950/40 px-4 py-2 text-sm font-medium text-purple-100"
+          >
+            {fetchingMore ? 'Cargando más…' : 'Cargar más publicaciones'}
+          </button>
+        </div>
+      )}
+
     </section>
 
   )
@@ -315,6 +353,10 @@ function Composer({
   const [uploading, setUploading] = useState(false)
 
   const [error, setError] = useState<string | null>(null)
+
+  const [suggesting, setSuggesting] = useState(false)
+
+  const [postIdeas, setPostIdeas] = useState<string[]>([])
 
 
 
@@ -406,6 +448,8 @@ function Composer({
 
     setMediaUrl('')
 
+    setPostIdeas([])
+
     clearPreview()
 
     event.currentTarget.reset()
@@ -414,7 +458,20 @@ function Composer({
 
 
 
-  const busy = isSubmitting || uploading
+  const handleSugerirPublicacion = async () => {
+    setSuggesting(true)
+    setError(null)
+    try {
+      const result = await sugerirPublicacionPizarraFn({ data: { pista: content.trim() } })
+      setPostIdeas(result.ideas)
+    } catch (suggestError) {
+      setError(suggestError instanceof Error ? suggestError.message : 'No se pudieron sugerir publicaciones.')
+    } finally {
+      setSuggesting(false)
+    }
+  }
+
+  const busy = isSubmitting || uploading || suggesting
 
   if (!user) {
     return (
@@ -482,6 +539,37 @@ function Composer({
           className="w-full resize-none rounded-xl border border-purple-500/20 bg-slate-900/50 px-3 py-2.5 text-sm text-white placeholder:text-purple-300/40 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
 
         />
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSugerirPublicacion}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+          >
+            <Sparkles size={14} />
+            {suggesting ? 'Pensando ideas...' : 'Qué publicar'}
+          </button>
+          <p className="text-[11px] text-purple-200/60">
+            Ideas de foto, YouTube o material propio según tu oficio.
+          </p>
+        </div>
+
+        {postIdeas.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {postIdeas.map((idea) => (
+              <li key={idea}>
+                <button
+                  type="button"
+                  onClick={() => setContent(idea)}
+                  className="w-full rounded-xl border border-purple-500/20 bg-slate-900/60 px-3 py-2 text-left text-xs leading-relaxed text-purple-100 hover:border-amber-400/40 hover:bg-amber-500/10"
+                >
+                  {idea}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
 
 

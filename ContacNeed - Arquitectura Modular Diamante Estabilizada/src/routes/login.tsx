@@ -39,7 +39,7 @@ function LoginPage() {
             setLoading(true)
             setError(null)
             try {
-              await signInFn({ data: { email, password } })
+      await signInFn({ data: { email: email.trim(), password } })
               clearGuestBrowseTimer()
               window.location.href = '/'
             } catch (err) {

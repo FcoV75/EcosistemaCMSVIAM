@@ -37,7 +37,7 @@ export function NewUserGuide({ open, onClose, autoOpened }: NewUserGuideProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
       <div className="cn-glass relative w-full max-w-lg overflow-hidden rounded-2xl border border-amber-500/25 shadow-2xl">
         <button
           type="button"
@@ -130,9 +130,14 @@ export function NewUserGuide({ open, onClose, autoOpened }: NewUserGuideProps) {
             ) : (
               <span />
             )}
-            <Link to="/registro" onClick={() => handleClose(false)} className="font-semibold text-amber-300 hover:text-amber-200">
-              Crear cuenta gratis →
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link to="/login" onClick={() => handleClose(false)} className="font-semibold text-purple-100 hover:text-white">
+                Iniciar sesión
+              </Link>
+              <Link to="/registro" onClick={() => handleClose(false)} className="font-semibold text-amber-300 hover:text-amber-200">
+                Crear cuenta gratis →
+              </Link>
+            </div>
           </div>
         </div>
       </div>

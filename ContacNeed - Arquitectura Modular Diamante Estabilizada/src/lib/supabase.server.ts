@@ -142,12 +142,18 @@ export function createSupabaseServerClient() {
 
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
-          setCookie(name, value, {
-            ...options,
-            path: options?.path ?? '/',
-            sameSite: (options?.sameSite as 'lax' | 'strict' | 'none' | undefined) ?? 'lax',
-            secure: options?.secure ?? process.env.NODE_ENV === 'production',
-          })
+          try {
+            setCookie(name, value, {
+              ...options,
+              path: options?.path ?? '/',
+              sameSite: (options?.sameSite as 'lax' | 'strict' | 'none' | undefined) ?? 'lax',
+              secure: options?.secure ?? process.env.NODE_ENV === 'production',
+              // Safari iOS tira cookies de sesión al suspender la pestaña.
+              maxAge: options?.maxAge ?? 60 * 60 * 24 * 7,
+            })
+          } catch (err) {
+            console.warn('No se pudo guardar cookie de sesión', name, err)
+          }
         })
       },
 

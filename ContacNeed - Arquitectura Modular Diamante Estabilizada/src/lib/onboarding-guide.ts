@@ -9,6 +9,7 @@ import {
   Store,
   UserPlus,
 } from 'lucide-react'
+import { storageGet, storageSet } from './safe-storage'
 
 export const ONBOARDING_STORAGE_KEY = 'contacneed_onboarding_v2_dismissed'
 export const ONBOARDING_STORAGE_KEY_LEGACY = 'contacneed_onboarding_v1_dismissed'
@@ -43,7 +44,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     id: 'publish',
     title: 'Publica en la Pizarra',
     description:
-      'Escribe un mensaje, sube fotos de tus trabajos o pega un enlace de YouTube. Necesitas iniciar sesión para publicar y comentar.',
+      'Publica lo de tu oficio: foto de un trabajo reciente, un YouTube de tu proceso o material propio (catálogo, certificado, demo). El botón "Qué publicar" en la pizarra te da ideas concretas. Necesitas iniciar sesión para publicar y comentar.',
     icon: PenLine,
     accent: 'from-emerald-500 to-teal-500',
   },
@@ -91,19 +92,21 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
 
 export function shouldShowOnboardingAuto(): boolean {
   if (typeof window === 'undefined') return false
-  if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === '1') return false
-  if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY_LEGACY) === '1') return false
-  if (window.sessionStorage.getItem(ONBOARDING_SESSION_KEY) === '1') return false
+  const path = window.location.pathname
+  if (path === '/login' || path === '/registro' || path.startsWith('/auth/')) return false
+  if (storageGet('local', ONBOARDING_STORAGE_KEY) === '1') return false
+  if (storageGet('local', ONBOARDING_STORAGE_KEY_LEGACY) === '1') return false
+  if (storageGet('session', ONBOARDING_SESSION_KEY) === '1') return false
   return true
 }
 
 export function markOnboardingSeenThisSession() {
   if (typeof window === 'undefined') return
-  window.sessionStorage.setItem(ONBOARDING_SESSION_KEY, '1')
+  storageSet('session', ONBOARDING_SESSION_KEY, '1')
 }
 
 export function dismissOnboardingForever() {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(ONBOARDING_STORAGE_KEY, '1')
+  storageSet('local', ONBOARDING_STORAGE_KEY, '1')
   markOnboardingSeenThisSession()
 }

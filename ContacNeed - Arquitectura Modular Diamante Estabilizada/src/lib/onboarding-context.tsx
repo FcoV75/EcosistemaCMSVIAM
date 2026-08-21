@@ -20,9 +20,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [autoOpened, setAutoOpened] = useState(false)
 
   useEffect(() => {
-    if (shouldShowOnboardingAuto()) {
-      setAutoOpened(true)
-      setOpen(true)
+    try {
+      if (shouldShowOnboardingAuto()) {
+        setAutoOpened(true)
+        setOpen(true)
+      }
+    } catch {
+      /* Safari / almacenamiento bloqueado */
     }
   }, [])
 

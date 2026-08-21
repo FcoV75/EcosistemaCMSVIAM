@@ -28,9 +28,21 @@ Requiere instalar en tu PC:
 
 ## Límites implementados en web
 
-| Plan | Duración | Imágenes | Videos | Renders/día |
-|------|----------|----------|--------|-------------|
-| Gratuito | máx. 4 min | 3 | 2 | 3 |
-| Premium | 5 min – 1 h | ilimitado* | ilimitado* | 10 |
+| Plan | Duración del video | Imágenes | Videos | Renders/día |
+|------|--------------------|----------|--------|-------------|
+| Gratuito | 8 s – 4 min | 10 | 2 | 3 |
+| Premium | 8 s – 1 h | 30 | ilimitado* | 10 |
 
-*Prácticamente sin tope en la interfaz; el servidor limita a 100 MB por paquete.
+### Estudio VIAM Creativo
+
+| Función | Gratuito | Premium |
+|---------|----------|---------|
+| Imagen HD + discurso | 5/día | 20/día |
+| Voz IA (texto a voz) | 30 s/toma · 3/día | hasta 4 min/toma · 20/día |
+| Movimiento Ken Burns | 5 imágenes/día | 30/día |
+| Clip IA corto | 8 s · 1/día | 8–12 s · 5/día |
+| MIDI | mismos límites de audio del plan | mismos límites de audio del plan |
+
+La voz IA y el clip corto son tomas generativas. El video armado de hasta 1 h (Premium) se construye con tu audio, MIDI o esa locución, no con una hora de IA continua.
+
+*El servidor limita a 100 MB por paquete.

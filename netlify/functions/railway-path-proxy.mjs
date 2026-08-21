@@ -9,6 +9,8 @@ const ALLOWED_PREFIXES = ['/health', '/renderizar', '/transcribir', '/estudio', 
 
 const ACTION_BY_PATH = [
   { match: (path) => path === '/transcribir', action: 'transcribe' },
+  { match: (path) => path.startsWith('/estudio/voz'), action: 'estudio_voz' },
+  { match: (path) => path.startsWith('/estudio/clip'), action: 'estudio_clip' },
   { match: (path) => path.startsWith('/estudio'), action: 'estudio' },
   {
     match: (path) => path === '/renderizar' || path === '/renderizar/iniciar',

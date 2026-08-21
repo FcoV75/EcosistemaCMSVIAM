@@ -254,7 +254,11 @@ export function RealtimeChat({
     return () => {
       cancelled = true
       if (channel) {
-        getSupabaseBrowserClient().removeChannel(channel)
+        try {
+          getSupabaseBrowserClient().removeChannel(channel)
+        } catch {
+          /* Safari privado / cliente no disponible */
+        }
       }
     }
   }, [myUserId, peerId])

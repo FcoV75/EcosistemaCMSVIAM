@@ -53,7 +53,7 @@ export function AppShell({
   }
 
   const handleGateOpen = useCallback(() => {
-    openAuth('login', true)
+    openAuth('login', false)
   }, [])
 
   const handleSignOut = async () => {
@@ -68,7 +68,7 @@ export function AppShell({
   }
 
   return (
-      <div className="cn-metallic-bg relative min-h-screen overflow-x-hidden text-white">
+      <div className="cn-metallic-bg relative min-h-dvh text-white">
         <div
           className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.04]"
           aria-hidden
@@ -76,7 +76,7 @@ export function AppShell({
           <ContacNeedLogo className="h-[min(75vw,32rem)] w-auto max-w-[90vw]" />
         </div>
 
-        <header className="cn-metallic-header sticky top-0 z-40 backdrop-blur-xl">
+        <header className="cn-metallic-header sticky top-0 z-40">
           <div className="mx-auto flex max-w-[90rem] flex-col gap-3 px-4 py-3 lg:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Link to="/" className="flex min-w-0 shrink-0 items-center gap-3">
@@ -163,7 +163,7 @@ export function AppShell({
         <TopBannerBar selectedState={selectedState} />
 
         <div className="relative mx-auto grid max-w-[90rem] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-12 lg:px-6">
-          <aside className="space-y-4 lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
+          <aside className="order-2 space-y-4 lg:order-none lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
             <SidebarNav
               onOpenStripe={onOpenStripe}
               onPublishProAd={() => setShowProAdModal(true)}
@@ -178,7 +178,7 @@ export function AppShell({
             <RadioLauncher />
           </aside>
 
-          <main className="min-w-0 lg:col-span-6">{children}</main>
+          <main className="order-1 min-w-0 lg:order-none lg:col-span-6">{children}</main>
 
           <div className="hidden lg:col-span-3 lg:block lg:sticky lg:top-28 lg:self-start">
             <ProAdPanel
@@ -210,12 +210,9 @@ export function AppShell({
           required={authModal.required}
           onClose={() => setAuthModal((prev) => ({ ...prev, open: false, required: false }))}
         />
-        <GuestBrowseGate onGateOpen={handleGateOpen} />
+        <GuestBrowseGate onAskAuth={handleGateOpen} />
         <LastSeenPing />
         <LiveSocialBridge />
-        {authModal.required && authModal.open && (
-          <div className="fixed inset-0 z-[54] bg-black/40 backdrop-blur-[1px]" aria-hidden />
-        )}
       </div>
   )
 }

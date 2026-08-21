@@ -42,7 +42,7 @@ export function SupportBot({ selectedState = '' }: SupportBotProps) {
     {
       id: 'welcome',
       role: 'bot',
-      text: 'Hola. Soy el órgano de encuentro de ContacNeed: oficios, soporte y propuestas de personas. El faro se enciende si me hablas. Nunca presento a nadie sin tu veto.',
+      text: 'Hola. Soy el órgano de encuentro de ContacNeed: oficios, pizarra (fotos, YouTube o material propio), PRO y soporte. El faro se enciende si me hablas. Nunca presento a nadie sin tu veto.',
     },
   ])
   const [isPending, startTransition] = useTransition()
@@ -170,7 +170,7 @@ export function SupportBot({ selectedState = '' }: SupportBotProps) {
               </div>
               <div>
                 <p className="text-sm font-bold">Encuentro ContacNeed</p>
-                <p className="text-[11px] text-purple-200/80">Skill del órgano Nexus · veto humano</p>
+                <p className="text-[11px] text-purple-200/80">Órgano Nexus · oficios, pizarra y veto humano</p>
               </div>
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar chat" className="rounded-full p-1 hover:bg-white/10">
@@ -265,7 +265,7 @@ export function SupportBot({ selectedState = '' }: SupportBotProps) {
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') sendMessage()
                 }}
-                placeholder="Necesito un… / pregunta de soporte"
+                placeholder="Necesito un… / ¿qué publico hoy de mi oficio?"
                 className="flex-1 rounded-full border border-purple-500/30 bg-slate-900/80 px-4 py-2 text-sm text-white placeholder:text-purple-300/40 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
               />
               <button

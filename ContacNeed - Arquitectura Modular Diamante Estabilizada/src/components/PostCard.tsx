@@ -153,7 +153,7 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
 
     <article
       id={`post-${post.id}`}
-      className={`cn-glass overflow-hidden rounded-2xl border break-words shadow-xl shadow-purple-900/15 transition hover:border-purple-400/30 ${
+      className={`cn-glass cn-post-card overflow-hidden rounded-2xl border break-words shadow-xl shadow-purple-900/15 transition hover:border-purple-400/30 ${
         highlighted
           ? 'border-amber-400/70 ring-2 ring-amber-400/40'
           : 'border-purple-500/20'
@@ -167,13 +167,13 @@ export function PostCard({ post, author, onChanged, highlighted = false }: any) 
           <Link to="/u/$userId" params={{ userId: profileId }}>
 
             <img
-
               src={author.avatar}
-
               alt={author.name}
-
               className="h-12 w-12 rounded-full border-2 border-amber-400/30 object-cover"
-
+              width={48}
+              height={48}
+              loading="lazy"
+              decoding="async"
             />
 
           </Link>
