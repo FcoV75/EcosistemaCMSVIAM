@@ -16,7 +16,7 @@ export function toYouTubeEmbedUrl(url: string | null | undefined): string | null
   const videoId = extractYouTubeId(url)
   if (!videoId) return null
 
-          return `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0`
+  return `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0`
 }
 
 export function isYouTubeUrl(url: string): boolean {

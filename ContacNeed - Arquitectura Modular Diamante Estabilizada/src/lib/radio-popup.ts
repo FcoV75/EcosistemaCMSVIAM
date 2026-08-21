@@ -20,10 +20,15 @@ export function openRadioPopup(): Window | null {
 
   const url = `${window.location.origin}/radio`
 
-  // Safari iOS (y Chrome iOS) con ventana nombrada + features suele NAVEGAR la pestaña actual
-  // y saca a la persona de la pizarra. En Apple abrimos pestaña nueva, sin features.
+  // Safari/Chrome iOS: ventana nombrada o el 3er argumento (features) suele NAVEGAR
+  // la pestaña actual y saca a la persona de la pizarra.
   if (isAppleTouchDevice()) {
-    popupRef = window.open(url, '_blank', 'noopener,noreferrer')
+    popupRef = window.open(url, '_blank')
+    try {
+      if (popupRef) popupRef.opener = null
+    } catch {
+      /* ignore */
+    }
     return popupRef
   }
 

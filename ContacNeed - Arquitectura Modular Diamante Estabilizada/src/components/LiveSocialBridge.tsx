@@ -108,8 +108,12 @@ export function LiveSocialBridge() {
     return () => {
       cancelled = true
       if (channel) {
-        const supabase = getSupabaseBrowserClient()
-        void supabase.removeChannel(channel)
+        try {
+          const supabase = getSupabaseBrowserClient()
+          void supabase.removeChannel(channel)
+        } catch {
+          /* Safari privado / cliente no disponible */
+        }
       }
     }
   }, [user?.id, queryClient])

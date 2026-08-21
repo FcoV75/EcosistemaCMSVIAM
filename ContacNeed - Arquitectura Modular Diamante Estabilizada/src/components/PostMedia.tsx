@@ -102,7 +102,7 @@ export function PostMedia(props: PostMediaProps) {
         <MediaFrame compact={compact}>
           <div className="relative aspect-video w-full bg-black">
             <iframe
-              src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
+              src={`https://player.vimeo.com/video/${vimeoMatch[1]}?playsinline=1`}
               className="absolute inset-0 h-full w-full border-0"
               title="Video Vimeo"
               allow="autoplay; fullscreen; picture-in-picture"

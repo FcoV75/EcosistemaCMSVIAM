@@ -6,9 +6,25 @@ import { IdentityProvider } from '../lib/identity-context'
 import { OnboardingProvider } from '../lib/onboarding-context'
 import { UserProvider } from '../store/userContext'
 import { createAppQueryClient } from '../lib/query-client'
-import { RootErrorBoundary } from '../components/RootErrorBoundary'
+import { RootErrorBoundary, StayOnBoardFallback } from '../components/RootErrorBoundary'
 import { getSessionContextFn } from '../server/auth.functions'
 import appCss from '../styles.css?url'
+
+function RootRouteError() {
+  return (
+    <html lang="es">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <title>ContacNeed</title>
+      </head>
+      <body style={{ margin: 0, background: '#020617' }}>
+        <StayOnBoardFallback onRetry={() => window.location.assign('/')} />
+        <Scripts />
+      </body>
+    </html>
+  )
+}
 
 export const Route = createRootRoute({
   head: () => ({
@@ -20,6 +36,7 @@ export const Route = createRootRoute({
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   beforeLoad: async () => getSessionContextFn(),
+  errorComponent: RootRouteError,
   component: RootLayout,
 })
 
