@@ -373,11 +373,16 @@
 
       btn.disabled = true;
       loading.style.display = 'block';
-      if (window.NexusPlatica) NexusPlatica.pintarEscribiendo(hilo);
+      const textoEnviado = input;
+      document.getElementById('user-input').value = '';
+      if (window.NexusPlatica) {
+        NexusPlatica.pintarHilo(hilo, 'user', textoEnviado);
+        NexusPlatica.pintarEscribiendo(hilo);
+      }
 
       try {
         const headers = await authHeaders({ 'Content-Type': 'application/json' });
-        const body = { message: input };
+        const body = { message: textoEnviado };
         if (memberCode && memberCode !== 'SESION') body.code = memberCode;
         const res = await fetch('/.netlify/functions/member-chat', {
           method: 'POST',
@@ -391,8 +396,7 @@
           throw new Error(data.error || 'No fue posible conectar con el Santuario.');
         }
 
-        aplicarRespuestaPlatica(input, data);
-        document.getElementById('user-input').value = '';
+        aplicarRespuestaPlatica(textoEnviado, data, { yaPintadoUsuario: true });
         document.getElementById('send-btn').textContent = 'Continuar la plática';
         document.getElementById('user-input')?.focus();
 
@@ -406,7 +410,7 @@
       }
     }
 
-    function aplicarRespuestaPlatica(mensajeUsuario, data) {
+    function aplicarRespuestaPlatica(mensajeUsuario, data, { yaPintadoUsuario = false } = {}) {
       const responseBox = document.getElementById('ia-response');
       const responseText = document.getElementById('ia-response-text');
       const freqBadges = document.getElementById('freq-badges');
@@ -416,8 +420,8 @@
       const musica = data.musicaDelDia || data;
 
       NexusPlatica.quitarEscribiendo(hilo);
-      NexusPlatica.pintarHilo(hilo, 'user', mensajeUsuario);
-      NexusPlatica.pintarHilo(hilo, 'ia', data.reply || '');
+      if (!yaPintadoUsuario) NexusPlatica.pintarHilo(hilo, 'user', mensajeUsuario);
+      NexusPlatica.pintarHilo(hilo, 'ia', data.reply || 'Sigo aquí, te escucho. ¿Qué más quieres compartir?');
       NexusPlatica.iniciarReloj(document.getElementById('nexus-reloj'), data.sesion?.restanteMs, {
         plan: 'miembro',
         permanente: Boolean(data.sesion?.permanente),

@@ -201,17 +201,21 @@
       <script>
         const fp = document.getElementById('custom-frequency-player');
         if (fp) {
+          let muestraAudioCerrada = false;
           fp.addEventListener('timeupdate', () => {
-            if (fp.currentTime >= 120) {
-              fp.pause();
-              fp.currentTime = 0;
-              NexusSantuario.detenerSintesis();
-              alert('Has llegado al límite de los 2 minutos gratuitos. Dentro del Santuario de miembros disfrutarás la pieza completa con tu frecuencia en segundo plano.');
+            if (muestraAudioCerrada || fp.currentTime < 120) return;
+            muestraAudioCerrada = true;
+            fp.pause();
+            if (window.NexusSantuario) NexusSantuario.detenerSintesis();
+            const nota = document.getElementById('freq-nota-publica');
+            if (nota) {
+              nota.style.display = 'block';
+              nota.textContent = 'La muestra de audio de 2 minutos llegó a su fin. Tú y yo seguimos platicando; el tiempo de la conversación no se corta. En el Santuario la pieza suena completa.';
             }
           });
         }
       </script>
-      <p style="font-size: 0.9rem; color: #a1a1aa;">La muestra de audio dura 2 minutos. En el Santuario la pieza suena completa y la plática se extiende a 30 minutos.</p>
+      <p style="font-size: 0.9rem; color: #a1a1aa;">La muestra de audio dura 2 minutos. La plática gratuita sigue hasta 10 minutos. En el Santuario la pieza suena completa y la plática se extiende a 30 minutos.</p>
       
       <a href="/#pago-general" class="btn" style="background: var(--accent); color: var(--panel); text-decoration: none; padding: 0.6rem 1rem; border-radius: 6px; display: inline-block;">Conviértete en miembro</a>
       <button class="btn" onclick="openMemberModal()" style="background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 0.6rem 1rem; border-radius: 6px; display: inline-block; margin-left: 0.5rem;">Ya soy miembro</button>
@@ -314,8 +318,10 @@ Mente abierta a consejos: ${data.mente_abierta}`;
         salon.style.display = 'flex';
         if (window.NexusPlatica) {
           NexusPlatica.quitarEscribiendo(hilo);
-          NexusPlatica.pintarHilo(hilo, 'user', seguimiento ? mensajeUsuario : resumenHilo(mensajeUsuario));
-          NexusPlatica.pintarHilo(hilo, 'ia', result.reply || '');
+          if (!seguimiento) {
+            NexusPlatica.pintarHilo(hilo, 'user', resumenHilo(mensajeUsuario));
+          }
+          NexusPlatica.pintarHilo(hilo, 'ia', result.reply || 'Sigo aquí. ¿Quieres contarme un poco más?');
           NexusPlatica.iniciarReloj(document.getElementById('nexus-reloj-publica'), result.sesion?.restanteMs, {
             plan: 'publico',
             onEnd: () => NexusPlatica.cerrarComposer({
@@ -349,7 +355,13 @@ Mente abierta a consejos: ${data.mente_abierta}`;
         const btn = document.getElementById('btn-seguir-platica');
         const hilo = document.getElementById('nexus-hilo-publico');
         btn.disabled = true;
-        if (window.NexusPlatica) NexusPlatica.pintarEscribiendo(hilo);
+        input.value = '';
+        if (window.NexusPlatica) {
+          NexusPlatica.pintarHilo(hilo, 'user', mensaje);
+          NexusPlatica.pintarEscribiendo(hilo);
+        }
+        const nota = document.getElementById('nexus-nota-publica');
+        if (nota) nota.textContent = 'Te leo con calma… un momento.';
         try {
           const res = await fetch('/.netlify/functions/chat', {
             method: 'POST',
@@ -358,7 +370,7 @@ Mente abierta a consejos: ${data.mente_abierta}`;
           });
           const result = await res.json();
           if (!res.ok || result.error) throw new Error(result.error || 'Error de red con la IA');
-          input.value = '';
+          if (nota) nota.textContent = 'Escribe debajo. Enter envía; Shift+Enter hace un renglón nuevo. El tiempo corre en silencio, sin prisa.';
           mostrarRespuestaPublica(mensaje, result, { seguimiento: true });
         } catch (err) {
           if (window.NexusPlatica) NexusPlatica.quitarEscribiendo(hilo);
