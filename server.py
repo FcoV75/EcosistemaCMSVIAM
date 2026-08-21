@@ -166,6 +166,7 @@ def _construir_config_desde_form(form):
         "sin_marca_agua": form.get("sin_marca_agua", "false").lower() == "true",
         "escala_texto": escala_texto,
         "nombre_pista": _normalizar_campo_texto(nombre_pista),
+        "volumen_fondo": form.get("volumen_fondo", "0.24"),
     }
 
 
@@ -207,6 +208,7 @@ def _construir_config_desde_json(body):
         "sin_marca_agua": _as_bool(body.get("sin_marca_agua")),
         "escala_texto": escala_texto,
         "nombre_pista": _normalizar_campo_texto(body.get("nombre_pista", "")),
+        "volumen_fondo": body.get("volumen_fondo", 0.24),
     }
 
 
@@ -215,6 +217,8 @@ def _asignar_archivos_a_config(config_data, files_map, audio_path_default=""):
     for campo, ruta in files_map.items():
         if campo == "audio":
             audio_path = ruta
+        elif campo == "audio_fondo":
+            config_data["ruta_audio_fondo"] = ruta
         elif campo == "portada_file":
             config_data["ruta_portada"] = ruta
         elif campo == "cierre_file":
@@ -234,6 +238,9 @@ def _asignar_archivos_a_config(config_data, files_map, audio_path_default=""):
                 config_data["linea_tiempo"][indice]["tipo"] = tipo
             except Exception as exc:
                 print(f"Aviso asignando {campo}: {exc}")
+    if not audio_path and config_data.get("ruta_audio_fondo"):
+        audio_path = config_data.get("ruta_audio_fondo")
+        config_data["ruta_audio_fondo"] = ""
     if not config_data.get("nombre_pista") and audio_path:
         config_data["nombre_pista"] = os.path.splitext(os.path.basename(audio_path))[0]
     return audio_path
@@ -724,8 +731,8 @@ def estudio_generar_clip():
         return jsonify({"error": "Describe el clip que quieres generar."}), 400
     duracion = int(body.get("duracionSeg") or body.get("duracion") or 8)
     duracion = max(8, min(12, duracion))
-    prompt_en = f"{prompt}, photorealistic, cinematic color grading, 16:9, dramatic lighting, no text, no watermark"
-    url = f"https://image.pollinations.ai/prompt/{quote(prompt_en)}?width=1920&height=1080&nologo=true&enhance=true&seed={abs(hash(prompt)) % 99999}"
+    prompt_en = f"Cinematic 16:9 film still that faithfully depicts: {prompt}. Photorealistic, dramatic lighting, no text, no watermark"
+    url = f"https://image.pollinations.ai/prompt/{quote(prompt_en)}?width=1280&height=720&nologo=true&enhance=true&model=flux&seed={abs(hash(prompt)) % 99999}"
     try:
         img = http_requests.get(url, timeout=90)
         if img.ok and img.content:
@@ -737,7 +744,7 @@ def estudio_generar_clip():
                 "duracionSeg": duracion,
                 "movimiento": True,
                 "fuente": "pollinations-cinematico",
-                "aviso": f"Clip cinematográfico de {duracion} s: escena IA con movimiento Ken Burns al renderizar.",
+                "aviso": f"Clip cinematográfico de {duracion} s: escena IA; el navegador graba el movimiento Ken Burns.",
             })
     except Exception as exc:
         return jsonify({"error": f"Error generando clip: {exc}"}), 502

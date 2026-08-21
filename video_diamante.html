@@ -158,7 +158,7 @@
         }
         @keyframes kenburns-preview {
             from { transform: scale(1) translate(0, 0); }
-            to { transform: scale(1.14) translate(-3%, -2%); }
+            to { transform: scale(1.32) translate(-4%, -3%); }
         }
         .cuotas-estudio {
             display: flex;
@@ -167,6 +167,20 @@
             margin: 8px 0 12px;
         }
         .cuotas-estudio span { font-size: 0.78rem; color: #00FFCC; }
+        .rieles-audio {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .riel-audio {
+            background: rgba(0,0,0,0.28);
+            border: 1px solid #555;
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .riel-audio h3 { margin: 0 0 8px; color: #D4AF37; font-size: 0.95rem; }
+        .riel-audio .zona-drop { min-height: 86px; margin: 8px 0; }
         .btn-eliminar-celda {
             background: var(--color-rojo-boton);
             color: white;
@@ -454,16 +468,33 @@
         </div>
 
         <div class="seccion-panel">
-            <h2>🎵 Audio Principal (arrastra desde tu explorador)</h2>
+            <h2>🎵 Rieles de audio — locución y fondo por separado</h2>
+            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:8px;">La voz hablada ya no pisa la música. Un riel es el texto a voz o tu locución; el otro es el MP3 o MIDI de fondo. El video mezcla ambos: la voz al frente y la pista más bajita.</p>
             <div class="aviso-formato-audio">
-                <strong>Formato recomendado: MP3</strong> — más ligero y estable para transcripción IA y renderizado.
-                Si subes <strong>WAV, FLAC o AIFF</strong>, Video Diamante lo convierte automáticamente a MP3 en tu navegador
-                (sin subir el archivo pesado tal cual). También aceptamos M4A y OGG.
+                <strong>Formato recomendado: MP3</strong> — WAV, FLAC o AIFF se convierten en el navegador. M4A y OGG también sirven.
             </div>
-            <div id="zona-audio" class="zona-drop">
-                <label class="btn-viam-subir" for="input-audio-real">Seleccionar audio (MP3 recomendado)</label>
-                <input type="file" id="input-audio-real" class="input-archivo-oculto" accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/ogg,audio/*">
-                <span id="status-audio" class="status-archivo">Ningún audio seleccionado</span>
+            <div class="rieles-audio">
+                <div class="riel-audio">
+                    <h3>🎙️ Riel 1 — Locución / texto a voz</h3>
+                    <div id="zona-audio-voz" class="zona-drop">
+                        <label class="btn-viam-subir" for="input-audio-voz">Subir locución</label>
+                        <input type="file" id="input-audio-voz" class="input-archivo-oculto" accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/ogg,audio/*">
+                        <span id="status-audio-voz" class="status-archivo">Vacío — usa Voz IA o sube un speech</span>
+                    </div>
+                </div>
+                <div class="riel-audio">
+                    <h3>🎹 Riel 2 — Música de fondo (MP3 o MIDI)</h3>
+                    <div id="zona-audio" class="zona-drop">
+                        <label class="btn-viam-subir" for="input-audio-real">Subir MP3 de fondo</label>
+                        <input type="file" id="input-audio-real" class="input-archivo-oculto" accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/ogg,audio/*">
+                        <span id="status-audio" class="status-archivo">Vacío — sube un MP3 o genera MIDI</span>
+                    </div>
+                </div>
+            </div>
+            <div class="grupo-control" style="margin-top:12px;">
+                <label for="nombre-pista-video">Nombre de la pista en el video</label>
+                <input type="text" id="nombre-pista-video" class="input-texto-premium" maxlength="80" placeholder="Ej: Amanecer en el Bajío" autocomplete="off">
+                <p style="font-size:0.78rem;color:#BCB4B4;margin-top:6px;">Este título aparece discreto al inicio y al final. Edítalo si el archivo sale con números o letras raras.</p>
             </div>
         </div>
 
@@ -578,7 +609,7 @@
                     <audio id="audio-preview-voz" controls style="width:100%;"></audio>
                 </div>
                 <div class="acciones-estudio">
-                    <button type="button" class="btn-viam-subir" id="btn-usar-voz-audio" style="background:#1E90FF;display:none;">🎵 Usar como audio del video</button>
+                    <button type="button" class="btn-viam-subir" id="btn-usar-voz-audio" style="background:#1E90FF;display:none;">🎙️ Poner en el riel de locución</button>
                 </div>
                 <span id="status-voz-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
             </div>
@@ -605,7 +636,7 @@
                 <span id="status-movimiento-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
             </div>
             <div id="panel-estudio-clip" class="panel-estudio">
-                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Clip corto tipo anuncio (como los de Meta): <strong>8 s</strong> en gratuito (1/día) y <strong>8–12 s</strong> en Premium (5/día). Si el servidor no tiene video nativo, generamos un clip cinematográfico (imagen IA + Ken Burns) listo para la pizarra.</p>
+                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Clip corto tipo anuncio: <strong>8 s</strong> en gratuito (1/día) y <strong>8–12 s</strong> en Premium (5/día). La IA arma la escena que pediste y el navegador graba el movimiento Ken Burns de esa duración — no se queda en una foto fija.</p>
                 <div class="grupo-control">
                     <label for="estudio-prompt-clip">Describe el clip</label>
                     <textarea id="estudio-prompt-clip" class="pizarra-letra" style="min-height:80px;" placeholder="Ej: Toma de una panadería al amanecer, vapor del pan, cámara lenta, luz cálida mexicana"></textarea>
@@ -649,7 +680,7 @@
                 <button type="button" class="btn-viam-subir" id="btn-generar-midi">🎹 Generar MIDI y audio</button>
                 <div class="acciones-estudio" style="margin-top:10px;">
                     <button type="button" class="btn-viam-subir" id="btn-descargar-midi" style="background:#28A745;display:none;">⬇️ Descargar .mid</button>
-                    <button type="button" class="btn-viam-subir" id="btn-usar-midi-audio" style="background:#1E90FF;display:none;">🎵 Usar como audio del video</button>
+                    <button type="button" class="btn-viam-subir" id="btn-usar-midi-audio" style="background:#1E90FF;display:none;">🎹 Poner en el riel de fondo</button>
                 </div>
                 <span id="status-midi-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
             </div>
@@ -748,7 +779,7 @@
         <div class="guia-pasos">
             <p>Sigue estos pasos para tu primer video profesional:</p>
             <ol>
-                <li><strong>Audio</strong> — Sube MP3 o genera MIDI en Estudio VIAM (desde 8 s hasta 1 h). WAV se convierte automáticamente.</li>
+                <li><strong>Audio</strong> — Riel 1: locución o Voz IA. Riel 2: MP3 o MIDI de fondo. Edita el nombre de la pista para que no salga un número en el video.</li>
                 <li><strong>Portada y cierre</strong> — Escribe leyendas y opcionalmente añade imágenes.</li>
                 <li><strong>Subtítulos karaoke</strong> — Pulsa «Transcribir con IA», corrige la letra y activa la casilla de incrustar.</li>
                 <li><strong>Estudio VIAM</strong> — Imagen HD, discurso, voz IA (hasta 4 min Premium), movimiento Ken Burns y clip corto 8–12 s; MIDI para musicalizar.</li>

@@ -2,9 +2,10 @@ import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import { LIMITES_CLIP, clamp, esPremiumPayload } from './lib/estudio-limites.mjs';
 
 async function generarImagenCine(prompt) {
-  const promptEn = `${prompt.trim()}, photorealistic, cinematic color grading, 16:9, motion still, dramatic lighting, highly detailed, no text, no watermark, no logo`;
-  const seed = Math.abs([...promptEn].reduce((a, c) => a + c.charCodeAt(0), 0) + Date.now()) % 99999;
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptEn)}?width=1920&height=1080&nologo=true&enhance=true&seed=${seed}`;
+  const escena = prompt.trim();
+  const promptEn = `Cinematic 16:9 film still that faithfully depicts: ${escena}. Keep the subject, place and mood of that description. Photorealistic, dramatic lighting, shallow depth of field, no text, no watermark, no logo, no letters`;
+  const seed = Math.abs([...escena].reduce((a, c) => a + c.charCodeAt(0), 0) + Date.now()) % 99999;
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptEn)}?width=1280&height=720&nologo=true&enhance=true&model=flux&seed=${seed}`;
   const img = await fetch(url);
   if (!img.ok) return null;
   const buf = Buffer.from(await img.arrayBuffer());
@@ -152,7 +153,7 @@ export default async (req) => {
       duracionSeg: duracion,
       fuente: cine.fuente,
       movimiento: true,
-      aviso: `Clip cinematográfico de ${duracion} s: escena IA con movimiento Ken Burns al renderizar. Para clip de video nativo (tipo Meta) configura FAL_KEY.`,
+            aviso: `Clip cinematográfico de ${duracion} s listo: la escena sigue tu descripción y el navegador arma el movimiento Ken Burns de ${duracion} s.`,
     });
   } catch (e) {
     return jsonResponse({ error: String(e?.message || e) }, 500);
