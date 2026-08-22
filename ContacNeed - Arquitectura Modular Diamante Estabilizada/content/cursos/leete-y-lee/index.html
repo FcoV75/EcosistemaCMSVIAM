@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Léete y lee — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="Curso gradual de principios: cómo mirarte con precisión y leer a los demás sin inventarles la novela. Complemento pedagógico, nunca sustituto clínico." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc;
+      --muted: rgba(245,245,252,.78);
+      --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16);
+      --accent: #f1c96b;
+      --accent-2: #86d6ff;
+      --ok: #7dcea0;
+      --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Montserrat, system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--night);
+      line-height: 1.65;
+    }
+    a { color: var(--accent-2); }
+    .nav {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem;
+      background: rgba(5,8,20,.92);
+      border-bottom: 1px solid var(--edge);
+      backdrop-filter: blur(10px);
+    }
+    .nav a, .nav .btn {
+      text-decoration: none; color: var(--ink);
+      border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600;
+      background: rgba(8,11,26,.55);
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--accent), #c9a24d);
+      color: #111; border: 0; font-weight: 700;
+    }
+    .hero {
+      min-height: 78vh;
+      display: grid; align-items: end;
+      background:
+        linear-gradient(180deg, rgba(5,8,20,.25) 0%, rgba(5,8,20,.72) 52%, rgba(5,8,20,.96) 100%),
+        url("/cursos-assets/leete-y-lee/01-portada-leete-y-lee.jpg") center/cover no-repeat;
+      padding: 2rem 1.25rem 2.6rem;
+    }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 {
+      font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.5rem);
+      line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso {
+      margin: 1.4rem 0; padding: 1rem 1.1rem;
+      border: 1px solid rgba(241,201,107,.4);
+      background: rgba(241,201,107,.08);
+      border-radius: 14px;
+    }
+    .aviso strong { color: var(--accent); }
+    section.etapa {
+      margin: 2.4rem 0;
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      padding: 1.35rem 1.25rem 1.5rem;
+    }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio {
+      border-left: 3px solid var(--accent);
+      padding: .15rem 0 .15rem 1rem;
+      color: #fff6cc;
+      font-weight: 600;
+    }
+    figure.relato {
+      margin: 1.1rem 0;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--edge);
+      background: #000;
+    }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja {
+      margin: 1rem 0;
+      padding: .9rem 1rem;
+      border-radius: 12px;
+      background: rgba(0,0,0,.28);
+      border: 1px dashed rgba(255,255,255,.2);
+    }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    ul.pasos { padding-left: 1.15rem; }
+    .mapa { display: grid; gap: .7rem; }
+    .zona {
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding: .75rem .85rem;
+      background: rgba(2,4,14,.45);
+    }
+    .zona strong { color: var(--accent); }
+    footer {
+      text-align: center; color: var(--muted);
+      padding: 1.5rem 1rem 2.5rem; font-size: .86rem;
+    }
+    @media print {
+      .nav { position: static; }
+      body { background: #fff; color: #111; }
+      section.etapa { break-inside: avoid; background: #fff; color: #111; border-color: #ccc; }
+      h1, h2 { color: #3a2a00; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a>
+    <a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>Léete y lee</h1>
+      <p>Un curso gradual para comprenderte con precisión y leer a los demás sin inventarles la novela. De la semilla a la siembra. Ciencia seria, lenguaje claro, práctica cotidiana y un puente bíblico que convence a la mente sin apagarla.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="aviso">
+      <strong>Regla de oro.</strong> Nada de este curso sustituye psicoterapia, diagnóstico psiquiátrico ni tratamiento médico.
+      Camina <em>al lado</em> del profesional, nunca en su lugar. Si hay crisis, ansiedad que no cede, ánimo que se apaga o pensamiento de hacerse daño, la primera parada es clínica.
+      Aquí se añade una pregunta: ¿qué estás interpretando como si fuera un hecho?
+    </p>
+
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">Mirar con precisión</a> — la atención no es una cámara neutra.</li>
+        <li><a href="#e2">La cadena invisible</a> — hecho, interpretación, emoción, impulso, conducta.</li>
+        <li><a href="#e3">Nombrar</a> — sensación, emoción, pensamiento e impulso viven en habitaciones distintas.</li>
+        <li><a href="#e4">El pensamiento no es el hecho</a> — la intensidad no demuestra verdad.</li>
+        <li><a href="#e5">Lo que el gatillo revela</a> — la desproporción es una linterna hacia adentro.</li>
+        <li><a href="#e6">El espacio y la base</a> — entre la ola y la respuesta hay un umbral.</li>
+        <li><a href="#e7">La puerta, no el muro</a> — un límite limpio protege la energía.</li>
+        <li><a href="#e8">Leer al otro y tu voz</a> — empatía sin desaparecer; actuar, observar, corregir.</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: audiolibro <em>Compréndete y lee a los demás</em> (Mente Clara | Audiolibros). Este material no es una transcripción: es una pedagogía original de principios para el consultorio.</p>
+    </section>
+
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · Mirar con precisión</h2>
+      <p class="principio">Principio: la atención no es una cámara. Es un reflector. Lo que ilumina se vuelve “el mundo”; lo que deja en sombra parece que no ocurrió.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/leete-y-lee/02-atencion-foco.jpg" alt="Una lámpara de escritorio ilumina solo un rincón de la mesa" />
+        <figcaption>Aplicación: puedes “conocer” a alguien y haber visto apenas el círculo que tu lámpara eligió.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Crees que te conoces porque oyes tus pensamientos y recuerdas tus intenciones. Eso es un buen comienzo y un mal final. Puedes declararte paciente y tensarte ante una demora de tres minutos. Puedes decir que no te importa el juicio ajeno y cambiar el tono cuando alguien te mira de reojo. El cuerpo, el hábito y la voz cuentan otra historia. Conocer lo que querías hacer no es lo mismo que comprender lo que hiciste.</p>
+      <p>Con los demás ocurre el mismo atajo. Una respuesta breve se vuelve desinterés. Una pausa se vuelve secreto. Una distancia se vuelve rechazo. Una sola señal nunca entrega la novela completa. El error no es interpretar: el cerebro está hecho para cerrar huecos. El error es firmar la interpretación como si fuera un acta.</p>
+      <p>Hay dos columnas que casi nadie separa. En la izquierda, el hecho: lo observable, lo que una cámara grabaría. En la derecha, el significado que le pusiste. “Llegó diez minutos tarde” es un hecho. “Ya no le importo” es una hipótesis con traje de certeza. Mientras las mezcles, te leerás mal y leerás mal al otro.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · La misma habitación, dos películas</h3>
+        <p>Dos hermanos esperaron en la misma sala. El mayor vio el reloj y pensó abandono. El menor vio la lluvia en el cristal y pensó tráfico. Entró la madre con el paraguas mojado. Uno ya estaba herido. El otro ya estaba aliviado. La sala no mintió. Mintió la película que cada uno había empezado a proyectar antes de que alguien hablara.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Primero la viga</h3>
+        <p>Jesús no pide que dejes de mirar al otro. Pide el orden: <em>«¿Por qué miras la paja que está en el ojo de tu hermano, y no echas de ver la viga que está en tu propio ojo?»</em> (Mateo 7:3-5). Eso no es un sermón para callar la duda. Es un método: la precisión empieza en casa. Y Proverbios 4:23 lo dice en lenguaje de huerto: <em>«Sobre toda cosa guardada, guarda tu corazón; porque de él mana la vida.»</em> Guardar el corazón no es esconderlo. Es vigilar el reflector: qué ilumina, qué inventa, qué deja fuera.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Tres hechos, tres hipótesis</h3>
+        <p>Elige un roce de las últimas 24 horas. En seis líneas, no más. Tres hechos que una cámara vería. Tres interpretaciones que tu mente añadió. No las corrijas todavía. Solo sepáralas. Si no puedes distinguirlas, esa ya es la lección.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Qué “certeza” de hoy se sostiene solo si nadie apaga tu lámpara?</p>
+    </section>
+
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · La cadena invisible</h2>
+      <p class="principio">Principio: gran parte de tu conducta se decide antes de que tengas la sensación de haber elegido. Después llega una explicación razonable. La explicación no es el origen.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/leete-y-lee/03-hecho-interpretacion.jpg" alt="Una taza y una nota: el mismo objeto, dos lecturas" />
+        <figcaption>Aplicación: el hecho cabe en una frase. La novela que le pones cabe en una década.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Hay un sistema que no se ve y que dirige más de lo que te gusta admitir. No es magia. Es una cadena rápida:</p>
+      <div class="mapa">
+        <div class="zona"><strong>1. Hecho.</strong> Algo ocurre: un tono, un silencio, un retraso, una mirada.</div>
+        <div class="zona"><strong>2. Interpretación.</strong> Tu mente le pone título: amenaza, desprecio, abandono, burla, urgencia.</div>
+        <div class="zona"><strong>3. Emoción.</strong> El cuerpo cobra el título: calor, nudo, vacío, rabia, vergüenza.</div>
+        <div class="zona"><strong>4. Impulso.</strong> Aparece una acción lista: defenderte, callar, insistir, ironizar, huir, complacer.</div>
+        <div class="zona"><strong>5. Conducta.</strong> Haces (o dejas de hacer) y el mundo responde a eso, no a tu intención.</div>
+      </div>
+      <p>La cadena cabe en tres segundos. Por eso sientes que “reaccionaste sin pensar”. Pensaste: pensaste demasiado rápido y en un idioma que no oíste. Luego llega el narrador: “estaba cansado”, “no era el momento”, “él empezó”. A veces el narrador tiene razón. A veces solo cubre la cadena.</p>
+      <p>El cuerpo suele ser el primer testigo. Antes de la frase dura hay mandíbula. Antes del retiro hay un milímetro de pecho cerrado. Si aprendes a ver el eslabón 3, todavía puedes elegir el 5.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · La taza que habló de más</h3>
+        <p>Una taza se posó con más fuerza de la necesaria. Nadie había insultado a nadie. El hecho era un golpe breve contra la madera. En una cabeza se leyó: “otra vez me ignoran”. En otra: “el café estaba demasiado caliente”. La taza no eligió bando. El que sí eligió fue el que convirtió el golpe en un veredicto y contestó con una frase que ya no tenía que ver con el café.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Pronto para oír</h3>
+        <p>Santiago no escribe un manual de cortesía. Escribe un freno para la cadena: <em>«Todo hombre sea pronto para oír, tardo para hablar, tardo para airarse»</em> (Santiago 1:19). El orden importa. Oír —el hecho, el cuerpo, la otra voz— va primero. Hablar y airarse pueden esperar. No es reprimir. Es no dejar que el eslabón 4 firme el contrato.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Reconstruir un episodio</h3>
+        <p>Elige un roce de hoy. Cinco renglones, uno por eslabón: hecho / interpretación / emoción / impulso / lo que hiciste. Si el impulso y la conducta coinciden, anota: “la cadena mandó”. Si no, anota qué pausa los separó. Esa pausa es oro: mañana la vamos a ensanchar.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿En qué eslabón sueles despertar: cuando ya hablaste, o un segundo antes?</p>
+    </section>
+
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · Nombrar</h2>
+      <p class="principio">Principio: “me siento mal” es un pasillo. No es una habitación. Mientras no separes sensación, emoción, pensamiento e impulso, no puedes elegir: solo puedes empujar la niebla.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/leete-y-lee/04-nombrar.jpg" alt="Cuatro frascos en un estante, cada uno con un espacio para su nombre" />
+        <figcaption>Aplicación: lo que no se nombra se mezcla. Lo mezclado se gobierna solo.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La pregunta favorita —<em>¿por qué reaccioné así?</em>— llega demasiado pronto. Primero hace falta el <em>qué</em>. Mucha gente responde con una nube: raro, incómodo, alterado, fatal. Esas palabras avisan de que hay clima. No dicen qué estación es.</p>
+      <p>Cuatro piezas distintas:</p>
+      <ul class="pasos">
+        <li><strong>Sensación.</strong> Lo que el cuerpo reporta sin tesis: calor en la cara, nudo, temblor, mandíbula, estómago cerrado.</li>
+        <li><strong>Emoción.</strong> El nombre del clima: miedo, tristeza, enojo, vergüenza, asco, alegría, ternura.</li>
+        <li><strong>Pensamiento.</strong> La frase que interpreta: “siempre igual”, “no le importo”, “voy a quedar mal”.</li>
+        <li><strong>Impulso.</strong> Lo que las manos ya quieren: alzar la voz, revisar el teléfono, disculparte, desaparecer.</li>
+      </ul>
+      <p>A veces la emoción visible no es la primera. El enojo es un portero eficaz: cubre el miedo o la herida porque duele menos mandar que admitir que te importó. Si atacas al portero, la casa sigue llena. Si preguntas qué llegó primero, el mapa se aclara.</p>
+      <p>Nombrar no es justificar. No es “tengo derecho a gritar porque nombré tristeza”. Es poner etiquetas para que el almacén deje de ser un solo saco. La cognición se calma cuando ve piezas. La niebla pide decisiones enormes. Las piezas piden un paso.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · La despensa sin etiquetas</h3>
+        <p>Un cocinero guardaba sal, azúcar, levadura y ají en frascos idénticos. Un día, con prisa, endulzó el guiso con levadura y saló el postre. Juró que “la cocina estaba en su contra”. La cocina no conspiraba. Faltaban cuatro tiras de papel. Desde que las puso, los errores no desaparecieron: se volvieron localizables. Localizable se puede corregir. Innominado solo se puede sufrir.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · El rebaño interior</h3>
+        <p><em>«Sé diligente en conocer el estado de tus ovejas, y mira con cuidado tus rebaños»</em> (Proverbios 27:23). El proverbio habla de hacienda. La cognición lo oye también como método: no se pastorea lo que no se cuenta. Nombrar es inventario, no teatro. Jehová no pide que niegues el clima interior. Pide que no dejes el rebaño sin pastor: sensación por aquí, emoción por allá, pensamiento en su corral, impulso atado hasta que elijas.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Cuatro columnas</h3>
+        <p>Un episodio. Cuatro palabras o frases cortas: sensación / emoción / pensamiento / impulso. Si la emoción que mostraste no es la que empezó, anótalo: “mostré _____; primero hubo _____”. No analices el origen infantil hoy. Solo etiqueta. El porqué puede esperar a que el qué esté en la mesa.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Qué palabra usas para tapar cuatro cosas distintas?</p>
+    </section>
+
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · El pensamiento no es el hecho</h2>
+      <p class="principio">Principio: un pensamiento puede ser nítido, repetirse horas y sentirse verdadero. Eso demuestra ocupación, no verdad. La intensidad no es una prueba pericial.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/leete-y-lee/05-lente-pensamiento.jpg" alt="Unas gafas sobre un libro abierto, el cristal empaña parte de las letras" />
+        <figcaption>Aplicación: no discutes con el libro. Limpia el cristal y vuelves a leer.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>No todo lo que aparece en la mente merece juramento. Un pensamiento puede ser recuerdo, predicción, ensayo de amenaza o una frase vieja que encontró un gancho nuevo. Creerlo al instante es ahorrar energía. También es firmar un contrato que no leíste.</p>
+      <p>Hay un truco de lenguaje que cambia el gobierno de la frase. En vez de “no le importo”, prueba: <em>«Estoy teniendo el pensamiento de que no le importo.»</em> No es negación. Es distancia de un palmo. El primer enunciado es un veredicto. El segundo es una hipótesis con dueño. Las hipótesis se pueden contrastar. Los veredictos solo se pueden obedecer o pelear.</p>
+      <p>El sesgo de confirmación hace el resto: guardas el silencio de las 18:12 y archivas el mensaje amable de las 11:00 como “educación”. La creencia no describe tu vida. Selecciona el expediente.</p>
+      <p>Tampoco se trata de ponerte anteojeras rosadas. Se trata de no casarte con la primera lectura. Una mente seria abre, al menos, una segunda y una tercera hipótesis. “Está ocupado.” “Está cansado.” “No sabe cómo decir lo que necesita.” “Sí hay un problema y todavía no lo conozco.” No elijas la más agradable. Elige no convertir la primera en la única.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El cristal empañado</h3>
+        <p>Un lector juró que el libro se había vuelto ilegible. Discutió con el autor, con la editorial, con su propia inteligencia. Un amigo le pasó un paño. El párrafo no había cambiado. El aliento contra el cristal, sí. Desde entonces, cuando una frase mental llega con calor de certeza, se pregunta: ¿estoy leyendo la página o mi vaho?</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Dirigir la atención</h3>
+        <p>Filipenses 4:8 no pide que niegues lo feo. Pide dirección: <em>«todo lo que es verdadero, todo lo honesto, todo lo justo, todo lo puro, todo lo amable… en esto pensad.»</em> Es higiene del reflector, no magia. Y 2 Corintios 10:5 —<em>llevar cautivo todo pensamiento</em>— no es una guerra contra tu mente. Es no dejar que un pensamiento suelto firme decretos. Jehová no te pide que apagues el intelecto. Te pide que no lo conviertas en un juez sin pruebas.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Tres hipótesis</h3>
+        <p>Toma el pensamiento más “cierto” de hoy. Escríbelo literal. Debajo: “Estoy teniendo el pensamiento de…”. Luego dos lecturas alternativas que también quepan en los hechos. No tienes que creértelas. Tienes que impedir que la primera se quede sola en la sala.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> Si ese pensamiento fuera un testigo, ¿qué prueba concreta —no sensación— presentaría?</p>
+    </section>
+
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Lo que el gatillo revela</h2>
+      <p class="principio">Principio: cuando la reacción pesa más que el acontecimiento, el exceso no es solo “el otro”. Es una linterna: ilumina una regla interna que ya estaba escrita.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/leete-y-lee/06-desencadenante.jpg" alt="Una mano tiembla un instante sobre una taza recién golpeada contra la mesa" />
+        <figcaption>Aplicación: el gatillo es el atajo. La historia larga está en la regla que el atajo activa.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Un comentario pequeño te deja tres horas. Una corrección te pone a la defensiva antes de oír el resto. Un “ya te hablo” enciende abandono. Entonces es fácil echar toda la culpa a la situación. A veces la situación sí es grave. Pero la <em>desproporción</em> es dato: el presente tocó una tecla que ya estaba conectada.</p>
+      <p>Un desencadenante no es el enemigo. Es un interruptor gastado. Detrás suele haber una regla: “si tardan, no importo”; “si me corrigen, soy incompetente”; “si hay silencio, hay rechazo”; “si pido, molesto”. Esas reglas fueron útiles alguna vez. Protegieron. El problema es que siguen mandando en una casa que ya no es esa.</p>
+      <p>Identificar no es desactivar del todo. Es quitarle la sorpresa. Cuando el interruptor deja de ser invisible, puedes decir: “esto es mi tecla de abandono, no necesariamente su veredicto sobre mí”. Esa frase no absuelve al otro si hubo descuido. Te impide pagarle, además, una deuda vieja que él no contrajo.</p>
+      <p>Después del episodio, revisa sin vergüenza —la vergüenza cierra el laboratorio—. ¿Cuál fue la primera señal del cuerpo? ¿Qué título le pusiste? ¿Qué impulso llegó? ¿En qué segundo todavía había elección? Ese segundo es el punto de intervención de la etapa siguiente.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El interruptor de la cocina</h3>
+        <p>En una casa vieja, tocar el interruptor de la lámpara encendía también el extractor. Nadie lo había cableado con malicia: un electricista apurado, años atrás, había juntado dos circuitos. Los habitantes discutían con la lámpara. El extractor no era el villano. El villano era el cable que nadie había vuelto a mirar. El día que lo vieron, la lámpara siguió sirviendo. Dejó de arrastrar al extractor cada vez.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Responder antes de oír</h3>
+        <p><em>«El que responde palabra antes de oír, le es fatuidad y oprobio»</em> (Proverbios 18:13). El proverbio no insulta: diagnostica un hábito. El gatillo te hace responder antes de oír el hecho de hoy. Oír primero —el cuerpo, la regla, la frase literal del otro— es inteligencia, no lentitud. Jehová no pide que te vuelvas de piedra. Pide que no dejes que una tecla vieja hable en tu nombre.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Una tecla, una regla</h3>
+        <p>Nombra un desencadenante recurrente (tono, demora, corrección, silencio, risa). En una línea, la regla que parece activar: “Si _____, entonces significa que _____.” En otra: “¿De quién parece esa voz? ¿A qué edad me habría protegido?” No tienes que perdonar ni confrontar hoy. Solo ver el cable.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Qué tecla tuya ha estado gobernando conversaciones que el otro creía pequeñas?</p>
+    </section>
+
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · El espacio y la base</h2>
+      <p class="principio">Principio: la misma frase puede ser inofensiva a las ocho de la mañana y una afrenta a las diez de la noche. No solo cambia el otro. Cambia el suelo desde el que oyes.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/leete-y-lee/07-espacio-respuesta.jpg" alt="Un pasillo en calma, una silla y una taza a medias: el espacio elegido" />
+        <figcaption>Aplicación: el espacio entre la ola y la respuesta no es huida. Es el único lugar donde todavía eres dueño.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Tu reacción no depende solo de lo que ocurre enfrente. Depende de la <em>base</em>: sueño, comida, ritmo, tensión acumulada, la clase de pensamientos que llevas horas ensayando. Ninguna de esas condiciones es un lujo espiritual. Son el suelo. Un suelo mojado hace resbalar frases que en seco habrían pasado.</p>
+      <p>Fortalecer la base no es “pensar positivo”. Es prosaico y soberano: dormir lo que puedas, comer algo real, caminar diez minutos, bajar el ruido de las pantallas una hora antes. Cuando la base está delgada, tu sistema busca atajos: la primera interpretación, el primer impulso, la frase que ya tenías lista.</p>
+      <p>Entre la reacción automática y la respuesta elegida hay un umbral. A veces dura un suspiro. El cuerpo suele ofrecerlo primero: calor, mandíbula, un impulso de alzar la voz. Si actúas desde la primera ola, la conversación se vuelve un ring. Si reconoces la activación —“esto es ola, todavía no es decisión”— puedes hacer una de tres cosas humildes: respirar más largo al soltar, pedir un minuto, o hacer una pregunta en vez de un veredicto.</p>
+      <p>Noventa segundos no resuelven una vida. Evitan que la alarma elija por ti. Proverbios lo sabía sin cronómetro: más vale el tardo en airarse que el héroe de la primera frase.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El andén</h3>
+        <p>Un tren llegaba cada vez que el andén sentía ruido. Un día el jefe de estación pintó una línea amarilla a un metro del borde. El tren seguía llegando. La gente dejó de caerse a las vías por el empujón del viento. La línea no detuvo el tren. Detuvo el paso automático. Desde entonces, el que quería subir, subía. El que no, esperaba el siguiente. Eso es un espacio: no niega la máquina. Impide que te lleve sin boleto.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Más que el valiente</h3>
+        <p><em>«Mejor es el que tarda en airarse que el fuerte; y el que se enseñorea de su espíritu, que el que toma una ciudad»</em> (Proverbios 16:32). La Escritura no premia la explosión sincera. Premia el gobierno del impulso. Eso no es frialdad. Es señorío. Jehová no te pide que no sientas. Te pide que no entregues la ciudadela en el primer toque de alarma.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Noventa segundos y una base</h3>
+        <p>Protocolo cuando notes la ola: suelta el aire más largo que la entrada, tres veces. Nombra en silencio: “sensación / emoción / impulso”. Luego elige una sola conducta: preguntar, pedir un minuto, o no enviar el mensaje todavía. Esta noche, un acto de base: hora de dormir o diez minutos de calle. Anota cuál fue. La inteligencia emocional sin suelo es un discurso.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Cuántas discusiones tuyas empezaron, en realidad, por sueño, hambre o una tarde ya llena?</p>
+    </section>
+
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · La puerta, no el muro</h2>
+      <p class="principio">Principio: un límite no es rechazo. Es el umbral desde el que todavía puedes querer sin abandonarte. Explicarlo de más suele ser una forma de pedir permiso para existir.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/leete-y-lee/08-limite-puerta.jpg" alt="Una puerta de jardín entreabierta al atardecer, con romero junto al poste" />
+        <figcaption>Aplicación: la puerta se abre y se cierra. El muro no deja entrar ni salir el aire.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Establecer un límite no es declarar la guerra. Es decir qué conducta no puedes sostener y qué sí puedes ofrecer. Confundimos empatía con obligación, disponibilidad con afecto y comprensión con tragar cada expectativa. Entonces “elegirte” se siente como falta, aunque no estés dañando a nadie.</p>
+      <p>El límite empieza antes del “no”. Empieza cuando reconoces tu estado: cansancio, irritación, una agenda que ya no cabe. Si no lo ves, tu cuerpo pondrá el límite por ti: tono corto, enfermedad oportuna, explosión, desaparición. Eso no es virtud. Es una puerta que se cerró sola y golpeó a quien pasaba.</p>
+      <p>La frase limpia es breve. “Hoy no puedo seguir esta conversación. Mañana a las diez sí.” “No reviso mensajes de trabajo después de las ocho.” “No voy a discutir si hay gritos; cuando baje el volumen, vuelvo.” No es necesario un ensayo de cinco párrafos. El ensayo suele esconder miedo a que el otro se enoje. El enojo ajeno no es, por sí solo, prueba de que tu límite sea injusto.</p>
+      <p>Proteger la energía también es no cargar el clima de cada habitación. Entras quien está tenso y de inmediato revisas qué hiciste. Una respuesta breve y ya estás de camarero emocional. Sin datos, la mente se echa la responsabilidad encima. Pregunta, o deja el clima donde está, hasta tener un hecho.</p>
+      <p>Un límite que cambia ante cada gesto enseña que la insistencia funciona. Un límite que se anuncia y se sostiene enseña realidad. Realidad es un acto de cuidado, también para el otro: ya no tiene que adivinar.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El huerto con puerta</h3>
+        <p>Había un huerto sin cerca. Entraban amigos, gallinas y tormentas. El hortelano se quejaba de que nadie respetaba sus lechugas. Puso un muro. El huerto se salvó y se sofocó: ni abejas, ni visitas, ni él mismo quería entrar. Entonces puso una puerta con pestillo sencillo. Quien pedía, pasaba. Quien pisoteaba, no. Las lechugas crecieron. Él dejó de ser un guardia amargado. Volvió a ser hortelano.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Sí, sí; no, no</h3>
+        <p>Jesús recorta el juramento barroco: <em>«Sea vuestro hablar: Sí, sí; no, no»</em> (Mateo 5:37). La claridad no es sequedad. Es respeto. Un “sí” que no puedes sostener es una deuda. Un “no” disfrazado de explicación eterna es un “sí” que espera ser negociado. Jehová no te pide que seas un muro. Te pide que tu palabra pese. El que se enseñorea de su espíritu (Proverbios 16:32) también se enseñorea de su agenda.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Una frase sin alegato</h3>
+        <p>Elige un límite pequeño —no el más difícil de tu vida—. Escríbelo en una sola frase, sin “porque” largo. Dilo, envíalo o práticarlo en voz alta frente al espejo. Luego anota el impulso de explicarte. Ese impulso es el dato. No lo obedezcas hoy. La puerta no necesita un tratado.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿A quién le estás pidiendo permiso, con tus párrafos, para tener un umbral?</p>
+    </section>
+
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Leer al otro y tu voz</h2>
+      <p class="principio">Principio: las palabras piden algo más que información. Si solo contestas el literal, puedes tener razón y dejar a la persona sin haber sido oída. La empatía no es desaparecer. Es oír eso… y no entregar tu voz en el trato.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/leete-y-lee/09-escucha-intencion.jpg" alt="Dos sillas y dos tazas en una mesa, conversación sin rostros" />
+        <figcaption>Aplicación: oír la emoción de debajo no te obliga a firmar el pedido entero.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Una queja puede buscar solución, o consuelo, o control, o que alguien confirme que no está loca. Si ofreces un plan cuando pedían ser vistas, el plan suena a desprecio. Si ofreces consuelo cuando pedían un plan, suena a evasión. La pregunta humilde —“¿necesitas que te escuche o que pensemos qué hacer?”— ahorra novelas.</p>
+      <p>Leer la intención no es adivinar. Es hipotetizar en voz baja y verificar. “Oigo cansancio. ¿Es eso o es enojo?” El otro puede corregirte. Esa corrección es un regalo: evita que tu lámpara de la etapa 1 vuelva a inventar.</p>
+      <p>La empatía sin voz propia se vuelve fusión. Desapareces dentro de su experiencia y luego cobras la factura con rencor. La fórmula adulta tiene dos oraciones: una que nombra lo suyo, otra que nombra lo tuyo. “Veo que esto te urge. Yo no puedo ahora; a las seis sí.” Negociar con inteligencia no es ganar. Es poner sobre la mesa hechos, límites y un siguiente paso visible.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/leete-y-lee/10-ciclo-aprender.jpg" alt="Un cuaderno abierto con tres recuadros: actuar, observar, corregir" />
+        <figcaption>El aprendizaje vivo no es un trofeo. Es un ciclo que se usa el martes a las 19:40, no solo cuando recuerdas la teoría.</figcaption>
+      </figure>
+      <h3>El ciclo que no se gradúa</h3>
+      <p>Las circunstancias cambian más rápido que tus discursos. Aprender no es acumular ideas. Es un ciclo de tres cajas:</p>
+      <ul class="pasos">
+        <li><strong>Actuar.</strong> Un paso pequeño y observable: una pregunta, un límite de una frase, noventa segundos, tres hipótesis.</li>
+        <li><strong>Observar.</strong> ¿Qué ocurrió de hecho? ¿Qué hizo el cuerpo? ¿Qué hizo el otro? Sin novela.</li>
+        <li><strong>Corregir.</strong> Un ajuste, no una identidad nueva. “La próxima vez nombro antes de responder.”</li>
+      </ul>
+      <p>Un contratiempo no es una sentencia sobre tu valor. Es la diferencia entre lo que esperabas y lo que ocurrió. Si la emoción se come esa diferencia, no hay laboratorio. Si la usas como información, la siguiente prueba ya está diseñada.</p>
+      <p>Bajo presión, la mente vende la primera salida como si fuera la única. Por eso conviene, cuando puedas, una pregunta tonta y sabia: “¿Qué es un hecho aquí? ¿Qué es mi historia? ¿Cuál es el siguiente paso de treinta segundos?” No siempre habrá tiempo. Habrá más veces de las que crees.</p>
+      <p>La inteligencia emocional no sirve si solo aparece cuando recuerdas que “deberías usarla”. Se vuelve forma de vivir cuando cabe en una conversación difícil, en un mensaje que no envías todavía, en un “sí” que dejas de dar. No te gradúas. Te vuelves un poco más dueño, una vez más.</p>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Palabra que sana y palabra que es tuya</h3>
+        <p><em>«La blanda respuesta quita la ira; mas la palabra áspera hace subir el furor»</em> (Proverbios 15:1). La blandura no es rendición: es temperatura. Se puede ser claro y no ser un látigo. Santiago 1:19 vuelve: oír, luego hablar. Y el “sí, sí; no, no” de Mateo 5:37 sostiene tu voz cuando la empatía quiera disolverla. Jehová no te pide que seas eco. Te pide que seas prójimo —el que oye— y testigo de tu propia alma.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de cierre · Una conversación, tres cajas</h3>
+        <p>Hoy, en un diálogo real (o en el mensaje que ibas a mandar): 1) nombra en silencio la emoción que crees oír en el otro; 2) verifica con una pregunta; 3) di una frase que sea tuya —límite, hecho o pedido—. En la noche, tres cajas: qué hiciste / qué observaste / qué corregirás mañana. Si no hubo diálogo, ensaya el de ayer. El ciclo no necesita público. Necesita tinta.</p>
+      </div>
+      <p><strong>Pregunta que te acompaña esta noche:</strong> Si esta semana te leyeras con la misma precisión con la que juzgas a los demás, ¿qué novela dejarías de firmar?</p>
+    </section>
+
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno breve</h2>
+      <p class="meta">Una hoja por semana. No se entrega para ser juzgado. Se usa para que la cognición vea pruebas.</p>
+      <div class="caja">
+        <p><strong>Semana de:</strong> _______________</p>
+        <p>1. Un hecho y la interpretación que le puse:</p>
+        <p>2. Cadena de un roce: hecho / interpretación / emoción / impulso / conducta:</p>
+        <p>3. Cuatro nombres: sensación, emoción, pensamiento, impulso:</p>
+        <p>4. El pensamiento más “cierto” y dos hipótesis más:</p>
+        <p>5. Una tecla (gatillo) y la regla que activa:</p>
+        <p>6. ¿Cuidé la base (sueño, comida, pausa)? ¿Puse un límite de una frase?</p>
+        <p>7. En una conversación: ¿qué pedía el otro debajo de las palabras? ¿Cuál fue mi voz?</p>
+        <p>8. ¿Necesito acompañamiento profesional esta semana? Sí / No. Este curso no lo reemplaza.</p>
+      </div>
+      <p>Cuando termines las ocho etapas, no te “graduaste” de la gente ni de ti. Aprendiste a separar el hecho de la novela. La primera interpretación volverá: lleva años de alquiler. Ya no será invisible. En el segundo en que la reconoces, deja de mandar sola.</p>
+    </section>
+  </main>
+
+  <footer>
+    Ecosistema CMS VIAM · Consultorio de principios · Léete y lee<br />
+    Pedagogía original. Inspirado en principios del audiolibro citado. No es consejo clínico ni médico.
+  </footer>
+</body>
+</html>

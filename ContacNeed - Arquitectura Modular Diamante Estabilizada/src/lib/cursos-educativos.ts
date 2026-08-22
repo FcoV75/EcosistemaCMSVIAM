@@ -37,6 +37,18 @@ export const CURSOS_EDUCATIVOS: CursoEducativo[] = [
     portada: '/cursos-assets/el-cuerpo-escucha/01-portada-cuerpo-escucha.jpg',
   },
   {
+    slug: 'leete-y-lee',
+    titulo: 'Léete y lee',
+    estado: 'dado',
+    resumen:
+      'Ocho etapas para mirarte con precisión y leer a los demás sin inventarles la novela. Hecho e interpretación, desencadenantes, límites y voz propia.',
+    etapas: 8,
+    modalidad: 'Zoom y presencial',
+    fechaDado: '2026-08-22',
+    cuotaImparticion: 'Cuota de impartición en vivo (Zoom o presencial), a convenir con el docente.',
+    portada: '/cursos-assets/leete-y-lee/01-portada-leete-y-lee.jpg',
+  },
+  {
     slug: 'proximo-itinerario',
     titulo: 'Próximo itinerario',
     estado: 'programado',
@@ -46,7 +58,7 @@ export const CURSOS_EDUCATIVOS: CursoEducativo[] = [
     modalidad: 'Zoom y presencial',
     fechaProgramada: 'Por anunciar',
     cuotaImparticion: 'Se publicará con la fecha de impartición.',
-    portada: '/cursos-assets/el-cuerpo-escucha/02-sendero-pensamientos.jpg',
+    portada: '/cursos-assets/leete-y-lee/10-ciclo-aprender.jpg',
   },
 ]
 
