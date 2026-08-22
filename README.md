@@ -24,6 +24,8 @@ Frecuencias Sagradas: Integración de audios en 528Hz y 963Hz para la armonizaci
 
 Comunidad de apoyo y crecimiento gradual.
 
+Escuela de principios del consultorio: primer itinerario en `cursos/el-cuerpo-escucha/` (*El cuerpo escucha*).
+
 3. IA VIAM Music & Publicity 🎼
 La productora creativa donde el arte humano se potencia con Inteligencia Artificial.
 
