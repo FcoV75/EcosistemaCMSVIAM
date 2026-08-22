@@ -80,6 +80,16 @@
   status = 200
 
 [[redirects]]
+  from = "/cursos"
+  to = "/cursos/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/"
+  to = "/cursos/index.html"
+  status = 200
+
+[[redirects]]
   from = "/cursos/el-cuerpo-escucha"
   to = "/cursos/el-cuerpo-escucha/index.html"
   status = 200
