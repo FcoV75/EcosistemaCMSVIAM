@@ -14,8 +14,10 @@ import { Route as RadioRouteImport } from './routes/radio'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MensajesRouteImport } from './routes/mensajes'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as EscuelaRouteImport } from './routes/escuela'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EscuelaSlugRouteImport } from './routes/escuela.$slug'
 import { Route as UUserIdRouteImport } from './routes/u/$userId'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
@@ -46,6 +48,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EscuelaRoute = EscuelaRouteImport.update({
+  id: '/escuela',
+  path: '/escuela',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -54,6 +61,11 @@ const AdminRoute = AdminRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscuelaSlugRoute = EscuelaSlugRouteImport.update({
+  id: '/escuela/$slug',
+  path: '/escuela/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UUserIdRoute = UUserIdRouteImport.update({
@@ -80,6 +92,8 @@ const MensajesChatPeerIdRoute = MensajesChatPeerIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/escuela': typeof EscuelaRoute
+  '/escuela/$slug': typeof EscuelaSlugRoute
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -93,6 +107,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/escuela': typeof EscuelaRoute
+  '/escuela/$slug': typeof EscuelaSlugRoute
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -107,6 +123,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/escuela': typeof EscuelaRoute
+  '/escuela/$slug': typeof EscuelaSlugRoute
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -122,6 +140,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/escuela'
+    | '/escuela/$slug'
     | '/login'
     | '/mensajes'
     | '/profile'
@@ -135,6 +155,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/escuela'
+    | '/escuela/$slug'
     | '/login'
     | '/mensajes'
     | '/profile'
@@ -148,6 +170,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/escuela'
+    | '/escuela/$slug'
     | '/login'
     | '/mensajes'
     | '/profile'
@@ -162,6 +186,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  EscuelaRoute: typeof EscuelaRoute
+  EscuelaSlugRoute: typeof EscuelaSlugRoute
   LoginRoute: typeof LoginRoute
   MensajesRoute: typeof MensajesRouteWithChildren
   ProfileRoute: typeof ProfileRoute
@@ -214,6 +240,20 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escuela': {
+      id: '/escuela'
+      path: '/escuela'
+      fullPath: '/escuela'
+      preLoaderRoute: typeof EscuelaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escuela/$slug': {
+      id: '/escuela/$slug'
+      path: '/escuela/$slug'
+      fullPath: '/escuela/$slug'
+      preLoaderRoute: typeof EscuelaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -269,6 +309,8 @@ const MensajesRouteWithChildren = MensajesRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  EscuelaRoute: EscuelaRoute,
+  EscuelaSlugRoute: EscuelaSlugRoute,
   LoginRoute: LoginRoute,
   MensajesRoute: MensajesRouteWithChildren,
   ProfileRoute: ProfileRoute,

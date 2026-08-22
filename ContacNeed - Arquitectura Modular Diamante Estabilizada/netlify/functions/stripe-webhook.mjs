@@ -74,8 +74,57 @@ async function upsertContacNeedPro(supabase, userId, planType, sessionId) {
   }
 }
 
+async function activateEscuelaFromCheckout(supabase, session) {
+  const slug = session.metadata?.curso_slug
+  const userId = session.metadata?.userId || null
+  const email = session.metadata?.email || null
+  if (!slug) return { warning: 'checkout de escuela sin curso_slug' }
+
+  const now = new Date().toISOString()
+  const { data: rows } = await supabase
+    .from('ecosistema_entitlements')
+    .select('id, user_id, metadata')
+    .eq('producto', 'escuela_principios')
+    .eq('status', 'active')
+    .limit(300)
+
+  const already = (rows || []).find((row) => {
+    const meta = row.metadata || {}
+    return meta.curso_slug === slug && ((userId && row.user_id === userId) || (email && meta.email === email))
+  })
+
+  const row = {
+    user_id: userId,
+    producto: 'escuela_principios',
+    plan: 'recuperacion',
+    status: 'active',
+    expires_at: null,
+    stripe_session_id: session.id || null,
+    metadata: { curso_slug: slug, email, source: 'contacneed_webhook', recuperacion_mxn: 200 },
+    updated_at: now,
+  }
+
+  if (already?.id) {
+    const { error } = await supabase.from('ecosistema_entitlements').update(row).eq('id', already.id)
+    if (error) throw error
+  } else {
+    const { error } = await supabase.from('ecosistema_entitlements').insert({ ...row, starts_at: now })
+    if (error) throw error
+  }
+  return { activated: true, producto: 'escuela_principios', slug, userId }
+}
+
 async function activateProFromCheckout(session) {
   const producto = session.metadata?.producto || 'contacneed_pro'
+  if (producto === 'escuela_principios') {
+    const supabaseUrl = supabaseUrlFromEnv()
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase no configurado para ContacNeed.')
+    }
+    const supabase = createClient(supabaseUrl, supabaseKey)
+    return activateEscuelaFromCheckout(supabase, session)
+  }
   if (producto !== 'contacneed_pro') {
     return { ignored: true, producto }
   }

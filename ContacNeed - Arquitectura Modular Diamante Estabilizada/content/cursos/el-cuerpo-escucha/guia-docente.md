@@ -1,11 +1,6 @@
 # Guía del docente — El cuerpo escucha
 
-El aula pública y la administración viven en **ContacNeed**:
-- Escuela: `https://contacneed.com/escuela`
-- Panel Admin → pestaña **Cursos Educativos**
-- Recuperación de cursos ya impartidos: 200 MXN (ver y descargar)
-
-Curso de principios · Consultorio de Francisco Valdez  
+Curso de principios del CMS · Consultorio de Francisco Valdez  
 Fuente inspiradora (no transcripción): audiolibro *Cambia tu forma de pensar, cura tu cuerpo* (Aprende Sin Leer).  
 Material pedagógico original: textos, metáforas, ejercicios y diapositivas del Ecosistema CMS VIAM.
 
@@ -13,8 +8,8 @@ Material pedagógico original: textos, metáforas, ejercicios y diapositivas del
 
 | Pieza | Para qué |
 | --- | --- |
-| ContacNeed `/escuela` | Aula pública: ya dados y programados |
-| Admin → Cursos Educativos | Impartición Zoom/presencial, accesos y agenda |
+| [Lecciones](index.html) | Lectura previa, consulta guiada o envío al paciente entre sesiones |
+| [Diapositivas](diapositivas.html) | Exposición en consultorio o pantalla compartida |
 | Esta guía | Ritmo, pausas, contraindicaciones y tono |
 
 No reproduzcas el audiolibro. Enseña los **principios**. El paciente puede escuchar la fuente si lo desea; aquí recibe un itinerario clínico-pedagógico.
