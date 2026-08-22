@@ -78,3 +78,18 @@
   from = "/curso-promotores"
   to = "/curso-promotores.html"
   status = 200
+
+[[redirects]]
+  from = "/cursos/el-cuerpo-escucha"
+  to = "/cursos/el-cuerpo-escucha/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/el-cuerpo-escucha/"
+  to = "/cursos/el-cuerpo-escucha/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/el-cuerpo-escucha/diapositivas"
+  to = "/cursos/el-cuerpo-escucha/diapositivas.html"
+  status = 200
