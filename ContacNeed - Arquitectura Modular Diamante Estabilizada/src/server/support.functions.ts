@@ -1,8 +1,26 @@
 import { createServerFn } from '@tanstack/react-start'
 import { askLlm } from '../lib/llm'
 import { getServerProfile, getServerUser } from '../lib/auth'
+import { createSupabaseAdminClient } from '../lib/supabase.server'
+import { type SesionViva } from '../lib/cursos-educativos'
 import { esPreguntaEscuela, hechosDesdeCatalogo, redactarInformeEscuela } from '../lib/informes-escuela'
-import { cargarHechosEscuela } from './cursos-educativos.functions'
+
+async function cargarHechosEscuela() {
+  try {
+    const supabase = createSupabaseAdminClient()
+    const { data } = await supabase
+      .from('ecosistema_entitlements')
+      .select('metadata')
+      .eq('producto', 'escuela_agenda')
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle()
+    const sesiones = ((data?.metadata as { sesiones?: SesionViva[] } | null)?.sesiones || []).filter(Boolean)
+    return hechosDesdeCatalogo(sesiones)
+  } catch {
+    return hechosDesdeCatalogo([])
+  }
+}
 
 const SYSTEM_CONTEXT = `ContacNeed es una red social mexicana que conecta oficios, profesiones y especialidades por estado.
 Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin, órgano de encuentro (voz con faro; nunca presenta personas sin veto humano).
