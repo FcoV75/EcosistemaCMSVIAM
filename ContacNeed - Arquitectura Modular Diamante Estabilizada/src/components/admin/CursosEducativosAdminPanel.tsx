@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { CalendarPlus, GraduationCap, Link2, Unlock } from 'lucide-react'
+import { BookOpen, CalendarPlus, Download, GraduationCap, Link2, Presentation, ScrollText, Unlock } from 'lucide-react'
 import {
+  getCursoDocumentoAdminFn,
   guardarAgendaAdminFn,
   listEscuelaAdminFn,
   otorgarCursoAdminFn,
 } from '../../server/cursos-educativos.functions'
 import { etiquetaCuota, type ModalidadImparticion, type SesionViva } from '../../lib/cursos-educativos'
+
+type KindVista = 'lecciones' | 'diapositivas' | 'guia'
 
 export function CursosEducativosAdminPanel() {
   const queryClient = useQueryClient()
@@ -53,6 +56,41 @@ export function CursosEducativosAdminPanel() {
   const dados = (listQuery.data?.cursos ?? []).filter((c) => c.estado === 'dado')
   const programados = (listQuery.data?.cursos ?? []).filter((c) => c.estado === 'programado')
   const sesiones = listQuery.data?.sesiones ?? []
+  const empaquetados = new Set(listQuery.data?.slugsEmpaquetados ?? [])
+  const [vista, setVista] = useState<{ slug: string; titulo: string; kind: KindVista } | null>(null)
+  const [html, setHtml] = useState<string | null>(null)
+  const [texto, setTexto] = useState<string | null>(null)
+  const [docError, setDocError] = useState<string | null>(null)
+
+  const docMutation = useMutation({
+    mutationFn: (payload: { slug: string; kind: KindVista | 'zip' }) =>
+      getCursoDocumentoAdminFn({ data: payload }),
+    onSuccess: (result, vars) => {
+      if (vars.kind === 'zip' && result.zipUrl) {
+        const a = document.createElement('a')
+        a.href = result.zipUrl
+        a.download = result.filename || 'curso.zip'
+        a.click()
+        return
+      }
+      setDocError(null)
+      setHtml('html' in result && result.html ? result.html : null)
+      setTexto('text' in result && result.text ? result.text : null)
+    },
+    onError: (error) => {
+      setHtml(null)
+      setTexto(null)
+      setDocError(error instanceof Error ? error.message : 'No se pudo abrir el curso')
+    },
+  })
+
+  const abrirCurso = (curso: { slug: string; titulo: string }, kind: KindVista) => {
+    setVista({ slug: curso.slug, titulo: curso.titulo, kind })
+    setHtml(null)
+    setTexto(null)
+    setDocError(null)
+    docMutation.mutate({ slug: curso.slug, kind })
+  }
 
   return (
     <div className="space-y-6">
@@ -81,33 +119,111 @@ export function CursosEducativosAdminPanel() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-        <h3 className="text-base font-bold text-amber-300">Cursos ya dados</h3>
+      <section className="rounded-2xl border border-emerald-400/30 bg-slate-900/80 p-4">
+        <h3 className="text-base font-bold text-emerald-200">Abrir cursos (tú, el docente)</h3>
         <p className="mt-1 text-sm text-slate-400">
-          El alumno paga $200 MXN, observa el material y luego lo descarga. Tú puedes previsualizar sin
-          pagar.
+          Aquí abres el material de cada curso ya impartido, sin pasar por la escuela pública ni por el
+          pago de los alumnos. Cuando agreguemos un curso nuevo y quede como «dado», aparecerá en esta
+          lista.
         </p>
-        <ul className="mt-3 space-y-3">
-          {dados.map((curso) => (
-            <li
-              key={curso.slug}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-3"
-            >
-              <div>
+        <ul className="mt-4 space-y-3">
+          {dados.map((curso) => {
+            const listo = empaquetados.has(curso.slug)
+            const activo = vista?.slug === curso.slug
+            return (
+              <li
+                key={curso.slug}
+                className={`rounded-xl border px-3 py-3 ${
+                  activo ? 'border-emerald-400/40 bg-emerald-950/20' : 'border-slate-800 bg-slate-950/60'
+                }`}
+              >
                 <p className="font-semibold text-amber-200">{curso.titulo}</p>
                 <p className="text-xs text-slate-400">
-                  {curso.etapas} etapas · {curso.modalidad} · {curso.cuotaImparticion}
+                  {curso.etapas} etapas · {curso.modalidad}
                 </p>
-              </div>
-              <a
-                href={`/escuela/${curso.slug}`}
-                className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold"
-              >
-                Previsualizar
-              </a>
-            </li>
-          ))}
+                {listo ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => abrirCurso(curso, 'lecciones')}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold"
+                    >
+                      <BookOpen size={14} />
+                      Lecciones
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => abrirCurso(curso, 'diapositivas')}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/40 px-3 py-1.5 text-xs font-semibold text-sky-100"
+                    >
+                      <Presentation size={14} />
+                      Diapositivas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => abrirCurso(curso, 'guia')}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 px-3 py-1.5 text-xs font-semibold text-amber-100"
+                    >
+                      <ScrollText size={14} />
+                      Guía
+                    </button>
+                    <button
+                      type="button"
+                      disabled={docMutation.isPending}
+                      onClick={() => docMutation.mutate({ slug: curso.slug, kind: 'zip' })}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold"
+                    >
+                      <Download size={14} />
+                      Descargar
+                    </button>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Cuando empaquetemos el material, aquí podrás abrirlo.
+                  </p>
+                )}
+              </li>
+            )
+          })}
         </ul>
+        {vista && (
+          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-700 bg-black">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
+              <p className="text-sm font-semibold text-emerald-100">
+                {vista.titulo}
+                <span className="ml-2 text-xs font-normal text-slate-400">
+                  {vista.kind === 'lecciones'
+                    ? 'Lecciones'
+                    : vista.kind === 'diapositivas'
+                      ? 'Diapositivas'
+                      : 'Guía docente'}
+                </span>
+              </p>
+              <button
+                type="button"
+                className="text-xs font-semibold text-slate-300 hover:text-white"
+                onClick={() => {
+                  setVista(null)
+                  setHtml(null)
+                  setTexto(null)
+                  setDocError(null)
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+            {docError && <p className="px-3 py-3 text-sm text-red-300">{docError}</p>}
+            {docMutation.isPending && !html && !texto && (
+              <p className="px-3 py-8 text-center text-sm text-slate-400">Abriendo el curso...</p>
+            )}
+            {html && <iframe title={vista.titulo} srcDoc={html} className="h-[78vh] w-full border-0" />}
+            {texto && (
+              <pre className="max-h-[78vh] overflow-auto whitespace-pre-wrap px-4 py-3 text-sm text-slate-200">
+                {texto}
+              </pre>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-sky-500/25 bg-slate-900/80 p-4">

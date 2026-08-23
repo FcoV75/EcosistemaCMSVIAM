@@ -262,26 +262,40 @@ export const getCursoDocumentoFn = createServerFn({ method: 'GET' })
       throw new Error('Paga la cuota de recuperación para ver y descargar este curso.')
     }
 
-    const bundled = CURSOS_BUNDLED[data.slug]
-    if (!bundled) throw new Error('Material del curso no empaquetado.')
-    if (data.kind === 'zip') {
-      return {
-        filename: `${data.slug}.zip`,
-        mime: 'application/zip',
-        zipUrl: bundled.zipPublicUrl,
-      }
+    return materialDeCursoDado(data.slug, data.kind)
+  })
+
+function materialDeCursoDado(slug: string, kind: 'lecciones' | 'diapositivas' | 'guia' | 'zip') {
+  const bundled = CURSOS_BUNDLED[slug]
+  if (!bundled) throw new Error('Material del curso no empaquetado.')
+  if (kind === 'zip') {
+    return {
+      filename: `${slug}.zip`,
+      mime: 'application/zip',
+      zipUrl: bundled.zipPublicUrl,
     }
-    if (data.kind === 'guia') {
-      return { filename: 'guia-docente.md', mime: 'text/markdown', text: bundled.guia }
-    }
-    if (data.kind === 'diapositivas') {
-      const html = bundled.diapositivas.replace(
-        '<script src="slides.js"></script>',
-        `<script>${bundled.slides}</script>`,
-      )
-      return { filename: 'diapositivas.html', mime: 'text/html', html }
-    }
-    return { filename: 'index.html', mime: 'text/html', html: bundled.lecciones }
+  }
+  if (kind === 'guia') {
+    return { filename: 'guia-docente.md', mime: 'text/markdown', text: bundled.guia }
+  }
+  if (kind === 'diapositivas') {
+    const html = bundled.diapositivas.replace(
+      '<script src="slides.js"></script>',
+      `<script>${bundled.slides}</script>`,
+    )
+    return { filename: 'diapositivas.html', mime: 'text/html', html }
+  }
+  return { filename: 'index.html', mime: 'text/html', html: bundled.lecciones }
+}
+
+export const getCursoDocumentoAdminFn = createServerFn({ method: 'GET' })
+  .inputValidator((d: { slug: string; kind: 'lecciones' | 'diapositivas' | 'guia' | 'zip' }) => d)
+  .handler(async ({ data }) => {
+    const admin = await requireAdminUser()
+    if (!admin) throw new Error('Acceso denegado')
+    const curso = getCursoBySlug(data.slug)
+    if (!curso || curso.estado !== 'dado') throw new Error('Este curso aún no está disponible.')
+    return materialDeCursoDado(data.slug, data.kind)
   })
 
 export const createEscuelaCheckoutFn = createServerFn({ method: 'POST' })
@@ -395,6 +409,7 @@ export const listEscuelaAdminFn = createServerFn({ method: 'GET' }).handler(asyn
     compras: data ?? [],
     intereses: intereses ?? [],
     precioRecuperacion: PRECIO_RECUPERACION_MXN,
+    slugsEmpaquetados: Object.keys(CURSOS_BUNDLED),
   }
 })
 
