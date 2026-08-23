@@ -225,6 +225,21 @@ function mapSignUpError(message: string, email: string) {
   return message
 }
 
+function normalizeTipoMiembro(
+  value: string | undefined | null,
+): 'Observador' | 'Oficio' | 'Profesion' | 'Especialidad' {
+  const key = String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+  if (key === 'observador') return 'Observador'
+  if (key === 'oficio') return 'Oficio'
+  if (key === 'profesion') return 'Profesion'
+  if (key === 'especialidad') return 'Especialidad'
+  return 'Observador'
+}
+
 async function saveSignupProfile(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   userId: string,
@@ -232,13 +247,14 @@ async function saveSignupProfile(
   data: SignUpInput,
   emailConfirmed: boolean,
 ) {
-  const needsCedula = data.tipo_miembro === 'Profesion' || data.tipo_miembro === 'Especialidad'
+  const tipoMiembro = normalizeTipoMiembro(data.tipo_miembro)
+  const needsCedula = tipoMiembro === 'Profesion' || tipoMiembro === 'Especialidad'
 
   const payload: Record<string, unknown> = {
     id: userId,
     nombre: data.nombre.trim(),
     correo: email,
-    tipo_miembro: data.tipo_miembro,
+    tipo_miembro: tipoMiembro,
     direccion: data.direccion?.trim() || null,
     cp: data.cp?.trim() || null,
     celular: data.celular?.trim() || data.telefono?.trim() || null,
@@ -247,8 +263,10 @@ async function saveSignupProfile(
     comunidad: data.comunidad?.trim() || null,
     sexo: data.sexo?.trim() || null,
     fecha_nacimiento: data.fecha_nacimiento?.trim() || null,
-    habilidad_empirica: data.habilidad_empirica?.trim() || null,
-    descripcion_profesion: data.descripcion_profesion?.trim() || null,
+    habilidad_empirica:
+      tipoMiembro === 'Observador' ? null : data.habilidad_empirica?.trim() || null,
+    descripcion_profesion:
+      tipoMiembro === 'Observador' ? null : data.descripcion_profesion?.trim() || null,
     cedula: needsCedula ? data.cedula?.trim() || null : null,
     verificado: emailConfirmed,
     es_pro: false,
@@ -259,7 +277,20 @@ async function saveSignupProfile(
   const full = await admin.from('perfiles').upsert(payload, { onConflict: 'id' })
   if (!full.error) return
 
-  const { fecha_registro, ...withoutFecha } = payload
+  // Si el check antiguo aún no se actualizó, reintenta con minúsculas (legado)
+  if (String(full.error.message).includes('perfiles_tipo_miembro_check')) {
+    const legacyPayload = {
+      ...payload,
+      tipo_miembro: tipoMiembro.toLowerCase(),
+    }
+    const legacy = await admin.from('perfiles').upsert(legacyPayload, { onConflict: 'id' })
+    if (!legacy.error) return
+    throw new Error(
+      `No se pudo guardar el perfil: ${legacy.error.message}. Ejecuta en Supabase el SQL 014_fix_tipo_miembro_observador.sql`,
+    )
+  }
+
+  const { fecha_registro: _fecha, ...withoutFecha } = payload
   const fallback = await admin.from('perfiles').upsert(withoutFecha, { onConflict: 'id' })
   if (fallback.error) {
     throw new Error(`No se pudo guardar el perfil: ${fallback.error.message}`)

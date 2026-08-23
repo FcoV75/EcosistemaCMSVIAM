@@ -21,12 +21,22 @@ export function getDefaultAvatarUrl(seed: string, name?: string | null) {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(initial)}&background=${color}&color=fff&size=128&bold=true`
 }
 
+export function isLikelyImageUrl(url?: string | null) {
+  const value = url?.trim() ?? ''
+  if (!value) return false
+  if (/\/raw\/upload\//i.test(value)) return false
+  if (/\.(pdf|mp4|mov|webm|mp3|wav|ogg|m4a|aac|zip|docx?|xlsx?|pptx?)(\?|$)/i.test(value)) {
+    return false
+  }
+  return true
+}
+
 export function resolveAvatarUrl(
   avatarUrl: string | null | undefined,
   seed: string,
   name?: string | null,
 ) {
   const trimmed = avatarUrl?.trim()
-  if (trimmed && !isPlaceholderAvatarUrl(trimmed)) return trimmed
+  if (trimmed && !isPlaceholderAvatarUrl(trimmed) && isLikelyImageUrl(trimmed)) return trimmed
   return getDefaultAvatarUrl(seed, name)
 }

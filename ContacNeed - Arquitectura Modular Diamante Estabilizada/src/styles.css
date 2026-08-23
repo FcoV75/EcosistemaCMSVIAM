@@ -71,6 +71,26 @@ body {
   pointer-events: none;
 }
 
+/* mask-composite + gradients corrompe el render en varios Android (estática / ruido visual). */
+@media (hover: none) and (pointer: coarse) {
+  .cn-pro-card::before {
+    content: none;
+    display: none;
+  }
+
+  .cn-pro-card {
+    border-color: rgba(251, 191, 36, 0.35) !important;
+  }
+
+  .cn-glow-gold {
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.2);
+  }
+
+  .cn-logo-metallic {
+    filter: none;
+  }
+}
+
 .cn-pulse-dot {
   display: inline-block;
   width: 8px;

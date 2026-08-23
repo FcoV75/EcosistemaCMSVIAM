@@ -82,7 +82,12 @@ function ProCard({
         <img
           src={avatar}
           alt={pro.nombre ?? 'Profesional PRO'}
-          className="h-11 w-11 rounded-full border-2 border-amber-400/50 object-cover"
+          className="h-11 w-11 shrink-0 rounded-full border-2 border-amber-400/50 object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={(event) => {
+            event.currentTarget.src = resolveAvatarUrl(null, pro.id, pro.nombre)
+          }}
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
