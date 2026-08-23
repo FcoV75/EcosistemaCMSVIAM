@@ -215,7 +215,11 @@ export function CursosEducativosAdminPanel() {
               className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2"
             >
               <span>
-                {item.fecha} {item.hora} · {item.modalidad} · {item.cuotaMxn ? `$${item.cuotaMxn} MXN` : 'cuota por definir'}
+                <strong className="text-amber-100">{item.titulo || item.slug}</strong>
+                <span className="block text-slate-300">
+                  {item.fecha} {item.hora} · {item.modalidad} ·{' '}
+                  {item.cuotaMxn ? `$${item.cuotaMxn} MXN` : 'cuota por definir'}
+                </span>
               </span>
               <button
                 type="button"
@@ -271,6 +275,39 @@ export function CursosEducativosAdminPanel() {
           </button>
         </form>
         {msg && <p className="mt-3 text-sm text-sky-200">{msg}</p>}
+      </section>
+
+      <section className="rounded-2xl border border-sky-500/20 bg-slate-900/80 p-4">
+        <h3 className="text-base font-bold text-sky-200">Informes e inscripciones pedidas</h3>
+        <p className="mt-1 text-sm text-slate-400">
+          Llegan cuando alguien pulsa «Pedir informes» o «Quiero inscribirme» en la escuela. La IA los
+          orienta y tú ves aquí a quién contactar.
+        </p>
+        <ul className="mt-3 space-y-2 text-sm">
+          {(listQuery.data?.intereses ?? []).length === 0 && (
+            <li className="text-slate-500">Aún no hay solicitudes.</li>
+          )}
+          {(listQuery.data?.intereses ?? []).map((row) => {
+            const meta = (row.metadata || {}) as {
+              titulo?: string
+              curso_slug?: string
+              email?: string
+              nombre?: string
+              fecha?: string
+            }
+            return (
+              <li key={row.id} className="rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2">
+                <p className="font-semibold text-sky-100">
+                  {meta.titulo || meta.curso_slug || 'Curso'} · {row.plan === 'inscripcion' ? 'inscripción' : 'informes'}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {meta.nombre || 'Alumno'} · {meta.email || 'sin correo'}
+                  {meta.fecha ? ` · fecha ${meta.fecha}` : ''}
+                </p>
+              </li>
+            )
+          })}
+        </ul>
       </section>
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">

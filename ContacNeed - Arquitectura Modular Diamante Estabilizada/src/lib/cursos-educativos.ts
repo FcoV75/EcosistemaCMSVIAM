@@ -66,6 +66,10 @@ export function getCursoBySlug(slug: string) {
   return CURSOS_EDUCATIVOS.find((curso) => curso.slug === slug) ?? null
 }
 
+export function tituloDeCurso(slug: string) {
+  return getCursoBySlug(slug)?.titulo || 'Curso de la escuela'
+}
+
 export function cursosPublicos() {
   return CURSOS_EDUCATIVOS.filter((curso) => curso.estado === 'dado' || curso.estado === 'programado')
 }
@@ -73,6 +77,7 @@ export function cursosPublicos() {
 export type SesionViva = {
   id: string
   slug: string
+  titulo?: string
   fecha: string
   hora: string
   modalidad: ModalidadImparticion

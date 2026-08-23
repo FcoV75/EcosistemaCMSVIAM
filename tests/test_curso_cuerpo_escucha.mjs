@@ -60,4 +60,15 @@ assert.match(cmsCatalog, /contacneed.com\/escuela/);
 const sidebar = readFileSync(join(cn, "src/components/SidebarNav.tsx"), "utf8");
 assert.match(sidebar, /to="\/escuela"/);
 
+const escuela = readFileSync(join(cn, "src/routes/escuela.tsx"), "utf8");
+assert.match(escuela, /sesion\.titulo/);
+assert.match(escuela, /AccionesEscuela/);
+assert.match(escuela, /Pedir informes|Quiero inscribirme|Ver e informes/);
+
+const shell = readFileSync(join(cn, "src/components/AppShell.tsx"), "utf8");
+assert.match(shell, /AmigosEnLinea/);
+assert.ok(existsSync(join(cn, "src/components/AmigosEnLinea.tsx")), "falta AmigosEnLinea");
+assert.match(readFileSync(join(cn, "src/server/social.functions.ts"), "utf8"), /getAmigosEnLineaFn/);
+assert.match(readFileSync(join(cn, "src/server/support.functions.ts"), "utf8"), /Escuela de principios vitalicios/);
+
 console.log("ok: escuela en ContacNeed admin + aula pública 200 MXN");

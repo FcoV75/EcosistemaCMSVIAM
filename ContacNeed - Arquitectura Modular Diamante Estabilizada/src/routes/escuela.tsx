@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { BookOpen, CalendarClock, Lock } from 'lucide-react'
+import { AccionesEscuela } from '../components/AccionesEscuela'
 import { AppShell } from '../components/AppShell'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { PRECIO_RECUPERACION_MXN } from '../lib/cursos-educativos'
@@ -50,16 +51,34 @@ function EscuelaPage() {
               <CalendarClock size={18} />
               <h2 className="text-lg font-bold">Próximas imparticiones</h2>
             </div>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-3 text-sm">
               {data.sesiones.map((sesion) => (
-                <li key={sesion.id} className="rounded-xl border border-slate-800 px-3 py-2">
-                  <strong>
-                    {sesion.fecha}
-                    {sesion.hora ? ` · ${sesion.hora}` : ''}
-                  </strong>{' '}
-                  · {sesion.modalidad}
-                  {sesion.cuotaMxn ? ` · $${sesion.cuotaMxn} MXN` : ''}
-                  {sesion.notas ? <span className="block text-slate-400">{sesion.notas}</span> : null}
+                <li key={sesion.id} className="rounded-xl border border-slate-800 px-3 py-3">
+                  <p className="text-base font-black text-sky-100">{sesion.titulo}</p>
+                  <p className="mt-1 text-slate-200">
+                    <strong>
+                      {sesion.fecha}
+                      {sesion.hora ? ` · ${sesion.hora}` : ''}
+                    </strong>{' '}
+                    · {sesion.modalidad}
+                    {sesion.cuotaMxn ? ` · $${sesion.cuotaMxn} MXN` : ''}
+                  </p>
+                  {sesion.notas ? <p className="mt-1 text-slate-400">{sesion.notas}</p> : null}
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <Link
+                      to="/escuela/$slug"
+                      params={{ slug: sesion.slug }}
+                      className="text-xs font-semibold text-amber-300 hover:underline"
+                    >
+                      Ver el curso
+                    </Link>
+                    <AccionesEscuela
+                      slug={sesion.slug}
+                      titulo={sesion.titulo}
+                      sesionId={sesion.id}
+                      loggedIn={data.loggedIn}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -99,9 +118,16 @@ function EscuelaPage() {
                       {mio ? 'Abrir mi curso' : 'Ver y adquirir'}
                     </Link>
                   ) : (
-                    <span className="inline-flex rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-400">
-                      Próximamente
-                    </span>
+                    <div className="space-y-2">
+                      <Link
+                        to="/escuela/$slug"
+                        params={{ slug: curso.slug }}
+                        className="inline-flex rounded-xl border border-sky-400/40 px-4 py-2 text-sm font-semibold text-sky-100"
+                      >
+                        Ver e informes
+                      </Link>
+                      <AccionesEscuela slug={curso.slug} titulo={curso.titulo} loggedIn={data.loggedIn} />
+                    </div>
                   )}
                 </div>
               </article>

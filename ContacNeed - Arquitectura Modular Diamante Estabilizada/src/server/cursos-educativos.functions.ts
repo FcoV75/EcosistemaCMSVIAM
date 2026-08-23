@@ -15,8 +15,10 @@ import {
   cursosPublicos,
   getCursoBySlug,
   randomIntegrationSuffix,
+  tituloDeCurso,
   type SesionViva,
 } from '../lib/cursos-educativos'
+import { crearNotificacion } from '../lib/notificaciones'
 import { getSiteUrl } from '../lib/site-url'
 
 function getStripe() {
@@ -157,7 +159,10 @@ export const getEscuelaPublicaFn = createServerFn({ method: 'GET' }).handler(asy
     lema: ESCUELA_LEMA,
     precioRecuperacion: PRECIO_RECUPERACION_MXN,
     cursos: cursosPublicos(),
-    sesiones: agenda.sesiones,
+    sesiones: agenda.sesiones.map((sesion) => ({
+      ...sesion,
+      titulo: tituloDeCurso(sesion.slug),
+    })),
     misSlugs,
     loggedIn: Boolean(user),
   }
@@ -177,6 +182,9 @@ export const getCursoAccesoFn = createServerFn({ method: 'GET' })
 
     return {
       curso,
+      sesiones: (await leerAgenda(supabase)).sesiones
+        .filter((sesion) => sesion.slug === data.slug)
+        .map((sesion) => ({ ...sesion, titulo: tituloDeCurso(sesion.slug) })),
       loggedIn: Boolean(user),
       unlocked,
       esAdmin: Boolean(admin),
@@ -305,15 +313,110 @@ export const listEscuelaAdminFn = createServerFn({ method: 'GET' }).handler(asyn
     .limit(300)
   if (error) throw error
 
+  const { data: intereses } = await supabase
+    .from('ecosistema_entitlements')
+    .select('id, user_id, plan, metadata, created_at')
+    .eq('producto', 'escuela_interes')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(80)
+
   return {
     titulo: ESCUELA_TITULO,
     lema: ESCUELA_LEMA,
     cursos: CURSOS_EDUCATIVOS,
-    sesiones: agenda.sesiones,
+    sesiones: agenda.sesiones.map((sesion) => ({
+      ...sesion,
+      titulo: tituloDeCurso(sesion.slug),
+    })),
     compras: data ?? [],
+    intereses: intereses ?? [],
     precioRecuperacion: PRECIO_RECUPERACION_MXN,
   }
 })
+
+export const solicitarInteresEscuelaFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { slug: string; interes: 'informes' | 'inscripcion'; sesionId?: string }) => d)
+  .handler(async ({ data }) => {
+    const { user, profile } = await requireActiveUser()
+    const curso = getCursoBySlug(data.slug)
+    if (!curso) throw new Error('Curso no encontrado')
+
+    const supabase = createSupabaseAdminClient()
+    const agenda = await leerAgenda(supabase)
+    const sesion = data.sesionId
+      ? agenda.sesiones.find((item) => item.id === data.sesionId)
+      : agenda.sesiones.find((item) => item.slug === data.slug)
+    const titulo = tituloDeCurso(data.slug)
+    const cuando = sesion
+      ? `${sesion.fecha}${sesion.hora ? ` · ${sesion.hora}` : ''}`
+      : curso.fechaProgramada || 'fecha por confirmar'
+    const ahora = new Date().toISOString()
+    const interesLabel = data.interes === 'inscripcion' ? 'inscripción' : 'informes'
+
+    const entrada = {
+      curso_slug: data.slug,
+      titulo,
+      sesion_id: sesion?.id || null,
+      fecha: sesion?.fecha || null,
+      email: user.email || profile?.correo || null,
+      nombre: profile?.nombre || null,
+      interes: data.interes,
+      at: ahora,
+    }
+    const { data: existente } = await supabase
+      .from('ecosistema_entitlements')
+      .select('id, metadata')
+      .eq('user_id', user.id)
+      .eq('producto', 'escuela_interes')
+      .eq('status', 'active')
+      .maybeSingle()
+    const prevMeta = (existente?.metadata || {}) as { historial?: unknown[] }
+    const historial = [...(Array.isArray(prevMeta.historial) ? prevMeta.historial : []), entrada].slice(-12)
+    const interesRow = {
+      user_id: user.id,
+      producto: 'escuela_interes',
+      plan: data.interes,
+      status: 'active',
+      expires_at: null,
+      metadata: { ...entrada, historial },
+      updated_at: ahora,
+    }
+    if (existente?.id) {
+      const { error: interesError } = await supabase
+        .from('ecosistema_entitlements')
+        .update(interesRow)
+        .eq('id', existente.id)
+      if (interesError) throw interesError
+    } else {
+      const { error: interesError } = await supabase
+        .from('ecosistema_entitlements')
+        .insert({ ...interesRow, starts_at: ahora })
+      if (interesError) throw interesError
+    }
+
+    const { data: admins } = await supabase.from('perfiles').select('id').eq('is_admin', true).limit(20)
+    for (const admin of admins ?? []) {
+      await crearNotificacion(supabase, {
+        usuarioId: admin.id,
+        tipo: 'general',
+        titulo: `${interesLabel === 'inscripción' ? 'Inscripción' : 'Informes'}: ${titulo}`,
+        cuerpo: `${profile?.nombre || user.email} pidió ${interesLabel} de ${titulo} (${cuando}).`,
+        enlace: '/admin',
+        metadata: { curso_slug: data.slug, email: user.email, interes: data.interes },
+      })
+    }
+
+    return {
+      ok: true,
+      titulo,
+      cuando,
+      pregunta:
+        data.interes === 'inscripcion'
+          ? `Quiero inscribirme a «${titulo}»${sesion ? ` el ${cuando}` : ''}. ¿Cómo reservo mi lugar, cuál es la cuota en vivo y qué necesito llevar o preparar?`
+          : `Pido informes de «${titulo}»${sesion ? ` (${cuando})` : ''}. ¿De qué trata, para quién es, cuándo se imparte y cómo me inscribo?`,
+    }
+  })
 
 export const otorgarCursoAdminFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { email: string; slug: string; nombre?: string }) => d)
