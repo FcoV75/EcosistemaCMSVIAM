@@ -166,7 +166,9 @@ def _construir_config_desde_form(form):
         "sin_marca_agua": form.get("sin_marca_agua", "false").lower() == "true",
         "escala_texto": escala_texto,
         "nombre_pista": _normalizar_campo_texto(nombre_pista),
-        "volumen_fondo": form.get("volumen_fondo", "0.24"),
+        "volumen_voz": form.get("volumen_voz", "1"),
+        "volumen_fondo": form.get("volumen_fondo", "0.48"),
+        "audio_ya_mezclado": form.get("audio_ya_mezclado", "false").lower() in ("true", "1", "yes"),
     }
 
 
@@ -208,7 +210,9 @@ def _construir_config_desde_json(body):
         "sin_marca_agua": _as_bool(body.get("sin_marca_agua")),
         "escala_texto": escala_texto,
         "nombre_pista": _normalizar_campo_texto(body.get("nombre_pista", "")),
-        "volumen_fondo": body.get("volumen_fondo", 0.24),
+        "volumen_voz": body.get("volumen_voz", 1.0),
+        "volumen_fondo": body.get("volumen_fondo", 0.48),
+        "audio_ya_mezclado": _as_bool(body.get("audio_ya_mezclado")),
     }
 
 

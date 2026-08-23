@@ -158,7 +158,7 @@
         }
         @keyframes kenburns-preview {
             from { transform: scale(1) translate(0, 0); }
-            to { transform: scale(1.32) translate(-4%, -3%); }
+            to { transform: scale(1.55) translate(-5%, -4%); }
         }
         .cuotas-estudio {
             display: flex;
@@ -181,6 +181,10 @@
         }
         .riel-audio h3 { margin: 0 0 8px; color: #D4AF37; font-size: 0.95rem; }
         .riel-audio .zona-drop { min-height: 86px; margin: 8px 0; }
+        .riel-previa { width: 100%; margin-top: 8px; display: none; height: 36px; }
+        .riel-volumen { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.82rem; color: #E8DDB5; }
+        .riel-volumen input[type="range"] { flex: 1; }
+        .mezcla-previa { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
         .btn-eliminar-celda {
             background: var(--color-rojo-boton);
             color: white;
@@ -469,7 +473,7 @@
 
         <div class="seccion-panel">
             <h2>🎵 Rieles de audio — locución y fondo por separado</h2>
-            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:8px;">La voz hablada ya no pisa la música. Un riel es el texto a voz o tu locución; el otro es el MP3 o MIDI de fondo. El video mezcla ambos: la voz al frente y la pista más bajita.</p>
+            <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:8px;">Riel 1: locución o texto a voz. Riel 2: MP3 o MIDI. Escucha la mezcla y ajusta volúmenes <strong>antes</strong> de renderizar; esos mismos niveles van al video.</p>
             <div class="aviso-formato-audio">
                 <strong>Formato recomendado: MP3</strong> — WAV, FLAC o AIFF se convierten en el navegador. M4A y OGG también sirven.
             </div>
@@ -481,6 +485,12 @@
                         <input type="file" id="input-audio-voz" class="input-archivo-oculto" accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/ogg,audio/*">
                         <span id="status-audio-voz" class="status-archivo">Vacío — usa Voz IA o sube un speech</span>
                     </div>
+                    <audio id="previa-audio-voz" class="riel-previa" controls preload="metadata"></audio>
+                    <div class="riel-volumen">
+                        <span>Vol. locución</span>
+                        <input type="range" id="vol-riel-voz" min="0" max="100" value="100">
+                        <strong id="vol-riel-voz-val">100%</strong>
+                    </div>
                 </div>
                 <div class="riel-audio">
                     <h3>🎹 Riel 2 — Música de fondo (MP3 o MIDI)</h3>
@@ -489,7 +499,18 @@
                         <input type="file" id="input-audio-real" class="input-archivo-oculto" accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/ogg,audio/*">
                         <span id="status-audio" class="status-archivo">Vacío — sube un MP3 o genera MIDI</span>
                     </div>
+                    <audio id="previa-audio-fondo" class="riel-previa" controls preload="metadata"></audio>
+                    <div class="riel-volumen">
+                        <span>Vol. fondo</span>
+                        <input type="range" id="vol-riel-fondo" min="0" max="100" value="50">
+                        <strong id="vol-riel-fondo-val">50%</strong>
+                    </div>
                 </div>
+            </div>
+            <div class="mezcla-previa">
+                <button type="button" class="btn-viam-subir" id="btn-escuchar-mezcla" style="background:#1E90FF;">▶️ Escuchar mezcla</button>
+                <button type="button" class="btn-viam-subir" id="btn-detener-mezcla" style="background:#555;">⏹️ Detener</button>
+                <span id="status-mezcla-rieles" class="status-archivo">La previa usa los volúmenes de las barras. Así sonará el video.</span>
             </div>
             <div class="grupo-control" style="margin-top:12px;">
                 <label for="nombre-pista-video">Nombre de la pista en el video</label>

@@ -9,9 +9,8 @@ import json
 import argparse
 import subprocess
 import unicodedata
-from audio_rieles import VOLUMEN_FONDO_DEFAULT, comando_mezcla_rieles
+from audio_rieles import VOLUMEN_FONDO_DEFAULT, VOLUMEN_VOZ_DEFAULT, comandos_mezcla_rieles
 from ken_burns import (
-    CICLO_KEN_BURNS_SEG,
     FACTOR_MOVIMIENTO,
     MAX_MOVIMIENTO_GRATUITO,
     MAX_MOVIMIENTO_PREMIUM,
@@ -408,13 +407,23 @@ def cargar_imagen_alta_calidad(ruta):
     return img
 
 
-def ajustar_proporcion_lienzo(img, ancho_objetivo=WIDTH, alto_objetivo=HEIGHT):
+def ajustar_proporcion_lienzo(img, ancho_objetivo=WIDTH, alto_objetivo=HEIGHT, cubrir=False):
     alto_orig, ancho_orig = img.shape[:2]
-    escala = min(ancho_objetivo / ancho_orig, alto_objetivo / alto_orig)
-    nuevo_ancho = int(ancho_orig * escala)
-    nuevo_alto = int(alto_orig * escala)
-    interp = cv2.INTER_AREA
+    if cubrir:
+        escala = max(ancho_objetivo / ancho_orig, alto_objetivo / alto_orig)
+    else:
+        escala = min(ancho_objetivo / ancho_orig, alto_objetivo / alto_orig)
+    nuevo_ancho = max(1, int(round(ancho_orig * escala)))
+    nuevo_alto = max(1, int(round(alto_orig * escala)))
+    interp = cv2.INTER_AREA if escala < 1 else cv2.INTER_CUBIC
     img_redimensionada = cv2.resize(img, (nuevo_ancho, nuevo_alto), interpolation=interp)
+    if cubrir:
+        x0 = max(0, (nuevo_ancho - ancho_objetivo) // 2)
+        y0 = max(0, (nuevo_alto - alto_objetivo) // 2)
+        recorte = img_redimensionada[y0:y0 + alto_objetivo, x0:x0 + ancho_objetivo]
+        if recorte.shape[0] != alto_objetivo or recorte.shape[1] != ancho_objetivo:
+            return cv2.resize(recorte, (ancho_objetivo, alto_objetivo), interpolation=cv2.INTER_LINEAR)
+        return recorte
     lienzo = np.zeros((alto_objetivo, ancho_objetivo, 3), dtype=np.uint8)
     x_offset = (ancho_objetivo - nuevo_ancho) // 2
     y_offset = (alto_objetivo - nuevo_alto) // 2
@@ -648,9 +657,12 @@ def escribir_frames_imagen(writer, frame_base, frames_totales, texto_escena, pal
     cache_clave = None
     cache_frame = None
     n = max(1, int(frames_totales))
+    ciclo_seg = max(2.0, n / float(FPS or 24))
     for i in range(n):
         if fuente_movimiento is not None:
-            t = progreso_ken_burns(frame_contador, FPS, CICLO_KEN_BURNS_SEG)
+            # Un ciclo completo por toma: con el reloj global de 6 s el zoom
+            # casi no se veía en segmentos cortos de la pizarra.
+            t = progreso_ken_burns(i, FPS, ciclo_seg)
             lienzo = aplicar_ken_burns_frame(fuente_movimiento, t, estilo_movimiento)
         else:
             lienzo = frame_base
@@ -764,20 +776,32 @@ def generar_video_cloud():
     _resolver_ruta_fuente()
     _aplicar_escala_tipografia(config.get("escala_texto", 6.0))
     ruta_fondo = config.get("ruta_audio_fondo") or ""
-    if ruta_fondo and os.path.exists(ruta_fondo) and os.path.exists(ruta_audio) and os.path.abspath(ruta_fondo) != os.path.abspath(ruta_audio):
+    audio_ya_mezclado = bool(config.get("audio_ya_mezclado", False))
+    if (not audio_ya_mezclado) and ruta_fondo and os.path.exists(ruta_fondo) and os.path.exists(ruta_audio) and os.path.abspath(ruta_fondo) != os.path.abspath(ruta_audio):
         mezcla = "/tmp/audio_rieles_mezcla.mp3"
         try:
             vol_fondo = float(config.get("volumen_fondo", VOLUMEN_FONDO_DEFAULT))
         except (TypeError, ValueError):
             vol_fondo = VOLUMEN_FONDO_DEFAULT
+        try:
+            vol_voz = float(config.get("volumen_voz", VOLUMEN_VOZ_DEFAULT))
+        except (TypeError, ValueError):
+            vol_voz = VOLUMEN_VOZ_DEFAULT
         dur_voz = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
-        cmd = comando_mezcla_rieles(ffmpeg_bin, ruta_audio, ruta_fondo, mezcla, dur_voz, vol_fondo)
-        print(f"Mezclando riel de locución con fondo (vol={vol_fondo})")
-        mix = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        if mix.returncode == 0 and os.path.exists(mezcla) and os.path.getsize(mezcla) > 800:
-            ruta_audio = mezcla
-        else:
-            print(f"Aviso: no se pudo mezclar el fondo: {(mix.stderr or mix.stdout or '')[:300]}")
+        print(f"Mezclando riel de locución con fondo (voz={vol_voz} fondo={vol_fondo})")
+        mezclado_ok = False
+        for i, cmd in enumerate(comandos_mezcla_rieles(
+            ffmpeg_bin, ruta_audio, ruta_fondo, mezcla, dur_voz, vol_fondo, vol_voz
+        )):
+            mix = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if mix.returncode == 0 and os.path.exists(mezcla) and os.path.getsize(mezcla) > 800:
+                ruta_audio = mezcla
+                mezclado_ok = True
+                print(f"Mezcla de rieles ok (estrategia {i + 1})")
+                break
+            print(f"Aviso mezcla rieles {i + 1}: {(mix.stderr or mix.stdout or '')[:240]}")
+        if not mezclado_ok:
+            print("Aviso: no se pudo mezclar el fondo; el video usará solo la locución.")
     duracion_audio = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
     print(f"Duración audio: {duracion_audio:.2f}s | FPS: {FPS} | Pista: {nombre_pista}")
 
@@ -817,9 +841,23 @@ def generar_video_cloud():
     max_movimiento = MAX_MOVIMIENTO_PREMIUM if es_premium else MAX_MOVIMIENTO_GRATUITO
     usados_movimiento = 0
 
-    def tomar_movimiento(forzar=False):
+    def item_quiere_movimiento(item):
+        if not isinstance(item, dict):
+            return False
+        if "movimiento" not in item:
+            return True
+        return quiere_movimiento(item.get("movimiento"))
+
+    n_pizarra_mov = sum(
+        1 for it in linea_tiempo
+        if isinstance(it, dict) and it.get("tipo") != "video" and item_quiere_movimiento(it)
+    )
+
+    def tomar_movimiento(reservar_pizarra=False):
         nonlocal usados_movimiento
-        if not forzar and usados_movimiento >= max_movimiento:
+        tope = max_movimiento - n_pizarra_mov if reservar_pizarra else max_movimiento
+        tope = max(0, tope)
+        if usados_movimiento >= tope:
             return None
         usados_movimiento += 1
         return True
@@ -828,8 +866,8 @@ def generar_video_cloud():
         fuente_mov = None
         if ruta_portada and os.path.exists(ruta_portada):
             img = cargar_imagen_alta_calidad(ruta_portada)
-            frame_base = ajustar_proporcion_lienzo(img) if img is not None else crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
-            if img is not None and tomar_movimiento():
+            frame_base = ajustar_proporcion_lienzo(img, cubrir=True) if img is not None else crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
+            if img is not None and tomar_movimiento(reservar_pizarra=True):
                 fuente_mov = ampliar_para_movimiento(frame_base)
         else:
             frame_base = crear_lienzo_portada_cierre(leyenda_portada, WIDTH, HEIGHT)
@@ -864,11 +902,11 @@ def generar_video_cloud():
         else:
             img = cargar_imagen_alta_calidad(ruta)
             if img is not None:
-                frame_base = ajustar_proporcion_lienzo(img)
+                frame_base = ajustar_proporcion_lienzo(img, cubrir=True)
                 ultimo_frame = frame_base.copy()
                 fuente_mov = None
                 estilo_mov = (item.get("estilo_movimiento") or "zoom_in")
-                if quiere_movimiento(item.get("movimiento")) and tomar_movimiento():
+                if item_quiere_movimiento(item) and tomar_movimiento():
                     fuente_mov = ampliar_para_movimiento(frame_base)
                     ultima_fuente_mov = fuente_mov
                     ultimo_estilo_mov = estilo_mov
@@ -888,7 +926,7 @@ def generar_video_cloud():
         fuente_mov = None
         if ruta_cierre and os.path.exists(ruta_cierre):
             img = cargar_imagen_alta_calidad(ruta_cierre)
-            frame_base = ajustar_proporcion_lienzo(img) if img is not None else crear_lienzo_portada_cierre(leyenda_cierre, WIDTH, HEIGHT)
+            frame_base = ajustar_proporcion_lienzo(img, cubrir=True) if img is not None else crear_lienzo_portada_cierre(leyenda_cierre, WIDTH, HEIGHT)
             if img is not None and tomar_movimiento():
                 fuente_mov = ampliar_para_movimiento(frame_base)
         else:

@@ -300,7 +300,7 @@ function mimeRecorderPreferido() {
 function dibujarKenBurnsCanvas(ctx, img, t, w, h, estilo) {
     const te = Math.max(0, Math.min(1, t));
     const ease = te * te * (3 - 2 * te);
-    const factor = 1.45;
+    const factor = 1.62;
     let scale = factor;
     if (estilo === "zoom_in") scale = 1 + ease * (factor - 1);
     else if (estilo === "zoom_out") scale = factor - ease * (factor - 1);
@@ -1797,7 +1797,9 @@ async function encodeMp3FromBuffer(rendered, { sampleRate = 44100, canales = 1, 
         }
     } else {
         const izq = floatAInt16(rendered.getChannelData(0));
-        const der = floatAInt16(rendered.getChannelData(1));
+        const der = floatAInt16(
+            rendered.numberOfChannels > 1 ? rendered.getChannelData(1) : rendered.getChannelData(0)
+        );
         for (let i = 0; i < izq.length; i += bloque) {
             const buf = mp3encoder.encodeBuffer(
                 izq.subarray(i, i + bloque),
@@ -2097,6 +2099,23 @@ window.generarVideo = async function () {
 
         const subtitulosOn = $("#chk-subtitulos")?.checked;
         const letra = $("#letra-cancion")?.value || letraGuardada || "";
+        const volVoz = volumenRielVoz();
+        const volFondo = volumenRielFondo();
+        let audio = audioFile || rielVozFile || rielFondoFile;
+        let audioFondo = null;
+        let audioYaMezclado = false;
+
+        if (rielVozFile && rielFondoFile) {
+            if (statusText) statusText.textContent = "Mezclando locución y música de fondo…";
+            try {
+                audio = await mezclarRielesCliente(rielVozFile, rielFondoFile, volVoz, volFondo);
+                audioYaMezclado = true;
+            } catch (mixErr) {
+                console.warn("[estudio] mezcla local:", mixErr);
+                audio = rielVozFile;
+                audioFondo = rielFondoFile;
+            }
+        }
 
         const meta = {
             linea_tiempo: lista,
@@ -2110,13 +2129,15 @@ window.generarVideo = async function () {
             sin_marca_agua: !!(isPremium && $("#chk-sin-marca-agua")?.checked),
             escala_texto: obtenerEscalaTexto(),
             nombre_pista: nombrePistaParaVideo(),
-            volumen_fondo: 0.24
+            volumen_voz: volVoz,
+            volumen_fondo: volFondo,
+            audio_ya_mezclado: audioYaMezclado
         };
 
         if (statusText) statusText.textContent = "Optimizando imágenes y audio...";
         const archivos = await prepararArchivosRender({
-            audio: rielVozFile || rielFondoFile,
-            audioFondo: rielVozFile && rielFondoFile ? rielFondoFile : null,
+            audio,
+            audioFondo: audioYaMezclado ? null : audioFondo,
             portada: portadaFile,
             cierre: cierreFile,
             mediaItems
@@ -2142,9 +2163,112 @@ window.generarVideo = async function () {
     }
 };
 
+function volumenRielVoz() {
+    const n = Number($("#vol-riel-voz")?.value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(1, n / 100)) : 1;
+}
+
+function volumenRielFondo() {
+    const n = Number($("#vol-riel-fondo")?.value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(1, n / 100)) : 0.5;
+}
+
 function sincronizarAudioPrincipal() {
     audioFile = rielVozFile || rielFondoFile;
     audioDuracionEst = rielVozFile ? duracionRielVoz : duracionRielFondo;
+}
+
+function sincronizarVolumenPrevia() {
+    const vozEl = $("#previa-audio-voz");
+    const fondoEl = $("#previa-audio-fondo");
+    const vozVal = $("#vol-riel-voz-val");
+    const fondoVal = $("#vol-riel-fondo-val");
+    if (vozEl) vozEl.volume = volumenRielVoz();
+    if (fondoEl) fondoEl.volume = volumenRielFondo();
+    if (vozVal) vozVal.textContent = `${Math.round(volumenRielVoz() * 100)}%`;
+    if (fondoVal) fondoVal.textContent = `${Math.round(volumenRielFondo() * 100)}%`;
+}
+
+function asignarPreviaRiel(audioEl, file) {
+    if (!audioEl) return;
+    if (audioEl.dataset.url) URL.revokeObjectURL(audioEl.dataset.url);
+    if (!file) {
+        audioEl.removeAttribute("src");
+        audioEl.dataset.url = "";
+        audioEl.style.display = "none";
+        return;
+    }
+    const url = URL.createObjectURL(file);
+    audioEl.dataset.url = url;
+    audioEl.src = url;
+    audioEl.style.display = "block";
+    sincronizarVolumenPrevia();
+}
+
+function detenerMezclaRieles() {
+    ["previa-audio-voz", "previa-audio-fondo"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.pause();
+        try { el.currentTime = 0; } catch { /* ignore */ }
+    });
+}
+
+async function escucharMezclaRieles() {
+    if (!rielVozFile && !rielFondoFile) {
+        alert("Carga primero la locución y/o el fondo.");
+        return;
+    }
+    detenerMezclaRieles();
+    sincronizarVolumenPrevia();
+    const vozEl = $("#previa-audio-voz");
+    const fondoEl = $("#previa-audio-fondo");
+    const st = $("#status-mezcla-rieles");
+    try {
+        if (fondoEl?.src && rielFondoFile) {
+            fondoEl.loop = true;
+            fondoEl.currentTime = 0;
+            await fondoEl.play();
+        }
+        if (vozEl?.src && rielVozFile) {
+            vozEl.loop = false;
+            vozEl.currentTime = 0;
+            vozEl.onended = () => {
+                if (fondoEl) fondoEl.pause();
+            };
+            await vozEl.play();
+        }
+        if (st) st.textContent = "Reproduciendo mezcla con los volúmenes actuales…";
+    } catch (err) {
+        if (st) st.textContent = "No se pudo reproducir la previa: " + err.message;
+    }
+}
+
+async function mezclarRielesCliente(vozFile, fondoFile, volVoz, volFondo) {
+    const vozBuf = await decodificarArchivoAudio(vozFile);
+    const fondoBuf = await decodificarArchivoAudio(fondoFile);
+    const sr = 44100;
+    const dur = Math.max(vozBuf.duration, 0.8);
+    const offline = new OfflineAudioContext(2, Math.max(1, Math.ceil(dur * sr)), sr);
+    const gVoz = offline.createGain();
+    gVoz.gain.value = volVoz;
+    gVoz.connect(offline.destination);
+    const gFondo = offline.createGain();
+    gFondo.gain.value = volFondo;
+    gFondo.connect(offline.destination);
+    const vozSrc = offline.createBufferSource();
+    vozSrc.buffer = vozBuf;
+    vozSrc.connect(gVoz);
+    vozSrc.start(0);
+    const fondoSrc = offline.createBufferSource();
+    fondoSrc.buffer = fondoBuf;
+    fondoSrc.loop = true;
+    fondoSrc.connect(gFondo);
+    fondoSrc.start(0);
+    const rendered = await offline.startRendering();
+    const blob = await encodeMp3FromBuffer(rendered, { sampleRate: sr, canales: 2, kbps: 192 });
+    if (!blob || blob.size < 800) throw new Error("La mezcla quedó vacía.");
+    return new File([blob], "mezcla-rieles.mp3", { type: "audio/mpeg" });
 }
 
 function actualizarAvisoAudio(extra = "", riel = "fondo") {
@@ -2262,6 +2386,10 @@ async function cargarAudio(file, riel = "fondo") {
         duracionRielFondo = dur;
     }
     sincronizarAudioPrincipal();
+    asignarPreviaRiel(
+        riel === "voz" ? $("#previa-audio-voz") : $("#previa-audio-fondo"),
+        finalFile
+    );
     actualizarAvisoAudio(notaConversion, riel);
     rellenarNombrePistaSiVacio(sugerirNombrePista(finalFile, riel));
     const sec = $("#seccion-subtitulos");
@@ -2331,6 +2459,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#input-audio-voz")?.addEventListener("change", (e) => {
         if (e.target.files[0]) cargarAudio(e.target.files[0], "voz");
     });
+    $("#vol-riel-voz")?.addEventListener("input", sincronizarVolumenPrevia);
+    $("#vol-riel-fondo")?.addEventListener("input", sincronizarVolumenPrevia);
+    $("#btn-escuchar-mezcla")?.addEventListener("click", () => {
+        escucharMezclaRieles().catch((err) => {
+            const st = $("#status-mezcla-rieles");
+            if (st) st.textContent = "No se pudo previsualizar: " + err.message;
+        });
+    });
+    $("#btn-detener-mezcla")?.addEventListener("click", detenerMezclaRieles);
+    sincronizarVolumenPrevia();
     $("#nombre-pista-video")?.addEventListener("input", () => {
         nombrePistaEditado = true;
     });
