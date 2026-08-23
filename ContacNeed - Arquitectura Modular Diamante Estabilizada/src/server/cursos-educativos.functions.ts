@@ -9,7 +9,6 @@ import {
   requireActiveUser,
   requireAdminUser,
 } from '../lib/auth'
-import { hechosDesdeCatalogo, type HechosEscuela } from '../lib/informes-escuela'
 import { normalizarEmail } from '../lib/promotores-viam'
 import {
   CURSOS_EDUCATIVOS,
@@ -40,7 +39,7 @@ function vigente(row: { status: string; expires_at: string | null }) {
   return new Date(row.expires_at).getTime() > Date.now()
 }
 
-export async function usuarioTieneCurso(
+async function usuarioTieneCurso(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   userId: string,
   slug: string,
@@ -61,7 +60,7 @@ export async function usuarioTieneCurso(
   })
 }
 
-export async function upsertAccesoCurso(
+async function upsertAccesoCurso(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   {
     userId,
@@ -141,16 +140,6 @@ async function leerAgenda(
     Boolean,
   )
   return { id: data?.id ?? null, sesiones }
-}
-
-export async function cargarHechosEscuela(): Promise<HechosEscuela> {
-  try {
-    const supabase = createSupabaseAdminClient()
-    const agenda = await leerAgenda(supabase)
-    return hechosDesdeCatalogo(agenda.sesiones)
-  } catch {
-    return hechosDesdeCatalogo([])
-  }
 }
 
 async function idsDocentesParaAvisos(

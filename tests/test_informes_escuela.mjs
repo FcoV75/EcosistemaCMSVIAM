@@ -21,6 +21,9 @@ assert.match(enlaces, /\/avisos/);
 assert.doesNotMatch(enlaces, /window\.location/);
 
 const support = readFileSync(join(cn, "src/server/support.functions.ts"), "utf8");
+assert.doesNotMatch(support, /cursos-educativos\.functions/);
+assert.match(support, /cargarHechosEscuela/);
+assert.match(support, /escuela_agenda/);
 const escuelaIdx = support.indexOf("esPreguntaEscuela(question)");
 const proIdx = support.indexOf("FAQ_ENTRIES.pro");
 assert.ok(escuelaIdx > 0 && escuelaIdx < proIdx, "la escuela debe contestarse antes que PRO");
