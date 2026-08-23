@@ -15,6 +15,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MensajesRouteImport } from './routes/mensajes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EscuelaRouteImport } from './routes/escuela'
+import { Route as AvisosRouteImport } from './routes/avisos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EscuelaSlugRouteImport } from './routes/escuela.$slug'
@@ -51,6 +52,11 @@ const LoginRoute = LoginRouteImport.update({
 const EscuelaRoute = EscuelaRouteImport.update({
   id: '/escuela',
   path: '/escuela',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AvisosRoute = AvisosRouteImport.update({
+  id: '/avisos',
+  path: '/avisos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -92,6 +98,7 @@ const MensajesChatPeerIdRoute = MensajesChatPeerIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/avisos': typeof AvisosRoute
   '/escuela': typeof EscuelaRoute
   '/escuela/$slug': typeof EscuelaSlugRoute
   '/login': typeof LoginRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/avisos': typeof AvisosRoute
   '/escuela': typeof EscuelaRoute
   '/escuela/$slug': typeof EscuelaSlugRoute
   '/login': typeof LoginRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/avisos': typeof AvisosRoute
   '/escuela': typeof EscuelaRoute
   '/escuela/$slug': typeof EscuelaSlugRoute
   '/login': typeof LoginRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/avisos'
     | '/escuela'
     | '/escuela/$slug'
     | '/login'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/avisos'
     | '/escuela'
     | '/escuela/$slug'
     | '/login'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/avisos'
     | '/escuela'
     | '/escuela/$slug'
     | '/login'
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AvisosRoute: typeof AvisosRoute
   EscuelaRoute: typeof EscuelaRoute
   EscuelaSlugRoute: typeof EscuelaSlugRoute
   LoginRoute: typeof LoginRoute
@@ -240,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/avisos': {
+      id: '/avisos'
+      path: '/avisos'
+      fullPath: '/avisos'
+      preLoaderRoute: typeof AvisosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/escuela': {
@@ -309,6 +329,7 @@ const MensajesRouteWithChildren = MensajesRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AvisosRoute: AvisosRoute,
   EscuelaRoute: EscuelaRoute,
   EscuelaSlugRoute: EscuelaSlugRoute,
   LoginRoute: LoginRoute,

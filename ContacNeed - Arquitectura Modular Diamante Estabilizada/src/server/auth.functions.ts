@@ -11,6 +11,7 @@ import { getResendConfig, sendSignupConfirmEmailViaResend } from '../lib/privile
 import { generarCodigoReferido } from '../lib/gamificacion'
 import { registrarReferidoEnSignup } from './gamificacion.functions'
 import {
+  esCuentaDocenteEscuela,
   getServerProfile,
   getServerUser,
   requireActiveUser,
@@ -110,13 +111,17 @@ export const getSessionContextFn = createServerFn({ method: 'GET' }).handler(asy
               bloqueado: Boolean(profile.bloqueado),
             }
           : null,
-        isAdmin: Boolean(profile?.is_admin),
+        isAdmin: esCuentaDocenteEscuela({
+          email: user.email,
+          is_admin: profile?.is_admin,
+          es_fundador: profile?.es_fundador,
+        }),
       }
     } catch {
       return {
         user: { id: user.id, email: user.email ?? undefined },
         profile: null,
-        isAdmin: false,
+        isAdmin: esCuentaDocenteEscuela({ email: user.email }),
       }
     }
   } catch (err) {

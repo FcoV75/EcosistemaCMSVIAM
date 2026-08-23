@@ -49,14 +49,51 @@ export async function getServerProfile(userId: string): Promise<ServerProfile | 
   }
 }
 
-export async function requireAdminUser() {
+export const EMAIL_DOCENTE_ESCUELA = 'jfcovaoso@gmail.com'
+
+function emailNorm(email?: string | null) {
+  return String(email || '').trim().toLowerCase()
+}
+
+export function esCuentaDocenteEscuela(input: {
+  email?: string | null
+  is_admin?: boolean | null
+  es_fundador?: boolean | null
+}) {
+  if (input.is_admin || input.es_fundador) return true
+  return emailNorm(input.email) === EMAIL_DOCENTE_ESCUELA
+}
+
+export async function esDocenteEscuelaActual() {
   const user = await getServerUser()
-  if (!user) return null
+  if (!user) return { user: null, profile: null as ServerProfile | null, esDocente: false }
 
-  const profile = await getServerProfile(user.id)
-  if (!profile?.is_admin || profile.bloqueado) return null
+  const porCorreo = emailNorm(user.email) === EMAIL_DOCENTE_ESCUELA
+  try {
+    const profile = await getServerProfile(user.id)
+    if (profile?.bloqueado) return { user, profile, esDocente: false }
+    return {
+      user,
+      profile,
+      esDocente: esCuentaDocenteEscuela({
+        email: user.email,
+        is_admin: profile?.is_admin,
+        es_fundador: profile?.es_fundador,
+      }),
+    }
+  } catch {
+    return { user, profile: null, esDocente: porCorreo }
+  }
+}
 
-  return { user, profile }
+export async function requireAdminUser() {
+  try {
+    const ctx = await esDocenteEscuelaActual()
+    if (!ctx.user || !ctx.esDocente) return null
+    return { user: ctx.user, profile: ctx.profile }
+  } catch {
+    return null
+  }
 }
 
 export async function requireActiveUser() {

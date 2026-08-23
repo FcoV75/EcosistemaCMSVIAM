@@ -2,6 +2,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { BookOpen, CalendarClock, Lock } from 'lucide-react'
 import { AccionesEscuela } from '../components/AccionesEscuela'
+import { LugarSesion } from '../components/LugarSesion'
 import { AppShell } from '../components/AppShell'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { etiquetaCuota, PRECIO_RECUPERACION_MXN } from '../lib/cursos-educativos'
@@ -63,6 +64,7 @@ function EscuelaPage() {
                     · {sesion.modalidad}
                     {etiquetaCuota(sesion.cuotaMxn)}
                   </p>
+                  <LugarSesion valor={sesion.lugarOEnlace} />
                   {sesion.notas ? <p className="mt-1 text-slate-400">{sesion.notas}</p> : null}
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <Link
@@ -88,6 +90,7 @@ function EscuelaPage() {
         <section className="grid gap-4 md:grid-cols-2">
           {data.cursos.map((curso) => {
             const mio = data.misSlugs.includes(curso.slug)
+            const docente = Boolean(data.esDocente)
             const dado = curso.estado === 'dado'
             return (
               <article
@@ -114,8 +117,8 @@ function EscuelaPage() {
                       params={{ slug: curso.slug }}
                       className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950"
                     >
-                      {mio ? <BookOpen size={16} /> : <Lock size={16} />}
-                      {mio ? 'Abrir mi curso' : 'Ver y adquirir'}
+                      {mio || docente ? <BookOpen size={16} /> : <Lock size={16} />}
+                      {docente ? 'Abrir como docente' : mio ? 'Abrir mi curso' : 'Ver y adquirir'}
                     </Link>
                   ) : (
                     <div className="space-y-2">

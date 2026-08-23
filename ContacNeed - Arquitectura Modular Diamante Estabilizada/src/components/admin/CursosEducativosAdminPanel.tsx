@@ -220,6 +220,19 @@ export function CursosEducativosAdminPanel() {
                   {item.fecha} {item.hora} · {item.modalidad} ·{' '}
                   {item.cuotaMxn ? etiquetaCuota(item.cuotaMxn).replace(/^ · /, '') : 'cuota por definir'}
                 </span>
+                {item.lugarOEnlace ? (
+                  <span className="mt-1 block text-xs text-sky-200">
+                    {/^https?:\/\//i.test(item.lugarOEnlace) ? (
+                      <a href={item.lugarOEnlace} target="_blank" rel="noreferrer" className="underline">
+                        Liga Zoom o sala
+                      </a>
+                    ) : (
+                      `Lugar: ${item.lugarOEnlace}`
+                    )}
+                  </span>
+                ) : (
+                  <span className="mt-1 block text-xs text-slate-500">Sin Zoom ni lugar publicado</span>
+                )}
               </span>
               <button
                 type="button"

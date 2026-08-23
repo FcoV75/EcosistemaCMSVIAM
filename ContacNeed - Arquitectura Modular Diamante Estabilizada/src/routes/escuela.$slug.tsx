@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Download, Lock, Presentation } from 'lucide-react'
 import { AccionesEscuela } from '../components/AccionesEscuela'
+import { LugarSesion } from '../components/LugarSesion'
 import { etiquetaCuota } from '../lib/cursos-educativos'
 import { AppShell } from '../components/AppShell'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
@@ -95,6 +96,12 @@ function CursoEscuelaPage() {
           </p>
           <h1 className="mt-1 text-3xl font-black text-amber-100">{data.curso.titulo}</h1>
           <p className="mt-2 text-sm text-slate-300">{data.curso.resumen}</p>
+          {(data.esDocente || data.esAdmin) && (
+            <p className="mt-3 text-xs font-semibold text-emerald-200">
+              Entraste como docente: puedes abrir y descargar todos los cursos dados sin pagar la
+              recuperación.
+            </p>
+          )}
         </header>
 
         {!data.unlocked && data.curso.estado === 'dado' && (
@@ -151,6 +158,7 @@ function CursoEscuelaPage() {
                       {sesion.hora ? ` · ${sesion.hora}` : ''} · {sesion.modalidad}
                       {etiquetaCuota(sesion.cuotaMxn)}
                     </p>
+                    <LugarSesion valor={sesion.lugarOEnlace} />
                   </li>
                 ))}
               </ul>

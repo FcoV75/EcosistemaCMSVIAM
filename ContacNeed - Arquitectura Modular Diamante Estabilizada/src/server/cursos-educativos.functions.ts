@@ -2,7 +2,14 @@ import { createServerFn } from '@tanstack/react-start'
 import { CURSOS_BUNDLED } from './cursos-bundled'
 import Stripe from 'stripe'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
-import { getServerUser, requireActiveUser, requireAdminUser } from '../lib/auth'
+import {
+  EMAIL_DOCENTE_ESCUELA,
+  esDocenteEscuelaActual,
+  getServerUser,
+  requireActiveUser,
+  requireAdminUser,
+} from '../lib/auth'
+import { hechosDesdeCatalogo, type HechosEscuela } from '../lib/informes-escuela'
 import { normalizarEmail } from '../lib/promotores-viam'
 import {
   CURSOS_EDUCATIVOS,
@@ -136,22 +143,63 @@ async function leerAgenda(
   return { id: data?.id ?? null, sesiones }
 }
 
+export async function cargarHechosEscuela(): Promise<HechosEscuela> {
+  try {
+    const supabase = createSupabaseAdminClient()
+    const agenda = await leerAgenda(supabase)
+    return hechosDesdeCatalogo(agenda.sesiones)
+  } catch {
+    return hechosDesdeCatalogo([])
+  }
+}
+
+async function idsDocentesParaAvisos(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+) {
+  const ids = new Set<string>()
+  const { data } = await supabase
+    .from('perfiles')
+    .select('id, correo, is_admin, es_fundador')
+    .or(`is_admin.eq.true,es_fundador.eq.true,correo.ilike.${EMAIL_DOCENTE_ESCUELA}`)
+    .limit(40)
+  for (const row of data ?? []) {
+    if (row.id) ids.add(row.id)
+  }
+  return [...ids]
+}
+
 export const getEscuelaPublicaFn = createServerFn({ method: 'GET' }).handler(async () => {
   const user = await getServerUser()
   const supabase = createSupabaseAdminClient()
-  const agenda = await leerAgenda(supabase)
+  let agenda: { id: string | null; sesiones: SesionViva[] } = { id: null, sesiones: [] }
+  try {
+    agenda = await leerAgenda(supabase)
+  } catch {
+    agenda = { id: null, sesiones: [] }
+  }
   let misSlugs: string[] = []
   if (user) {
-    const { data } = await supabase
-      .from('ecosistema_entitlements')
-      .select('metadata, status, expires_at')
-      .eq('user_id', user.id)
-      .eq('producto', PRODUCTO_ESCUELA)
-      .eq('status', 'active')
-    misSlugs = (data ?? [])
-      .filter((row) => vigente(row))
-      .map((row) => ((row.metadata || {}) as { curso_slug?: string }).curso_slug)
-      .filter((slug): slug is string => Boolean(slug))
+    try {
+      const { data } = await supabase
+        .from('ecosistema_entitlements')
+        .select('metadata, status, expires_at')
+        .eq('user_id', user.id)
+        .eq('producto', PRODUCTO_ESCUELA)
+        .eq('status', 'active')
+      misSlugs = (data ?? [])
+        .filter((row) => vigente(row))
+        .map((row) => ((row.metadata || {}) as { curso_slug?: string }).curso_slug)
+        .filter((slug): slug is string => Boolean(slug))
+    } catch {
+      misSlugs = []
+    }
+  }
+
+  let esDocente = false
+  try {
+    esDocente = (await esDocenteEscuelaActual()).esDocente
+  } catch {
+    esDocente = false
   }
 
   return {
@@ -165,6 +213,7 @@ export const getEscuelaPublicaFn = createServerFn({ method: 'GET' }).handler(asy
     })),
     misSlugs,
     loggedIn: Boolean(user),
+    esDocente,
   }
 })
 
@@ -175,19 +224,31 @@ export const getCursoAccesoFn = createServerFn({ method: 'GET' })
     if (!curso) throw new Error('Curso no encontrado')
 
     const user = await getServerUser()
-    const admin = user ? await requireAdminUser() : null
+    const docente = await esDocenteEscuelaActual()
     const supabase = createSupabaseAdminClient()
-    const comprado = user ? await usuarioTieneCurso(supabase, user.id, data.slug) : false
-    const unlocked = Boolean(admin) || comprado
+    let comprado = false
+    try {
+      comprado = user ? await usuarioTieneCurso(supabase, user.id, data.slug) : false
+    } catch {
+      comprado = false
+    }
+    const unlocked = docente.esDocente || comprado
+    let sesiones: Array<SesionViva & { titulo: string }> = []
+    try {
+      sesiones = (await leerAgenda(supabase)).sesiones
+        .filter((sesion) => sesion.slug === data.slug)
+        .map((sesion) => ({ ...sesion, titulo: tituloDeCurso(sesion.slug) }))
+    } catch {
+      sesiones = []
+    }
 
     return {
       curso,
-      sesiones: (await leerAgenda(supabase)).sesiones
-        .filter((sesion) => sesion.slug === data.slug)
-        .map((sesion) => ({ ...sesion, titulo: tituloDeCurso(sesion.slug) })),
+      sesiones,
       loggedIn: Boolean(user),
       unlocked,
-      esAdmin: Boolean(admin),
+      esAdmin: docente.esDocente,
+      esDocente: docente.esDocente,
       precioRecuperacion: PRECIO_RECUPERACION_MXN,
     }
   })
@@ -200,10 +261,17 @@ export const getCursoDocumentoFn = createServerFn({ method: 'GET' })
 
     const user = await getServerUser()
     if (!user) throw new Error('Debes iniciar sesión')
-    const admin = await requireAdminUser()
+    const docente = await esDocenteEscuelaActual()
     const supabase = createSupabaseAdminClient()
-    const comprado = await usuarioTieneCurso(supabase, user.id, data.slug)
-    if (!admin && !comprado) throw new Error('Paga la cuota de recuperación para ver y descargar este curso.')
+    let comprado = false
+    try {
+      comprado = await usuarioTieneCurso(supabase, user.id, data.slug)
+    } catch {
+      comprado = false
+    }
+    if (!docente.esDocente && !comprado) {
+      throw new Error('Paga la cuota de recuperación para ver y descargar este curso.')
+    }
 
     const bundled = CURSOS_BUNDLED[data.slug]
     if (!bundled) throw new Error('Material del curso no empaquetado.')
@@ -234,6 +302,11 @@ export const createEscuelaCheckoutFn = createServerFn({ method: 'POST' })
     const curso = getCursoBySlug(data.slug)
     if (!curso || curso.estado !== 'dado') {
       throw new Error('Este curso todavía no se puede adquirir.')
+    }
+
+    const docente = await esDocenteEscuelaActual()
+    if (docente.esDocente) {
+      return { url: null as string | null, already: true }
     }
 
     const supabase = createSupabaseAdminClient()
@@ -301,7 +374,8 @@ export const confirmEscuelaCheckoutFn = createServerFn({ method: 'POST' })
   })
 
 export const listEscuelaAdminFn = createServerFn({ method: 'GET' }).handler(async () => {
-  await requireAdminUser()
+  const admin = await requireAdminUser()
+  if (!admin) throw new Error('Acceso denegado')
   const supabase = createSupabaseAdminClient()
   const agenda = await leerAgenda(supabase)
   const { data, error } = await supabase
@@ -351,6 +425,12 @@ export const solicitarInteresEscuelaFn = createServerFn({ method: 'POST' })
     const cuando = sesion
       ? `${sesion.fecha}${sesion.hora ? ` · ${sesion.hora}` : ''}`
       : curso.fechaProgramada || 'fecha por confirmar'
+    const cuotaVivo = sesion?.cuotaMxn
+      ? etiquetaCuota(sesion.cuotaMxn).replace(/^ · /, '')
+      : 'la cuota en vivo solo se dice si el docente la publicó'
+    const zoomOLugar = sesion?.lugarOEnlace?.trim()
+      ? sesion.lugarOEnlace.trim()
+      : 'el Zoom o el lugar solo aparecen si el docente los anotó en la ficha; no se inventan'
     const ahora = new Date().toISOString()
     const interesLabel = data.interes === 'inscripcion' ? 'inscripción' : 'informes'
 
@@ -395,13 +475,13 @@ export const solicitarInteresEscuelaFn = createServerFn({ method: 'POST' })
       if (interesError) throw interesError
     }
 
-    const { data: admins } = await supabase.from('perfiles').select('id').eq('is_admin', true).limit(20)
-    for (const admin of admins ?? []) {
+    const docentes = await idsDocentesParaAvisos(supabase)
+    for (const docenteId of docentes) {
       await crearNotificacion(supabase, {
-        usuarioId: admin.id,
+        usuarioId: docenteId,
         tipo: 'general',
         titulo: `${interesLabel === 'inscripción' ? 'Inscripción' : 'Informes'}: ${titulo}`,
-        cuerpo: `${profile?.nombre || user.email} pidió ${interesLabel} de ${titulo} (${cuando}).`,
+        cuerpo: `${profile?.nombre || user.email} (${user.email}) pidió ${interesLabel} de ${titulo} (${cuando}). Revisa Cursos Educativos en el panel.`,
         enlace: '/admin',
         metadata: { curso_slug: data.slug, email: user.email, interes: data.interes },
       })
@@ -413,8 +493,8 @@ export const solicitarInteresEscuelaFn = createServerFn({ method: 'POST' })
       cuando,
       pregunta:
         data.interes === 'inscripcion'
-          ? `Quiero inscribirme a «${titulo}»${sesion ? ` el ${cuando}` : ''}. ¿Cómo reservo mi lugar, cuál es la cuota en vivo y qué necesito llevar o preparar?`
-          : `Pido informes de «${titulo}»${sesion ? ` (${cuando})` : ''}. ¿De qué trata, para quién es, cuándo se imparte y cómo me inscribo?`,
+          ? `Quiero inscribirme a «${titulo}»${sesion ? ` el ${cuando}` : ''}. Recuperación de cursos ya dados: ${PRECIO_RECUPERACION_MXN} MXN. Impartición en vivo: ${cuotaVivo}. Acceso a la sesión: ${zoomOLugar}. ¿Cómo reservo mi lugar y qué necesito preparar?`
+          : `Pido informes de «${titulo}»${sesion ? ` (${cuando})` : ''}. Recuperación de cursos ya dados: ${PRECIO_RECUPERACION_MXN} MXN. Impartición en vivo: ${cuotaVivo}. Acceso a la sesión: ${zoomOLugar}. ¿De qué trata y cómo me inscribo?`,
     }
   })
 
