@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Download, Lock, Presentation } from 'lucide-react'
 import { AccionesEscuela } from '../components/AccionesEscuela'
+import { etiquetaCuota } from '../lib/cursos-educativos'
 import { AppShell } from '../components/AppShell'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import {
@@ -148,7 +149,7 @@ function CursoEscuelaPage() {
                     <p>
                       {sesion.fecha}
                       {sesion.hora ? ` · ${sesion.hora}` : ''} · {sesion.modalidad}
-                      {sesion.cuotaMxn ? ` · $${sesion.cuotaMxn} MXN` : ''}
+                      {etiquetaCuota(sesion.cuotaMxn)}
                     </p>
                   </li>
                 ))}

@@ -70,6 +70,14 @@ export function tituloDeCurso(slug: string) {
   return getCursoBySlug(slug)?.titulo || 'Curso de la escuela'
 }
 
+export function etiquetaCuota(cuota?: string) {
+  const raw = (cuota || '').trim()
+  if (!raw) return ''
+  const limpia = raw.replace(/^\$+\s*/, '').replace(/\s*mxn\.?$/i, '').trim()
+  if (!limpia) return ''
+  return ` · $${limpia} MXN`
+}
+
 export function cursosPublicos() {
   return CURSOS_EDUCATIVOS.filter((curso) => curso.estado === 'dado' || curso.estado === 'programado')
 }

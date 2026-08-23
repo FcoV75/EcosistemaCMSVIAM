@@ -4,7 +4,7 @@ import { BookOpen, CalendarClock, Lock } from 'lucide-react'
 import { AccionesEscuela } from '../components/AccionesEscuela'
 import { AppShell } from '../components/AppShell'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
-import { PRECIO_RECUPERACION_MXN } from '../lib/cursos-educativos'
+import { etiquetaCuota, PRECIO_RECUPERACION_MXN } from '../lib/cursos-educativos'
 import { getEscuelaPublicaFn } from '../server/cursos-educativos.functions'
 
 export const Route = createFileRoute('/escuela')({
@@ -61,7 +61,7 @@ function EscuelaPage() {
                       {sesion.hora ? ` · ${sesion.hora}` : ''}
                     </strong>{' '}
                     · {sesion.modalidad}
-                    {sesion.cuotaMxn ? ` · $${sesion.cuotaMxn} MXN` : ''}
+                    {etiquetaCuota(sesion.cuotaMxn)}
                   </p>
                   {sesion.notas ? <p className="mt-1 text-slate-400">{sesion.notas}</p> : null}
                   <div className="mt-3 flex flex-wrap items-center gap-3">

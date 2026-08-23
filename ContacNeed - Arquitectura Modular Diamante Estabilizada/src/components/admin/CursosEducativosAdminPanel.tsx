@@ -6,7 +6,7 @@ import {
   listEscuelaAdminFn,
   otorgarCursoAdminFn,
 } from '../../server/cursos-educativos.functions'
-import type { ModalidadImparticion, SesionViva } from '../../lib/cursos-educativos'
+import { etiquetaCuota, type ModalidadImparticion, type SesionViva } from '../../lib/cursos-educativos'
 
 export function CursosEducativosAdminPanel() {
   const queryClient = useQueryClient()
