@@ -4,6 +4,7 @@ import { getServerProfile, getServerUser } from '../lib/auth'
 
 const SYSTEM_CONTEXT = `ContacNeed es una red social mexicana que conecta oficios, profesiones y especialidades por estado.
 Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin, órgano de encuentro (voz con faro; nunca presenta personas sin veto humano).
+Escuela de principios vitalicios (/escuela): educación contínua de vida y salud física y mental. Cursos ya impartidos: «El cuerpo escucha» (pensamiento, emoción y organismo) y «Léete y lee» (comprenderte y leer a los demás). Cada uno se observa y descarga con cuota de recuperación de 200 MXN tras iniciar sesión. Las sesiones en vivo (Zoom o presencial) tienen su propia cuota, anunciada en cada fecha. Si piden informes o inscripción, nombra el TÍTULO del curso, la fecha si la mencionan, resume de qué trata, indica que dejen su solicitud en la escuela (Pedir informes / Quiero inscribirme) y que el docente los contactará. No sustituye médico ni psicoterapia: se camina a su lado.
 Cloudinary sube fotos/videos con preset contacneed_uploads. Soporte técnico: pedir correo, navegador y captura del error.`
 
 const PIZARRA_SKILL = `Cuando pidan qué publicar, ideas de contenido o cómo usar la pizarra, da sugerencias PRÁCTICAS según su oficio/profesión/especialidad:
@@ -24,6 +25,8 @@ const FAQ_ENTRIES: Record<string, string> = {
     'Si falla la subida de imagen, verifica conexión y vuelve a intentar. El preset correcto es contacneed_uploads en Cloudinary dgkruw6n7.',
   soporte:
     'Para ayuda humana, envía tu correo de cuenta, descripción del problema y captura de pantalla al equipo de ContacNeed.',
+  escuela:
+    'La Escuela de principios vitalicios está en /escuela. Cursos ya dados: El cuerpo escucha y Léete y lee (200 MXN de recuperación para ver y descargar). Las próximas fechas en vivo muestran el TÍTULO del curso, día, hora y modalidad. Pulsa «Pedir informes» o «Quiero inscribirme»: la IA te orienta y el docente recibe tu solicitud. Nada de esto sustituye al médico ni al psicoterapeuta.',
 }
 
 function matchFaq(question: string) {
@@ -55,6 +58,17 @@ function matchFaq(question: string) {
   }
   if (normalized.includes('registr') || normalized.includes('cuenta') || normalized.includes('login')) {
     return FAQ_ENTRIES.registro
+  }
+  if (
+    normalized.includes('escuela') ||
+    normalized.includes('curso') ||
+    normalized.includes('inscrib') ||
+    normalized.includes('informe') ||
+    normalized.includes('léete') ||
+    normalized.includes('leete') ||
+    normalized.includes('cuerpo escucha')
+  ) {
+    return FAQ_ENTRIES.escuela
   }
 
   return FAQ_ENTRIES.soporte

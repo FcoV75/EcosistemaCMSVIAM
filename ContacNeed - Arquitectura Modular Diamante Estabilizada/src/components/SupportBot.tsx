@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { Bot, Mic, MicOff, Send, X } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import { SOPORTE_EVENT } from '../lib/abrir-soporte'
 import { askSupportBotFn } from '../server/support.functions'
 import { orientarOrganoFn, proponerEncuentroFn, type CandidatoEncuentro } from '../server/organo.functions'
 import { ORGANO_STORAGE_VOZ, parecePedidoEncuentro } from '../lib/organo-contratos'
@@ -46,6 +47,7 @@ export function SupportBot({ selectedState = '' }: SupportBotProps) {
     },
   ])
   const [isPending, startTransition] = useTransition()
+  const [pendingPregunta, setPendingPregunta] = useState<string | null>(null)
   const recRef = useRef<Reco | null>(null)
 
   useEffect(() => {
@@ -112,6 +114,23 @@ export function SupportBot({ selectedState = '' }: SupportBotProps) {
       }
     })
   }
+
+  useEffect(() => {
+    const onAbrir = (event: Event) => {
+      const question = (event as CustomEvent<{ question?: string }>).detail?.question?.trim()
+      setOpen(true)
+      if (question) setPendingPregunta(question)
+    }
+    window.addEventListener(SOPORTE_EVENT, onAbrir)
+    return () => window.removeEventListener(SOPORTE_EVENT, onAbrir)
+  }, [])
+
+  useEffect(() => {
+    if (!open || !pendingPregunta || isPending) return
+    const pregunta = pendingPregunta
+    setPendingPregunta(null)
+    sendMessage(pregunta)
+  }, [open, pendingPregunta, isPending])
 
   const toggleVoz = () => {
     if (escuchando) {

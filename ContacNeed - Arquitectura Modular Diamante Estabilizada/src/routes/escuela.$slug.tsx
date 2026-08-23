@@ -2,6 +2,8 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Download, Lock, Presentation } from 'lucide-react'
+import { AccionesEscuela } from '../components/AccionesEscuela'
+import { etiquetaCuota } from '../lib/cursos-educativos'
 import { AppShell } from '../components/AppShell'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import {
@@ -129,10 +131,39 @@ function CursoEscuelaPage() {
           </section>
         )}
 
-        {data.curso.estado === 'programado' && (
-          <p className="rounded-2xl border border-sky-400/25 px-4 py-3 text-sm text-sky-100">
-            Este itinerario se publicará cuando se imparta. Queda anunciado para generar expectativa.
-          </p>
+        {(data.curso.estado === 'programado' || (data.sesiones ?? []).length > 0) && (
+          <section className="rounded-2xl border border-sky-400/25 bg-slate-950/60 p-5">
+            <h2 className="text-lg font-bold text-sky-100">
+              {data.curso.estado === 'programado' ? 'Este curso está programado' : 'Próximas fechas en vivo'}
+            </h2>
+            <p className="mt-2 text-sm text-slate-300">
+              {data.curso.estado === 'programado'
+                ? 'Todavía no se abre el material grabado. Pide informes o inscríbete a la fecha en vivo: la IA te orienta y el docente recibe tu solicitud.'
+                : 'Además del material ya impartido, puedes pedir informes o inscribirte a una sesión en vivo.'}
+            </p>
+            {(data.sesiones ?? []).length > 0 && (
+              <ul className="mt-3 space-y-2 text-sm">
+                {data.sesiones.map((sesion) => (
+                  <li key={sesion.id} className="rounded-xl border border-slate-800 px-3 py-2">
+                    <p className="font-bold text-sky-100">{sesion.titulo}</p>
+                    <p>
+                      {sesion.fecha}
+                      {sesion.hora ? ` · ${sesion.hora}` : ''} · {sesion.modalidad}
+                      {etiquetaCuota(sesion.cuotaMxn)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-4">
+              <AccionesEscuela
+                slug={slug}
+                titulo={data.curso.titulo}
+                sesionId={data.sesiones?.[0]?.id}
+                loggedIn={data.loggedIn}
+              />
+            </div>
+          </section>
         )}
 
         {data.unlocked && (

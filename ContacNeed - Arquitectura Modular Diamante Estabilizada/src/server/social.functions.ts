@@ -188,6 +188,61 @@ export const getOnlineUsersFn = createServerFn({ method: 'GET' }).handler(async 
   return data ?? []
 })
 
+export const getAmigosEnLineaFn = createServerFn({ method: 'GET' }).handler(async () => {
+  const user = await getServerUser()
+  if (!user) return { loggedIn: false, amigos: [] as const }
+
+  const supabase = createSupabaseAdminClient()
+  const { data: amistades, error: amistadError } = await supabase
+    .from('solicitudes_contacto')
+    .select('solicitante_id, destinatario_id')
+    .eq('tipo', 'amistad')
+    .eq('estatus', 'aceptada')
+    .or(`solicitante_id.eq.${user.id},destinatario_id.eq.${user.id}`)
+    .limit(200)
+
+  if (amistadError) {
+    if (amistadError.message.includes('does not exist')) return { loggedIn: true, amigos: [] }
+    throw amistadError
+  }
+
+  const peerIds = [
+    ...new Set(
+      (amistades ?? [])
+        .map((row) => (row.solicitante_id === user.id ? row.destinatario_id : row.solicitante_id))
+        .filter((id) => id && id !== user.id),
+    ),
+  ]
+  if (peerIds.length === 0) return { loggedIn: true, amigos: [] }
+
+  const since = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString()
+  const { data: perfiles, error } = await supabase
+    .from('perfiles')
+    .select('id, nombre, habilidad_empirica, estado, avatar_url, es_pro, ultima_conexion')
+    .in('id', peerIds)
+    .gte('ultima_conexion', since)
+    .eq('bloqueado', false)
+    .order('ultima_conexion', { ascending: false })
+    .limit(24)
+
+  if (error) {
+    if (error.message.includes('does not exist')) return { loggedIn: true, amigos: [] }
+    throw error
+  }
+
+  return {
+    loggedIn: true,
+    amigos: (perfiles ?? []).map((row) => ({
+      id: row.id,
+      nombre: row.nombre ?? 'Amigo',
+      habilidad_empirica: row.habilidad_empirica,
+      estado: row.estado,
+      es_pro: Boolean(row.es_pro),
+      avatar_url: resolveAvatarUrl(row.avatar_url, row.id, row.nombre),
+    })),
+  }
+})
+
 export const sendMessageFn = createServerFn({ method: 'POST' })
   .inputValidator(
     (d: {

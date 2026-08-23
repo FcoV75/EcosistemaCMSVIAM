@@ -11,6 +11,7 @@ import { NotificationsBell } from './NotificationsBell'
 import { useOnboardingGuide } from '../lib/onboarding-context'
 import { ProAdModal } from './ProAdModal'
 import { ProAdPanel } from './ProAdPanel'
+import { AmigosEnLinea } from './AmigosEnLinea'
 import { RadioLauncher } from './RadioLauncher'
 import { SidebarNav } from './SidebarNav'
 import { StateSelector } from './StateSelector'
@@ -176,6 +177,7 @@ export function AppShell({
             />
             <StateSelector value={selectedState} onChange={onStateChange} variant="sidebar" />
             <RadioLauncher />
+            <AmigosEnLinea />
           </aside>
 
           <main className="order-1 min-w-0 lg:order-none lg:col-span-6">{children}</main>
