@@ -90,7 +90,6 @@ function EscuelaPage() {
         <section className="grid gap-4 md:grid-cols-2">
           {data.cursos.map((curso) => {
             const mio = data.misSlugs.includes(curso.slug)
-            const docente = Boolean(data.esDocente)
             const dado = curso.estado === 'dado'
             return (
               <article
@@ -117,8 +116,8 @@ function EscuelaPage() {
                       params={{ slug: curso.slug }}
                       className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950"
                     >
-                      {mio || docente ? <BookOpen size={16} /> : <Lock size={16} />}
-                      {docente ? 'Abrir como docente' : mio ? 'Abrir mi curso' : 'Ver y adquirir'}
+                      {mio ? <BookOpen size={16} /> : <Lock size={16} />}
+                      {mio ? 'Abrir mi curso' : 'Ver y adquirir'}
                     </Link>
                   ) : (
                     <div className="space-y-2">
