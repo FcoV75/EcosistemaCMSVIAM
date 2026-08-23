@@ -91,7 +91,8 @@ assert.match(auth, /es_fundador/);
 const acceso = readFileSync(join(cn, "src/server/cursos-educativos.functions.ts"), "utf8");
 assert.match(acceso, /esDocenteEscuelaActual/);
 assert.match(acceso, /docente.esDocente \|\| comprado/);
-assert.match(acceso, /cargarHechosEscuela/);
+assert.doesNotMatch(acceso, /export async function cargarHechosEscuela/);
+assert.doesNotMatch(acceso, /export async function usuarioTieneCurso/);
 
 const bell = readFileSync(join(cn, "src/components/NotificationsBell.tsx"), "utf8");
 assert.match(bell, /\/avisos/);
