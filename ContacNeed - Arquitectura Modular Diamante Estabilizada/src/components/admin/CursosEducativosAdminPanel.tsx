@@ -218,7 +218,7 @@ export function CursosEducativosAdminPanel() {
                 <strong className="text-amber-100">{item.titulo || item.slug}</strong>
                 <span className="block text-slate-300">
                   {item.fecha} {item.hora} · {item.modalidad} ·{' '}
-                  {item.cuotaMxn ? `$${item.cuotaMxn} MXN` : 'cuota por definir'}
+                  {item.cuotaMxn ? etiquetaCuota(item.cuotaMxn).replace(/^ · /, '') : 'cuota por definir'}
                 </span>
               </span>
               <button
