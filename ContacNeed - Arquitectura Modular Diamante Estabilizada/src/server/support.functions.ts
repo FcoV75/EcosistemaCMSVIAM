@@ -1,10 +1,12 @@
 import { createServerFn } from '@tanstack/react-start'
 import { askLlm } from '../lib/llm'
 import { getServerProfile, getServerUser } from '../lib/auth'
+import { esPreguntaEscuela, hechosDesdeCatalogo, redactarInformeEscuela } from '../lib/informes-escuela'
+import { cargarHechosEscuela } from './cursos-educativos.functions'
 
 const SYSTEM_CONTEXT = `ContacNeed es una red social mexicana que conecta oficios, profesiones y especialidades por estado.
 Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin, órgano de encuentro (voz con faro; nunca presenta personas sin veto humano).
-Escuela de principios vitalicios (/escuela): educación contínua de vida y salud física y mental. Cursos ya impartidos: «El cuerpo escucha» (pensamiento, emoción y organismo) y «Léete y lee» (comprenderte y leer a los demás). Cada uno se observa y descarga con cuota de recuperación de 200 MXN tras iniciar sesión. Las sesiones en vivo (Zoom o presencial) tienen su propia cuota, anunciada en cada fecha. Si piden informes o inscripción, nombra el TÍTULO del curso, la fecha si la mencionan, resume de qué trata, indica que dejen su solicitud en la escuela (Pedir informes / Quiero inscribirme) y que el docente los contactará. No sustituye médico ni psicoterapia: se camina a su lado.
+Escuela de principios vitalicios (/escuela): educación contínua de vida y salud física y mental. Cursos ya impartidos: «El cuerpo escucha» y «Léete y lee». Recuperación: 200 MXN (no es ContacNeed PRO). Las sesiones en vivo tienen su propia cuota y Zoom solo si el docente los publicó. NUNCA inventes precios, fechas, cupos ni ligas de Zoom. Si no están en los hechos, di que no están publicados. No sustituye médico ni psicoterapia.
 Cloudinary sube fotos/videos con preset contacneed_uploads. Soporte técnico: pedir correo, navegador y captura del error.`
 
 const PIZARRA_SKILL = `Cuando pidan qué publicar, ideas de contenido o cómo usar la pizarra, da sugerencias PRÁCTICAS según su oficio/profesión/especialidad:
@@ -32,6 +34,9 @@ const FAQ_ENTRIES: Record<string, string> = {
 function matchFaq(question: string) {
   const normalized = question.toLowerCase()
 
+  if (esPreguntaEscuela(question)) {
+    return redactarInformeEscuela(hechosDesdeCatalogo([]), question)
+  }
   if (normalized.includes('cloudinary') || normalized.includes('upload') || normalized.includes('subir')) {
     return FAQ_ENTRIES.cloudinary
   }
@@ -58,17 +63,6 @@ function matchFaq(question: string) {
   }
   if (normalized.includes('registr') || normalized.includes('cuenta') || normalized.includes('login')) {
     return FAQ_ENTRIES.registro
-  }
-  if (
-    normalized.includes('escuela') ||
-    normalized.includes('curso') ||
-    normalized.includes('inscrib') ||
-    normalized.includes('informe') ||
-    normalized.includes('léete') ||
-    normalized.includes('leete') ||
-    normalized.includes('cuerpo escucha')
-  ) {
-    return FAQ_ENTRIES.escuela
   }
 
   return FAQ_ENTRIES.soporte
@@ -146,6 +140,15 @@ export const askSupportBotFn = createServerFn({ method: 'POST' })
     const profile = user ? await getServerProfile(user.id) : null
     const context = profileLines(profile, user)
 
+    if (esPreguntaEscuela(question)) {
+      try {
+        const hechos = await cargarHechosEscuela()
+        return { answer: redactarInformeEscuela(hechos, question) }
+      } catch {
+        return { answer: redactarInformeEscuela(hechosDesdeCatalogo([]), question) }
+      }
+    }
+
     const answer = await askLlm({
       system: `${SYSTEM_CONTEXT}
 
@@ -153,6 +156,7 @@ ${PIZARRA_SKILL}
 
 Eres el asistente de la pizarra y soporte de ContacNeed. Responde en español mexicano, máximo 6 oraciones, tono cercano y profesional.
 Si piden ideas de publicación, da 2 o 3 sugerencias concretas (foto, YouTube o material propio) según el oficio del perfil.
+Nunca inventes precios de la Escuela, cuotas en vivo ni ligas de Zoom.
 Si no sabes algo técnico, indica cómo contactar soporte.
 Perfil actual:
 ${context}`,

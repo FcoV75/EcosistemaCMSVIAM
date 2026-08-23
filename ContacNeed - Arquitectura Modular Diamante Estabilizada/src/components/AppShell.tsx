@@ -69,7 +69,7 @@ export function AppShell({
   }
 
   return (
-      <div className="cn-metallic-bg relative min-h-dvh text-white">
+      <div className="cn-metallic-bg relative min-h-dvh text-white lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
         <div
           className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-[0.04]"
           aria-hidden
@@ -77,7 +77,7 @@ export function AppShell({
           <ContacNeedLogo className="h-[min(75vw,32rem)] w-auto max-w-[90vw]" />
         </div>
 
-        <header className="cn-metallic-header sticky top-0 z-40">
+        <header className="cn-metallic-header sticky top-0 z-40 lg:static lg:shrink-0">
           <div className="mx-auto flex max-w-[90rem] flex-col gap-3 px-4 py-3 lg:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Link to="/" className="flex min-w-0 shrink-0 items-center gap-3">
@@ -161,10 +161,12 @@ export function AppShell({
           </div>
         </header>
 
-        <TopBannerBar selectedState={selectedState} />
+        <div className="lg:shrink-0">
+          <TopBannerBar selectedState={selectedState} />
+        </div>
 
-        <div className="relative mx-auto grid max-w-[90rem] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-12 lg:px-6">
-          <aside className="order-2 space-y-4 lg:order-none lg:col-span-3 lg:sticky lg:top-28 lg:self-start">
+        <div className="relative mx-auto grid w-full max-w-[90rem] flex-1 grid-cols-1 gap-6 px-4 py-6 lg:min-h-0 lg:grid-cols-12 lg:overflow-hidden lg:px-6">
+          <aside className="order-2 space-y-4 lg:order-none lg:col-span-3 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
             <SidebarNav
               onOpenStripe={onOpenStripe}
               onPublishProAd={() => setShowProAdModal(true)}
@@ -180,9 +182,11 @@ export function AppShell({
             <AmigosEnLinea />
           </aside>
 
-          <main className="order-1 min-w-0 lg:order-none lg:col-span-6">{children}</main>
+          <main className="order-1 min-w-0 lg:order-none lg:col-span-6 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:px-1">
+            {children}
+          </main>
 
-          <div className="hidden lg:col-span-3 lg:block lg:sticky lg:top-28 lg:self-start">
+          <div className="hidden lg:col-span-3 lg:block lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pl-1">
             <ProAdPanel
               selectedState={selectedState}
               onOpenStripe={onOpenStripe}

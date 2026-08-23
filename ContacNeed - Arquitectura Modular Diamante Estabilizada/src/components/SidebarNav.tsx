@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { BookOpen, Crown, HelpCircle, Home, LogIn, LogOut, Mail, Sparkles, User, UserPlus } from 'lucide-react'
+import { Bell, BookOpen, Crown, HelpCircle, Home, LogIn, LogOut, Mail, Sparkles, User, UserPlus } from 'lucide-react'
 import type { AuthTab } from './AuthModal'
 
 type SidebarNavProps = {
@@ -60,6 +60,15 @@ export function SidebarNav({
         </li>
         {isLoggedIn ? (
           <>
+            <li>
+              <Link
+                to="/avisos"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-purple-100 transition hover:bg-white/10 [&.active]:bg-gradient-to-r [&.active]:from-amber-600/20 [&.active]:to-purple-600/20"
+              >
+                <Bell size={18} className="text-amber-400" />
+                Avisos
+              </Link>
+            </li>
             <li>
               <Link
                 to="/mensajes"

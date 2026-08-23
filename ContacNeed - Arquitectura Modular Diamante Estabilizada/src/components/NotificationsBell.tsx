@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bell } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import { EnlaceAviso } from './EnlaceAviso'
 import {
   getNotificacionesFn,
   markNotificacionReadFn,
@@ -10,6 +11,7 @@ import {
 export function NotificationsBell() {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [abierta, setAbierta] = useState<string | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
   const notifQuery = useQuery({
@@ -69,32 +71,57 @@ export function NotificationsBell() {
             )}
           </div>
           <div className="max-h-80 overflow-y-auto">
-            {items.length === 0 && (
+            {notifQuery.isError && (
+              <p className="px-3 py-4 text-center text-sm text-amber-200/80">
+                No se pudieron cargar los avisos. Ábrelos en la bandeja sin salir de ContacNeed.
+              </p>
+            )}
+            {items.length === 0 && !notifQuery.isError && (
               <p className="px-3 py-6 text-center text-sm text-purple-200/60">
                 Sin avisos por ahora.
               </p>
             )}
-            {items.map((item) => (
-              <Link
-                key={item.id}
-                to="/mensajes"
-                className={`block border-b border-purple-500/10 px-3 py-3 transition hover:bg-white/5 ${
-                  item.leida ? 'opacity-70' : 'bg-amber-500/5'
-                }`}
-                onClick={() => {
-                  if (!item.leida) markMutation.mutate({ id: item.id })
-                  setOpen(false)
-                }}
-              >
-                <p className="text-sm font-semibold text-white">{item.titulo}</p>
-                {item.cuerpo && (
-                  <p className="mt-0.5 line-clamp-2 text-xs text-purple-100/75">{item.cuerpo}</p>
-                )}
-                <p className="mt-1 text-[10px] text-purple-300/50">
-                  {new Date(item.created_at).toLocaleString('es-MX')}
-                </p>
-              </Link>
-            ))}
+            {items.map((item) => {
+              const expandida = abierta === item.id
+              return (
+                <article
+                  key={item.id}
+                  className={`border-b border-purple-500/10 px-3 py-3 ${
+                    item.leida ? 'opacity-80' : 'bg-amber-500/5'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => {
+                      setAbierta(expandida ? null : item.id)
+                      if (!item.leida) markMutation.mutate({ id: item.id })
+                    }}
+                  >
+                    <p className="text-sm font-semibold text-white">{item.titulo}</p>
+                    {item.cuerpo && (
+                      <p className={`mt-0.5 text-xs text-purple-100/75 ${expandida ? '' : 'line-clamp-2'}`}>
+                        {item.cuerpo}
+                      </p>
+                    )}
+                    <p className="mt-1 text-[10px] text-purple-300/50">
+                      {new Date(item.created_at).toLocaleString('es-MX')}
+                      {expandida ? '' : ' · Ver aviso'}
+                    </p>
+                  </button>
+                  {expandida && <EnlaceAviso enlace={item.enlace} />}
+                </article>
+              )
+            })}
+          </div>
+          <div className="border-t border-purple-500/20 px-3 py-2">
+            <Link
+              to="/avisos"
+              className="text-xs font-semibold text-amber-300 hover:underline"
+              onClick={() => setOpen(false)}
+            >
+              Ver todos los avisos
+            </Link>
           </div>
         </div>
       )}
