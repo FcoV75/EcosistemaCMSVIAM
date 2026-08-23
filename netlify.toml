@@ -80,6 +80,16 @@
   status = 200
 
 [[redirects]]
+  from = "/cursos"
+  to = "/cursos/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/"
+  to = "/cursos/index.html"
+  status = 200
+
+[[redirects]]
   from = "/cursos/el-cuerpo-escucha"
   to = "/cursos/el-cuerpo-escucha/index.html"
   status = 200
@@ -92,4 +102,19 @@
 [[redirects]]
   from = "/cursos/el-cuerpo-escucha/diapositivas"
   to = "/cursos/el-cuerpo-escucha/diapositivas.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/leete-y-lee"
+  to = "/cursos/leete-y-lee/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/leete-y-lee/"
+  to = "/cursos/leete-y-lee/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/leete-y-lee/diapositivas"
+  to = "/cursos/leete-y-lee/diapositivas.html"
   status = 200
