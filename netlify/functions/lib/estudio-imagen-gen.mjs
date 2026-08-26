@@ -19,6 +19,7 @@ export async function generarImagenGemini(promptEn) {
   if (!apiKey) return null;
   const modelos = [
     'gemini-2.5-flash-image',
+    'gemini-2.5-flash-image-preview',
     'gemini-2.5-flash-preview-image-generation',
     'gemini-2.0-flash-preview-image-generation',
   ];
@@ -57,10 +58,10 @@ export async function generarImagenGemini(promptEn) {
 }
 
 export async function generarImagenPollinations(promptEn, { width = 1920, height = 1080, seed } = {}) {
-  const escena = String(promptEn || '').trim();
+  const escena = String(promptEn || '').trim().slice(0, 900);
   if (!escena) return null;
   const n = Number.isFinite(Number(seed)) ? Number(seed) : Math.floor(Math.random() * 99999);
-  const modelos = ['flux', 'flux-realism'];
+  const modelos = ['flux', 'flux-realism', 'gptimage'];
   for (const model of modelos) {
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(escena)}?width=${width}&height=${height}&nologo=true&enhance=true&model=${model}&seed=${n}`;
     try {
@@ -80,7 +81,45 @@ export async function generarImagenPollinations(promptEn, { width = 1920, height
   return null;
 }
 
+export async function generarImagenImagen4(promptEn) {
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+  if (!apiKey) return null;
+  const escena = String(promptEn || '').trim();
+  if (!escena) return null;
+  const modelos = ['imagen-4.0-generate-001', 'imagen-4.0-fast-generate-001'];
+  for (const modelo of modelos) {
+    try {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:predict?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instances: [{ prompt: escena }],
+            parameters: { sampleCount: 1, aspectRatio: '16:9' },
+          }),
+        },
+      );
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        console.warn('Imagen', modelo, r.status, JSON.stringify(data).slice(0, 180));
+        continue;
+      }
+      const pred = data?.predictions?.[0] || {};
+      const b64 = pred.bytesBase64Encoded || pred.bytesBase64encoded || pred.image || '';
+      if (String(b64).length > 4000) {
+        return { imagen_base64: b64, mime: 'image/png', fuente: modelo };
+      }
+    } catch (err) {
+      console.warn('Imagen', modelo, err?.message || err);
+    }
+  }
+  return null;
+}
+
 export async function generarImagenEstudio(promptEn, opts = {}) {
+  const imagen4 = await generarImagenImagen4(promptEn);
+  if (imagen4) return imagen4;
   const gemini = await generarImagenGemini(promptEn);
   if (gemini) return gemini;
   return generarImagenPollinations(promptEn, opts);

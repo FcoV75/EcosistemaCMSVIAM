@@ -2,7 +2,6 @@ import { createRequire } from 'module';
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import {
   LIMITES_VOZ,
-  clamp,
   esPremiumPayload,
   partirTexto,
   recortarTextoParaVoz,
@@ -165,6 +164,48 @@ async function ttsGroq(apiKey, texto, voz) {
   return { buffer: buf, mime: 'audio/mpeg', modelo: 'playai-tts', formato: 'mp3' };
 }
 
+async function condensarTextoParaToma(texto, maxSeg, groqKey) {
+  const recorte = recortarTextoParaVoz(texto, maxSeg);
+  if (!recorte.texto) return recorte;
+  if (!recorte.recortado || !groqKey) {
+    return { ...recorte, adaptado: false };
+  }
+  const maxPalabras = recorte.palabras;
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${groqKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        temperature: 0.3,
+        max_tokens: 700,
+        messages: [
+          {
+            role: 'system',
+            content: 'Condensas locuciones en español mexicano. Conservas el mensaje, el tono y la llamada a la acción. No inventas datos. Solo devuelves el texto hablado, sin títulos.',
+          },
+          {
+            role: 'user',
+            content: `Reescribe este discurso en máximo ${maxPalabras} palabras (cabe en ~${maxSeg} segundos al hablar). Conserva nombres, beneficios y el cierre.\n\n${texto}`,
+          },
+        ],
+      }),
+    });
+    const data = await r.json().catch(() => ({}));
+    const limpio = String(data?.choices?.[0]?.message?.content || '').replace(/\s+/g, ' ').trim();
+    if (limpio.length > 40) {
+      const segundo = recortarTextoParaVoz(limpio, maxSeg);
+      return { texto: segundo.texto, recortado: segundo.recortado, palabras: segundo.palabras, adaptado: true };
+    }
+  } catch (err) {
+    console.warn('condensarTextoParaToma:', err?.message || err);
+  }
+  return { ...recorte, adaptado: false };
+}
+
 export default async (req) => {
   const guard = await guardRailwayRequest(req, {
     product: 'video_diamante_premium',
@@ -178,11 +219,12 @@ export default async (req) => {
     const body = await req.json();
     const premium = esPremiumPayload(guard.payload);
     const limites = premium ? LIMITES_VOZ.premium : LIMITES_VOZ.free;
-    const maxSeg = clamp(body.maxSeg ?? limites.maxSeg, 8, limites.maxSeg);
-    const recorte = recortarTextoParaVoz(body.texto || body.text || '', maxSeg);
-    if (!recorte.texto) {
+    const maxSeg = limites.maxSeg;
+    const adaptado = await condensarTextoParaToma(body.texto || body.text || '', maxSeg, process.env.GROQ_API_KEY || '');
+    if (!adaptado.texto) {
       return jsonResponse({ error: 'Escribe el texto que quieres convertir a voz.' }, 400);
     }
+    const recorte = adaptado;
 
     const estilo = String(body.voz || body.estilo || 'femenina').toLowerCase();
     const geminiKey = process.env.GEMINI_API_KEY || '';
@@ -208,6 +250,7 @@ export default async (req) => {
       modelo: audio.modelo,
       formato: audio.formato,
       recortado: recorte.recortado,
+      adaptado: !!recorte.adaptado,
       maxSeg,
       palabras: recorte.palabras,
       fuente: audio.modelo?.includes('gemini') ? 'gemini' : 'groq',

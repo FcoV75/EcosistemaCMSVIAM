@@ -41,6 +41,18 @@ const LIMITES_CLIP = {
     gratuito: { minSeg: 8, maxSeg: 8, maxDia: 1 },
     premium: { minSeg: 8, maxSeg: 12, maxDia: 5 }
 };
+const ESTILOS_MOVIMIENTO_UI = [
+    ["zoom_in", "Zoom adentro"],
+    ["zoom_out", "Zoom afuera"],
+    ["pan_derecha", "Paneo derecha"],
+    ["pan_izquierda", "Paneo izquierda"],
+    ["pan_arriba", "Paneo arriba"],
+    ["pan_abajo", "Paneo abajo"],
+    ["zoom_in_derecha", "Zoom + paneo derecha"],
+    ["zoom_in_izquierda", "Zoom + paneo izquierda"],
+    ["ken_burns", "Ken Burns diagonal"],
+    ["zoom_out_izquierda", "Zoom afuera + izquierda"]
+];
 /** Netlify rechaza cuerpos ~>6 MB; margen amplio para multipart (campos + boundary). */
 const LIMITE_SUBIDA_NETLIFY = 3.8 * 1024 * 1024;
 /** A partir de este tamaño siempre se re-encodea el audio antes de subir. */
@@ -180,12 +192,13 @@ function actualizarPreviewTipografia() {
     ctx.fillStyle = "rgba(0,0,0,0.6)";
     ctx.fillRect(20, h - 70, w - 40, 50);
 
-    const tamSub = Math.max(18, Math.round(40 * escala * 0.22));
-    const tamEsc = Math.max(14, Math.round(36 * escala * 0.18));
+    const tamSub = Math.max(13, Math.round(8 + escala * 5.2));
+    const tamEsc = Math.max(11, Math.round(7 + escala * 3.6));
     ctx.textAlign = "center";
     ctx.font = `bold ${tamSub}px Arial, sans-serif`;
     ctx.fillStyle = "#FFD700";
-    ctx.fillText("Subtítulo karaoke — palabra resaltada", w / 2, h - 38);
+    const lineaSub = escala >= 5 ? "Subtítulo karaoke" : "Subtítulo karaoke — palabra resaltada";
+    ctx.fillText(lineaSub, w / 2, h - 38);
     ctx.font = `${tamEsc}px Arial, sans-serif`;
     ctx.fillStyle = "#FFF";
     ctx.fillText("Texto de escena en la parte inferior", w / 2, h - 12);
@@ -297,13 +310,22 @@ function mimeRecorderPreferido() {
     return candidatos.find((m) => MediaRecorder.isTypeSupported?.(m)) || "";
 }
 
+function htmlOpcionesMovimiento(seleccionado) {
+    const sel = seleccionado || "zoom_in";
+    return ESTILOS_MOVIMIENTO_UI.map(([v, l]) => (
+        `<option value="${v}"${v === sel ? " selected" : ""}>${l}</option>`
+    )).join("");
+}
+
 function dibujarKenBurnsCanvas(ctx, img, t, w, h, estilo) {
     const te = Math.max(0, Math.min(1, t));
-    const ease = te * te * (3 - 2 * te);
-    const factor = 1.45;
+    const ease = 0.4 * te + 0.6 * (te * te * (3 - 2 * te));
+    const factor = 1.62;
+    const esPanPuro = estilo === "pan_derecha" || estilo === "pan_izquierda"
+        || estilo === "pan_arriba" || estilo === "pan_abajo";
     let scale = factor;
-    if (estilo === "zoom_in") scale = 1 + ease * (factor - 1);
-    else if (estilo === "zoom_out") scale = factor - ease * (factor - 1);
+    if (estilo === "zoom_out" || estilo === "zoom_out_izquierda") scale = factor - ease * (factor - 1);
+    else if (!esPanPuro) scale = 1 + ease * (factor - 1);
     const imgRatio = img.width / Math.max(1, img.height);
     const canvasRatio = w / h;
     let dw;
@@ -317,8 +339,13 @@ function dibujarKenBurnsCanvas(ctx, img, t, w, h, estilo) {
     }
     let x = (w - dw) / 2;
     let y = (h - dh) / 2;
-    if (estilo === "pan_derecha") x = (w - dw) * ease;
-    else if (estilo === "pan_izquierda") x = (w - dw) * (1 - ease);
+    if (estilo === "pan_derecha" || estilo === "zoom_in_derecha" || estilo === "ken_burns") {
+        x = (w - dw) * ease;
+    } else if (estilo === "pan_izquierda" || estilo === "zoom_in_izquierda" || estilo === "zoom_out_izquierda") {
+        x = (w - dw) * (1 - ease);
+    }
+    if (estilo === "pan_abajo") y = (h - dh) * ease;
+    else if (estilo === "pan_arriba" || estilo === "ken_burns") y = (h - dh) * (1 - ease);
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, w, h);
     ctx.drawImage(img, x, y, dw, dh);
@@ -369,10 +396,19 @@ async function grabarClipKenBurns(imageBlob, duracionSeg, estilo) {
 
 function estiloMovimientoDesdePrompt(prompt) {
     const p = String(prompt || "").toLowerCase();
-    if (/zoom.{0,24}(afuera|out|atrás|atras|alej)/.test(p) || /alej(ando|amiento)/.test(p)) return "zoom_out";
+    if (/zoom.{0,24}(afuera|out|atrás|atras|alej)/.test(p) || /alej(ando|amiento)/.test(p)) {
+        return /izq|left/.test(p) ? "zoom_out_izquierda" : "zoom_out";
+    }
+    if (/paneo?.{0,16}(arriba|up|cielo)/.test(p)) return "pan_arriba";
+    if (/paneo?.{0,16}(abajo|down|suelo)/.test(p)) return "pan_abajo";
     if (/paneo?.{0,16}(izq|left)/.test(p)) return "pan_izquierda";
     if (/paneo?.{0,16}(der|right)/.test(p)) return "pan_derecha";
-    if (/zoom|acerc|progresivo|acabando en|hacia el /.test(p)) return "zoom_in";
+    if (/diagonal|ken.?burns/.test(p)) return "ken_burns";
+    if (/zoom|acerc|progresivo|acabando en|hacia el /.test(p)) {
+        if (/izq|left/.test(p)) return "zoom_in_izquierda";
+        if (/der|right/.test(p)) return "zoom_in_derecha";
+        return "zoom_in";
+    }
     return estiloMovimientoActual();
 }
 
@@ -522,14 +558,14 @@ async function generarVozIA() {
     const audioEl = $("#audio-preview-voz");
     const btnUsar = $("#btn-usar-voz-audio");
     const lim = limitesVoz();
-    const maxSeg = Math.max(8, Math.min(lim.maxSeg, Number($("#estudio-voz-maxseg")?.value) || lim.maxSeg));
+    const maxSeg = lim.maxSeg;
     const voz = $("#estudio-voz-estilo")?.value || "femenina";
 
     if (btn) { btn.disabled = true; btn.textContent = "Generando locución..."; }
-    if (status) status.textContent = `Creando voz IA (máx. ${maxSeg} s)...`;
+    if (status) status.textContent = `La IA adapta el texto y crea la voz (hasta ${maxSeg} s)...`;
 
     try {
-        const { ok, data: d } = await fetchEstudio("/estudio/voz", { texto, voz, maxSeg });
+        const { ok, data: d } = await fetchEstudio("/estudio/voz", { texto, voz, maxSeg, adaptar: true });
         if (!ok || !d.audio_base64) throw new Error(d.error || "No se pudo generar la voz.");
         incrementarEstudioGens("voz");
         const mime = d.mime || "audio/mpeg";
@@ -540,13 +576,14 @@ async function generarVozIA() {
         if (audioEl) audioEl.src = url;
         if (preview) preview.style.display = "block";
         if (btnUsar) btnUsar.style.display = "inline-block";
-        const extra = d.recortado ? " Texto recortado al límite de la toma." : "";
+        let extra = "";
+        if (d.adaptado) extra = " La IA condensó el texto para que cupiera en la toma.";
+        else if (d.recortado) extra = " Se ajustó al tope de tu plan.";
         if (status) {
             status.textContent = `Voz lista (${d.fuente || d.modelo || "IA"}).${extra} Ponla en el riel de locución; el MP3 o MIDI se queda en el riel de fondo.`;
         }
     } catch (e) {
-        if (status) status.textContent = "Error: " + e.message;
-        alert("Error generando voz: " + e.message);
+        if (status) status.textContent = "No se pudo generar la voz: " + e.message;
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = "🗣️ Generar voz"; }
     }
@@ -830,18 +867,12 @@ function actualizarCamposDuracionEstudio() {
     });
     const voz = limitesVoz();
     const vozEl = $("#estudio-voz-maxseg");
-    if (vozEl) {
-        vozEl.min = "8";
-        vozEl.max = String(voz.maxSeg);
-        const actual = Number(vozEl.value);
-        if (!Number.isFinite(actual) || actual < 8) vozEl.value = String(Math.min(30, voz.maxSeg));
-        if (actual > voz.maxSeg) vozEl.value = String(voz.maxSeg);
-    }
+    if (vozEl) vozEl.value = String(voz.maxSeg);
     const hintVoz = $("#hint-duracion-voz");
     if (hintVoz) {
         hintVoz.textContent = isPremium
-            ? "Premium: 8 segundos a 4 minutos por toma (20/día). El video de hasta 1 h se arma con este audio, MIDI o tu pista."
-            : "Gratis: 8 a 30 segundos por toma (3/día). Premium sube a 4 min y 20 tomas/día.";
+            ? "Automático (Premium): la IA usa el tiempo que necesita, hasta 4 min por toma."
+            : "Automático: la IA usa el tiempo que necesita, hasta 30 s. Premium sube a 4 min.";
     }
     const clipSel = $("#estudio-duracion-clip");
     if (clipSel) {
@@ -1520,10 +1551,7 @@ function renderizarPizarras() {
         const movHtml = item.tipo === "imagen"
             ? `<label class="chk-movimiento"><input type="checkbox" class="chk-mov" data-index="${index}" ${item.movimiento ? "checked" : ""}> Movimiento cinematográfico</label>
                <select class="select-tipografia select-movimiento-celda" data-index="${index}" ${item.movimiento ? "" : "disabled"}>
-                 <option value="zoom_in"${item.estilo_movimiento === "zoom_in" ? " selected" : ""}>Zoom adentro</option>
-                 <option value="zoom_out"${item.estilo_movimiento === "zoom_out" ? " selected" : ""}>Zoom afuera</option>
-                 <option value="pan_derecha"${item.estilo_movimiento === "pan_derecha" ? " selected" : ""}>Paneo derecha</option>
-                 <option value="pan_izquierda"${item.estilo_movimiento === "pan_izquierda" ? " selected" : ""}>Paneo izquierda</option>
+                 ${htmlOpcionesMovimiento(item.estilo_movimiento || "zoom_in")}
                </select>`
             : "";
 
@@ -1797,7 +1825,9 @@ async function encodeMp3FromBuffer(rendered, { sampleRate = 44100, canales = 1, 
         }
     } else {
         const izq = floatAInt16(rendered.getChannelData(0));
-        const der = floatAInt16(rendered.getChannelData(1));
+        const der = floatAInt16(
+            rendered.numberOfChannels > 1 ? rendered.getChannelData(1) : rendered.getChannelData(0)
+        );
         for (let i = 0; i < izq.length; i += bloque) {
             const buf = mp3encoder.encodeBuffer(
                 izq.subarray(i, i + bloque),
@@ -1998,8 +2028,8 @@ function validarProyecto() {
         alert("Pon una locución en el riel 1, un MP3/MIDI en el riel 2, o ambos.");
         return false;
     }
-    if (audioDuracionEst > 0 && audioDuracionEst < lim.minSeg) {
-        alert(`El audio debe durar al menos ${lim.minSeg} segundos (ahora: ${Math.ceil(audioDuracionEst)} s).`);
+    if (audioDuracionEst > 0 && audioDuracionEst < 3) {
+        alert("El audio es demasiado corto. Usa al menos unos segundos de locución o un MP3 de fondo.");
         return false;
     }
 
@@ -2097,6 +2127,23 @@ window.generarVideo = async function () {
 
         const subtitulosOn = $("#chk-subtitulos")?.checked;
         const letra = $("#letra-cancion")?.value || letraGuardada || "";
+        const volVoz = volumenRielVoz();
+        const volFondo = volumenRielFondo();
+        let audio = audioFile || rielVozFile || rielFondoFile;
+        let audioFondo = null;
+        let audioYaMezclado = false;
+
+        if (rielVozFile && rielFondoFile) {
+            if (statusText) statusText.textContent = "Mezclando locución y música de fondo…";
+            try {
+                audio = await mezclarRielesCliente(rielVozFile, rielFondoFile, volVoz, volFondo);
+                audioYaMezclado = true;
+            } catch (mixErr) {
+                console.warn("[estudio] mezcla local:", mixErr);
+                audio = rielVozFile;
+                audioFondo = rielFondoFile;
+            }
+        }
 
         const meta = {
             linea_tiempo: lista,
@@ -2110,13 +2157,15 @@ window.generarVideo = async function () {
             sin_marca_agua: !!(isPremium && $("#chk-sin-marca-agua")?.checked),
             escala_texto: obtenerEscalaTexto(),
             nombre_pista: nombrePistaParaVideo(),
-            volumen_fondo: 0.24
+            volumen_voz: volVoz,
+            volumen_fondo: volFondo,
+            audio_ya_mezclado: audioYaMezclado
         };
 
         if (statusText) statusText.textContent = "Optimizando imágenes y audio...";
         const archivos = await prepararArchivosRender({
-            audio: rielVozFile || rielFondoFile,
-            audioFondo: rielVozFile && rielFondoFile ? rielFondoFile : null,
+            audio,
+            audioFondo: audioYaMezclado ? null : audioFondo,
             portada: portadaFile,
             cierre: cierreFile,
             mediaItems
@@ -2142,9 +2191,112 @@ window.generarVideo = async function () {
     }
 };
 
+function volumenRielVoz() {
+    const n = Number($("#vol-riel-voz")?.value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(1, n / 100)) : 1;
+}
+
+function volumenRielFondo() {
+    const n = Number($("#vol-riel-fondo")?.value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(1, n / 100)) : 0.5;
+}
+
 function sincronizarAudioPrincipal() {
     audioFile = rielVozFile || rielFondoFile;
     audioDuracionEst = rielVozFile ? duracionRielVoz : duracionRielFondo;
+}
+
+function sincronizarVolumenPrevia() {
+    const vozEl = $("#previa-audio-voz");
+    const fondoEl = $("#previa-audio-fondo");
+    const vozVal = $("#vol-riel-voz-val");
+    const fondoVal = $("#vol-riel-fondo-val");
+    if (vozEl) vozEl.volume = volumenRielVoz();
+    if (fondoEl) fondoEl.volume = volumenRielFondo();
+    if (vozVal) vozVal.textContent = `${Math.round(volumenRielVoz() * 100)}%`;
+    if (fondoVal) fondoVal.textContent = `${Math.round(volumenRielFondo() * 100)}%`;
+}
+
+function asignarPreviaRiel(audioEl, file) {
+    if (!audioEl) return;
+    if (audioEl.dataset.url) URL.revokeObjectURL(audioEl.dataset.url);
+    if (!file) {
+        audioEl.removeAttribute("src");
+        audioEl.dataset.url = "";
+        audioEl.style.display = "none";
+        return;
+    }
+    const url = URL.createObjectURL(file);
+    audioEl.dataset.url = url;
+    audioEl.src = url;
+    audioEl.style.display = "block";
+    sincronizarVolumenPrevia();
+}
+
+function detenerMezclaRieles() {
+    ["previa-audio-voz", "previa-audio-fondo"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.pause();
+        try { el.currentTime = 0; } catch { /* ignore */ }
+    });
+}
+
+async function escucharMezclaRieles() {
+    if (!rielVozFile && !rielFondoFile) {
+        alert("Carga primero la locución y/o el fondo.");
+        return;
+    }
+    detenerMezclaRieles();
+    sincronizarVolumenPrevia();
+    const vozEl = $("#previa-audio-voz");
+    const fondoEl = $("#previa-audio-fondo");
+    const st = $("#status-mezcla-rieles");
+    try {
+        if (fondoEl?.src && rielFondoFile) {
+            fondoEl.loop = true;
+            fondoEl.currentTime = 0;
+            await fondoEl.play();
+        }
+        if (vozEl?.src && rielVozFile) {
+            vozEl.loop = false;
+            vozEl.currentTime = 0;
+            vozEl.onended = () => {
+                if (fondoEl) fondoEl.pause();
+            };
+            await vozEl.play();
+        }
+        if (st) st.textContent = "Reproduciendo mezcla con los volúmenes actuales…";
+    } catch (err) {
+        if (st) st.textContent = "No se pudo reproducir la previa: " + err.message;
+    }
+}
+
+async function mezclarRielesCliente(vozFile, fondoFile, volVoz, volFondo) {
+    const vozBuf = await decodificarArchivoAudio(vozFile);
+    const fondoBuf = await decodificarArchivoAudio(fondoFile);
+    const sr = 44100;
+    const dur = Math.max(vozBuf.duration, 0.8);
+    const offline = new OfflineAudioContext(2, Math.max(1, Math.ceil(dur * sr)), sr);
+    const gVoz = offline.createGain();
+    gVoz.gain.value = volVoz;
+    gVoz.connect(offline.destination);
+    const gFondo = offline.createGain();
+    gFondo.gain.value = volFondo;
+    gFondo.connect(offline.destination);
+    const vozSrc = offline.createBufferSource();
+    vozSrc.buffer = vozBuf;
+    vozSrc.connect(gVoz);
+    vozSrc.start(0);
+    const fondoSrc = offline.createBufferSource();
+    fondoSrc.buffer = fondoBuf;
+    fondoSrc.loop = true;
+    fondoSrc.connect(gFondo);
+    fondoSrc.start(0);
+    const rendered = await offline.startRendering();
+    const blob = await encodeMp3FromBuffer(rendered, { sampleRate: sr, canales: 2, kbps: 192 });
+    if (!blob || blob.size < 800) throw new Error("La mezcla quedó vacía.");
+    return new File([blob], "mezcla-rieles.mp3", { type: "audio/mpeg" });
 }
 
 function actualizarAvisoAudio(extra = "", riel = "fondo") {
@@ -2262,6 +2414,10 @@ async function cargarAudio(file, riel = "fondo") {
         duracionRielFondo = dur;
     }
     sincronizarAudioPrincipal();
+    asignarPreviaRiel(
+        riel === "voz" ? $("#previa-audio-voz") : $("#previa-audio-fondo"),
+        finalFile
+    );
     actualizarAvisoAudio(notaConversion, riel);
     rellenarNombrePistaSiVacio(sugerirNombrePista(finalFile, riel));
     const sec = $("#seccion-subtitulos");
@@ -2331,6 +2487,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#input-audio-voz")?.addEventListener("change", (e) => {
         if (e.target.files[0]) cargarAudio(e.target.files[0], "voz");
     });
+    $("#vol-riel-voz")?.addEventListener("input", sincronizarVolumenPrevia);
+    $("#vol-riel-fondo")?.addEventListener("input", sincronizarVolumenPrevia);
+    $("#btn-escuchar-mezcla")?.addEventListener("click", () => {
+        escucharMezclaRieles().catch((err) => {
+            const st = $("#status-mezcla-rieles");
+            if (st) st.textContent = "No se pudo previsualizar: " + err.message;
+        });
+    });
+    $("#btn-detener-mezcla")?.addEventListener("click", detenerMezclaRieles);
+    sincronizarVolumenPrevia();
     $("#nombre-pista-video")?.addEventListener("input", () => {
         nombrePistaEditado = true;
     });

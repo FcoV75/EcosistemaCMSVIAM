@@ -1,5 +1,5 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
-import { expandirPromptVisual } from './lib/estudio-prompt-visual.mjs';
+import { expandirPromptVisual, promptImagenReforzado } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
 export default async (req) => {
@@ -16,7 +16,7 @@ export default async (req) => {
     if (!prompt?.trim()) return jsonResponse({ error: 'Describe la imagen.' }, 400);
 
     const expansion = await expandirPromptVisual(prompt, { modo: 'imagen' });
-    const imagen = await generarImagenEstudio(expansion.promptEn, {
+    const imagen = await generarImagenEstudio(promptImagenReforzado(expansion.promptEn), {
       width: 1920,
       height: 1080,
       seed: Date.now() % 99999,
