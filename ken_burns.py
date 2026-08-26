@@ -1,6 +1,17 @@
 """Geometría del movimiento cinematográfico Ken Burns (sin OpenCV)."""
 
-ESTILOS_MOVIMIENTO = ("zoom_in", "zoom_out", "pan_derecha", "pan_izquierda")
+ESTILOS_MOVIMIENTO = (
+    "zoom_in",
+    "zoom_out",
+    "pan_derecha",
+    "pan_izquierda",
+    "pan_arriba",
+    "pan_abajo",
+    "zoom_in_derecha",
+    "zoom_in_izquierda",
+    "ken_burns",
+    "zoom_out_izquierda",
+)
 # Cubrir el cuadro + factor alto: con letterbox el zoom casi no se notaba.
 FACTOR_MOVIMIENTO = 1.62
 CICLO_KEN_BURNS_SEG = 6.0
@@ -32,25 +43,46 @@ def progreso_ken_burns(frame_idx, fps=24, ciclo_seg=CICLO_KEN_BURNS_SEG):
     return ciclo if ciclo <= 1.0 else 2.0 - ciclo
 
 
-def recuadro_ken_burns(t, estilo, bw, bh, out_w, out_h):
-    """Recorte (x, y, w, h) sobre la imagen ampliada. t en [0, 1]."""
-    te = smoothstep(t)
+def _plan_estilo(estilo, te):
+    """zoom 0=abierto (toda la imagen ampliada), 1=cerrado (cuadro de salida). nx/ny 0..1."""
     estilo = (estilo or "zoom_in").strip().lower()
     if estilo not in ESTILOS_MOVIMIENTO:
         estilo = "zoom_in"
-    if estilo in ("zoom_in", "zoom_out"):
-        progreso = te if estilo == "zoom_in" else (1.0 - te)
-        min_w, min_h = out_w, out_h
-        crop_w = int(round(bw - progreso * (bw - min_w)))
-        crop_h = int(round(bh - progreso * (bh - min_h)))
-        crop_w = max(min_w, min(bw, crop_w))
-        crop_h = max(min_h, min(bh, crop_h))
-        x = max(0, (bw - crop_w) // 2)
-        y = max(0, (bh - crop_h) // 2)
-        return x, y, crop_w, crop_h
-    crop_w, crop_h = out_w, out_h
+    if estilo == "zoom_in":
+        return te, 0.5, 0.5
+    if estilo == "zoom_out":
+        return 1.0 - te, 0.5, 0.5
+    if estilo == "pan_derecha":
+        return 1.0, te, 0.5
+    if estilo == "pan_izquierda":
+        return 1.0, 1.0 - te, 0.5
+    if estilo == "pan_arriba":
+        return 1.0, 0.5, 1.0 - te
+    if estilo == "pan_abajo":
+        return 1.0, 0.5, te
+    if estilo == "zoom_in_derecha":
+        return te, te, 0.5
+    if estilo == "zoom_in_izquierda":
+        return te, 1.0 - te, 0.5
+    if estilo == "zoom_out_izquierda":
+        return 1.0 - te, 1.0 - te, 0.5
+    # ken_burns: zoom + diagonal clásica
+    return te, te, 1.0 - te
+
+
+def recuadro_ken_burns(t, estilo, bw, bh, out_w, out_h):
+    """Recorte (x, y, w, h) sobre la imagen ampliada. t en [0, 1]."""
+    te = smoothstep(t)
+    zoom, nx, ny = _plan_estilo(estilo, te)
+    min_w, min_h = out_w, out_h
+    crop_w = int(round(bw - zoom * (bw - min_w)))
+    crop_h = int(round(bh - zoom * (bh - min_h)))
+    crop_w = max(min_w, min(bw, crop_w))
+    crop_h = max(min_h, min(bh, crop_h))
     max_x = max(0, bw - crop_w)
     max_y = max(0, bh - crop_h)
-    y = max_y // 2
-    x = int(round(max_x * te)) if estilo == "pan_derecha" else int(round(max_x * (1.0 - te)))
+    nx = max(0.0, min(1.0, float(nx)))
+    ny = max(0.0, min(1.0, float(ny)))
+    x = int(round(max_x * nx))
+    y = int(round(max_y * ny))
     return x, y, crop_w, crop_h

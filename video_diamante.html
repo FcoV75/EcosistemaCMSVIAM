@@ -183,7 +183,7 @@
         .riel-audio .zona-drop { min-height: 86px; margin: 8px 0; }
         .riel-previa { width: 100%; margin-top: 8px; display: none; height: 36px; }
         .riel-volumen { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.82rem; color: #E8DDB5; }
-        .riel-volumen input[type="range"] { flex: 1; }
+        .riel-volumen input[type="range"] { flex: 1; accent-color: #D4AF37; min-height: 28px; cursor: pointer; }
         .mezcla-previa { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
         .btn-eliminar-celda {
             background: var(--color-rojo-boton);
@@ -605,10 +605,10 @@
                 <span id="status-letra-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
             </div>
             <div id="panel-estudio-voz" class="panel-estudio">
-                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Convierte tu discurso o un texto propio a locución. Gratuito: <strong>30 s por toma, 3/día</strong>. Premium: <strong>hasta 4 min por toma, 20/día</strong>. El video largo (hasta 1 h) se arma con tu audio o MIDI; la voz IA es para tomas y anuncios, no para narrar una hora.</p>
+                    <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Convierte tu discurso o un texto propio a locución. <strong>La IA adapta sola el tiempo</strong> al tope de tu plan: no recortes el texto ni elijas segundos. Gratuito: <strong>hasta 30 s, 3/día</strong>. Premium: <strong>hasta 4 min, 20/día</strong>. El video largo (hasta 1 h) se arma con tu audio o MIDI.</p>
                 <div class="grupo-control">
                     <label for="estudio-texto-voz">Texto para locución</label>
-                    <textarea id="estudio-texto-voz" class="pizarra-letra" style="min-height:90px;" placeholder="Pega aquí el discurso o escríbelo. En gratis se recorta a ~30 s de habla."></textarea>
+                    <textarea id="estudio-texto-voz" class="pizarra-letra" style="min-height:90px;" placeholder="Pega el discurso completo. Si es largo, la IA lo condensa para que quepa en la toma."></textarea>
                 </div>
                 <div class="fila-dos">
                     <div class="grupo-control">
@@ -621,9 +621,9 @@
                         </select>
                     </div>
                     <div class="grupo-control">
-                        <label for="estudio-voz-maxseg">Toma máxima (segundos)</label>
-                        <input type="number" id="estudio-voz-maxseg" class="input-texto-premium" min="8" max="30" value="30" step="1">
-                        <p id="hint-duracion-voz" style="font-size:0.78rem;color:#BCB4B4;margin-top:6px;">Gratis: 8–30 s. Premium: 8 s–4 min.</p>
+                        <label>Tiempo de la toma</label>
+                        <p id="hint-duracion-voz" style="font-size:0.9rem;color:#E8DDB5;margin-top:10px;">Automático: la IA usa el tiempo que necesita, hasta el tope del plan.</p>
+                        <input type="hidden" id="estudio-voz-maxseg" value="30">
                     </div>
                 </div>
                 <button type="button" class="btn-viam-subir" id="btn-generar-voz">🗣️ Generar voz</button>
@@ -645,6 +645,12 @@
                             <option value="zoom_out">Zoom hacia afuera</option>
                             <option value="pan_derecha">Paneo a la derecha</option>
                             <option value="pan_izquierda">Paneo a la izquierda</option>
+                            <option value="pan_arriba">Paneo hacia arriba</option>
+                            <option value="pan_abajo">Paneo hacia abajo</option>
+                            <option value="zoom_in_derecha">Zoom adentro + derecha</option>
+                            <option value="zoom_in_izquierda">Zoom adentro + izquierda</option>
+                            <option value="ken_burns">Ken Burns diagonal</option>
+                            <option value="zoom_out_izquierda">Zoom afuera + izquierda</option>
                         </select>
                     </div>
                     <div class="grupo-control">
@@ -658,7 +664,7 @@
                 <span id="status-movimiento-estudio" class="status-archivo" style="display:block;margin-top:8px;"></span>
             </div>
             <div id="panel-estudio-clip" class="panel-estudio">
-                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Clip corto tipo anuncio: <strong>8 s</strong> en gratuito (1/día) y <strong>8–12 s</strong> en Premium (5/día). Describe el lugar, los objetos y el movimiento de cámara. La IA respeta esa escena (no un cielo suelto) y graba el zoom en la duración pedida.</p>
+                <p style="font-size:0.85rem;color:#BCB4B4;margin-bottom:12px;">Clip corto tipo anuncio: <strong>8 s</strong> en gratuito (1/día) y <strong>8–12 s</strong> en Premium (5/día). La duración del menú se respeta. Si hay clave Vidu o Fal, se genera video nativo; si no, la escena se graba con movimiento Ken Burns en exactamente esos segundos.</p>
                 <div class="grupo-control">
                     <label for="estudio-prompt-clip">Describe el clip</label>
                     <textarea id="estudio-prompt-clip" class="pizarra-letra" style="min-height:80px;" placeholder="Ej: Toma de una panadería al amanecer, vapor del pan recién horneado, zoom lento hasta el pan en primer plano"></textarea>

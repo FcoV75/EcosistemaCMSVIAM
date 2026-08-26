@@ -21,36 +21,91 @@ async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 50000) {
   return null;
 }
 
+async function generarClipVidu(promptEn, segundos) {
+  const key = (process.env.VIDU_API_KEY || process.env.VIDU_KEY || '').trim();
+  if (!key) return null;
+  const model = process.env.VIDU_VIDEO_MODEL || 'viduq3-turbo';
+  const dur = Math.max(5, Math.min(16, Math.round(Number(segundos) || 8)));
+  const headers = {
+    Authorization: `Token ${key}`,
+    'Content-Type': 'application/json',
+  };
+  const r = await fetch('https://api.vidu.com/ent/v2/text2video', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model,
+      prompt: String(promptEn || '').slice(0, 2000),
+      duration: dur,
+      resolution: '720p',
+      style: 'general',
+    }),
+  });
+  const queued = await r.json().catch(() => ({}));
+  const taskId = queued.task_id || queued.id;
+  if (!r.ok || !taskId) {
+    console.warn('Vidu:', r.status, queued);
+    return null;
+  }
+  const inicio = Date.now();
+  while (Date.now() - inicio < 50000) {
+    const st = await fetch(`https://api.vidu.com/ent/v2/tasks/${taskId}/creations`, { headers: { Authorization: `Token ${key}` } });
+    const data = await st.json().catch(() => ({}));
+    const status = String(data.state || data.status || '').toLowerCase();
+    if (status === 'success' || status === 'completed') {
+      const url = data.creations?.[0]?.url
+        || data.creations?.[0]?.video_url
+        || data.video?.url
+        || data.url;
+      if (url) return { video_url: url, fuente: 'vidu', mime: 'video/mp4', duracionSeg: dur };
+    }
+    if (status === 'failed' || status === 'error') {
+      console.warn('Vidu tarea:', data);
+      return null;
+    }
+    await new Promise((ok) => setTimeout(ok, 2000));
+  }
+  return null;
+}
+
 async function generarClipFal(promptEn, segundos) {
   const key = (process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
   if (!key) return null;
-  const model = process.env.FAL_VIDEO_MODEL || 'fal-ai/ltx-video';
+  const modelos = [
+    process.env.FAL_VIDEO_MODEL,
+    'fal-ai/kling-video/v2.1/standard/text-to-video',
+    'fal-ai/wan-pro',
+    'fal-ai/ltx-video',
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
   const headers = {
     Authorization: `Key ${key}`,
     'Content-Type': 'application/json',
   };
   const frames = Math.max(97, Math.min(241, Math.round(segundos * 24)));
-  const r = await fetch(`https://queue.fal.run/${model}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      prompt: `${promptEn}, cinematic camera, photorealistic, 16:9, smooth motion, no text, no watermark`,
-      negative_prompt: 'text, watermark, logo, distortion, low quality, empty sky, missing subjects',
-      num_frames: frames,
-    }),
-  });
-  const queued = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    console.warn('Fal queue:', r.status, queued);
-    return null;
+  for (const model of modelos) {
+    const r = await fetch(`https://queue.fal.run/${model}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        prompt: `${promptEn}, cinematic camera, photorealistic, 16:9, smooth motion, no text, no watermark`,
+        negative_prompt: 'text, watermark, logo, distortion, low quality, empty sky, missing subjects',
+        num_frames: frames,
+        duration: segundos,
+      }),
+    });
+    const queued = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.warn('Fal queue:', model, r.status, queued);
+      continue;
+    }
+    const statusUrl = queued.status_url;
+    const responseUrl = queued.response_url;
+    if (!statusUrl || !responseUrl) continue;
+    const result = await esperarFal(statusUrl, responseUrl, headers);
+    const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
+    if (videoUrl) return { video_url: videoUrl, fuente: `fal:${model}`, mime: 'video/mp4' };
   }
-  const statusUrl = queued.status_url;
-  const responseUrl = queued.response_url;
-  if (!statusUrl || !responseUrl) return null;
-  const result = await esperarFal(statusUrl, responseUrl, headers);
-  const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
-  if (!videoUrl) return null;
-  return { video_url: videoUrl, fuente: 'fal', mime: 'video/mp4' };
+  return null;
 }
 
 async function generarClipReplicate(promptEn, segundos) {
@@ -104,9 +159,16 @@ export default async (req) => {
 
     let nativo = null;
     try {
-      nativo = await generarClipFal(promptEn, duracion);
+      nativo = await generarClipVidu(promptEn, duracion);
     } catch (err) {
-      console.warn('Fal clip:', err?.message || err);
+      console.warn('Vidu clip:', err?.message || err);
+    }
+    if (!nativo) {
+      try {
+        nativo = await generarClipFal(promptEn, duracion);
+      } catch (err) {
+        console.warn('Fal clip:', err?.message || err);
+      }
     }
     if (!nativo) {
       try {

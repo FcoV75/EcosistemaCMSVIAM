@@ -38,7 +38,7 @@ MARCA_AGUA_TEXTO = "IAVIAM VIDEO_DIAMANTE"
 TAM_MARCA_AGUA = 22
 MAX_PALABRAS_LINEA_KARAOKE = 10
 PADDING_FONDO = 8
-TAM_MINIMO_FUENTE = 72
+TAM_MINIMO_FUENTE = 22
 
 _FUENTE_RUTA = None
 _FUENTE_CACHE = {}
@@ -164,7 +164,7 @@ def _partir_texto_en_lineas(texto, draw, tamano, max_ancho, max_lineas=4):
 def _ajustar_tamano_fuente(draw, texto, tam_inicial, max_ancho, min_ratio=0.88):
     """Reduce como mucho ~12% — antes encogía hasta la mitad y anulaba la escala XXL/L."""
     tam = tam_inicial
-    piso = max(28, int(tam_inicial * min_ratio))
+    piso = max(18, int(tam_inicial * 0.72))
     while tam >= piso:
         font = _fuente_pillow(tam)
         bbox = draw.textbbox((0, 0), texto, font=font)
@@ -803,6 +803,17 @@ def generar_video_cloud():
         if not mezclado_ok:
             print("Aviso: no se pudo mezclar el fondo; el video usará solo la locución.")
     duracion_audio = obtener_duracion_audio(ruta_audio, ffmpeg_bin)
+    if 0 < duracion_audio < 8.0:
+        padded = "/tmp/audio_min8.mp3"
+        pad = subprocess.run(
+            [ffmpeg_bin, "-y", "-i", ruta_audio, "-af", "apad", "-t", "8",
+             "-c:a", "libmp3lame", "-b:a", "192k", padded],
+            capture_output=True, text=True, check=False,
+        )
+        if pad.returncode == 0 and os.path.exists(padded) and os.path.getsize(padded) > 800:
+            ruta_audio = padded
+            duracion_audio = 8.0
+            print("Audio corto: se rellenó a 8 s para no bloquear el render.")
     print(f"Duración audio: {duracion_audio:.2f}s | FPS: {FPS} | Pista: {nombre_pista}")
 
     palabras_sub = preparar_palabras_subtitulo(

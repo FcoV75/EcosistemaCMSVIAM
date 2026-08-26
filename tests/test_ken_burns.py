@@ -56,6 +56,27 @@ class KenBurnsTests(unittest.TestCase):
         self.assertEqual(progreso_ken_burns(0, fps, ciclo), 0)
         self.assertGreater(progreso_ken_burns(n - 1, fps, ciclo), 0.9)
 
+    def test_pan_arriba_y_abajo(self):
+        bw, bh = int(WIDTH * 1.62), int(HEIGHT * 1.62)
+        _, y0, _, _ = recuadro_ken_burns(0, "pan_abajo", bw, bh, WIDTH, HEIGHT)
+        _, y1, _, _ = recuadro_ken_burns(1, "pan_abajo", bw, bh, WIDTH, HEIGHT)
+        self.assertGreater(y1, y0)
+        _, yu0, _, _ = recuadro_ken_burns(0, "pan_arriba", bw, bh, WIDTH, HEIGHT)
+        _, yu1, _, _ = recuadro_ken_burns(1, "pan_arriba", bw, bh, WIDTH, HEIGHT)
+        self.assertGreater(yu0, yu1)
+
+    def test_ken_burns_diagonal_zoom_y_pan(self):
+        bw, bh = int(WIDTH * 1.62), int(HEIGHT * 1.62)
+        x0, y0, w0, h0 = recuadro_ken_burns(0, "ken_burns", bw, bh, WIDTH, HEIGHT)
+        x1, y1, w1, h1 = recuadro_ken_burns(1, "ken_burns", bw, bh, WIDTH, HEIGHT)
+        self.assertGreater(w0, w1)
+        self.assertGreater(h0, h1)
+        self.assertGreaterEqual(x1, x0)
+
+    def test_diez_estilos(self):
+        from ken_burns import ESTILOS_MOVIMIENTO
+        self.assertGreaterEqual(len(ESTILOS_MOVIMIENTO), 10)
+
     def test_quiere_movimiento_acepta_json_y_texto(self):
         self.assertTrue(quiere_movimiento(True))
         self.assertTrue(quiere_movimiento("true"))

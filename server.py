@@ -653,6 +653,7 @@ def estudio_generar_voz():
     palabras = texto.split()
     max_palabras = max(18, int(round(max_seg * 2.4)))
     recortado = len(palabras) > max_palabras
+    adaptado = False
     if recortado:
         texto = " ".join(palabras[:max_palabras]) + "."
     voz = str(body.get("voz") or "femenina").lower()
@@ -690,6 +691,7 @@ def estudio_generar_voz():
                             "mime": inline.get("mimeType") or inline.get("mime_type") or "audio/wav",
                             "modelo": modelo,
                             "recortado": recortado,
+                            "adaptado": adaptado,
                             "fuente": "gemini",
                         })
         except Exception as exc:
@@ -715,6 +717,7 @@ def estudio_generar_voz():
                 "mime": "audio/mpeg",
                 "modelo": "playai-tts",
                 "recortado": recortado,
+                "adaptado": adaptado,
                 "fuente": "groq",
             })
         return jsonify({"error": "No se pudo generar la voz."}), 502
