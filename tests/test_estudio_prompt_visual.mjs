@@ -28,6 +28,20 @@ assert.match(venado, /venado AND/i);
 assert.match(venado, /cebra/i);
 assert.match(venado, /BOTH|ALL of these must be visible/i);
 
+const colibriPrompt = 'Un colibrí de colores brillantes y variados volando de un lirio a otro libando sus pistilos en la orilla de un rio de una montaña exuberante por el atardecer';
+const elementosColibri = extraerElementos(colibriPrompt);
+assert.ok(elementosColibri.some((w) => /colibrí|colibri/i.test(w)));
+assert.ok(elementosColibri.some((w) => /lirio/i.test(w)));
+assert.ok(elementosColibri.some((w) => /montaña|montana/i.test(w)));
+assert.ok(!elementosColibri.some((w) => /^volando$/i.test(w)));
+
+const colibriFb = promptVisualFallback(colibriPrompt, 'clip');
+assert.match(colibriFb, /hummingbird \(colibrí\)|colibrí|colibri/i);
+assert.match(colibriFb, /lily \(lirio\)|lirio/i);
+assert.match(colibriFb, /river|río|rio/i);
+assert.match(colibriFb, /FORBIDDEN: empty blue sky/i);
+assert.doesNotMatch(colibriFb, /brillantes AND/i);
+
 const simple = promptVisualFallback('Atardecer en Acapulco', 'imagen');
 assert.match(simple, /Acapulco/);
 assert.match(simple, /sky, clouds/);

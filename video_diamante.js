@@ -372,15 +372,18 @@ async function grabarClipKenBurns(imageBlob, duracionSeg, estilo) {
         rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
         rec.onerror = () => reject(new Error("No se pudo grabar el movimiento del clip."));
     });
-    const ms = Math.max(1000, Number(duracionSeg) * 1000);
-    rec.start();
+    const msPedido = Math.max(1000, Number(duracionSeg) * 1000);
+    // MediaRecorder suele recortar ~1 s al parar; grabamos un margen y el t del zoom usa los segundos pedidos.
+    const msGrabacion = msPedido + 900;
+    rec.start(200);
     const inicio = performance.now();
     await new Promise((resolve) => {
         const tick = () => {
             const elapsed = performance.now() - inicio;
-            const t = Math.min(1, elapsed / ms);
+            const t = Math.min(1, elapsed / msPedido);
             dibujarKenBurnsCanvas(ctx, img, t, w, h, estilo || "zoom_in");
-            if (elapsed >= ms) {
+            if (elapsed >= msGrabacion) {
+                try { rec.requestData(); } catch { /* ignore */ }
                 rec.stop();
                 resolve();
                 return;
