@@ -16,7 +16,7 @@ export default async (req) => {
     if (!prompt?.trim()) return jsonResponse({ error: 'Describe la imagen.' }, 400);
 
     const expansion = await expandirPromptVisual(prompt, { modo: 'imagen' });
-    const imagen = await generarImagenEstudio(promptImagenReforzado(expansion.promptEn), {
+    const imagen = await generarImagenEstudio(promptImagenReforzado(expansion.promptEn, prompt), {
       width: 1920,
       height: 1080,
       seed: Date.now() % 99999,

@@ -155,7 +155,7 @@ export default async (req) => {
     const lim = premium ? LIMITES_CLIP.premium : LIMITES_CLIP.free;
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
-    const promptEn = promptImagenReforzado(expansion.promptEn);
+    const promptEn = promptImagenReforzado(expansion.promptEn, prompt);
 
     let nativo = null;
     try {

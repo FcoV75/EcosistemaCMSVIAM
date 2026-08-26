@@ -44,6 +44,15 @@ const GLOSARIO_VISUAL = {
   caballo: 'horse',
   aguila: 'eagle',
   pajaro: 'bird',
+  colibri: 'hummingbird',
+  lirio: 'lily',
+  lirios: 'lilies',
+  pistilos: 'flower pistils',
+  pistilo: 'pistil',
+  orilla: 'riverbank',
+  nectar: 'nectar',
+  flores: 'flowers',
+  flor: 'flower',
 };
 
 export function groqKeyVisual() {
@@ -74,6 +83,7 @@ export function extraerElementos(prompt) {
     'desde', 'hacia', 'como', 'muy', 'mas', 'todo', 'toda', 'todos', 'todas', 'este', 'esta',
     'estos', 'estas', 'ese', 'esa', 'aquel', 'aquella', 'cada', 'otro', 'otra', 'observando',
     'usando', 'haciendo', 'siendo', 'tienen', 'tiene', 'donde', 'cuando', 'mientras',
+    'volando', 'vuela', 'vuelo', 'brillantes', 'variados', 'colores', 'libando',
   ]);
   const palabras = escena.split(' ').map((w) => w.trim()).filter((w) => {
     const n = sinAcentos(w);
@@ -106,7 +116,7 @@ export function reforzarSujetos(prompt) {
   if (!escena) return '';
   const lista = extraerElementos(escena).map(traducirElemento);
   const must = lista.length ? ` MUST INCLUDE every one of these, all visible: ${lista.join(', ')}.` : '';
-  const partes = escena.split(/\s+y\s+/i);
+  const partes = escena.split(/\s+y\s+(?=un[ao]?s?\s|una\s|el\s|la\s|los\s|las\s)/i);
   if (partes.length >= 2 && partes[0].length < 90 && partes.slice(1).join(' y ').length < 160) {
     const juntos = partes.map((p) => p.trim()).filter(Boolean);
     return `${escena}.${must} ALL of these must be visible together in the same frame: ${juntos.join(' AND ')}. Do not omit any named subject.`;
@@ -114,20 +124,32 @@ export function reforzarSujetos(prompt) {
   return `${escena}.${must} Include every named subject and setting. Do not replace the scene with only sky, clouds, or an empty landscape.`;
 }
 
+export function anclarVueloAlPaisaje(prompt) {
+  const escena = String(prompt || '').replace(/\s+/g, ' ').trim();
+  const n = sinAcentos(escena);
+  const vuela = /voland|vuela|flying|hover/.test(n);
+  const flores = /lirio|flor|pistil|nectar|liband/.test(n);
+  const lugar = /rio|orilla|montana|bosque|selva|playa|valle|atardecer|amanecer/.test(n);
+  if (!vuela || (!flores && !lugar)) return '';
+  return ' The animal hovers at the flowers or ground subject IN the landscape (river, mountain, sunset visible). FORBIDDEN: empty blue sky filling the frame, a lone flying silhouette, missing flowers/river/mountain. Sky is only the upper background of a landscape.';
+}
+
 export function promptVisualFallback(prompt, modo = 'imagen') {
   const escena = String(prompt || '').replace(/\s+/g, ' ').trim();
   const sujetos = reforzarSujetos(escena);
   const cabezaMust = clausulaMustInclude(escena);
+  const ancla = anclarVueloAlPaisaje(escena);
   const cabeza = modo === 'clip'
-    ? 'Photorealistic cinematic 16:9 film still, sharp details, lighting matching the described time of day.'
-    : 'Photorealistic 16:9 photograph, sharp focus, high detail, natural professional lighting.';
-  return `${cabezaMust}${cabeza} Original scene (keep it): "${escena}". OBEY THIS SCENE EXACTLY (do not invent a different place or drop characters): ${sujetos} No text, no watermark, no logo, no letters.`;
+    ? 'Photorealistic cinematic 16:9 LANDSCAPE still (wide enough to show the place). Sharp details, lighting matching the described time of day.'
+    : 'Photorealistic 16:9 photograph of the full scene, sharp focus, high detail, natural professional lighting.';
+  return `${cabezaMust}${cabeza} Original scene (keep it): "${escena}". OBEY THIS SCENE EXACTLY (do not invent a different place or drop characters): ${sujetos}${ancla} No text, no watermark, no logo, no letters.`;
 }
 
-export function promptImagenReforzado(promptEn) {
+export function promptImagenReforzado(promptEn, original = '') {
   const p = String(promptEn || '').trim();
   if (!p) return '';
-  return `STRICT SCENE — depict every MUST INCLUDE subject, all together, photorealistic 16:9. Do not output a sky-only, clouds-only, or empty landscape. ${p}`;
+  const ancla = anclarVueloAlPaisaje(original || p);
+  return `LANDSCAPE FIRST, 16:9 photorealistic. Show the PLACE filling most of the frame (flowers, river, mountain, sunset as a complete environment). Any bird or insect is small, at the flowers in the foreground — never a sky-only shot. Depict every MUST INCLUDE subject together.${ancla} ${p}`;
 }
 
 function parsearExpansion(raw) {
@@ -164,17 +186,18 @@ export async function expandirPromptVisual(prompt, { modo = 'imagen' } = {}) {
   if (!apiKey || !original) return fallback;
 
   const tarea = modo === 'clip'
-    ? 'Write an English prompt for a single cinematic film still that implies the camera move (zoom/pan/slow motion) without turning the scene into an abstract sky.'
-    : 'Write an English prompt for a single photorealistic 16:9 photograph.';
+    ? 'Write an English prompt for a WIDE 16:9 landscape film still. If a bird is flying or sipping flowers, it is hovering AT the flowers in the landscape. Never a bird in empty sky.'
+    : 'Write an English prompt for a single photorealistic 16:9 photograph of the full scene.';
 
   const system = `You turn a user's scene (usually Spanish) into ONE English image prompt.
 Rules:
-- First line of prompt_en MUST list required subjects: "MUST INCLUDE: …" using English names plus the original Spanish in parentheses when useful (example: deer (venado), zebra (cebra), bakery (panadería), bread (pan)).
+- First line of prompt_en MUST list required subjects: "MUST INCLUDE: …" using English names plus the original Spanish in parentheses (example: hummingbird (colibrí), lilies (lirios), river (río), mountain (montaña), sunset (atardecer)).
 - Keep EVERY subject, place, time of day, weather and camera idea from the user.
 - If two animals or people are named, both must appear, named twice (example: "a deer AND a zebra, both fully visible in the same frame").
-- Do not replace the scene with clouds, a lone sky, or unrelated landscape.
+- Do not replace the scene with clouds, a lone sky, or a flying silhouette.
+- If the user says volando/flying near flowers or a river, describe hovering at the blossoms with river+mountain+sunset still in frame.
 - Quote the original user sentence inside the English prompt.
-- 50-110 words. Photorealistic, sharp, 16:9.
+- 50-110 words. Photorealistic, sharp, 16:9, landscape-first.
 - No text, watermark, logo or letters in the image.
 - Reply ONLY JSON: {"prompt_en":"...","resumen":"una línea en español de lo que debe verse","elementos":["..."]}`;
 
@@ -203,10 +226,12 @@ Rules:
       const parsed = parsearExpansion(data?.choices?.[0]?.message?.content);
       if (parsed?.promptEn) {
         const must = clausulaMustInclude(original);
-        const promptEn = parsed.promptEn.startsWith('MUST INCLUDE')
+        const ancla = anclarVueloAlPaisaje(original);
+        let promptEn = parsed.promptEn.startsWith('MUST INCLUDE')
           ? parsed.promptEn
           : `${must}${parsed.promptEn} Original: "${original}"`;
-        return { promptEn: promptEn.slice(0, 1400), resumen: parsed.resumen, via: 'groq' };
+        if (ancla && !/FORBIDDEN: empty blue sky/i.test(promptEn)) promptEn += ancla;
+        return { promptEn: promptEn.slice(0, 1600), resumen: parsed.resumen, via: 'groq' };
       }
     }
   } catch (err) {
