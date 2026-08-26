@@ -192,12 +192,13 @@ function actualizarPreviewTipografia() {
     ctx.fillStyle = "rgba(0,0,0,0.6)";
     ctx.fillRect(20, h - 70, w - 40, 50);
 
-    const tamSub = Math.max(18, Math.round(40 * escala * 0.22));
-    const tamEsc = Math.max(14, Math.round(36 * escala * 0.18));
+    const tamSub = Math.max(13, Math.round(8 + escala * 5.2));
+    const tamEsc = Math.max(11, Math.round(7 + escala * 3.6));
     ctx.textAlign = "center";
     ctx.font = `bold ${tamSub}px Arial, sans-serif`;
     ctx.fillStyle = "#FFD700";
-    ctx.fillText("Subtítulo karaoke — palabra resaltada", w / 2, h - 38);
+    const lineaSub = escala >= 5 ? "Subtítulo karaoke" : "Subtítulo karaoke — palabra resaltada";
+    ctx.fillText(lineaSub, w / 2, h - 38);
     ctx.font = `${tamEsc}px Arial, sans-serif`;
     ctx.fillStyle = "#FFF";
     ctx.fillText("Texto de escena en la parte inferior", w / 2, h - 12);
