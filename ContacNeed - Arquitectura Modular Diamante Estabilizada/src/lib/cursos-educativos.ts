@@ -5,7 +5,7 @@ export const PRECIO_RECUPERACION_CENTAVOS = 20000
 
 export const ESCUELA_TITULO = 'Escuela de principios vitalicios'
 export const ESCUELA_LEMA =
-  'Tu educación contínua de vida y salud física y mental.'
+  'Tu educación continua de vida y salud física y mental.'
 
 export type EstadoCurso = 'dado' | 'programado'
 export type ModalidadImparticion = 'Zoom' | 'Presencial' | 'Zoom y presencial'

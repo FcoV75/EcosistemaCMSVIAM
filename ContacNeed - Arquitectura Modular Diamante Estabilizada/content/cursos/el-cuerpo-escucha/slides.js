@@ -3,8 +3,8 @@ window.CURSO_SLIDES = [
     etapa: "Portada",
     kicker: "CMS VIAM · Escuela de principios",
     title: "El cuerpo escucha",
-    text: "Cómo el pensamiento, la emoción y la voz interior conversan con el organismo. De la semilla a la siembra.",
-    note: "Curso gradual para el consultorio. Ciencia seria, lenguaje claro, práctica cotidiana.",
+    text: "Cómo el pensamiento, la emoción y la voz interior conversan con el organismo. Ocho etapas, de menor a mayor.",
+    note: "Curso gradual para el consultorio. Fisiología clara, práctica breve, puente bíblico equilibrado.",
     image: "/cursos-assets/el-cuerpo-escucha/01-portada-cuerpo-escucha.jpg",
     alt: "Persona en quietud, la mano sobre el pecho"
   },
@@ -41,7 +41,7 @@ window.CURSO_SLIDES = [
     title: "El sofá y el león",
     text: "Cuando imaginas la conversación de mañana, el corazón ya corre. El cuerpo no distingue del todo amenaza real e imaginada.",
     note: "Ese mecanismo está hecho para minutos. El pensamiento lo deja encendido años.",
-    image: "/cursos-assets/el-cuerpo-escucha/11-amenaza-imaginada.jpg",
+    image: "/cursos-assets/el-cuerpo-escucha/03-espejo-encuentro.jpg",
     alt: "Persona quieta con tensión contenida"
   },
   {
@@ -131,7 +131,7 @@ window.CURSO_SLIDES = [
     title: "De la abundancia del corazón",
     text: "Lucas 6:45. Lo que habita adentro termina gobernando lo que sale. La lengua más constante es la que no se oye.",
     note: "Proverbios 18:21: la lengua tiene peso. Higiene, no vanidad.",
-    image: "/cursos-assets/el-cuerpo-escucha/14-compasion-ajena.jpg",
+    image: "/cursos-assets/el-cuerpo-escucha/04-perdon-peso.jpg",
     alt: "Palabra que cuida"
   },
   {
@@ -158,7 +158,7 @@ window.CURSO_SLIDES = [
     title: "Sin aduana",
     text: "En los primeros años el filtro crítico aún no está maduro. “Eres un estorbo” entra como dato. A veces nadie lo dijo: se dedujo de una mirada que no llegó.",
     note: "Esto no es un juicio contra los padres. Es un mapa de instalación.",
-    image: "/cursos-assets/el-cuerpo-escucha/06-disco-infancia.jpg",
+    image: "/cursos-assets/el-cuerpo-escucha/07-olla-presion.jpg",
     alt: "La silla vacía junto al disco"
   },
   {
@@ -221,7 +221,7 @@ window.CURSO_SLIDES = [
     title: "La olla parece tranquila",
     text: "Desde fuera no silba. La presión busca el metal más fino: herencia, lesión, años de apretar. Por eso dos personas tragan lo mismo y ceden distinto.",
     note: "Este curso no dice “esta emoción = este órgano”. Pregunta. No diagnostica.",
-    image: "/cursos-assets/el-cuerpo-escucha/07-olla-presion.jpg",
+    image: "/cursos-assets/el-cuerpo-escucha/08-mapa-cuerpo.jpg",
     alt: "Presión contenida"
   },
   {
@@ -275,7 +275,7 @@ window.CURSO_SLIDES = [
     title: "Estómago · cabeza · garganta",
     text: "Cambio no digerido. Exigencia que cobra después. Palabras ensayadas que nunca salieron.",
     note: "Frases: «Estoy a salvo mientras cambio.» «Bien, no perfecto.» «Mi voz importa.»",
-    image: "/cursos-assets/el-cuerpo-escucha/08-mapa-cuerpo.jpg",
+    image: "/cursos-assets/el-cuerpo-escucha/15-insomnio-vigilia.jpg",
     alt: "Zonas altas del mapa"
   },
   {
@@ -365,7 +365,7 @@ window.CURSO_SLIDES = [
     title: "Dejar de ser el banco",
     text: "El rencor revive la escena. El cuerpo cobra cortisol otra vez. Quien carga casi nunca es quien causó.",
     note: "Hay evidencia de mejor sueño, presión y ánimo cuando cesa la dosis diaria.",
-    image: "/cursos-assets/el-cuerpo-escucha/04-perdon-peso.jpg",
+    image: "/cursos-assets/el-cuerpo-escucha/05-semilla-proceso.jpg",
     alt: "La piedra deja las manos"
   },
   {
@@ -392,7 +392,7 @@ window.CURSO_SLIDES = [
     title: "Cuatro minutos",
     text: "Elige a alguien manejable. Localiza el peso. Sosténlo. Ábrelo las manos. «No estuvo bien. Y ya no lo llevo yo.»",
     note: "Se hace muchas veces. Cada vez pesa un poco menos.",
-    image: "/cursos-assets/el-cuerpo-escucha/04-perdon-peso.jpg",
+    image: "/cursos-assets/el-cuerpo-escucha/09-medicina-paralela.jpg",
     alt: "Abrir las manos"
   },
   {
@@ -419,7 +419,7 @@ window.CURSO_SLIDES = [
     title: "Afirma el movimiento",
     text: "«Estoy aprendiendo a tratarme con respeto.» «Cada día hago algo que cuida mi cuerpo.» La mente no puede desmentirlo.",
     note: "Emoción de dos segundos + ventana al despertar y al dormir + una prueba por noche.",
-    image: "/cursos-assets/el-cuerpo-escucha/05-semilla-proceso.jpg",
+    image: "/cursos-assets/el-cuerpo-escucha/09-medicina-paralela.jpg",
     alt: "El paso, no el destino"
   },
   {

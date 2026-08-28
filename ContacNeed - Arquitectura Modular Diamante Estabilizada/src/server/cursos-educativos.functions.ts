@@ -26,6 +26,25 @@ import {
 } from '../lib/cursos-educativos'
 import { crearNotificacion } from '../lib/notificaciones'
 import { getSiteUrl } from '../lib/site-url'
+import {
+  CURSO_IFRAME_NAV_SCRIPT,
+  CURSO_SLIDES_HISTORY_PATCH,
+} from '../lib/curso-iframe-nav'
+
+function htmlParaIframe(html: string) {
+  let out = html
+  if (out.includes('history.replaceState(null, "", "#s"')) {
+    out = out.replace(
+      'history.replaceState(null, "", "#s" + (i + 1));',
+      CURSO_SLIDES_HISTORY_PATCH,
+    )
+  }
+  if (out.includes('cn-curso')) return out
+  if (out.includes('</body>')) {
+    return out.replace('</body>', `${CURSO_IFRAME_NAV_SCRIPT}\n</body>`)
+  }
+  return out + CURSO_IFRAME_NAV_SCRIPT
+}
 
 function getStripe() {
   const secret = process.env.STRIPE_SECRET_KEY
@@ -283,9 +302,9 @@ function materialDeCursoDado(slug: string, kind: 'lecciones' | 'diapositivas' | 
       '<script src="slides.js"></script>',
       `<script>${bundled.slides}</script>`,
     )
-    return { filename: 'diapositivas.html', mime: 'text/html', html }
+    return { filename: 'diapositivas.html', mime: 'text/html', html: htmlParaIframe(html) }
   }
-  return { filename: 'index.html', mime: 'text/html', html: bundled.lecciones }
+  return { filename: 'index.html', mime: 'text/html', html: htmlParaIframe(bundled.lecciones) }
 }
 
 export const getCursoDocumentoAdminFn = createServerFn({ method: 'GET' })

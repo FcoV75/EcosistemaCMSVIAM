@@ -137,7 +137,7 @@
     <div class="hero-inner">
       <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
       <h1>Léete y lee</h1>
-      <p>Un curso gradual para comprenderte con precisión y leer a los demás sin inventarles la novela. De la semilla a la siembra. Ciencia seria, lenguaje claro, práctica cotidiana y un puente bíblico que convence a la mente sin apagarla.</p>
+      <p>Ocho etapas para separarte del juicio automático: hecho frente a interpretación, gatillos, límites limpios y una voz propia al leer al otro. Método claro, ejercicios breves y un puente bíblico que ordena la mente sin callarla.</p>
     </div>
   </header>
 
@@ -415,7 +415,7 @@
         <p>7. En una conversación: ¿qué pedía el otro debajo de las palabras? ¿Cuál fue mi voz?</p>
         <p>8. ¿Necesito acompañamiento profesional esta semana? Sí / No. Este curso no lo reemplaza.</p>
       </div>
-      <p>Cuando termines las ocho etapas, no te “graduaste” de la gente ni de ti. Aprendiste a separar el hecho de la novela. La primera interpretación volverá: lleva años de alquiler. Ya no será invisible. En el segundo en que la reconoces, deja de mandar sola.</p>
+      <p>Al terminar las ocho etapas no te “graduaste” de la gente ni de ti: aprendiste a separar el hecho de la novela. La primera lectura puede reaparecer, pero ya no firma sola el contrato: la ves, la contrastas y eliges la siguiente frase.</p>
     </section>
   </main>
 
@@ -423,5 +423,28 @@
     Ecosistema CMS VIAM · Consultorio de principios · Léete y lee<br />
     Pedagogía original. Inspirado en principios del audiolibro citado. No es consejo clínico ni médico.
   </footer>
+  <script>
+  (function () {
+    function embedded() {
+      try { return window.top !== window.self; } catch (e) { return true; }
+    }
+    document.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a') : null;
+      if (!a) return;
+      var href = a.getAttribute('href');
+      if (!href) return;
+      if (href.charAt(0) === '#') {
+        e.preventDefault();
+        var el = document.getElementById(href.slice(1));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (/diapositivas\.html/i.test(href) && embedded()) {
+        e.preventDefault();
+        try { window.parent.postMessage({ type: 'cn-curso', action: 'diapositivas' }, '*'); } catch (err) {}
+      }
+    }, true);
+  })();
+  </script>
 </body>
 </html>
