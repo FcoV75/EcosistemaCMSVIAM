@@ -18,7 +18,7 @@ function RootRouteError() {
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <title>ContacNeed</title>
       </head>
-      <body style={{ margin: 0, background: '#020617' }}>
+      <body style={{ margin: 0, background: '#1e1b4b' }}>
         <StayOnBoardFallback onRetry={() => window.location.assign('/')} />
         <Scripts />
       </body>
