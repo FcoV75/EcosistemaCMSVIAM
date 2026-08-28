@@ -126,7 +126,6 @@
 </head>
 <body>
   <nav class="nav" aria-label="Curso">
-    <a href="/">CMS</a>
     <a href="#mapa">Mapa</a>
     <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a>
     <a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
@@ -138,7 +137,7 @@
     <div class="hero-inner">
       <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
       <h1>El cuerpo escucha</h1>
-      <p>Un curso gradual para entender cómo el pensamiento, la emoción y la voz interior conversan con el organismo. De la semilla a la siembra. Ciencia seria, lenguaje claro, práctica cotidiana y un puente bíblico que convence a la mente sin apagarla.</p>
+      <p>Ocho etapas para oír lo que el organismo dice cuando el pensamiento no calla: estrés, voz interior, emoción guardada y siembra de hábitos limpios. Fisiología clara, práctica breve y un puente bíblico que ilumina sin apagar la razón.</p>
     </div>
   </header>
 
@@ -179,7 +178,7 @@
       <p>Durante décadas se creyó que el cerebro adulto era una estatua. No lo es. Las conexiones se ensanchan con la repetición y se estrechan con el desuso. Un pensamiento repetido mil veces es una carretera. Uno abandonado es un sendero que la maleza reclama. Eso tiene dos caras: lo que te has dicho construyó caminos; y se pueden abrir caminos nuevos.</p>
       <div class="caja cuento">
         <h3>Cuento corto · El faro que no se apagaba</h3>
-        <p>Había un faro diseñado para tormentas de veinte minutos. Un vigía asustado lo dejó encendido toda la estación “por si acaso”. El faro cumplió. La costa no se hundió. Pero el aceite se acabó, el cristal se ahizó y el vigía, al cabo de los meses, ya no sabía cómo se veía la noche sin ese resplandor. El faro no era el enemigo. El enemigo era olvidar el interruptor.</p>
+        <p>Había un faro diseñado para tormentas de veinte minutos. Un vigía asustado lo dejó encendido toda la estación “por si acaso”. El faro cumplió. La costa no se hundió. Pero el aceite se acabó, el cristal se ahumó y el vigía, al cabo de los meses, ya no sabía cómo se veía la noche sin ese resplandor. El faro no era el enemigo. El enemigo era olvidar el interruptor.</p>
       </div>
       <div class="caja biblia">
         <h3>Puente bíblico · El corazón y los huesos</h3>
@@ -415,7 +414,7 @@
         <p>5. Una prueba mínima de un límite o de amabilidad hacia mí:</p>
         <p>6. ¿Fui a mis citas médicas? Sí / No. Este curso no las reemplaza.</p>
       </div>
-      <p>Cuando termines las ocho etapas, no “te graduaste” de tu cuerpo. Aprendiste a oírlo. La voz vieja volverá: lleva años de alquiler. Ya no será invisible. En el segundo en que la reconoces, deja de mandar sola.</p>
+      <p>Al cerrar las ocho etapas no “te graduaste” del cuerpo: aprendiste a escucharlo con método. La voz antigua puede volver —lleva décadas de ensayo—, pero ya no manda a oscuras: la reconoces y eliges si le das el micrófono.</p>
     </section>
   </main>
 
@@ -423,5 +422,28 @@
     Ecosistema CMS VIAM · Consultorio de principios · El cuerpo escucha<br />
     Pedagogía original. Inspirado en principios del audiolibro citado. No es consejo médico.
   </footer>
+  <script>
+  (function () {
+    function embedded() {
+      try { return window.top !== window.self; } catch (e) { return true; }
+    }
+    document.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a') : null;
+      if (!a) return;
+      var href = a.getAttribute('href');
+      if (!href) return;
+      if (href.charAt(0) === '#') {
+        e.preventDefault();
+        var el = document.getElementById(href.slice(1));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (/diapositivas\.html/i.test(href) && embedded()) {
+        e.preventDefault();
+        try { window.parent.postMessage({ type: 'cn-curso', action: 'diapositivas' }, '*'); } catch (err) {}
+      }
+    }, true);
+  })();
+  </script>
 </body>
 </html>

@@ -3,8 +3,8 @@ window.CURSO_SLIDES = [
     etapa: "Portada",
     kicker: "CMS VIAM · Escuela de principios",
     title: "Léete y lee",
-    text: "Cómo mirarte con precisión y leer a los demás sin inventarles la novela. De la semilla a la siembra.",
-    note: "Curso gradual para el consultorio. Ciencia seria, lenguaje claro, práctica cotidiana.",
+    text: "Cómo mirarte con precisión y leer a los demás sin inventarles la novela. Ocho etapas, de menor a mayor.",
+    note: "Curso gradual para el consultorio. Método claro, ejercicios breves, puente bíblico que ordena sin callar.",
     image: "/cursos-assets/leete-y-lee/01-portada-leete-y-lee.jpg",
     alt: "Un cuaderno abierto junto a una ventana de tarde"
   },
@@ -50,7 +50,7 @@ window.CURSO_SLIDES = [
     title: "Dos columnas",
     text: "Izquierda: lo que una cámara grabaría. Derecha: el título que le pusiste. “Llegó tarde” es un hecho. “Ya no le importo” es una hipótesis.",
     note: "Mientras las mezcles, te leerás mal y leerás mal al otro.",
-    image: "/cursos-assets/leete-y-lee/03-hecho-interpretacion.jpg",
+    image: "/cursos-assets/leete-y-lee/04-nombrar.jpg",
     alt: "Hecho e interpretación sobre la misma mesa"
   },
   {
@@ -104,7 +104,7 @@ window.CURSO_SLIDES = [
     title: "La taza que habló de más",
     text: "El hecho era un golpe breve contra la madera. Una cabeza leyó “otra vez me ignoran”. La taza no eligió bando.",
     note: "El veredicto no tenía que ver con el café.",
-    image: "/cursos-assets/leete-y-lee/06-desencadenante.jpg",
+    image: "/cursos-assets/leete-y-lee/05-lente-pensamiento.jpg",
     alt: "Una taza posada con más fuerza de la necesaria"
   },
   {
@@ -140,7 +140,7 @@ window.CURSO_SLIDES = [
     title: "Cuatro piezas distintas",
     text: "Sensación: lo que el cuerpo reporta. Emoción: el clima. Pensamiento: la frase. Impulso: lo que las manos ya quieren.",
     note: "Nombrar no es justificar. Es inventario.",
-    image: "/cursos-assets/leete-y-lee/04-nombrar.jpg",
+    image: "/cursos-assets/leete-y-lee/08-limite-puerta.jpg",
     alt: "Cuatro frascos, cuatro nombres"
   },
   {
@@ -194,7 +194,7 @@ window.CURSO_SLIDES = [
     title: "Un palmo de distancia",
     text: "No: “no le importo”. Sí: “estoy teniendo el pensamiento de que no le importo.” El primero es veredicto. El segundo es hipótesis con dueño.",
     note: "Las hipótesis se contrastan. Los veredictos solo se obedecen o se pelean.",
-    image: "/cursos-assets/leete-y-lee/05-lente-pensamiento.jpg",
+    image: "/cursos-assets/leete-y-lee/07-espacio-respuesta.jpg",
     alt: "Limpiar el cristal y volver a leer"
   },
   {
@@ -248,7 +248,7 @@ window.CURSO_SLIDES = [
     title: "El interruptor gastado",
     text: "“Si tardan, no importo.” “Si me corrigen, soy incompetente.” “Si hay silencio, hay rechazo.” Fueron útiles. Ya no tienen que mandar.",
     note: "Identificar no absuelve al otro. Impide pagarle, además, una deuda que no contrajo.",
-    image: "/cursos-assets/leete-y-lee/06-desencadenante.jpg",
+    image: "/cursos-assets/leete-y-lee/09-escucha-intencion.jpg",
     alt: "Una tecla que se activa sola"
   },
   {
@@ -293,7 +293,7 @@ window.CURSO_SLIDES = [
     title: "Noventa segundos",
     text: "Entre la ola y la respuesta hay un umbral. El cuerpo lo ofrece primero: calor, mandíbula, ganas de alzar la voz.",
     note: "Respirar más largo, pedir un minuto, o preguntar en vez de sentenciar.",
-    image: "/cursos-assets/leete-y-lee/07-espacio-respuesta.jpg",
+    image: "/cursos-assets/leete-y-lee/03-hecho-interpretacion.jpg",
     alt: "El espacio elegido, no abandonado"
   },
   {
@@ -338,7 +338,7 @@ window.CURSO_SLIDES = [
     title: "La frase limpia es breve",
     text: "“Hoy no puedo seguir. Mañana a las diez sí.” “No discuto si hay gritos.” El ensayo de cinco párrafos esconde miedo a que el otro se enoje.",
     note: "El enojo ajeno no prueba, por sí solo, que tu umbral sea injusto.",
-    image: "/cursos-assets/leete-y-lee/08-limite-puerta.jpg",
+    image: "/cursos-assets/leete-y-lee/02-atencion-foco.jpg",
     alt: "Abrir y cerrar sin sofocar el huerto"
   },
   {
@@ -365,7 +365,7 @@ window.CURSO_SLIDES = [
     title: "Sí, sí; no, no",
     text: "Mateo 5:37. Un “sí” que no puedes sostener es una deuda. Un “no” disfrazado de explicación eterna espera ser negociado.",
     note: "Jehová no pide un muro. Pide que tu palabra pese.",
-    image: "/cursos-assets/leete-y-lee/08-limite-puerta.jpg",
+    image: "/cursos-assets/leete-y-lee/03-hecho-interpretacion.jpg",
     alt: "Una palabra que abre o cierra"
   },
   {
@@ -392,7 +392,7 @@ window.CURSO_SLIDES = [
     title: "Empatía sin desaparecer",
     text: "Oír no es adivinar: hipotetiza y verifica. Luego dos oraciones: lo suyo y lo tuyo. “Veo que te urge. Yo no puedo ahora; a las seis sí.”",
     note: "Negociar no es ganar. Es hechos, umbral y un siguiente paso visible.",
-    image: "/cursos-assets/leete-y-lee/09-escucha-intencion.jpg",
+    image: "/cursos-assets/leete-y-lee/04-nombrar.jpg",
     alt: "Oír y no entregar la voz"
   },
   {
@@ -426,8 +426,8 @@ window.CURSO_SLIDES = [
     etapa: "Cierre",
     kicker: "Lo que se lleva",
     title: "No te gradúas de la gente",
-    text: "Aprendiste a separar el hecho de la novela. La primera interpretación volverá: lleva años de alquiler. Ya no será invisible.",
-    note: "En el segundo en que la reconoces, deja de mandar sola.",
+    text: "Aprendiste a separar el hecho de la novela. La primera lectura puede reaparecer, pero ya no firma sola el contrato.",
+    note: "La ves, la contrastas y eliges la siguiente frase.",
     image: "/cursos-assets/leete-y-lee/01-portada-leete-y-lee.jpg",
     alt: "El cuaderno sigue abierto"
   },

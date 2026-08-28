@@ -1,10 +1,11 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Lock, Presentation } from 'lucide-react'
+import { BookOpen, CheckCircle2, Download, Lock, Presentation } from 'lucide-react'
 import { AccionesEscuela } from '../components/AccionesEscuela'
 import { LugarSesion } from '../components/LugarSesion'
 import { etiquetaCuota } from '../lib/cursos-educativos'
+import { isCnCursoMessage } from '../lib/curso-iframe-nav'
 import { AppShell } from '../components/AppShell'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import {
@@ -76,6 +77,15 @@ function CursoEscuelaPage() {
     docMutation.mutate(tab)
   }, [data.unlocked, tab, slug])
 
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (!isCnCursoMessage(event.data)) return
+      setTab(event.data.action)
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+
   const srcDoc = useMemo(() => html, [html])
 
   return (
@@ -98,6 +108,39 @@ function CursoEscuelaPage() {
           <p className="mt-2 text-sm text-slate-300">{data.curso.resumen}</p>
         </header>
 
+        {data.unlocked && data.curso.estado === 'dado' && (
+          <section className="rounded-2xl border border-emerald-400/35 bg-emerald-950/25 p-5">
+            <div className="flex flex-wrap items-start gap-3">
+              <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-300" size={22} />
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-bold text-emerald-100">Ya tienes este curso</h2>
+                <p className="mt-1 text-sm text-slate-300">
+                  Acceso de recuperación activo. Abre lecciones o diapositivas aquí, o descarga el
+                  paquete completo a tu dispositivo.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTab('lecciones')}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950"
+                  >
+                    <BookOpen size={16} />
+                    Abrir lecciones
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTab('diapositivas')}
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/50 px-4 py-2 text-sm font-semibold text-emerald-100"
+                  >
+                    <Presentation size={16} />
+                    Abrir diapositivas
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {!data.unlocked && data.curso.estado === 'dado' && (
           <section className="rounded-2xl border border-amber-400/30 bg-amber-950/20 p-5">
             <div className="mb-2 flex items-center gap-2 text-amber-200">
@@ -113,7 +156,9 @@ function CursoEscuelaPage() {
               disabled={checkoutMutation.isPending}
               onClick={() => {
                 if (!data.loggedIn) {
-                  alert('Inicia sesión en ContacNeed (arriba a la derecha) y vuelve a pulsar para pagar la cuota de recuperación.')
+                  alert(
+                    'Inicia sesión en ContacNeed (arriba a la derecha) y vuelve a pulsar para pagar la cuota de recuperación.',
+                  )
                   return
                 }
                 checkoutMutation.mutate()
@@ -203,7 +248,12 @@ function CursoEscuelaPage() {
             {loadError && <p className="text-sm text-red-300">{loadError}</p>}
             <div className="overflow-hidden rounded-2xl border border-slate-800 bg-black">
               {srcDoc ? (
-                <iframe title={data.curso.titulo} srcDoc={srcDoc} className="h-[78vh] w-full border-0" />
+                <iframe
+                  title={data.curso.titulo}
+                  srcDoc={srcDoc}
+                  sandbox="allow-scripts allow-same-origin"
+                  className="h-[78vh] w-full border-0"
+                />
               ) : (
                 <p className="px-4 py-10 text-center text-sm text-slate-400">Cargando material...</p>
               )}

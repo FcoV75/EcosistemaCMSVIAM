@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { BookOpen, CalendarClock, Lock } from 'lucide-react'
+import { BookOpen, CalendarClock, CheckCircle2, Lock } from 'lucide-react'
 import { AccionesEscuela } from '../components/AccionesEscuela'
 import { LugarSesion } from '../components/LugarSesion'
 import { AppShell } from '../components/AppShell'
@@ -17,6 +17,7 @@ function EscuelaPage() {
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
   const data = Route.useLoaderData()
+  const misCursos = data.cursos.filter((curso) => data.misSlugs.includes(curso.slug))
 
   return (
     <AppShell
@@ -45,6 +46,33 @@ function EscuelaPage() {
             </p>
           </div>
         </header>
+
+        {misCursos.length > 0 && (
+          <section className="rounded-2xl border border-emerald-400/35 bg-emerald-950/25 p-5">
+            <div className="mb-3 flex items-center gap-2 text-emerald-100">
+              <CheckCircle2 size={18} />
+              <h2 className="text-lg font-bold">Ya cursaste · acceso listo</h2>
+            </div>
+            <p className="text-sm text-slate-300">
+              Estos cursos ya están en tu cuenta. Entra cuando quieras; no vuelvas a pagar la cuota de
+              recuperación.
+            </p>
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {misCursos.map((curso) => (
+                <li key={curso.slug}>
+                  <Link
+                    to="/escuela/$slug"
+                    params={{ slug: curso.slug }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-slate-950"
+                  >
+                    <BookOpen size={16} />
+                    Abrir {curso.titulo}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {data.sesiones.length > 0 && (
           <section className="rounded-2xl border border-sky-400/25 bg-slate-950/60 p-5">
@@ -99,13 +127,15 @@ function EscuelaPage() {
                 <img src={curso.portada} alt="" className="h-40 w-full object-cover" />
                 <div className="space-y-3 p-4">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                    {dado ? 'Ya impartido' : 'Programado'}
+                    {dado ? (mio ? 'Ya lo tienes' : 'Ya impartido') : 'Programado'}
                   </p>
                   <h3 className="text-xl font-black text-amber-100">{curso.titulo}</h3>
                   <p className="text-sm text-slate-300">{curso.resumen}</p>
                   {dado ? (
                     <p className="text-xs text-slate-400">
-                      Recuperación ${PRECIO_RECUPERACION_MXN} MXN · ver y descargar
+                      {mio
+                        ? 'Acceso de recuperación activo · ver y descargar'
+                        : `Recuperación $${PRECIO_RECUPERACION_MXN} MXN · ver y descargar`}
                     </p>
                   ) : (
                     <p className="text-xs text-sky-200">Fecha: {curso.fechaProgramada || 'Por anunciar'}</p>
@@ -114,10 +144,12 @@ function EscuelaPage() {
                     <Link
                       to="/escuela/$slug"
                       params={{ slug: curso.slug }}
-                      className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950"
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold ${
+                        mio ? 'bg-emerald-500 text-slate-950' : 'bg-amber-500 text-slate-950'
+                      }`}
                     >
-                      {mio ? <BookOpen size={16} /> : <Lock size={16} />}
-                      {mio ? 'Abrir mi curso' : 'Ver y adquirir'}
+                      {mio ? <CheckCircle2 size={16} /> : <Lock size={16} />}
+                      {mio ? 'Ya di este curso · Abrir' : 'Ver y adquirir'}
                     </Link>
                   ) : (
                     <div className="space-y-2">

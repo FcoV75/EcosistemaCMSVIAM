@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BookOpen, CalendarPlus, Download, GraduationCap, Link2, Presentation, ScrollText, Unlock } from 'lucide-react'
 import {
   getCursoDocumentoAdminFn,
@@ -8,6 +8,7 @@ import {
   otorgarCursoAdminFn,
 } from '../../server/cursos-educativos.functions'
 import { etiquetaCuota, type ModalidadImparticion, type SesionViva } from '../../lib/cursos-educativos'
+import { isCnCursoMessage } from '../../lib/curso-iframe-nav'
 
 type KindVista = 'lecciones' | 'diapositivas' | 'guia'
 
@@ -91,6 +92,20 @@ export function CursosEducativosAdminPanel() {
     setDocError(null)
     docMutation.mutate({ slug: curso.slug, kind })
   }
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (!vista || !isCnCursoMessage(event.data)) return
+      const kind = event.data.action
+      setVista((prev) => (prev ? { ...prev, kind } : prev))
+      setHtml(null)
+      setTexto(null)
+      setDocError(null)
+      docMutation.mutate({ slug: vista.slug, kind })
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [vista?.slug])
 
   return (
     <div className="space-y-6">
@@ -216,7 +231,14 @@ export function CursosEducativosAdminPanel() {
             {docMutation.isPending && !html && !texto && (
               <p className="px-3 py-8 text-center text-sm text-slate-400">Abriendo el curso...</p>
             )}
-            {html && <iframe title={vista.titulo} srcDoc={html} className="h-[78vh] w-full border-0" />}
+            {html && (
+              <iframe
+                title={vista.titulo}
+                srcDoc={html}
+                sandbox="allow-scripts allow-same-origin"
+                className="h-[78vh] w-full border-0"
+              />
+            )}
             {texto && (
               <pre className="max-h-[78vh] overflow-auto whitespace-pre-wrap px-4 py-3 text-sm text-slate-200">
                 {texto}
