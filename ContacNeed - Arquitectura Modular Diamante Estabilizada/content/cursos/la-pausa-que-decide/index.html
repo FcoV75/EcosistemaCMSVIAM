@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La pausa que decide — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="Curso gradual de principios: cómo dejar de reaccionar, observar antes de actuar y diseñar el día con serenidad. Complemento pedagógico, nunca sustituto clínico." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc;
+      --muted: rgba(245,245,252,.78);
+      --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16);
+      --accent: #f1c96b;
+      --accent-2: #86d6ff;
+      --ok: #7dcea0;
+      --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Montserrat, system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--night);
+      line-height: 1.65;
+    }
+    a { color: var(--accent-2); }
+    .nav {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem;
+      background: rgba(5,8,20,.92);
+      border-bottom: 1px solid var(--edge);
+      backdrop-filter: blur(10px);
+    }
+    .nav a, .nav .btn {
+      text-decoration: none; color: var(--ink);
+      border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600;
+      background: rgba(8,11,26,.55);
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--accent), #c9a24d);
+      color: #111; border: 0; font-weight: 700;
+    }
+    .hero {
+      min-height: 78vh;
+      display: grid; align-items: end;
+      background:
+        linear-gradient(180deg, rgba(5,8,20,.25) 0%, rgba(5,8,20,.72) 52%, rgba(5,8,20,.96) 100%),
+        url("/cursos-assets/la-pausa-que-decide/01-portada-pausa-decide.jpg") center/cover no-repeat;
+      padding: 2rem 1.25rem 2.6rem;
+    }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 {
+      font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.5rem);
+      line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso {
+      margin: 1.4rem 0; padding: 1rem 1.1rem;
+      border: 1px solid rgba(241,201,107,.4);
+      background: rgba(241,201,107,.08);
+      border-radius: 14px;
+    }
+    .aviso strong { color: var(--accent); }
+    section.etapa {
+      margin: 2.4rem 0;
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      padding: 1.35rem 1.25rem 1.5rem;
+    }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio {
+      border-left: 3px solid var(--accent);
+      padding: .15rem 0 .15rem 1rem;
+      color: #fff6cc;
+      font-weight: 600;
+    }
+    figure.relato {
+      margin: 1.1rem 0;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--edge);
+      background: #000;
+    }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja {
+      margin: 1rem 0;
+      padding: .9rem 1rem;
+      border-radius: 12px;
+      background: rgba(0,0,0,.28);
+      border: 1px dashed rgba(255,255,255,.2);
+    }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    ul.pasos { padding-left: 1.15rem; }
+    .mapa { display: grid; gap: .7rem; }
+    .zona {
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding: .75rem .85rem;
+      background: rgba(2,4,14,.45);
+    }
+    .zona strong { color: var(--accent); }
+    footer {
+      text-align: center; color: var(--muted);
+      padding: 1.5rem 1rem 2.5rem; font-size: .86rem;
+    }
+    @media print {
+      .nav { position: static; }
+      body { background: #fff; color: #111; }
+      section.etapa { break-inside: avoid; background: #fff; color: #111; border-color: #ccc; }
+      h1, h2 { color: #3a2a00; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="/">CMS</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a>
+    <a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>La pausa que decide</h1>
+      <p>Un curso gradual para dejar de vivir reaccionando. Observar, decidir sin la tormenta, convertir el problema en maestro y diseñar el día con serenidad. Ciencia seria, práctica cotidiana y un puente bíblico que convence a la mente sin apagarla.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="aviso">
+      <strong>Regla de oro.</strong> Nada de este curso sustituye psicoterapia, diagnóstico ni tratamiento médico.
+      Camina <em>al lado</em> del profesional, nunca en su lugar. Si hay impulsividad que ya daña (juego, deudas, crisis, ánimo que se dispara o se apaga), la primera parada es clínica.
+      Aquí se añade una pregunta: ¿estoy reaccionando, o estoy eligiendo?
+    </p>
+
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">Dejar de reaccionar</a> — la pausa corta la cadena que el estímulo quería firmar.</li>
+        <li><a href="#e2">Ver lo que no se ve</a> — lo evidente es la hoja; la causa suele estar en la raíz.</li>
+        <li><a href="#e3">Decidir sin la tormenta</a> — la emoción informa; no conduce el volante.</li>
+        <li><a href="#e4">El problema como maestro</a> — todo obstáculo trae un desafío visible y una lección oculta.</li>
+        <li><a href="#e5">Influir sin empujar</a> — la confianza se deposita; no se cobra por discurso.</li>
+        <li><a href="#e6">Cuidar la mente</a> — no toda idea que suena fuerte es tuya.</li>
+        <li><a href="#e7">Diseñar el mañana</a> — la identidad se construye con ladrillos pequeños, no con un anuncio.</li>
+        <li><a href="#e8">Vivir como estratega</a> — disciplina silenciosa: arquitecto del día, no espectador.</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: audiolibro de pensamiento estratégico (ocho capítulos). Este material no es una transcripción: es una pedagogía original de principios para el consultorio.</p>
+    </section>
+
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · Dejar de reaccionar</h2>
+      <p class="principio">Principio: la vida no se decide en un golpe de suerte. Se decide en cientos de respuestas pequeñas. Quien no pone pausa, deja que el estímulo firme por él.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-pausa-que-decide/02-reaccion-pausa.jpg" alt="En la misma calle, uno corre detrás del teléfono y otro se detiene a mirar el camino" />
+        <figcaption>Aplicación: la misma calle. Dos velocidades. Solo una elige.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Hay quien parece adelantarse a los días. No siempre es el más brillante ni el que nació con más. Lo que suele distinguirlo es más humilde: rara vez contesta en caliente. Mientras el entorno pide una reacción, él pide tres segundos. Esa diferencia no se ve en la foto. Se ve diez años después, en el tipo de vida que quedó armada.</p>
+      <p>El día moderno está diseñado para que reaccione. El teléfono vibra, el mensaje urge, la noticia asusta, el compromiso se acepta “para no quedar mal”. Así se gastan el dinero, la voz y el sueño. Un día descubres que llevas años habitando una biografía que no elegiste: la escribieron las circunstancias a velocidad de notificación.</p>
+      <p>Pensar con estrategia, en este consultorio, no es manipular ni jugar ajedrez con la gente. Es reconocer que cada sí de hoy construye el mañana. La pausa no es pereza. Es el único lugar donde todavía puedes elegir.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El vecino que contestaba todo</h3>
+        <p>Don Mateo contestaba antes de que el timbre terminara. Un día aceptó un trabajo, un préstamo y una discusión en el mismo cuarto de hora. Su vecina, doña Luz, dejaba sonar tres veces. A veces perdía una venta. Nunca perdió la noche. Al cabo de un año, Mateo tenía más movimiento y menos suelo. Luz tenía menos ruido y un taller que sí era suyo. El timbre no era el enemigo. El enemigo era firmar con el pulso todavía alto.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · El pie que se apresura</h3>
+        <p><em>«El alma sin ciencia no es buena, y el que se apresura con los pies peca.»</em> Proverbios 19:2. Jehová no pide lentitud por temor. Pide que el pie no vaya más rápido que la mirada. Santiago lo dice en otro registro: <em>«Todo hombre sea pronto para oír, tardo para hablar, tardo para airarse»</em> (1:19). El orden es el método: oír, luego hablar. La pausa es obediencia práctica, no adorno.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Tres respiraciones antes del sí</h3>
+        <p>Elige una decisión que hoy te pida velocidad: un mensaje, una compra, un compromiso. Antes de contestar, tres respiraciones. Anota en una línea: qué pedía el estímulo y qué habrías firmado sin la pausa. No corrijas el mundo. Solo recupera el volante una vez.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Qué parte de tu semana la están escribiendo las notificaciones?</p>
+    </section>
+
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · Ver lo que no se ve</h2>
+      <p class="principio">Principio: dos personas recorren el mismo lugar y no ven el mismo mapa. Lo visible es consecuencia. Quien busca la raíz deja de repetir el mismo tropiezo.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-pausa-que-decide/04-raices-arbol.jpg" alt="Un árbol grande y, bajo la tierra, las raíces que lo sostienen" />
+        <figcaption>Aplicación: admiramos la copa. El árbol se sostiene donde nadie aplaude.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La mente no es una cámara. Es un filtro. Recibe más de lo que puede guardar y elige según lo que ya espera encontrar. Por eso dos hermanos salen de la misma junta con dos películas: uno vio escritorios; el otro oyó el tono con que se hablaban. El lugar no mintió. Mintió la prisa de quien solo recoge lo evidente.</p>
+      <p>Hay información de más y observación de menos. Saltamos de noticia en noticia y rara vez nos quedamos el tiempo suficiente para preguntar <em>por qué</em> ocurrió lo que ocurrió, y <em>qué provocó esa causa</em>. El tronco se ve. La raíz pide pala. Los problemas humanos —deuda, pelea, recaída, taller que no cierra— suelen ser hojas. Si podas la hoja y no tocas la raíz, el árbol vuelve a sacar la misma rama.</p>
+      <p>Ver lo que no se ve también es reconocer patrones: lo que se repite en el cuerpo, en el mercado, en la pareja, en tu propia queja. No adivinas el futuro. Lees señales que todavía no hacen ruido. Las mejores puertas casi nunca llegan con mariachi. Llegan disfrazadas de dificultad o de detalle “sin importancia”.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · Dos en el mismo mezquite</h3>
+        <p>Caminaban tío y sobrino por el mismo sendero. El sobrino miraba la punta del huarache. El tío miró el polvo, el viento y un nido bajo. “No hay nada”, dijo el joven. Al rato, el arroyo que “no había nada” les tapó el paso. El tío ya había desviado. No era magia. Era haber mirado tres cosas más que el camino de enfrente.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Contar el costo</h3>
+        <p>Jesús pone un método de observación antes de la obra: <em>«¿Quién de vosotros, queriendo edificar una torre, no se sienta primero y calcula los gastos?»</em> (Lucas 14:28). Sentarse no es cobardía. Es negarse a construir sobre lo que no se ha visto. Nehemías, de noche, recorrió el muro antes de hablarle al pueblo. Jehová no pide que improvises la torre. Pide que mires el terreno.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Qué no estoy viendo</h3>
+        <p>Toma un roce o un problema de esta semana. Tres renglones: 1) lo evidente; 2) una causa que podría estar debajo; 3) un detalle que ignoraste porque “no era el tema”. La pregunta que sustituye a “qué está pasando” es: <em>qué no estoy viendo todavía</em>.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿En qué asunto estás podando hojas y dejando la raíz?</p>
+    </section>
+
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · Decidir sin la tormenta</h2>
+      <p class="principio">Principio: no todas las decisiones merecen la misma velocidad. Las emociones informan. Conducir con ellas al volante es construir la casa bajo la lluvia.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-pausa-que-decide/05-casa-tormenta.jpg" alt="Una casa a medias bajo la lluvia, alguien espera con los planos bajo el alero" />
+        <figcaption>Aplicación: la tormenta pasa. El cimiento que pongas en ella, no.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La mayoría de los errores no nacen de falta de inteligencia. Nacen de decidir demasiado pronto. El miedo ve amenazas donde hay un umbral. La euforia borra riesgos. La ira convierte un retraso en un juicio. El cerebro, en clima fuerte, reduce el mapa. Por eso un estratega tiene una costumbre poco heroica: no firma lo importante mientras la emoción manda.</p>
+      <p>Eso no es negar el clima. El enojo avisa que algo te importó. El miedo avisa de un borde. Escucharlos es sabiduría. Entregarles la pluma es otra cosa. Hay un segundo enemigo: el orgullo de “tener razón”. Seguir un camino solo porque ya invertiste en él no es lealtad. Es miedo a parecer que te equivocaste. Rectificar a tiempo es fortaleza, no fracaso.</p>
+      <p>La certeza absoluta no llega. Esperarla es una forma elegante de postergar. Se reúne la mejor información disponible, se mira a cinco años —no a cinco horas— y se da un paso. Luego se corrige. Flexibilidad no es veleta: es humildad con rumbo.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El albañil y el chubasco</h3>
+        <p>Quiso colar la losa “hoy, que hay gente”. El cielo ya estaba negro. El maestro le dijo: “La losa no se arrepiente; tú sí.” Esperaron. Perdieron una tarde. Ganaron el techo. El vecino que coló bajo el agua pasó un año rascando grietas. La prisa cobró con intereses.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Ciudad sin muro</h3>
+        <p><em>«Como ciudad derribada y sin muro es el hombre cuyo espíritu no tiene rienda.»</em> Proverbios 25:28. El muro no es dureza contra el corazón. Es un borde para que la emoción no saquee la plaza. Y Proverbios 16:9 sostiene las dos manos: <em>«El corazón del hombre piensa su camino; mas Jehová afirma sus pasos.»</em> Tú piensas. Él afirma. No se pide que decidas borracho de clima.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Consejo al que más quieres</h3>
+        <p>Una decisión que te aprieta. Escríbela como si se la aconsejaras a la persona que más quieres. ¿Le dirías que firme ahora? ¿Le pedirías que duerma? Copia esa frase y úsala contigo. Anota también: ¿esto se decide en minutos o en días?</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Qué decisión importante estás a punto de tomar con el pulso todavía en tormenta?</p>
+    </section>
+
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · El problema como maestro</h2>
+      <p class="principio">Principio: el obstáculo trae dos piezas: el golpe que se ve y la habilidad que pide. Quien solo busca culpables pierde la segunda pieza.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-pausa-que-decide/06-problema-maestro.jpg" alt="Una puerta cerrada con una franja de luz por debajo" />
+        <figcaption>Aplicación: lo cerrado puede ser muro o umbral. La luz por debajo pide que mires otra vez.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Nadie se libra de problemas. La diferencia no es la cantidad: es la lectura. Unos oyen “injusticia” y se detienen. Otros oyen “información” y se ponen a trabajar. El fracaso, bien leído, no es sentencia. Es un camino que ya no tienes que volver a recorrer. Temer todo error es también temer toda puerta nueva: la zona conocida se vuelve cárcel con cortinas suaves.</p>
+      <p>En la crisis, el miedo estrecha el mapa y te convence de que hay una sola salida. Por eso no se decide en el minuto más alto. Primero se estabiliza el cuerpo. Luego se miran los hechos. Al final se actúa. La calma no es adorno: es ventaja. Unos minutos de no-reacción cambian el resto de la semana.</p>
+      <p>Algunas puertas se cierran para que no sigas un pasillo que ya no crecía. Eso duele. No se pide que celebres el golpe. Se pide que, cuando el clima baje, preguntes qué habilidad te está exigiendo este asunto: paciencia, límite, oficio, dinero, compañía. El sufrimiento no se vuelve “útil” por magia. Se vuelve legible.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El puesto que cerró</h3>
+        <p>Le quitaron el lugar en el mercado. Uno dijo: “ya no hay sitio para mí.” Otro, la misma semana, midió qué se le había echado a perder: el trato, el horario, el producto. Armó un taller más chico y más limpio. El golpe fue el mismo. El maestro no era el mercado. El maestro era lo que cada uno hizo con el inventario del error.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · José y el granero</h3>
+        <p>José no eligió el pozo ni la cárcel. Eligió qué hacer con la información cuando llegó el sueño de los años gordos y flacos (Génesis 41). Guardar en abundancia no es pesimismo. Es leer el patrón antes de que el hambre haga ruido. Jehová no promete una vida sin sequía. Promete que se puede administrar con claridad lo que sí está en las manos.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Dos columnas</h3>
+        <p>Un problema actual. Columna A: el golpe (hechos, sin novela). Columna B: la habilidad que te está pidiendo. Una sola. Si no encuentras B, duerme y vuelve mañana: a veces B aparece cuando baja el ruido. No decidas el rumbo grande hoy si el pulso sigue alto.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Estás buscando un culpable o un aprendizaje que puedas practicar esta semana?</p>
+    </section>
+
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Influir sin empujar</h2>
+      <p class="principio">Principio: se puede obedecer por miedo. Solo se colabora por confianza. La cuenta se llena con hechos pequeños, no con un discurso.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-pausa-que-decide/07-confianza-escucha.jpg" alt="Dos sillas y dos tazas: alguien escucha de verdad" />
+        <figcaption>Aplicación: quien escucha para comprender abre una puerta que el argumento cierra.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Nadie construye una vida grande del todo solo. Oficio, familia, taller, consultorio: todo pasa por otras personas. El error es creer que influir es ganar la discusión. La gente puede ceder la boca y cerrar el oído. El estratega primero pregunta cómo piensa el otro. Escucha para entender, no para cargar la respuesta. El dato más útil a veces está en lo que no se dice: el tono, la pausa, lo que se evita.</p>
+      <p>La coherencia es el capital. Palabra y hecho en el mismo renglón. Cada promesa cumplida es un depósito. Cada incumplimiento, un retiro. Hay quien quiere cobrar influencia con la cuenta en ceros. Por eso encuentra resistencia. Persuadir a palos despierta defensa. Una buena pregunta deja que la idea nazca adentro: esa sí se queda.</p>
+      <p>La ética no es adorno de este capítulo. Manipular da obediencia corta. La confianza da lealtad larga. La gente olvida frases. Rara vez olvida cómo la hiciste sentir cuando nadie aplaudía. El carácter se trabaja antes que la técnica: no aparentar seguridad; construir oficio hasta que la seguridad deje de ser teatro.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El maestro que no corregía primero</h3>
+        <p>Un aprendiz traía la pieza chueca. El maestro no dijo “así no”. Preguntó: “¿qué querías que hiciera esta esquina?” El joven oyó su propio error. Lo corrigió sin humillación. Al cabo de meses, el taller tenía menos gritos y más piezas buenas. La influencia no fue el dedo. Fue la pregunta que devolvió la dignidad y el ojo.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Respuesta blanda</h3>
+        <p><em>«La blanda respuesta quita la ira; mas la palabra áspera hace subir el furor.»</em> Proverbios 15:1. No es técnica de ventas. Es fisiología de la conversación: el tono abre o cierra. Y Proverbios 15:22: <em>«Los pensamientos se enturbian donde no hay consejo; mas se afirman con los consejeros.»</em> Jehová no pide que impongas. Pide que no decidas sordo.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Una conversación con dos oídos</h3>
+        <p>En la próxima conversación tensa, prohíbete responder hasta haber parafraseado una frase del otro (“lo que oigo es…”). Luego una sola pregunta, no un veredicto. Anota qué cambió en el clima. Si no cambió nada, anota si tu cuenta de confianza con esa persona estaba vacía: entonces el trabajo no es el argumento, es el depósito.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Estás cobrando influencia que todavía no has depositado?</p>
+    </section>
+
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · Cuidar la mente</h2>
+      <p class="principio">Principio: la libertad empieza adentro. Una idea repetida parece verdad. El miedo es un pasajero útil; no se le da el volante.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-pausa-que-decide/08-mente-filtro.jpg" alt="Mesa en calma: el teléfono boca abajo, un libro abierto, la luz de la mañana" />
+        <figcaption>Aplicación: la mente come lo que le sirves. El ruido no es alimento.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Cada día miles de mensajes quieren decidir por ti: anuncio, tendencia, noticia con prisa, opinión del corrillo. Muchos creemos ser independientes y compramos, opinamos o rechazamos porque “todos”. Quien no gobierna su atención termina habitando un pensamiento prestado.</p>
+      <p>La manipulación rara vez grita. Repite. Calienta la emoción. El sesgo de confirmación hace el resto: guardas lo que te da la razón y archivas lo contrario. Una mente fuerte no teme revisar una creencia cuando aparece evidencia nueva. Eso no es debilidad. Es madurez. El miedo, bien usado, te aparta del precipicio. Mal usado, te aparta de toda puerta. El estratega no elimina el miedo: camina con él sin entregarle las llaves.</p>
+      <p>Habrá soledad intelectual: verás algo que el grupo aún no ve. Ceder solo para ser aceptado es caro. Pensar por cuenta propia no es despreciar consejos: es no regalar el volante. Cuida lo que entra: como el cuerpo, la mente se parece a su dieta. Pregunta incómoda: <em>¿esta idea es mía, o la adopté sin examinarla?</em></p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El radio que no se apagaba</h3>
+        <p>En la cocina el radio hablaba desde el alba. Al mes, la dueña soñaba con los mismos sustos del noticiero. Un domingo lo apagó y puso un salmo y silencio. No se volvió ingenua. Se volvió capaz de oír su propio criterio. El aparato no era el enemigo. El enemigo era no elegir el programa.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · El simple cree toda palabra</h3>
+        <p><em>«El simple todo lo cree; mas el avisado mira sus pasos.»</em> Proverbios 14:15. Jehová no pide cinismo. Pide examen. Y Filipenses 4:8 no es un letrero dulce: es dieta. Lo verdadero, lo honesto, lo justo —no el torrente que solo enciende el pulso. Guardar el corazón (Proverbios 4:23) incluye cuidar la entrada.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Quién lo dice y para qué</h3>
+        <p>Elige una afirmación que hoy te haya alterado (noticia, audio, consejo). Tres preguntas: ¿quién la dice? ¿qué gana si la creo? ¿qué evidencia hay fuera de la emoción? Media hora menos de ruido esta noche. Anota qué idea “tuya” quizá no lo era.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Qué pensamiento repetido estás alimentando sin haberlo examinado?</p>
+    </section>
+
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · Diseñar el mañana</h2>
+      <p class="principio">Principio: el futuro no llega como visita. Se construye con el ladrillo de hoy. La identidad se elige antes que el resultado se vea.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-pausa-que-decide/09-planos-arquitecto.jpg" alt="Planos sobre una mesa, luz de mañana, una planta pequeña" />
+        <figcaption>Aplicación: nadie vierte la losa sin plano. La vida, a veces, sí. Por eso se tuerce.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Vivir solo el incendio de hoy es dejar que las circunstancias te dirijan. El arquitecto no pone el primer ladrillo sin saber qué casa quiere. Preguntar “¿quién quiero ser en diez años?” no es fantasía: simplifica los sí y los no de esta semana. El éxito ruidoso engaña. Lo que cambia una vida son veinte páginas, un ahorro chico, un cuidado del cuerpo: invisibles un mes, enormes en cinco años.</p>
+      <p>Todo sí es un no a otra cosa. El tiempo y la energía no se estiran. Concentrar no es trabajar más: es trabajar con intención. Desear no es planear. El plan pregunta: ¿qué oficio, qué hábito, qué obstáculo probable? Y se revisa: no por cualquier viento, tampoco por terquedad cuando el mapa ya no sirve.</p>
+      <p>Cambia el verbo. No “quiero un libro”: “quiero ser alguien que escribe”. No “quiero ahorrar”: “quiero ser alguien que cuida el grano”. El resultado tarda. La identidad empieza en la primera decisión de hoy. El patrimonio que no te quitan es el carácter preparado: cuando el mercado cambie, esa mente sigue encontrando oficio.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · La casa sin plano</h3>
+        <p>El joven quería “una casa bonita” y compraba lo que el puesto traía cada sábado: un ladrillo rosa, una ventana que no coincidía, un techo de más. A los dos años tenía un montón caro. El maestro le puso un papel: cuatro muros, una puerta, un patio. El montón se volvió casa. El papel no era lujo. Era misericordia contra el capricho semanal.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Jehová afirma los pasos</h3>
+        <p>Otra vez Proverbios 16:9: el corazón piensa el camino; Jehová afirma los pasos. Tú diseñas; no usurpas la soberanía. Y el árbol que debió plantarse hace veinte años se planta hoy: no como culpa, como obediencia presente. El maná era de cada día (Éxodo 16): constancia, no acaparar el futuro de un golpe.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · El siguiente ladrillo</h3>
+        <p>Imagina, diez minutos, a la persona que quieres ser en diez años: cómo habla, cómo trabaja, cómo enfrenta un problema. Una sola pregunta: ¿qué decisión de hoy me acerca un palmo? Un ladrillo. Mañana otro. Anótalo donde lo veas al despertar.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Tus sí de esta semana construyen esa casa, o el montón del puesto?</p>
+    </section>
+
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Vivir como estratega</h2>
+      <p class="principio">Principio: ya tienes una estrategia. La pregunta es si te acerca a la vida que quieres o si las circunstancias la están escribiendo por ti.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-pausa-que-decide/10-disciplina-silenciosa.jpg" alt="Un sendero vacío al amanecer, sin trofeo, solo el trabajo de siempre" />
+        <figcaption>Aplicación: el trofeo se fotografía. El camino de las cinco de la mañana, casi nunca.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Pensar con estrategia no es un truco de generales. Es una forma de mirar. Cada hábito es estrategia. Cada amistad que conservas o sueltas, también. Incluso lo que decides ignorar termina cobrando renta. No se trata de si tienes estrategia: se trata de si esa estrategia te lleva a la vida que de verdad quieres.</p>
+      <p>El estratega no pregunta solo “qué va a pasar hoy”. Pregunta cómo aprovechar este día con lo que hay, mientras se prepara para lo que aún no llega. Esperar el momento perfecto es una espera que se come los años. La acción inteligente enseña más que la espera interminable. Y hay una virtud poco fotografiada: la disciplina silenciosa. El trofeo se ve. Las noches de oficio, no.</p>
+      <p>Las ocho etapas caben ahora en un solo gesto cotidiano: pausa, mira la raíz, no firmes en tormenta, lee el problema, deposita confianza, examina la idea, pon el ladrillo, repite. No te “graduaste” de la prisa. Aprendiste a verla. Puede volver. Ya no firma sola.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El camino de las cinco</h3>
+        <p>Nadie iba a ver al corredor a esa hora. Solo el polvo y el banco de madera. El pueblo aplaudió el día de la carrera. Él sabía que la carrera se había ganado en los lunes sin público. El estratega cotidiano se parece a ese camino: no necesita testigo para ser verdadero.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Fidelidad en lo poco</h3>
+        <p><em>«El que es fiel en lo muy poco, también en lo más es fiel.»</em> Lucas 16:10. Jehová no mide el ruido del resultado. Mide el ladrillo de hoy. La estrategia del Reino no es espectáculo: es constancia a la vista de quien sí ve lo oculto.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Una estrategia de veinticuatro horas</h3>
+        <p>Escribe cuatro líneas para mañana: 1) dónde pondré la pausa; 2) qué raíz voy a mirar; 3) a quién voy a escuchar de verdad; 4) el ladrillo pequeño. Al anochecer, marca qué sí ocurrió. Sin teatro. El cuaderno es para la cognición, no para la galería.</p>
+      </div>
+      <p><strong>Pregunta que te acompaña esta noche:</strong> Si mañana fueras el arquitecto de tu día —no el espectador—, ¿cuál sería el primer ladrillo?</p>
+    </section>
+
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno breve</h2>
+      <p class="meta">Una hoja por semana. No se entrega para ser juzgado. Se usa para que la cognición vea pruebas.</p>
+      <div class="caja">
+        <p><strong>Semana de:</strong> _______________</p>
+        <p>1. Una vez que puse pausa (y qué habría firmado sin ella):</p>
+        <p>2. Algo evidente y una raíz que podría estar debajo:</p>
+        <p>3. Una decisión que aplacé hasta que bajó la tormenta:</p>
+        <p>4. Un problema: golpe visible / habilidad que me pide:</p>
+        <p>5. Un depósito de confianza (hecho, no discurso):</p>
+        <p>6. Una idea que examiné: ¿es mía o prestada?</p>
+        <p>7. El ladrillo de identidad de esta semana:</p>
+        <p>8. ¿Necesito acompañamiento profesional? Sí / No. Este curso no lo reemplaza.</p>
+      </div>
+      <p>Al terminar las ocho etapas no te volviste un general. Aprendiste a no entregar el volante al primer estímulo. La prisa puede volver. La pausa ya tiene asiento.</p>
+    </section>
+  </main>
+
+  <footer>
+    Ecosistema CMS VIAM · Consultorio de principios · La pausa que decide<br />
+    Pedagogía original. Inspirado en principios del audiolibro citado. No es consejo clínico ni médico.
+  </footer>
+  <script>
+  (function () {
+    function embedded() {
+      try { return window.top !== window.self; } catch (e) { return true; }
+    }
+    document.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a') : null;
+      if (!a) return;
+      var href = a.getAttribute('href');
+      if (!href) return;
+      if (href.charAt(0) === '#') {
+        e.preventDefault();
+        var el = document.getElementById(href.slice(1));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (/diapositivas\.html/i.test(href) && embedded()) {
+        e.preventDefault();
+        try { window.parent.postMessage({ type: 'cn-curso', action: 'diapositivas' }, '*'); } catch (err) {}
+      }
+    }, true);
+  })();
+  </script>
+</body>
+</html>
