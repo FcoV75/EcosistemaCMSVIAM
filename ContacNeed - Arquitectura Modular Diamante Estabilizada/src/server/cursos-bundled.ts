@@ -10,6 +10,10 @@ import leccionesPausa from '../../content/cursos/la-pausa-que-decide/index.html?
 import diapositivasPausa from '../../content/cursos/la-pausa-que-decide/diapositivas.html?raw'
 import slidesPausa from '../../content/cursos/la-pausa-que-decide/slides.js?raw'
 import guiaPausa from '../../content/cursos/la-pausa-que-decide/guia-docente.md?raw'
+import leccionesPalabra from '../../content/cursos/la-palabra-que-no-obliga/index.html?raw'
+import diapositivasPalabra from '../../content/cursos/la-palabra-que-no-obliga/diapositivas.html?raw'
+import slidesPalabra from '../../content/cursos/la-palabra-que-no-obliga/slides.js?raw'
+import guiaPalabra from '../../content/cursos/la-palabra-que-no-obliga/guia-docente.md?raw'
 
 export const CURSOS_BUNDLED: Record<
   string,
@@ -35,5 +39,12 @@ export const CURSOS_BUNDLED: Record<
     slides: slidesPausa,
     guia: guiaPausa,
     zipPublicUrl: '/cursos-assets/la-pausa-que-decide/paquete-recuperacion-t8w3n6q1.zip',
+  },
+  'la-palabra-que-no-obliga': {
+    lecciones: leccionesPalabra,
+    diapositivas: diapositivasPalabra,
+    slides: slidesPalabra,
+    guia: guiaPalabra,
+    zipPublicUrl: '/cursos-assets/la-palabra-que-no-obliga/paquete-recuperacion-p4k7m2s9.zip',
   },
 }

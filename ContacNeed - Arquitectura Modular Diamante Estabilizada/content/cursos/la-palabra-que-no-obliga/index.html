@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La palabra que no obliga — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="Curso gradual de principios: cómo convencer sin quitarle a nadie la voluntad. Escuchar, confianza, clima, presencia y ética. Complemento pedagógico, nunca sustituto clínico." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc;
+      --muted: rgba(245,245,252,.78);
+      --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16);
+      --accent: #f1c96b;
+      --accent-2: #86d6ff;
+      --ok: #7dcea0;
+      --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Montserrat, system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--night);
+      line-height: 1.65;
+    }
+    a { color: var(--accent-2); }
+    .nav {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem;
+      background: rgba(5,8,20,.92);
+      border-bottom: 1px solid var(--edge);
+      backdrop-filter: blur(10px);
+    }
+    .nav a, .nav .btn {
+      text-decoration: none; color: var(--ink);
+      border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600;
+      background: rgba(8,11,26,.55);
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--accent), #c9a24d);
+      color: #111; border: 0; font-weight: 700;
+    }
+    .hero {
+      min-height: 78vh;
+      display: grid; align-items: end;
+      background:
+        linear-gradient(180deg, rgba(5,8,20,.25) 0%, rgba(5,8,20,.72) 52%, rgba(5,8,20,.96) 100%),
+        url("/cursos-assets/la-palabra-que-no-obliga/01-portada-palabra-no-obliga.jpg") center/cover no-repeat;
+      padding: 2rem 1.25rem 2.6rem;
+    }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 {
+      font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.5rem);
+      line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso {
+      margin: 1.4rem 0; padding: 1rem 1.1rem;
+      border: 1px solid rgba(241,201,107,.4);
+      background: rgba(241,201,107,.08);
+      border-radius: 14px;
+    }
+    .aviso strong { color: var(--accent); }
+    section.etapa {
+      margin: 2.4rem 0;
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      padding: 1.35rem 1.25rem 1.5rem;
+    }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio {
+      border-left: 3px solid var(--accent);
+      padding: .15rem 0 .15rem 1rem;
+      color: #fff6cc;
+      font-weight: 600;
+    }
+    figure.relato {
+      margin: 1.1rem 0;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--edge);
+      background: #000;
+    }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja {
+      margin: 1rem 0;
+      padding: .9rem 1rem;
+      border-radius: 12px;
+      background: rgba(0,0,0,.28);
+      border: 1px dashed rgba(255,255,255,.2);
+    }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    ul.pasos { padding-left: 1.15rem; }
+    footer {
+      text-align: center; color: var(--muted);
+      padding: 1.5rem 1rem 2.5rem; font-size: .86rem;
+    }
+    @media print {
+      .nav { position: static; }
+      body { background: #fff; color: #111; }
+      section.etapa { break-inside: avoid; background: #fff; color: #111; border-color: #ccc; }
+      h1, h2 { color: #3a2a00; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="/">CMS</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a>
+    <a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>La palabra que no obliga</h1>
+      <p>Un curso gradual para convencer sin quitarle a nadie la voluntad. Primero se oye. Luego se deposita confianza. Después se habla. Ciencia seria, práctica cotidiana y un puente bíblico que convence a la mente sin apagarla.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="aviso">
+      <strong>Regla de oro.</strong> Nada de este curso sustituye psicoterapia, diagnóstico ni tratamiento médico.
+      Camina <em>al lado</em> del profesional, nunca en su lugar. Si hay control, chantaje, violencia o una venta que se aprovecha del miedo, esto no es el instrumento: se deriva y se protege.
+      Aquí se añade una pregunta: ¿estoy sirviendo a la persona, o estoy cobrando su sí?
+    </p>
+
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">Oír antes de mover</a> — la influencia empieza cuando el otro se siente visto, no cuando tú ya tienes la frase.</li>
+        <li><a href="#e2">El suelo de la confianza</a> — la idea no se sostiene si el piso está hueco.</li>
+        <li><a href="#e3">El clima de la mesa</a> — el pulso decide antes que el argumento; quien no se gobierna, es gobernado.</li>
+        <li><a href="#e4">La voz y el silencio</a> — el tono, la pausa y nombrar lo que duele abren más que un discurso.</li>
+        <li><a href="#e5">Quien dirige tu mirada</a> — la atención se alquila; hay que preguntar de quién es el anuncio.</li>
+        <li><a href="#e6">La presencia quieta</a> — quien mendiga aprobación pierde el peso de estar.</li>
+        <li><a href="#e7">El diálogo que te habita</a> — primero te convences a ti; luego hablas al mundo.</li>
+        <li><a href="#e8">Lámpara, no incendio</a> — el mismo fuego ilumina o quema. La ética no es el adorno: es el oficio.</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: audiolibro sobre el poder de la persuasión. Este material no es una transcripción: es una pedagogía original de principios para el consultorio. No enseña a manipular. Enseña a reconocer el gancho y a hablar sin quitar la voluntad.</p>
+    </section>
+
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · Oír antes de mover</h2>
+      <p class="principio">Principio: la gente rara vez cambia porque le ganas el argumento. Cambia cuando se siente comprendida. Quien habla primero, a menudo llega tarde.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-palabra-que-no-obliga/02-escuchar-antes.jpg" alt="En un taller, alguien deja las herramientas y escucha de verdad" />
+        <figcaption>Aplicación: las herramientas pueden esperar. El oído, no.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Hay quien entra a una conversación con la solución ya empacada. Trae tres razones, un ejemplo y un cierre. El otro apenas abre la boca y ya está siendo “convencido”. Eso no es oficio. Es prisa disfrazada de claridad. El organismo humano, antes de ceder un sí, pregunta en silencio: <em>¿esta persona me vio, o me usó?</em></p>
+      <p>La mente no es un tribunal que espera pruebas. Es un clima. Primero siente si hay suelo. Después inventa razones para explicar lo que ya decidió el pecho. Por eso un discurso brillante puede rebotar y una pregunta humilde puede abrir una puerta que llevaba años cerrada. No porque la pregunta sea magia. Porque el otro, por un instante, deja de defenderse.</p>
+      <p>Convencer, en este consultorio, no es meter una idea. Es acompañar a que la persona mire lo que ya estaba ahí. Si tu frase necesita que el otro se encoga, no es palabra: es palanca. La palanca mueve un cuerpo. No mueve una voluntad libre.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · La olla que no se vendía</h3>
+        <p>En el mercado, el sobrino de doña Remedios recitaba ventajas: “antiadherente, garantía, tres tamaños”. La gente pasaba. Doña Remedios le pidió que se callara y le preguntó a una señora: “¿para cuántos cocina usted los domingos?” La señora habló del hijo que ya no llega. Compraron una olla chica. No ganó el catálogo. Ganó haber oído el domingo vacío.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Responder antes de oír</h3>
+        <p><em>«Al que responde palabra antes de oír, le es locura y oprobio.»</em> Proverbios 18:13. Jehová no pide que te quedes mudo. Pide que el oído llegue primero. El que llega con la sentencia lista no está sirviendo: está cubriendo su propio apuro.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Una pregunta y ninguna tesis</h3>
+        <p>En la próxima conversación que te pida “arreglar” a alguien, prohíbete dar consejo hasta haber hecho una sola pregunta verdadera y haber callado a oír la respuesta. Anota qué cambió en el clima. Si no cambió nada, anota si estabas oyendo para responder.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Entré hoy a convencer, o entré a ver?</p>
+    </section>
+
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · El suelo de la confianza</h2>
+      <p class="principio">Principio: la idea más fina se cae si el piso está hueco. La confianza no se declara. Se vierte, se nivela y se deja secar.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-palabra-que-no-obliga/03-suelo-confianza.jpg" alt="Un albañil nivela el cimiento con la burbuja en el centro" />
+        <figcaption>Aplicación: nadie pone el segundo piso sobre un nivel que miente.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Se puede sonar brillante y ser inhabitable. La gente no solo oye lo que dices: oye si tu sí de ayer sigue en pie. Cada promesa cumplida es un centímetro de suelo. Cada “ahorita vengo” que no vuelve es una grieta. Quien quiere cobrar influencia con la cuenta en ceros se parece al que vende departamentos sobre un terreno que todavía es lodazal.</p>
+      <p>La autenticidad no es decirlo todo. Es que la cara, la voz y el hecho no se desmientan. El organismo detecta la incongruencia más rápido que el argumento: una sonrisa con mandíbula tensa, un “estoy bien” con las manos cerradas. No hace falta ser detective. El cuerpo del otro ya votó.</p>
+      <p>Hay un enemigo silencioso de la confianza: el afán de agradar a todos. Quien necesita que nadie se moleste termina sin peso. El respeto nace de un borde claro, no de un “sí” que se dobla. Impresionar es ruido. Hacer sentir suelo es oficio.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El nivel que no mentía</h3>
+        <p>Don Silvestre prometió la losa el sábado. Llegó el lunes con una disculpa larga. El vecino, más callado, midió, niveló y avisó: “el jueves, si no llueve”. El jueves estaba. A los seis meses, en la cuadra se sabía a quién llamaban cuando el muro no podía mentir. No ganó el discurso. Ganó el nivel.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · El buen nombre</h3>
+        <p><em>«De más estima es el buen nombre que las muchas riquezas.»</em> Proverbios 22:1. Jehová no mide el volumen de la boca. Mide si el nombre todavía se puede pisar. La riqueza de la palabra es que alguien pueda apoyarse en ella sin caerse.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Una grieta y un centímetro</h3>
+        <p>Nombra una promesa pequeña que dejaste a medias (un mensaje, una hora, un “te aviso”). Cíerrala hoy o di con claridad que no podrás. Un solo centímetro de suelo. No repares toda la casa.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Estoy pidiendo que me crean sobre un piso que yo mismo no nivelé?</p>
+    </section>
+
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · El clima de la mesa</h2>
+      <p class="principio">Principio: el pulso decide antes que el argumento. Quien no gobierna su clima, entrega el volante a quien grite más cerca.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-palabra-que-no-obliga/04-clima-mesa.jpg" alt="En la misma cocina, una prisa y una calma alrededor de la taza" />
+        <figcaption>Aplicación: la mesa copia el clima de quien no se contiene. También el de quien sí.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Las emociones no son un adorno del pensamiento. Son el primer mapa. El miedo estrecha. La ira acelera. La vergüenza esconde. La esperanza abre. Luego llega la lógica, a menudo a justificar lo que el pecho ya firmó. Eso no es estupidez. Es diseño: el organismo cuida primero la amenaza y el vínculo.</p>
+      <p>El clima se contagia. Un tío encendido convierte la comida en trámite. Una persona estable baja el volumen de una sala sin alzar la voz. Por eso el miedo vende tan barato: enciende el alerta y reduce el examen. Obedecer por susto es rápido. Quedarse de buena gana es otra cosa. En este curso no se enseña a asustar. Se enseña a notar cuándo te están asustando, y a no firmar ahí.</p>
+      <p>Autocontrol no es apagar el corazón. Es no entregarle la pluma en el minuto más alto. Si no lees tu propio clima, alguien más lo usará: un anuncio, una pelea, una “oportunidad que se acaba”. La calma bajo presión no es pose. Es higiene.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El tío y la tía</h3>
+        <p>En la comida del domingo el tío golpeaba la mesa por el recorte. Todos comían más rápido. Tía Carmen no le ganó el grito. Sirvió agua, bajó la voz y preguntó: “¿qué es lo que más te aprieta de esto?” El tío, de pronto, tuvo que pensar. La carne no cambió de sabor. Cambió el clima. El argumento llegó después, cuando ya había mesa.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Tardarse en airarse</h3>
+        <p><em>«Mejor es el que tarda en airarse que el fuerte; y el que se enseñorea de su espíritu, que el que toma una ciudad.»</em> Proverbios 16:32. Jehová no pide un santo de yeso. Pide un espíritu con rienda. Tomar una ciudad y perderte a ti es un mal negocio.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Nombrar el clima antes de hablar</h3>
+        <p>Antes de una conversación tensa, una línea en el cuaderno: “ahora mismo siento ______”. Luego habla. Al terminar, otra línea: “¿firmé con el pulso alto?” No corrijas al otro. Mide tu clima.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Quién está poniendo el clima de tus sí de esta semana: tú, o el susto más cercano?</p>
+    </section>
+
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · La voz y el silencio</h2>
+      <p class="principio">Principio: las palabras son la parte chica. El tono, la pausa y nombrar lo que duele suelen abrir lo que el discurso cierra.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-palabra-que-no-obliga/05-voz-silencio.jpg" alt="Una silla ligeramente corrida, el silencio todavía sentado a la mesa" />
+        <figcaption>Aplicación: el silencio bien usado no es vacío. Es espacio para que el otro se oiga.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Se puede decir la frase correcta con un filo que hiere, y se puede decir una frase sencilla con un peso que sostiene. El cerebro oye la música antes que la letra. La prisa por llenar el silencio suele ser miedo: miedo a no gustar, a parecer poco, a que el otro se vaya. Quien tolera un segundo de quietud a menudo oye lo que el otro no iba a decir si lo interrumpías.</p>
+      <p>Hablar de más es una forma de mendigar. Explicar tres veces lo mismo, justificar cada decisión, sonreír para que no duela: el otro lo siente como necesidad, no como claridad. La convicción tranquila no es arrogancia. Es no empujar el sí con el codo.</p>
+      <p>Hay un oficio casi clínico: nombrar el clima del otro sin diagnosticarlo. “Parece que esto te pesó.” “Oigo que no es el precio, es el domingo.” No es técnica de venta. Es devolverle al otro un espejo que él puede corregir. Cuando alguien se siente luchado, se cierra. Cuando se siente oído, puede mirar.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El locutor y la maestra</h3>
+        <p>El locutor del pueblo no dejaba hueco: relleno, risa, oferta. La maestra, en la junta, decía una frase y esperaba. Un padre, en ese hueco, confesó que no sabía leer el recado. No ganó el volumen. Ganó el silencio que le dio permiso de ser torpe sin humillación.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Manzana de oro</h3>
+        <p><em>«Manzana de oro con figuras de plata es la palabra dicha como conviene.»</em> Proverbios 25:11. No es adorno. Es ajuste: la palabra a su hora, en su tono. Y Colosenses 4:6: <em>«Sea vuestra palabra siempre con gracia, sazonada con sal.»</em> Jehová no pide un discurso largo. Pide sazón: que no esté ni soso ni que queme la boca.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Una pausa y un nombre</h3>
+        <p>En una conversación, deja un silencio de tres respiraciones después de que el otro termine. Luego una sola frase que nombre el clima (“oigo que esto te aprieta”), no tu tesis. Anota si el otro se abre o se defiende. Si se defiende, quizá tu tono todavía empujaba.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Estoy llenando el silencio porque sirvo, o porque no aguanto no ser oído?</p>
+    </section>
+
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Quien dirige tu mirada</h2>
+      <p class="principio">Principio: lo que se mira se vuelve verdadero más rápido de lo que se examina. Quien no pregunta de quién es el anuncio, termina comprando una vida prestada.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-palabra-que-no-obliga/06-vitrina-atencion.jpg" alt="Una vitrina llena de reclamos y alguien que se detiene a mirar sin entrar aún" />
+        <figcaption>Aplicación: el vidrio promete. La pregunta es si el deseo nació adentro o en el escaparate.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La atención es un bien que se alquila. Noticias, filas, “todos lo tienen”, el número grande en la pantalla: el cerebro ahorra y toma atajos. Si muchos miran, parece valioso. Si se acaba, parece urgente. Si una cara conocida lo dice, parece cierto. Esos atajos sirven para cruzar la calle. También sirven para que firmes lo que no examinaste.</p>
+      <p>No toda influencia es un delito. Los padres influyen, el oficio influye, una buena clase influye. El problema es la influencia que no se declara: la que enciende inseguridad y luego vende el remedio, la que usa la culpa como correa, la que te hace traicionar tu criterio para no quedarte fuera del corrillo. Quien necesita aprobación como pan es fácil de mover: basta darla o quitarla.</p>
+      <p>La defensa no es cinismo. Es tres preguntas lentas: ¿quién gana si yo creo esto? ¿qué emoción me están sirviendo? ¿esto lo quiero yo cuando baja el ruido? Pensar cuesta. Reaccionar es barato. El que no paga el costo del examen paga después con la biografía.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · La fila de tres</h3>
+        <p>En el tianguis pusieron a tres conocidos a “hacer fila” frente a un puesto. El puesto se llenó. Una joven se acercó, vio el truco en un saludo cómplice, y se preguntó: “¿esto lo quiero yo?” Se fue con las manos vacías y el criterio intacto. No era desprecio al comercio. Era no alquilar la mirada.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · No creer a todo espíritu</h3>
+        <p><em>«No creáis a todo espíritu, sino probad los espíritus si son de Dios.»</em> 1 Juan 4:1. Jehová no pide incredulidad amarga. Pide examen. Y Proverbios 13:20 avisa del corrillo: <em>«El que anda con sabios, sabio será; mas el que se junta con necios será quebrantado.»</em> La compañía también persuade. Elige con quién te dejas mirar el mundo.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Devolver el anuncio</h3>
+        <p>Elige un sí de esta semana que vino con prisa (compra, mensaje, opinión del grupo). Tres renglones: quién lo empujó, qué emoción usó, qué dirías si nadie te viera. No tienes que deshacerlo todo. Basta recuperar un sí.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Qué parte de tu atención de hoy no era tuya?</p>
+    </section>
+
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · La presencia quieta</h2>
+      <p class="principio">Principio: la presencia no se actúa. Se sostiene. Quien mendiga que lo miren, ya entregó el peso de estar.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-palabra-que-no-obliga/07-presencia-quieta.jpg" alt="Alguien entra a una sala sin teatro, con el cuerpo en calma" />
+        <figcaption>Aplicación: no hace falta llenar el umbral de ruido. Basta llegar entero.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Hay quien entra a un cuarto explicando su valor: títulos, anécdotas, volumen. El cuerpo de los demás se recuesta hacia atrás. Hay quien entra, saluda, se sienta y hace una pregunta útil. El cuarto se organiza solo. La diferencia no es carisma de revista. Es si tu valor de hoy depende del aplauso de esta hora.</p>
+      <p>La desesperación se oye. Se oye en las disculpas de más, en el chiste que pide risa, en el “¿verdad?” al final de cada frase. El silencio, para esa persona, es un precipicio. Para quien se sostiene, el silencio es un mueble: se puede sentar. Eso no es frialdad. Es no convertir al otro en proveedor de oxígeno.</p>
+      <p>La arrogancia es otra máscara de la misma hambre. Humillar para sentirse alto no es presencia: es déficit. La presencia quieta no necesita ser superior. Necesita no estar en venta. Se construye en lo chico: una crítica que no te desmantela, un no dicho a tiempo, un impulso que no se obedece. No se improvisa el domingo. Se practica en los lunes sin público.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · El ingeniero y la pregunta</h3>
+        <p>En la junta, uno llegó con carpeta y diez minutos de currículum. El otro llegó, escuchó el problema del pozo y preguntó: “¿cuándo empezó a bajar el nivel?” Nadie aplaudió al entrar. Al salir, el dueño del predio tenía a quién llamar. La presencia no fue el maletín. Fue no necesitar el maletín para merecer la silla.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Palabras del sabio en reposo</h3>
+        <p><em>«Las palabras del sabio en reposo son oídas, más que el clamor del que seña entre los necios.»</em> Eclesiastés 9:17. Jehová no mide el decibel. Mide si hay reposo detrás de la boca. El clamor convence un minuto. El reposo convence el oficio.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Entrar sin venderte</h3>
+        <p>En la próxima reunión o visita, prohíbete mencionar un logro propio en los primeros diez minutos. Saluda. Pregunta. Sostén un silencio. Anota qué hambre apareció (que te vean, que te crean, que te prefieran). Esa hambre es material de trabajo, no de vergüenza.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿Mi presencia de hoy pedía oxígeno, o lo traía?</p>
+    </section>
+
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · El diálogo que te habita</h2>
+      <p class="principio">Principio: antes de convencer a nadie, ya te estás convenciendo a ti. La frase que te repites con emoción termina firmando tu día.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-palabra-que-no-obliga/08-cuaderno-amanecer.jpg" alt="Un cuaderno al amanecer, una sola línea, sin teatro" />
+        <figcaption>Aplicación: el primer auditorio eres tú. Si ahí mientes, afuera también.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Hay un orador que no se calla: el que habla en tu pecho a las cinco de la mañana. “No alcanzo.” “Siempre igual.” “Si no me aprueban, no valgo.” Esa voz persuade más que cualquier vendedor, porque tiene acceso las veinticuatro horas y no pide cita. Las creencias no son letreros. Son caminos que el pie ya memorizó.</p>
+      <p>La mente cree lo que se repite con clima. Por eso el entorno importa: lo que oyes, a quién frecuentas, qué alimentas en la pantalla. Si no eliges la dieta, alguien elige por ti. Esto no es “pensamiento mágico”. Es higiene: no se pide que te convenzas de ser invencible. Se pide que dejes de sembrar cada mañana una sentencia que te achica.</p>
+      <p>Quien se traiciona para encajar termina con una identidad prestada. Entonces cualquier aprobación se vuelve droga y cualquier crítica, ruina. Recuperar la voz interior no es un eslogan. Es una línea verdadera, repetida con hechos chicos. El consultorio no sustituye a quien necesita terapia para esa voz. Camina al lado.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · La frase del taller</h3>
+        <p>Un oficial repetía “yo no sirvo para números” hasta que el aprendiz dejó de traerle las cuentas. Una compañera, al alba, escribió otra línea: “puedo revisar una columna”. No se volvió contadora en una noche. Se volvió alguien que ya no saboteaba el primer paso. El taller no cambió de techo. Cambió de oración.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · Como piensa en su corazón</h3>
+        <p><em>«Porque cual es su pensamiento en su corazón, tal es él.»</em> Proverbios 23:7. Jehová no ignora el diálogo interior. Y Filipenses 4:8 no es un letrero dulce: es dieta de lo verdadero, lo honesto, lo justo. No se pide que niegues el dolor. Se pide que no lo conviertas en tu único alimento.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Una línea que no sea un juicio</h3>
+        <p>Escribe la frase que más te achica esta semana. Al lado, una línea verdadera y pequeña que puedas sostener con un hecho de hoy (“puedo revisar una columna”, no “soy un genio”). Haz el hecho. Al anochecer, marca si la frase vieja todavía firmó.</p>
+      </div>
+      <p><strong>Pregunta de integración:</strong> ¿A quién le estás creyendo más: a la evidencia de hoy, o a un veredicto viejo?</p>
+    </section>
+
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Lámpara, no incendio</h2>
+      <p class="principio">Principio: el mismo fuego ilumina o quema. Saber cómo se mueve una mente no te da derecho a tomarla. Te da oficio, y te da juicio.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-palabra-que-no-obliga/09-lampara-mesa.jpg" alt="Una lámpara estable en la mesa; a lo lejos, un fuego que no se gobierna" />
+        <figcaption>Aplicación: la lámpara sirve a quien come. El incendio no pregunta a quién consume.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Llegados aquí, ya ves palancas: el oído, el suelo, el clima, el tono, la atención, la presencia, la voz interior. Ese mapa se puede usar para servir o para extraer. El manipulador enciende inseguridad y vende el remedio. El oficio digno enciende claridad y deja que el otro camine. Uno crea dependencia. El otro devuelve el volante.</p>
+      <p>El mayor poder de este curso no es “hacer que te digan que sí”. Es dejar de ser el que dice que sí por hambre, por fila, por susto, por no aguantar un silencio. Si aprendes a mover a otros y sigues siendo esclavo de tu propio aplauso, solo cambiaste de teatro. La batalla seria es adentro: pulso, dieta mental, un no a tiempo.</p>
+      <p>Cada conversación deja huella. Cada tono. Cada “última oportunidad”. Jehová no te pide que dejes de hablar. Te pide que tu lengua no se vuelva incendio en la casa del otro. Caminar junto no es empujar. Es la misma vereda, el mismo paso, sin correa.</p>
+      <div class="caja cuento">
+        <h3>Cuento corto · Dos puestos, un mismo producto</h3>
+        <p>Uno gritaba: “se acaba, se acaba”. Vendía más el primer día y nadie volvía. El otro explicaba el grano, dejaba probar y no apuraba. Vendía menos el sábado. El barrio, al mes, sabía a quién creerle el maíz. El producto era el mismo. El fuego, no.</p>
+      </div>
+      <div class="caja biblia">
+        <h3>Puente bíblico · La lengua y la lámpara</h3>
+        <p>Santiago 3:5-6: la lengua es fuego pequeño que incendia. Mateo 5:15: la lámpara se pone en el candelero para que alumbre a los de casa. Jehová no pide que apagues la palabra. Pide que elijas candelero, no rastrojo. <em>«Así alumbre vuestra luz delante de los hombres»</em> (Mateo 5:16): que vean la obra, no el humo.</p>
+      </div>
+      <div class="caja ejercicio">
+        <h3>Ejercicio de hoy · Lámpara o palanca</h3>
+        <p>Una conversación de las próximas veinticuatro horas. Antes: ¿voy a servir o a cobrar? Después, cuatro marcas: oí de verdad; no firmé en susto; no usé culpa; dejé el sí en sus manos. Si falló una, no te sermonees. Repite mañana. El cuaderno es para la cognición, no para la galería.</p>
+      </div>
+      <p><strong>Pregunta que te acompaña esta noche:</strong> Si tu palabra de mañana fuera lámpara y no incendio, ¿a quién alumbraría primero —y a quién dejarías de empujar?</p>
+    </section>
+
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno breve</h2>
+      <p class="meta">Una hoja por semana. No se entrega para ser juzgado. Se usa para que la cognición vea pruebas.</p>
+      <div class="caja">
+        <p><strong>Semana de:</strong> _______________</p>
+        <p>1. Una vez que oí antes de mover (y qué habría dicho sin oír):</p>
+        <p>2. Un centímetro de suelo (promesa cerrada o verdad dicha):</p>
+        <p>3. El clima con el que firmé un sí o un no:</p>
+        <p>4. Un silencio que sostuve, o un tono que empujó:</p>
+        <p>5. Un anuncio o fila al que le devolví la mirada:</p>
+        <p>6. Un momento en que no me vendí al entrar:</p>
+        <p>7. La línea interior de esta semana, y el hecho que la sostuvo:</p>
+        <p>8. ¿Usé palanca o lámpara? ¿Necesito acompañamiento profesional? Sí / No. Este curso no lo reemplaza.</p>
+      </div>
+      <p>Al terminar las ocho etapas no te volviste un vendedor de voluntades. Aprendiste a no entregar la tuya, y a no tomar la ajena. El gancho puede volver. El oído ya tiene asiento.</p>
+    </section>
+  </main>
+
+  <footer>
+    Ecosistema CMS VIAM · Consultorio de principios · La palabra que no obliga<br />
+    Pedagogía original. Inspirado en principios del audiolibro citado. No es consejo clínico ni médico.
+  </footer>
+  <script>
+  (function () {
+    function embedded() {
+      try { return window.top !== window.self; } catch (e) { return true; }
+    }
+    document.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a') : null;
+      if (!a) return;
+      var href = a.getAttribute('href');
+      if (!href) return;
+      if (href.charAt(0) === '#') {
+        e.preventDefault();
+        var el = document.getElementById(href.slice(1));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (/diapositivas\.html/i.test(href) && embedded()) {
+        e.preventDefault();
+        try { window.parent.postMessage({ type: 'cn-curso', action: 'diapositivas' }, '*'); } catch (err) {}
+      }
+    }, true);
+  })();
+  </script>
+</body>
+</html>

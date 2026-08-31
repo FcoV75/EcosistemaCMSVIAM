@@ -47,12 +47,16 @@ assert.match(catalog, /leete-y-lee/);
 assert.match(catalog, /Léete y lee/);
 assert.match(catalog, /la-pausa-que-decide/);
 assert.match(catalog, /La pausa que decide/);
+assert.match(catalog, /la-palabra-que-no-obliga/);
+assert.match(catalog, /La palabra que no obliga/);
 
 const bundled = readFileSync(join(cn, "src/server/cursos-bundled.ts"), "utf8");
 assert.match(bundled, /leete-y-lee/);
 assert.match(bundled, /paquete-recuperacion-n4p8r2x6/);
 assert.match(bundled, /la-pausa-que-decide/);
 assert.match(bundled, /paquete-recuperacion-t8w3n6q1/);
+assert.match(bundled, /la-palabra-que-no-obliga/);
+assert.match(bundled, /paquete-recuperacion-p4k7m2s9/);
 
 const lecciones = readFileSync(join(cn, "content/cursos/leete-y-lee/index.html"), "utf8");
 assert.match(lecciones, /Mirar con precisión/);
@@ -71,6 +75,29 @@ assert.match(teaserPausa, /contacneed.com\/escuela\/la-pausa-que-decide/);
 assert.doesNotMatch(teaserPausa, /Etapa 1 · Dejar de reaccionar/);
 assert.match(pausa, /Jehová/);
 assert.match(pausa, /\/cursos-assets\/la-pausa-que-decide\//);
+
+assert.ok(
+  existsSync(join(cn, "public/cursos-assets/la-palabra-que-no-obliga/01-portada-palabra-no-obliga.jpg")),
+  "falta portada La palabra que no obliga",
+);
+assert.ok(
+  existsSync(join(cn, "public/cursos-assets/la-palabra-que-no-obliga/paquete-recuperacion-p4k7m2s9.zip")),
+  "falta paquete La palabra que no obliga",
+);
+assert.ok(existsSync(join(cn, "content/cursos/la-palabra-que-no-obliga/index.html")), "faltan lecciones La palabra que no obliga");
+assert.ok(existsSync(join(root, "cursos/la-palabra-que-no-obliga/index.html")), "falta teaser CMS La palabra que no obliga");
+
+const palabra = readFileSync(join(cn, "content/cursos/la-palabra-que-no-obliga/index.html"), "utf8");
+assert.match(palabra, /Oír antes de mover/);
+assert.match(palabra, /Lámpara, no incendio/);
+assert.match(palabra, /al lado/);
+assert.match(palabra, /Jehová/);
+assert.doesNotMatch(palabra, /transcripción literal/);
+assert.match(palabra, /\/cursos-assets\/la-palabra-que-no-obliga\//);
+
+const teaserPalabra = readFileSync(join(root, "cursos/la-palabra-que-no-obliga/index.html"), "utf8");
+assert.match(teaserPalabra, /contacneed.com\/escuela\/la-palabra-que-no-obliga/);
+assert.doesNotMatch(teaserPalabra, /Etapa 1 · Oír antes de mover/);
 
 const admin = readFileSync(join(cn, "src/routes/admin.tsx"), "utf8");
 assert.match(admin, /Cursos Educativos/);
@@ -104,6 +131,7 @@ assert.match(support, /esPreguntaEscuela/);
 assert.match(support, /redactarInformeEscuela/);
 assert.match(support, /Nunca inventes precios|NUNCA inventes precios/);
 assert.match(support, /La pausa que decide/);
+assert.match(support, /La palabra que no obliga/);
 
 const informes = readFileSync(join(cn, "src/lib/informes-escuela.ts"), "utf8");
 assert.match(informes, /recuperacionMxn: PRECIO_RECUPERACION_MXN/);

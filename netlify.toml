@@ -133,3 +133,18 @@
   from = "/cursos/la-pausa-que-decide/diapositivas"
   to = "/cursos/la-pausa-que-decide/diapositivas.html"
   status = 200
+
+[[redirects]]
+  from = "/cursos/la-palabra-que-no-obliga"
+  to = "/cursos/la-palabra-que-no-obliga/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/la-palabra-que-no-obliga/"
+  to = "/cursos/la-palabra-que-no-obliga/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/la-palabra-que-no-obliga/diapositivas"
+  to = "/cursos/la-palabra-que-no-obliga/diapositivas.html"
+  status = 200
