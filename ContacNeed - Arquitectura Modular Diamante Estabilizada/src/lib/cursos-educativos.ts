@@ -49,6 +49,18 @@ export const CURSOS_EDUCATIVOS: CursoEducativo[] = [
     portada: '/cursos-assets/leete-y-lee/01-portada-leete-y-lee.jpg',
   },
   {
+    slug: 'la-pausa-que-decide',
+    titulo: 'La pausa que decide',
+    estado: 'dado',
+    resumen:
+      'Ocho etapas para dejar de reaccionar, ver lo que no se ve y decidir sin la tormenta. El problema como maestro, influir sin empujar y diseñar el día con serenidad.',
+    etapas: 8,
+    modalidad: 'Zoom y presencial',
+    fechaDado: '2026-08-31',
+    cuotaImparticion: 'Cuota de impartición en vivo (Zoom o presencial), a convenir con el docente.',
+    portada: '/cursos-assets/la-pausa-que-decide/01-portada-pausa-decide.jpg',
+  },
+  {
     slug: 'proximo-itinerario',
     titulo: 'Próximo itinerario',
     estado: 'programado',

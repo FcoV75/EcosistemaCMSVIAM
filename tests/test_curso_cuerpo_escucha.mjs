@@ -27,6 +27,16 @@ assert.ok(
 );
 assert.ok(existsSync(join(cn, "content/cursos/leete-y-lee/index.html")), "faltan lecciones Léete y lee");
 assert.ok(existsSync(join(root, "cursos/leete-y-lee/index.html")), "falta teaser CMS Léete y lee");
+assert.ok(
+  existsSync(join(cn, "public/cursos-assets/la-pausa-que-decide/01-portada-pausa-decide.jpg")),
+  "falta portada La pausa que decide",
+);
+assert.ok(
+  existsSync(join(cn, "public/cursos-assets/la-pausa-que-decide/paquete-recuperacion-t8w3n6q1.zip")),
+  "falta paquete La pausa que decide",
+);
+assert.ok(existsSync(join(cn, "content/cursos/la-pausa-que-decide/index.html")), "faltan lecciones La pausa que decide");
+assert.ok(existsSync(join(root, "cursos/la-pausa-que-decide/index.html")), "falta teaser CMS La pausa que decide");
 
 const catalog = readFileSync(join(cn, "src/lib/cursos-educativos.ts"), "utf8");
 assert.match(catalog, /Escuela de principios vitalicios/);
@@ -35,16 +45,32 @@ assert.match(catalog, /PRECIO_RECUPERACION_MXN = 200/);
 assert.match(catalog, /el-cuerpo-escucha/);
 assert.match(catalog, /leete-y-lee/);
 assert.match(catalog, /Léete y lee/);
+assert.match(catalog, /la-pausa-que-decide/);
+assert.match(catalog, /La pausa que decide/);
 
 const bundled = readFileSync(join(cn, "src/server/cursos-bundled.ts"), "utf8");
 assert.match(bundled, /leete-y-lee/);
 assert.match(bundled, /paquete-recuperacion-n4p8r2x6/);
+assert.match(bundled, /la-pausa-que-decide/);
+assert.match(bundled, /paquete-recuperacion-t8w3n6q1/);
 
 const lecciones = readFileSync(join(cn, "content/cursos/leete-y-lee/index.html"), "utf8");
 assert.match(lecciones, /Mirar con precisión/);
 assert.match(lecciones, /La cadena invisible/);
 assert.doesNotMatch(lecciones, /transcripción literal/);
 assert.match(lecciones, /al lado/);
+
+const pausa = readFileSync(join(cn, "content/cursos/la-pausa-que-decide/index.html"), "utf8");
+assert.match(pausa, /Dejar de reaccionar/);
+assert.match(pausa, /Ver lo que no se ve/);
+assert.match(pausa, /al lado/);
+assert.doesNotMatch(pausa, /transcripción literal/);
+
+const teaserPausa = readFileSync(join(root, "cursos/la-pausa-que-decide/index.html"), "utf8");
+assert.match(teaserPausa, /contacneed.com\/escuela\/la-pausa-que-decide/);
+assert.doesNotMatch(teaserPausa, /Etapa 1 · Dejar de reaccionar/);
+assert.match(pausa, /Jehová/);
+assert.match(pausa, /\/cursos-assets\/la-pausa-que-decide\//);
 
 const admin = readFileSync(join(cn, "src/routes/admin.tsx"), "utf8");
 assert.match(admin, /Cursos Educativos/);
@@ -77,6 +103,7 @@ assert.match(support, /Escuela de principios vitalicios/);
 assert.match(support, /esPreguntaEscuela/);
 assert.match(support, /redactarInformeEscuela/);
 assert.match(support, /Nunca inventes precios|NUNCA inventes precios/);
+assert.match(support, /La pausa que decide/);
 
 const informes = readFileSync(join(cn, "src/lib/informes-escuela.ts"), "utf8");
 assert.match(informes, /recuperacionMxn: PRECIO_RECUPERACION_MXN/);

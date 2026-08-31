@@ -46,6 +46,8 @@ export function esPreguntaEscuela(question: string) {
     q.includes('leete') ||
     q.includes('cuerpo escucha') ||
     (q.includes('cuerpo') && q.includes('escucha')) ||
+    q.includes('pausa que decide') ||
+    (q.includes('pausa') && q.includes('decide')) ||
     q.includes('recuperación') ||
     q.includes('recuperacion') ||
     q.includes('impartici') ||
@@ -106,7 +108,13 @@ function lineaSesion(sesion: HechosSesion) {
 export function redactarInformeEscuela(hechos: HechosEscuela, pregunta: string) {
   const curso = cursoMencionado(hechos, pregunta)
   const dados = hechos.cursos.filter((item) => item.estado === 'dado')
-  const titulosDados = dados.map((item) => item.titulo).join(' y ')
+  const titulosDados =
+    dados.length <= 2
+      ? dados.map((item) => item.titulo).join(' y ')
+      : `${dados
+          .slice(0, -1)
+          .map((item) => item.titulo)
+          .join(', ')} y ${dados[dados.length - 1].titulo}`
   const sesionesDeCurso = curso
     ? hechos.sesiones.filter((sesion) => sesion.slug === curso.slug)
     : hechos.sesiones

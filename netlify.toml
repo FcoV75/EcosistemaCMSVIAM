@@ -118,3 +118,18 @@
   from = "/cursos/leete-y-lee/diapositivas"
   to = "/cursos/leete-y-lee/diapositivas.html"
   status = 200
+
+[[redirects]]
+  from = "/cursos/la-pausa-que-decide"
+  to = "/cursos/la-pausa-que-decide/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/la-pausa-que-decide/"
+  to = "/cursos/la-pausa-que-decide/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cursos/la-pausa-que-decide/diapositivas"
+  to = "/cursos/la-pausa-que-decide/diapositivas.html"
+  status = 200

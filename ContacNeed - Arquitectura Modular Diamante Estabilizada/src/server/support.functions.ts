@@ -24,7 +24,7 @@ async function cargarHechosEscuela() {
 
 const SYSTEM_CONTEXT = `ContacNeed es una red social mexicana que conecta oficios, profesiones y especialidades por estado.
 Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin, órgano de encuentro (voz con faro; nunca presenta personas sin veto humano).
-Escuela de principios vitalicios (/escuela): educación contínua de vida y salud física y mental. Cursos ya impartidos: «El cuerpo escucha» y «Léete y lee». Recuperación: 200 MXN (no es ContacNeed PRO). Las sesiones en vivo tienen su propia cuota y Zoom solo si el docente los publicó. NUNCA inventes precios, fechas, cupos ni ligas de Zoom. Si no están en los hechos, di que no están publicados. No sustituye médico ni psicoterapia.
+Escuela de principios vitalicios (/escuela): educación contínua de vida y salud física y mental. Cursos ya impartidos: «El cuerpo escucha», «Léete y lee» y «La pausa que decide». Recuperación: 200 MXN (no es ContacNeed PRO). Las sesiones en vivo tienen su propia cuota y Zoom solo si el docente los publicó. NUNCA inventes precios, fechas, cupos ni ligas de Zoom. Si no están en los hechos, di que no están publicados. No sustituye médico ni psicoterapia.
 Cloudinary sube fotos/videos con preset contacneed_uploads. Soporte técnico: pedir correo, navegador y captura del error.`
 
 const PIZARRA_SKILL = `Cuando pidan qué publicar, ideas de contenido o cómo usar la pizarra, da sugerencias PRÁCTICAS según su oficio/profesión/especialidad:
@@ -46,7 +46,7 @@ const FAQ_ENTRIES: Record<string, string> = {
   soporte:
     'Para ayuda humana, envía tu correo de cuenta, descripción del problema y captura de pantalla al equipo de ContacNeed.',
   escuela:
-    'La Escuela de principios vitalicios está en /escuela. Cursos ya dados: El cuerpo escucha y Léete y lee (200 MXN de recuperación para ver y descargar). Las próximas fechas en vivo muestran el TÍTULO del curso, día, hora y modalidad. Pulsa «Pedir informes» o «Quiero inscribirme»: la IA te orienta y el docente recibe tu solicitud. Nada de esto sustituye al médico ni al psicoterapeuta.',
+    'La Escuela de principios vitalicios está en /escuela. Cursos ya dados: El cuerpo escucha, Léete y lee y La pausa que decide (200 MXN de recuperación para ver y descargar). Las próximas fechas en vivo muestran el TÍTULO del curso, día, hora y modalidad. Pulsa «Pedir informes» o «Quiero inscribirme»: la IA te orienta y el docente recibe tu solicitud. Nada de esto sustituye al médico ni al psicoterapeuta.',
 }
 
 function matchFaq(question: string) {
