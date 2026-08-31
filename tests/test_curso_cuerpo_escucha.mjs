@@ -40,7 +40,7 @@ assert.ok(existsSync(join(root, "cursos/la-pausa-que-decide/index.html")), "falt
 
 const catalog = readFileSync(join(cn, "src/lib/cursos-educativos.ts"), "utf8");
 assert.match(catalog, /Escuela de principios vitalicios/);
-assert.match(catalog, /educación contínua/);
+assert.match(catalog, /educación cont[ií]nua/);
 assert.match(catalog, /PRECIO_RECUPERACION_MXN = 200/);
 assert.match(catalog, /el-cuerpo-escucha/);
 assert.match(catalog, /leete-y-lee/);
