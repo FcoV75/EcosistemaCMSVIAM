@@ -48,6 +48,8 @@ export function esPreguntaEscuela(question: string) {
     (q.includes('cuerpo') && q.includes('escucha')) ||
     q.includes('pausa que decide') ||
     (q.includes('pausa') && q.includes('decide')) ||
+    q.includes('palabra que no obliga') ||
+    (q.includes('palabra') && q.includes('obliga')) ||
     q.includes('recuperación') ||
     q.includes('recuperacion') ||
     q.includes('impartici') ||

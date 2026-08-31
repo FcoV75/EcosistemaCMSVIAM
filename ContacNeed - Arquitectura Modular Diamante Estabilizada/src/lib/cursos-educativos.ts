@@ -61,6 +61,18 @@ export const CURSOS_EDUCATIVOS: CursoEducativo[] = [
     portada: '/cursos-assets/la-pausa-que-decide/01-portada-pausa-decide.jpg',
   },
   {
+    slug: 'la-palabra-que-no-obliga',
+    titulo: 'La palabra que no obliga',
+    estado: 'dado',
+    resumen:
+      'Ocho etapas para convencer sin quitarle a nadie la voluntad. Oír, depositar confianza, gobernar el clima y hablar como lámpara, no como incendio.',
+    etapas: 8,
+    modalidad: 'Zoom y presencial',
+    fechaDado: '2026-08-31',
+    cuotaImparticion: 'Cuota de impartición en vivo (Zoom o presencial), a convenir con el docente.',
+    portada: '/cursos-assets/la-palabra-que-no-obliga/01-portada-palabra-no-obliga.jpg',
+  },
+  {
     slug: 'proximo-itinerario',
     titulo: 'Próximo itinerario',
     estado: 'programado',
