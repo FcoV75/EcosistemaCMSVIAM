@@ -115,6 +115,13 @@ function LoginPage() {
         )}
 
         <p className="mt-4 text-center text-sm text-purple-200/70">
+          ¿No confirmaste tu correo?{' '}
+          <Link to="/auth/confirm" className="font-semibold text-amber-300 hover:text-amber-200">
+            Pedir enlace nuevo
+          </Link>
+        </p>
+
+        <p className="mt-4 text-center text-sm text-purple-200/70">
           ¿Eres nuevo?{' '}
           <Link to="/registro" className="font-semibold text-amber-300 hover:text-amber-200">
             Regístrate aquí

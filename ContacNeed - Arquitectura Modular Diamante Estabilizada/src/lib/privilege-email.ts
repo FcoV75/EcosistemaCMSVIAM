@@ -96,6 +96,9 @@ export async function sendSignupConfirmEmailViaResend(
             Confirmar mi correo
           </a>
         </p>
+        <p style="color:#666;font-size:13px">
+          En la página pulsa el botón <strong>Confirmar mi correo</strong>. El enlace caduca; si falla, pide uno nuevo desde esa misma pantalla.
+        </p>
         <p style="color:#666;font-size:13px">Si no creaste esta cuenta, ignora este mensaje.</p>
       </div>
     `,
