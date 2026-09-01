@@ -27,15 +27,59 @@ function parseAuthLinkParams(search: string) {
   return new URLSearchParams(normalized)
 }
 
+function mapAuthLinkError(message: string, fallback: string) {
+  const msg = String(message || '').toLowerCase()
+  if (
+    msg.includes('otp_expired') ||
+    msg.includes('email link is invalid or has expired') ||
+    msg.includes('token has expired') ||
+    msg.includes('invalid or has expired')
+  ) {
+    return 'Este enlace ya expiró o se usó. Pide uno nuevo con tu correo abajo.'
+  }
+  if (msg.includes('access_denied')) {
+    return 'No se pudo validar el enlace. Pide uno nuevo con tu correo abajo.'
+  }
+  if (msg.includes('email not confirmed')) {
+    return 'Todavía falta confirmar el correo. Revisa tu bandeja o pide un enlace nuevo.'
+  }
+  return message || fallback
+}
+
+/** Prefiere enlace directo a ContacNeed con token_hash (evita que un escáner de correo gaste el /verify de Supabase). */
+function buildContacNeedAuthLink(
+  path: '/auth/confirm' | '/auth/reset',
+  properties: { hashed_token?: string | null; action_link?: string | null } | null | undefined,
+  type: EmailOtpType,
+) {
+  const hashed = String(properties?.hashed_token || '').trim()
+  if (hashed) {
+    const url = new URL(`${getSiteUrl()}${path}`)
+    url.searchParams.set('token_hash', hashed)
+    url.searchParams.set('type', type)
+    return url.toString()
+  }
+  return String(properties?.action_link || '').trim() || null
+}
+
 async function establishSessionFromAuthParams(
   supabase: ReturnType<typeof createSupabaseServerClient>,
   params: URLSearchParams,
   invalidMessage: string,
 ) {
+  const linkError = params.get('error') || params.get('error_code')
+  if (linkError) {
+    const description =
+      params.get('error_description')?.replace(/\+/g, ' ') ||
+      params.get('error_code') ||
+      linkError
+    throw new Error(mapAuthLinkError(description, invalidMessage))
+  }
+
   const code = params.get('code')
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(mapAuthLinkError(error.message, invalidMessage))
     return data
   }
 
@@ -46,7 +90,7 @@ async function establishSessionFromAuthParams(
       token_hash: tokenHash,
       type,
     })
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(mapAuthLinkError(error.message, invalidMessage))
     return data
   }
 
@@ -57,7 +101,7 @@ async function establishSessionFromAuthParams(
       access_token: accessToken,
       refresh_token: refreshToken,
     })
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(mapAuthLinkError(error.message, invalidMessage))
     return data
   }
 
@@ -148,7 +192,7 @@ type SignInInput = { email: string; password: string }
 function mapSignInError(message: string) {
   const msg = message.toLowerCase()
   if (msg.includes('email not confirmed')) {
-    return 'Debes confirmar tu correo antes de entrar. Revisa tu bandeja de entrada y la carpeta de spam.'
+    return 'Debes confirmar tu correo antes de entrar. Abre el enlace del correo o entra a /auth/confirm para pedir uno nuevo.'
   }
   if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('invalid_credentials')) {
     return 'Correo o contraseña incorrectos.'
@@ -335,7 +379,11 @@ export const signUpFn = createServerFn({ method: 'POST' })
       if (!userId) throw new Error('No se pudo crear la cuenta')
       emailConfirmed = Boolean(linkData.user?.email_confirmed_at)
 
-      const actionLink = linkData.properties?.action_link
+      const actionLink = buildContacNeedAuthLink(
+        '/auth/confirm',
+        linkData.properties,
+        'signup',
+      )
       if (!actionLink) {
         throw new Error('No se pudo generar el enlace de confirmación.')
       }
@@ -407,7 +455,7 @@ export const confirmEmailFromLinkFn = createServerFn({ method: 'GET' })
     const sessionData = await establishSessionFromAuthParams(
       supabase,
       params,
-      'Enlace de confirmación inválido o expirado.',
+      'Enlace de confirmación inválido o expirado. Pide uno nuevo con tu correo.',
     )
 
     if (sessionData.user?.id) {
@@ -419,6 +467,71 @@ export const confirmEmailFromLinkFn = createServerFn({ method: 'GET' })
     }
 
     return { success: true }
+  })
+
+/** Reenvía confirmación cuando el enlace anterior expiró o lo gastó un escáner de correo. */
+export const resendSignupConfirmFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { email: string }) => d)
+  .handler(async ({ data }) => {
+    const email = String(data.email || '').trim().toLowerCase()
+    if (!email) throw new Error('Escribe tu correo electrónico.')
+
+    const softSuccess = {
+      success: true as const,
+      message:
+        'Si el correo está registrado y pendiente, te enviamos un enlace nuevo. Revisa bandeja y spam.',
+    }
+
+    const redirectTo = `${getSiteUrl()}/auth/confirm`
+    const resend = getResendConfig()
+
+    if (resend.enabled) {
+      const admin = createSupabaseAdminClient()
+      const { data: linkData, error } = await admin.auth.admin.generateLink({
+        type: 'magiclink',
+        email,
+        options: { redirectTo },
+      })
+      if (error) {
+        if (isSoftRecoveryLookupError(error.message)) return softSuccess
+        throw new Error(mapAuthLinkError(error.message, mapResendSendError(error.message)))
+      }
+
+      if (linkData.user?.email_confirmed_at) {
+        return {
+          success: true as const,
+          message: 'Ese correo ya está confirmado. Puedes iniciar sesión normalmente.',
+        }
+      }
+
+      const actionLink = buildContacNeedAuthLink(
+        '/auth/confirm',
+        linkData.properties,
+        'magiclink',
+      )
+      if (!actionLink) return softSuccess
+
+      const sent = await sendSignupConfirmEmailViaResend({
+        apiKey: resend.apiKey,
+        from: resend.from,
+        to: email,
+        actionLink,
+        nombre: (linkData.user?.user_metadata as { nombre?: string } | undefined)?.nombre,
+      })
+      if (!sent.ok) throw new Error(mapResendSendError(sent.error))
+      return softSuccess
+    }
+
+    const supabase = createSupabaseServerClient()
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: redirectTo },
+    })
+    if (error && !isSoftRecoveryLookupError(error.message)) {
+      throw new Error(mapAuthLinkError(error.message, error.message))
+    }
+    return softSuccess
   })
 
 export const establishRecoverySessionFromLinkFn = createServerFn({ method: 'GET' })
@@ -459,7 +572,11 @@ export const requestPasswordResetFn = createServerFn({ method: 'POST' })
         throw new Error(mapRecoveryEmailError(error.message))
       }
 
-      const actionLink = linkData?.properties?.action_link
+      const actionLink = buildContacNeedAuthLink(
+        '/auth/reset',
+        linkData?.properties,
+        'recovery',
+      )
       if (!actionLink) {
         throw new Error('No se pudo generar el enlace de recuperación.')
       }
