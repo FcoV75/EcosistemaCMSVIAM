@@ -39,6 +39,8 @@ Estrategias de publicidad con propósito y alta viralidad.
 En esta sección estará las novelas narrativas, literatura profecional técnica y obras poéticas
 estarán a disponibilidad dentro del ecosistema para ser adquiridas por quién muestre interés en ellas.
 
+Temporada 1 del radioteatro **Anya** (*Ecos de Singularidad*): biblia, fichas y 12 guiones en `anya-el-podcast/`.
+
 🛠️ Tecnologías Utilizadas
 Frontend: Desarrollado con estándares modernos para una navegación fluida (Netlify Deployment).
 
