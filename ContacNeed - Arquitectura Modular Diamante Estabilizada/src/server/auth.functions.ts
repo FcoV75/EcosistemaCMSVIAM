@@ -5,6 +5,7 @@ import { getSiteUrl } from '../lib/site-url'
 import {
   isSoftRecoveryLookupError,
   mapRecoveryEmailError,
+  mapResendSendError,
   sendRecoveryEmailViaResend,
 } from '../lib/recovery-email'
 import { getResendConfig, sendSignupConfirmEmailViaResend } from '../lib/privilege-email'
@@ -397,7 +398,7 @@ export const signUpFn = createServerFn({ method: 'POST' })
       })
       if (!sent.ok) {
         throw new Error(
-          `Cuenta creada, pero no se pudo enviar el correo de confirmación. Verifica dominio y RESEND_FROM. ${sent.error}`,
+          `Cuenta creada, pero no se pudo enviar el correo de confirmación. ${mapResendSendError(sent.error)}`,
         )
       }
       confirmationSentViaResend = true
@@ -588,9 +589,7 @@ export const requestPasswordResetFn = createServerFn({ method: 'POST' })
         actionLink,
       })
       if (!sent.ok) {
-        throw new Error(
-          `No se pudo enviar el correo con Resend. Verifica dominio y RESEND_FROM. ${sent.error}`,
-        )
+        throw new Error(mapResendSendError(sent.error))
       }
     } else {
       const supabase = createSupabaseServerClient()
