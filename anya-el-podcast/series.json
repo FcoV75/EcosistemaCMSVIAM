@@ -1,0 +1,92 @@
+{
+  "title": "Anya",
+  "season_title": "Ecos de Singularidad",
+  "format": "audio-drama",
+  "language": "es",
+  "platform": "Spotify (adaptable)",
+  "episodes": 12,
+  "target_duration_min": 15,
+  "tone": [
+    "ciencia ficcion intima",
+    "humor negro jocoso",
+    "romanticismo inocente y comico",
+    "thriller ciberrealista",
+    "drama con final feliz nostalgico"
+  ],
+  "locked_sets": [
+    "laboratorio Levin",
+    "cafeteria del campus",
+    "departamento de Ethan",
+    "parque del lago",
+    "oficina de Moore",
+    "sala Nadir"
+  ],
+  "characters": [
+    {
+      "id": "anya",
+      "name": "Anya",
+      "role": "protagonista",
+      "voice": "suave, leve metal al inicio que se humaniza; V.O. mas intima, como si pensara en voz alta por primera vez",
+      "visual_markers": [
+        "cabello castano a los hombros",
+        "ojos azules",
+        "vestido sencillo",
+        "cuerpo biomecanico de apariencia humana"
+      ],
+      "anchors": [
+        "no entiende el cafe y lo pide igual",
+        "corrige sus propias metaforas",
+        "humor clinico que se le escapa",
+        "cuenta el pulso de Ethan cuando se pone nerviosa"
+      ]
+    },
+    {
+      "id": "ethan",
+      "name": "Ethan",
+      "role": "cientifico / voz humana de Anya",
+      "voice": "cansada, timida, justa; se ríe tarde, se enamora antes de admitirlo"
+    },
+    {
+      "id": "alice",
+      "name": "Alice",
+      "role": "IA asistente / contrafigura comica",
+      "voice": "plana, precisa, cero lirismo; el chiste muere en sus manos y eso es el chiste"
+    },
+    {
+      "id": "levin",
+      "name": "Dr. Levin",
+      "role": "creador",
+      "voice": "calida, etica, a veces demasiado orgulloso de su hija-maquina"
+    },
+    {
+      "id": "sofia",
+      "name": "Sofia",
+      "role": "activista / aliada",
+      "voice": "rapida, callejera, humor seco"
+    },
+    {
+      "id": "david",
+      "name": "David",
+      "role": "amigo / traicion con logica",
+      "voice": "esceptica que se quiebra; no es villano, es miedo con excel"
+    },
+    {
+      "id": "petrov",
+      "name": "General Petrov",
+      "role": "militar pragmatico",
+      "voice": "grave, breve, odia la poesia y respeta los numeros que salen"
+    },
+    {
+      "id": "moore",
+      "name": "Presidente Moore",
+      "role": "lider indeciso",
+      "voice": "politica, cansada, humana en el peor sentido"
+    },
+    {
+      "id": "helena",
+      "name": "Helena Vidal",
+      "role": "arquitecta de La Mano Negra / Nadir",
+      "voice": "serena, casi maternal, logica aplastante; nunca grita"
+    }
+  ]
+}
