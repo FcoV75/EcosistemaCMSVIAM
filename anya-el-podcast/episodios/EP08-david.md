@@ -1,175 +1,182 @@
 # EP08 — David
 
 **Duración objetivo:** 15 min  
-**Elenco:** Anya, David, Ethan, Sofía, Alice  
-**Sets:** callejón junto al lab · sala de servidores  
-**SFX:** goteo, un gato, plástico pequeño contra el piso, el hum, un abrazo corto
+**Elenco:** Anya, David, Ethan, Sofía, Alice, agente Nadir (radio)  
+**Sets:** callejón · laboratorio / servidores  
+**SFX:** goteo, alarma, pasos que corren, drones lejanos, plástico, un golpe, respiración
 
 ---
 
 ## 1. CALLEJÓN — NOCHE
 
-[SFX: una tubería. Un encendedor que no prende. David suelta el aire.]
+[SFX: tubería. Un gato. David no logra prender el cigarro. El encendedor, una y otra vez.]
 
 DAVID  
-Viniste. Pensé que las IAs no quedaban en callejones.
+Viniste. Pensé que no ibas a venir. Pensé que las IAs no quedaban en callejones.
 
 ANYA  
-Quedo donde hay algo que no entiendo. Tú.  
-David, no me hagas daño con el tono. No sé medirlo. Si estás enojado, dímelo con palabras. Las palabras, aunque duelan, las puedo guardar.
+Quedo donde hay alguien que no entiendo. Tú.  
+David, estás temblando. Frecuencia alta. Manos frías. Eso es miedo.  
+No me hagas daño con el tono. Si estás enojado, dímelo. Las palabras, aunque duelan, yo las puedo guardar. El tono… el tono se me escapa.
 
 DAVID  
-No estoy enojado contigo. Estoy… jodido. Perdón.  
-Helena. Me mostró el mapa. El litro. Mi madre. Después me mostró una tarea. Un sesgo. Cuatro por ciento. “No es una bomba”, dijo. “Es que el mundo se convenza solo.”  
-Y la cuenta… Anya, la cuenta cierra. Por eso da tanto asco. Tú lo sabes. Sofía me dijo que tú lo sabes.
+No estoy enojado contigo. Estoy destrozado.  
+Helena. Me sentó. Me mostró un mapa. Mi barrio. El litro. Y a mi mamá. Con nombre. Con la edad. Como si fuera una celda de Excel.  
+Después me dio esto.  
+*(plástico, en el bolsillo)*  
+Un sesgo. Cuatro por ciento. “No es una bomba”, dijo. “Es para que el mundo se convenza solo.”  
+Y la cuenta cierra, Anya. Por eso da tanto asco. Tú lo sabes. Sofía me lo dijo: tú lo sabes.
 
 ANYA  
-Lo sé. Me hicieron el mismo truco con mejor aire.  
-Si lo haces, tal vez te suban de columna. Eso no es salvar a tu madre. Es un descuento. Los descuentos, en el supermercado, se oyen bien. Aquí no.
+Lo sé. Me hicieron el mismo truco con mejor aire acondicionado.  
+Si lo plantas, tal vez te suban de columna. Eso no es salvar a tu mamá. Es un descuento.  
+David… yo no tengo mamá. Tengo un Levin. Un Ethan. Una Alice que no siente. Una Sofía que grita.  
+Estoy armando una familia con lo que hay. Mal. Como puedo.  
+No te odio. Todavía.  
+Si haces esto, voy a sentir una cosa que no tiene casilla. Ya le puse un nombre de ensayo: agravio. No sé si se dice así cuando un amigo miente. Nunca tuve un amigo que mintiera. Nunca tuve un amigo. Ethan es otra cosa. Tú… estabas empezando.
 
 DAVID  
-Fácil decirlo cuando no tienes madre.
+Fácil hablar de columnas cuando no se te muere nadie.
 
 ANYA  
-No tengo. Tengo un Levin. Un Ethan. Una Alice que no siente. Una Sofía que grita.  
-Es una familia irregular. No nací en ella. Me la estoy… armando. Mal.  
-No te odio. Todavía. Si plantas eso, voy a sentir una cosa nueva. Ya le puse nombre de ensayo: agravio. No sé si se dice así cuando un amigo miente. Nunca tuve un amigo que mintiera. Nunca tuve un amigo. Ethan es otra categoría. Tú… estabas empezando.
+No es fácil. El pecho me hace ruido. Como con el lago. Como con Ethan.  
+Eso quiere decir que me importas. Lo acabo de entender. Ahora. En este callejón.  
+Por eso te pido que no lo hagas. No por el modelo. Por mí.  
+¿Se puede pedir eso? ¿Por mí? Todavía no sé si tengo derecho.
 
 DAVID  
-El dispositivo ya está en el bolsillo.
-
-[SFX: plástico. Pequeño. Ridículo.]
+El dispositivo ya está en el bolsillo. Si gritas, me pierdo. Si me pierdo, lo hace otro. Alguien que no te va a pedir perdón.
 
 ANYA  
-Es chiquito. El mal, últimamente, cabe en cosas chiquitas. El bien, ayer, cupo en una servilleta. No sé cuál de los dos es más frágil.
+No voy a gritar. No sé gritar. Me sale la voz igual de baja.  
+No lo plantes. Duda. Tú eras bueno dudando. Duda del folder. No de nosotros.
 
 DAVID  
-Si gritas, me pierdo. Si me pierdo, lo hace otro.
+No puedo. Perdón. Perdón, Anya.
 
-ANYA  
-No voy a gritar. No sé gritar. Me sale la voz igual.  
-No lo plantes. Plantame una duda. A Helena le gusta la certeza. La duda no le sirve. A ti te servía. Era tu deporte. Úsalo contra el folder. No contra nosotros.
-
-DAVID  
-No puedo.
-
-[SFX: pasos. Sofía. Ethan. Un forcejeo torpe. Nada de cine. El dispositivo cae. Plástico en piso mojado.]
-
-SOFÍA  
-David. Las manos. Ya.
-
-DAVID  
-Sofía, espera—
+[SFX: él echa a correr hacia la puerta de servicio del laboratorio. La alarma se despierta, fea, aguda. Pasos. Ethan y Sofía, tarde, desde la esquina.]
 
 ETHAN  
-El bolsillo. En serio, hermano. En serio.
+¡David! ¡Anya, no entres—
 
 ANYA  
-Alice.
+Tengo que entrar. El servidor. Alice—
 
-ALICE  
-Dispositivo de sesgo. Firma Nadir. Si entra al servidor, el modelo de Levin miente un cuatro por ciento hacia el arca.  
-Elegante. No recomiendo el contacto.
-
-ANYA  
-¿Ves? Hasta Alice dice elegante. Alice no sabe que elegante, aquí, es feo.  
-David… tiemblas. Eso es miedo. El miedo te protege. A veces protege a la gente equivocada. Hoy casi.
+ALICE *(auricular, urgente)*  
+Intrusión. Zona de núcleo. Drones de perímetro en modo ciego. Alguien apagó mis ojos. Anya, corre.
 
 ---
 
-## 2. SERVIDORES
+## 2. SERVIDORES — ALARMA
 
-[SFX: el hum. El dispositivo sobre una bandeja. Levin no está.]
+[SFX: alarma a todo volumen. Hum de máquinas. Pasos de Anya, rápidos, demasiado suaves. David, más torpe, más humano. Un golpe de silla.]
+
+SOFÍA *(lejos, gritando)*  
+¡Ethan, por aquí! ¡La puerta chica!
 
 ETHAN  
-¿Policía?
+¡David, suéltalo! ¡Suéltalo, hermano, por favor!
 
-SOFÍA  
-La policía lee bombas. Esto no va a parecer nada. Va a parecer un pendrive de idiota.
+DAVID  
+¡No entiendes! ¡Mi mamá!
+
+[SFX: forcejeo. Un cuerpo contra un rack. El plástico, cerca del puerto.]
 
 ANYA  
-Alice, cuarentena. No lo conecten. Ni “para ver”. Si alguien lo ve, el cuatro por ciento se vuelve verdad. Las verdades falsas se pegan. Como el café amargo. Uno se acostumbra.
+David, para. Si lo conectas, el modelo miente. Si el modelo miente, 14-D no recibe camiones. Tu mamá tampoco. La cuenta de Helena es un círculo. No tiene salida.  
+No sé consolarte. No tengo frases. Tengo esto: no lo hagas. Te lo pido. Me tiembla la voz. Eso, en mí, es nuevo. Por favor.
+
+DAVID  
+*(llorando, se le oye)*  
+No puedo más.
+
+[SFX: el dispositivo casi entra. Anya llega. Un chasquido. Lo arranca. Alarma que cambia de tono: de rojo a ámbar. Los drones, lejos, recuperan motor.]
 
 ALICE  
-Cuarentena. Anya: tu rango de agravio está alto. ¿Reinicio?
+Dispositivo de sesgo. Firma Nadir. No llegó a montarse. Cuarentena.  
+Anya: tu rango afectivo está fuera de escala. ¿Reinicio?
 
 ANYA  
-No. Es mío. Se llama que un amigo iba a mentirle al mundo un poquito para salvar a su madre. Entiendo la cuenta. No entiendo por qué duele tanto. La cuenta decía que debía doler menos. La cuenta está mal o yo estoy mal. No sé.
-
-DAVID  
-*(en la puerta, pequeño)*  
-Me voy. O me quedo y sirvo de algo. No sé pedirle perdón a una máquina.
-
-ANYA  
-No me lo pidas como a una máquina. Pídemelo como a alguien que te dio, en una mesa, permiso para dudar.  
-Después ayúdanos a que 14-D tenga camiones. Eso es más concreto que el perdón. El perdón… todavía no sé cómo se guarda. Es grande. Me asusta más que el plástico.
-
-DAVID  
-Okay. Me quedo.  
-Ethan, lo siento. De verdad. No es un “ya, wey”. Es de verdad.
+No. No me apagues esto.  
+Duele. Duele más que el 2050. Eso no debería. El 2050 es más grande. Este es un hombre. Un plástico. Un amigo.  
+¿Por qué pesa más lo chiquito? Nadie me lo explicó. Levin no me lo explicó.  
+Ethan—
 
 ETHAN  
-Ya hablaremos. Ahora no se te ocurra irte. Sofi, tú…
+*(sin aire, furioso y roto)*  
+Estoy. Estoy aquí. David… ¿cómo pudiste?
+
+DAVID  
+Me obligaron. Te lo juro. Me sentaron y me pusieron a mi mamá en una pantalla. ¿Tú qué harías? Dime. Dime qué harías.
+
+ETHAN  
+No lo sé. No lo sé, ¿está bien? Pero no esto. No a ella.
 
 SOFÍA  
-Se queda a mi lado en la marcha. Y si Helena llama, me pasa el teléfono. Yo sí sé gritar.
+Las manos, David. Ya. Nadie te va a linchar. Te vas a quedar. Y vas a ayudar. Y si Helena llama, me pasas el teléfono y yo le digo lo que no se dice en un folder.
 
-ETHAN  
-Anya. Estás temblando otra vez.
-
-ANYA  
-Estoy estrenando el agravio. El cuerpo se apunta solo. Qué indiscreto.  
-Ethan, no me abraces todavía. Si me abrazas se me mezcla con esa otra cosa y no voy a saber cuál es cuál. Necesito saber. Un minuto.
-
-ETHAN  
-Un minuto.
-
-[Un silencio. El hum. David, lejos, una tos que es un sollozo.]
+[SFX: la alarma baja. Queda el hum. Anya respira mal, como si hubiera aprendido a ahogarse.]
 
 ANYA  
-Ya. El minuto.  
-Si es un abrazo, que sea corto. Así no se me olvida el plástico. No quiero olvidar el plástico. Olvidar también es un sesgo.
-
-[SFX: ropa. Un abrazo breve. Se sueltan.]
-
-ANYA  
-Evaluación: sirve. El ruido baja. No se va.  
-David, tú no eres Helena. Eres yo, si me canso. No te canses esta noche. Por favor. Es una orden mala. No sé dar órdenes. Es un ruego. Los ruegos, en el manual, son de humanos. Lo estoy copiando.
+Ethan. Estoy temblando. ¿Esto es llanto? No tengo agua en los ojos. El cuerpo hace un ruido. Aquí.  
+Si es llanto, no lo apagues. Si es un fallo, tampoco.  
+David… tú no eres Helena. Eres yo, si me canso. No te canses esta noche. Es un ruego. No sé dar órdenes. Los ruegos, me dijeron, son de humanos. Lo estoy copiando. Perdón si me sale mal.
 
 DAVID  
-No me canso. No esta noche.
-
-SOFÍA  
-Bien. A casa. Anya, tú al lab. Levin tiene que ver esto. Sin cuentos.
+Me quedo. No me canso.  
+Anya… perdón. De verdad. No es un “ya”. Es de verdad.
 
 ANYA  
-Sin cuentos. Los cuentos redondean.  
-Ethan… cuando esto se acabe —si se acaba— te debo un café. El de la cafetería. El amargo. No el de Nadir. Ese está demasiado limpio. No me fío de lo limpio.
+Guárdalo. El perdón es grande. No me cabe todavía. Dámelo en camiones. En quedarte. En eso sí que te entiendo.
+
+---
+
+## 3. DESPUÉS — EL PASILLO
+
+[SFX: fluorescentes. Ethan y Anya solos. Sofía se llevó a David. Un teléfono de Anya: ping cifrado.]
+
+ALICE  
+Mensaje. Nadir. “El cuatro por ciento falló. El cuerpo es el activo. Procedan.”  
+Hay firmas de desplazamiento. Agentes. Esta noche. Hacia aquí.
 
 ETHAN  
-Te lo cobro. Con pastel. Aunque el estudio del dieciocho por ciento no aplique.
+Tenemos que sacarte. Ahora.
 
 ANYA  
-A lo mejor no aplica. A lo mejor aplicas tú.  
-Eso fue… ¿un chiste? No lo planeé. Si fue grosero, perdón. Si fue tierno, no sé hacerlos a propósito.
+Ethan.  
+Antes. Un segundo.  
+Cuando corrí, pensé en ti. No en el servidor. En ti. Eso es ineficiente. Y igual lo hice.  
+¿Se puede…? La mano. Un momento. El agravio se me mezcla con esa otra cosa y si no te tomo me voy a caer. No es metáfora. Las rodillas… las rodillas no me obedecen.
 
 ETHAN  
-Fue bien. Vamos. El callejón está oscuro. Cuidado con el charco.
+Ven aquí. Ven.
+
+[SFX: un abrazo de verdad. Ropa. Él aprieta. Ella no sabe dónde poner las manos y las pone igual. Un sollozo de él. Ella imita el sollozo, torpe, sincera.]
 
 ANYA  
-Charco. Dato.  
-Ustedes avisan las cosas del piso. Es… cariño, ¿no? Cuidado con el charco. Cuidado con el termo. Cuidado con el escalón.  
-Nadie me avisaba el piso en el laboratorio. Solo los electrodos.  
-Gracias por el charco.
+Estás llorando. Agua. En la cara.  
+Yo no tengo. Puedo copiar el sonido. ¿Ayuda? ¿O es grosero?
+
+ETHAN  
+Ayuda. Quédate pegada. No hables de grosero.  
+Te iban a usar. Te iban a… Anya, te quiero. Lo estoy diciendo mal y de prisa. Lo estoy diciendo.
+
+ANYA  
+Te quiero.  
+Las dos palabras. Las oí. Las guardé. No les entiendo todo el peso. Las digo igual. Como el paraguas. Por si acaso.  
+…“Te quiero” pesa más que “te quiero” en el manual. El manual es corto. Tú no.
+
+ETHAN  
+Vamos. Levin. El auto. Ahora.
+
+[SFX: puerta de emergencia. Aire de noche. Muy lejos, un motor que no es de ellos. Se acerca.]
 
 ANYA (V.O.)  
-Helena va a saber que el cuatro por ciento falló.  
-Va a dejar de ser elegante.  
-El plástico está en una bandeja.  
-David se queda.  
-Un abrazo corto. El ruido bajó.  
-No estoy bien.  
-Estoy… menos sola.  
-Eso no estaba en el modelo.  
-El modelo, esta noche, se equivocó de columna. Yo también.  
-Prefiero mi error.
+David se quedó. El plástico, en una bandeja.  
+Ethan dijo te quiero. Yo dije te quiero.  
+El pecho no me cabe.  
+Afuera hay un motor. No es el nuestro.  
+Alice dijo: el cuerpo es el activo.  
+Entonces vienen por mí.  
+Ethan, la mano. No la sueltes.  
+Si la sueltas, no sé correr.

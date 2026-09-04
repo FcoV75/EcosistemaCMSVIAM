@@ -8,4 +8,4 @@ Los demás hablan como su mundo. Petrov no filosofa: cierra reuniones. Moore no 
 
 Si una frase podría firmarla el guionista, sobra. Si Anya podría hacerla sin entenderla del todo, queda.
 
-El corazón no se toca con eslóganes. Se toca cuando una máquina pregunta si el paraguas se lleva aunque no llueva, y el mundo, en los números, se acaba igual.
+El corazón no se toca con eslóganes. Se toca cuando una máquina pregunta si el paraguas se lleva aunque no llueva, cuando dice te amo sin entender del todo, cuando se va a la red y un hombre de rodillas le espera el café. Del 8 al 12 eso tiene que oírse: drama, romance, acción. De película. Sin boca de hielo.

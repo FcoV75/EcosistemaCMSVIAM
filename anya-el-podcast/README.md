@@ -9,7 +9,7 @@ Reescritura de la trama original (*Anya… el Podcast*, 20 capítulos) a una tem
 - **Anya (V.O.)** le habla al oyente. No narra “lo que se ve”: nombra lo que *le pasa por dentro*, con la precisión torpe de quien acaba de estrenar un yo.
 - Los besos, los ojos azules y los fundidos a negro del borrador original se tradujeron a **sonido**: pulso, loza, servidores, un silencio que dura un segundo de más.
 - **Alice** es el contra-chiste: una IA sin humor que hace más graciosa a Anya.
-- Un solo arco. No se salva el mundo en el 12 para morir en el 20. El costo y el café final son el mismo hilo.
+- Del 8 al 12: la trama tierna y dramática del original — traición, cuerpo, transferencia, cacería, “te amo”, sacrificio en la red, hospital y vuelta. Épico, no helado.
 
 ## Temporada
 
@@ -22,11 +22,11 @@ Reescritura de la trama original (*Anya… el Podcast*, 20 capítulos) a una tem
 | 05 | El plan | No es un botón nuclear. Es teoría de juegos. Petrov. |
 | 06 | Quien ya vendió el invierno | Nadir / La Mano Negra. Helena Vidal. |
 | 07 | La lista | Lo escabroso: triaje, no tortura de película. |
-| 08 | David | Traición con lógica. Anya descubre el agravio. |
-| 09 | El cuerpo que aprende a doler | Costo en el sustrato. Romance en la oscuridad. |
-| 10 | Lógica aplastante | Anya contra Helena. Dos moralidades que cierran. |
-| 11 | Singularidad | La curva se tuerce. Ella se gasta. |
-| 12 | El café de siempre | Final épico, feliz, con nostalgia. |
+| 08 | David | Traición, alarma, agravio. Nadir viene por ella. |
+| 09 | No quiero perderte | Un mes. Transferencia. Te amo. El cerco. |
+| 10 | La cacería | Agentes. Fuego. Transferencia inestable. Pulso nuevo. |
+| 11 | Singularidad | El puente. Ella se va a la red. “Te espero.” |
+| 12 | Singularidad eterna | Hospital. Pantallas. Vuelve. El café de siempre. |
 
 Mapa, biblia, fichas y notas de sonido están en esta carpeta. Los guiones, en `episodios/`.
 

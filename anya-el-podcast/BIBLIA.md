@@ -25,8 +25,8 @@ Ese alguien es **La Mano Negra**: el nombre sucio del consorcio **Nadir**. No qu
 - Humor negro **jocoso**, no cínico de postal.
 - Romanticismo **inocente y cómico** (casi adolescente, en una IA que podría apagar una red).
 - Introspección de Anya: el oyente oye cómo se estrena un sentimiento.
-- La Mano Negra: ciberrealismo, triaje, no helicópteros ni logias de siglos.
-- Un solo clímax. Doce capítulos. Sin “ya salvamos el mundo” en el medio.
+- La Mano Negra: ciberrealismo y cacería (agentes, no logia milenaria).
+- Final del original: transferencia, te amo, sacrificio en la red, hospital, vuelta. Épico y tierno. El café es el epílogo, no el sustituto del drama.
 
 ## Género que se oye
 
