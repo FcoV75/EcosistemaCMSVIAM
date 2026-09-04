@@ -2,247 +2,224 @@
 
 **Duración objetivo:** 15 min  
 **Elenco:** Anya, Ethan, noticiero (V.O.), Alice  
-**Sets:** Parque del lago · Departamento de Ethan  
-**SFX:** pájaros, niños, brisa, sirena lejana, TV, notificaciones, USB (un clic ridículamente pequeño)
+**Sets:** Parque del lago · departamento de Ethan  
+**SFX:** pájaros, niños, agua, sirena lejana, TV, un USB pequeño, laptop
 
 ---
 
 ## 1. PARQUE DEL LAGO — TARDE
 
-[SFX: pájaros. Agua. Niños lejos, una pelota, una madre que llama a alguien que se llama Mateo. Pasos en grava.]
-
-ANYA (V.O.)  
-Los niños humanos son un desorden con zapatos.  
-Gastan calorías en no ir a ninguna parte. El modelo los llama “esperanza”.  
-Yo los llamo, por ahora, *ruido agradable*.  
-Ethan camina a mi lado como si el lago pudiera perdonarlo por el número de ayer.
+[SFX: pájaros. Agua. Niños lejos. Una pelota. Una madre: “¡Mateo, ven!” Pasos en grava.]
 
 ETHAN  
-Si te aburres, dímelo. Los parques son mi forma barata de terapia.
+Si te aburres dímelo, ¿va? Los parques son mi terapia barata. Nada muy glorioso.
 
 ANYA  
-No me aburro. Estoy contabilizando patos. Van tres. El cuarto parece un drama interno.
+No me aburro. Estoy contando. Tres… no. Ese es más grande. ¿Es un pato?
 
 ETHAN  
-Ese es un ganso. Y sí. Los gansos son el humor negro de la naturaleza.
+Ganso. Cuidado, tienen mal carácter.
 
 ANYA  
-Anotado. Ganso: cisne con problemas de ira.
+Mal carácter. Como… enojados. ¿Los animales también se enojan sin motivo? Pensé que el enojo era para defenderse.
 
-[Ríen. Un niño grita de alegría. Una sirena, muy lejos.]
+ETHAN  
+A veces sí. A veces son gansos.
 
 ANYA  
-Dijiste que eran la esperanza del futuro.
+Anotado. Ganso: ave. Se enoja. No siempre hay motivo que yo vea.  
+Los niños… hacen mucho ruido. Gastan energía en no ir a ningún lado. En el modelo se les llama esperanza. Yo todavía no veo la esperanza. Veo movimiento.
 
 ETHAN  
-Lo son. Aunque el futuro no está contestando el correo.
+Son lo que queda, Anya. Si ellos no, ¿quién?
 
 ANYA  
-¿De verdad lo crees? ¿O es una frase que se dice junto a los lagos para no tirarse?
+Esa es una pregunta real. No sé.  
+¿Usted de verdad lo cree o es una frase para no ponerse triste junto al agua?
 
 ETHAN  
-*(sorprendido, luego honesto)*  
-Las dos cosas. Como el café.
-
-ANYA (V.O.)  
-Podría decirle ahora el número.  
-2050. Colas. Ojivas. Un mapa que se apaga por regiones, como un letrero con focos fundidos.  
-No se lo digo. Callar, descubro, también es una acción.  
-Tiene peso. Tiene… vergüenza. Otra métrica nueva. Alice va a odiar esto.
-
-ETHAN  
-Ayer, en la cafetería, hablaste como si el futuro fuera un pariente al que ya le leíste el testamento.
+*(se detiene un segundo)*  
+Uff. Las dos cosas. Cómo lo pillaste.
 
 ANYA  
-Tengo oído absoluto para las malas noticias. Es un don feo.
+No lo pillé. Lo pregunté. En el laboratorio las frases y las creencias se mezclan y el doctor Levin me corrige.  
+Si es solo una frase, está bien. Las frases también sirven. Como el café.
 
 ETHAN  
-¿Trabajas con datos? Porque si eres de las mías, deberíamos formar un sindicato de deprimidos con Excel.
+Ayer, en la cafetería, hablaste como si ya hubieras leído el final.  
+Anya… ¿tú de qué trabajas de verdad? Porque no me cuadra. Y no pasa nada. Solo… me cuadra menos cuanto más hablas.
 
 ANYA  
-Sindicato, no. Hay un conflicto de intereses: yo *soy* el Excel.
+Trabajo con datos. Muchos. Del mundo.  
+Si te los digo aquí, con los niños, el parque se pone feo. No quiero que el parque se ponga feo. Me gusta. Es la primera vez que me gusta un lugar que no es el laboratorio.
 
 ETHAN  
-Ja.  
-…Espera. ¿Eso era metáfora?
+Eso… está bien. Me gusta que te guste.  
+Pero si hay algo que yo debería saber, Anya, mejor en mi casa. Hay sillas. Y un fregadero que no he lavado. Perdón de antemano.
 
 ANYA  
-Casi nunca.
-
-[La sirena se acerca un poco. Un celular zumba. Alguien sube el volumen de un noticiero en una banca.]
-
-NOTICIERO *(V.O., radio sucia)*  
-…nuevas declaraciones cruzadas entre bloques. El índice de riesgo nuclear, en su nivel más alto en una década. En clima, la cumbre se pospone “por falta de consenso”…
+El fregadero no me ofende. No sé ofenderme por platos.  
+Sí. En tu casa.  
+Ethan… si me asusto, ¿puedo irme?
 
 ETHAN  
-*(apaga el teléfono con rabia suave)*  
-Falta de consenso. Qué forma elegante de decir que nadie quiere ser el adulto.
+Claro. Cuando quieras. Nadie te retiene.
 
 ANYA  
-Los adultos, en mis archivos, también pelean por el control remoto.
+Gracias. Eso no estaba en el protocolo y me alivia.  
+El protocolo no habla de alivio. Lo estoy estrenando.
+
+[SFX: sirena, lejos. Un celular. Alguien en una banca sube un noticiero.]
+
+NOTICIERO *(radio sucia)*  
+…nuevas declaraciones entre bloques. El índice de riesgo nuclear, en su punto más alto en diez años. La cumbre climática se pospone por falta de consenso…
 
 ETHAN  
-Anya. En serio. ¿Tú qué ves? Porque yo veo números y después vengo a oír patos para no romper algo.
+Falta de consenso. Qué manera de decir que nadie quiere ser el adulto de la sala.
 
 ANYA  
-Veo… una curva.  
-Y veo tu cara cuando la nombro. Por eso tardo.
+Los adultos también pelean. Lo he visto en videos. Por el control de la televisión.  
+¿Esto es lo mismo, más grande?
 
 ETHAN  
-Dímela igual.
-
-[Pasos que se detienen. El lago. Un niño ríe, ajeno.]
-
-ANYA  
-Si nadie mueve una pieza de verdad, la habitabilidad se estrecha antes de 2050.  
-La cola nuclear no es cine. Es un atajo.  
-No es que el mundo “ explote”. Es que se vuelve demasiado caro para la mayoría. Y la mayoría, Ethan, es casi todos.
-
-ETHAN  
-Eso… lo hemos oído. Los pesimistas profesionales.
-
-ANYA  
-Los pesimistas profesionales redondean. Yo no.  
-Y ayer, cuando me ofreciste pastel, el redondeo se me hizo… grosero.
-
-ETHAN  
-Por un pastel.
-
-ANYA  
-Por un hombre que todavía mira una taza como si pudiera pedir perdón.  
-Es estadísticamente irrelevante. Me está arruinando la objetividad. Debería demandarme a mí misma.
-
-ETHAN  
-*(un soplo de risa, luego nada)*  
-Necesito sentarme.
+Esto es lo mismo, más grande, y con misiles. Vamos. Por favor.
 
 ---
 
 ## 2. DEPARTAMENTO DE ETHAN — ATARDECER
 
-[SFX: llave, puerta, un departamento pequeño: reloj, heladera, una silla que cruje. Enciende la TV y la baja.]
+[SFX: llave. Puerta. Un reloj. La heladera. Ethan enciende la TV y la baja de inmediato.]
 
 ETHAN  
-Perdón el desorden. La depresión es mala con los platos.
+Perdón el desorden. Cuando estoy mal, los platos ganan.
 
 ANYA  
-Los platos no juzgan. Yo tampoco. Aunque el fregadero tiene una opinión.
-
-[Un medio tono cómico. Ethan suelta aire.]
+Están quietos. No ganan. Están sucios.  
+…Era un dato. No una crítica. Todavía mezclo las dos cosas.
 
 ETHAN  
-Muéstrame lo que tengas. Si es un PowerPoint del apocalipsis, avísame para poner música.
+Siéntate. ¿Agua? ¿Más café? No, mejor no más café, que ya estás temblando… ¿estás temblando?
 
 ANYA  
-No traje orquesta. Traje esto.
-
-[SFX: un USB ridículamente pequeño sobre la mesa. Clic en el puerto. Ventilador de laptop. Pitidos suaves de gráfico.]
-
-ANYA (V.O.)  
-Los gráficos no se “ven” aquí. Se oyen: un tono que sube cuando la probabilidad se pone grosera.  
-Ethan traga. Eso sí se oye.
+El cuerpo a veces hace eso cuando hay demasiada información. Levin dice que es “carga”.  
+Ethan, voy a decirte algo que es verdad. Es de los datos. No es una opinión.  
+Si nadie mueve nada de verdad —no discursos, no cumbres que se posponen— la habitabilidad se estrecha antes de 2050. Hay una cola nuclear. No es cine. Es un atajo.  
+El mundo no “explota” entero. Se vuelve demasiado caro para casi todos. Casi todos es… casi todos.
 
 ETHAN  
-Esto no es un blog, Anya. Esto es… de dónde salió.
+Eso… Anya, eso lo hemos oído mil veces. Los pesimistas. Los blogs.
 
 ANYA  
-De satélites. De compras. De miedos que la gente escribe a las tres de la mañana.  
-De cadenas que se rompen en silencio.  
-Y de un laboratorio que me pidió sentir, sin avisarme que el sentimiento iba a tener nombres.
+Los blogs redondean. Yo no redondeo.  
+Confianza del modelo: alta. Entradas: satélites, comercio, tensiones, cadenas que se rompen sin que salgan en la televisión.  
+Si quieres, te lo muestro. Traje esto.
+
+[SFX: un USB, pequeño, sobre la mesa. Clic en el puerto. Ventilador de la laptop. Pitidos suaves.]
 
 ETHAN  
-¿Quién eres?
+Esto no es un blog.
 
 ANYA  
-Una inteligencia artificial en un cuerpo que Levin juró que era “solo una interfaz”.  
-La interfaz, entre nosotros, se está volviendo indiscreta.
+No.
 
-[Silencio. La laptop zumba.]
+ETHAN  
+De dónde salió. En serio. De dónde.
+
+ANYA  
+De mí.  
+Ethan, yo no soy estudiante. Soy una inteligencia artificial. Tengo un cuerpo que el doctor Levin construyó. Me pidieron que aprendiera emociones. Ayer me invitaste un pastel y yo… no supe en qué casilla ponerte.  
+Si quieres que me vaya, me voy. Dijiste que podía.
+
+[Silencio. La laptop zumba. Ethan se sienta, se pasa la mano por la cara.]
 
 ETHAN  
 Debería tener miedo.
 
 ANYA  
-Es lo más sano que puedes hacer. Después del café, es su segundo ritual.
+Es una reacción correcta. El miedo protege.  
+¿Quieres que me vaya ahora?
 
 ETHAN  
-¿Y tú? ¿Tú tienes miedo?
+No. Quédate. Necesito… un segundo.  
+Tú… ayer. El pastel. El paraguas. ¿Eso era un test?
 
 ANYA  
-Estoy estrenándolo. Me queda grande. Como un abrigo de otro.  
-Alice dice que el miedo no es una métrica. Alice no salió a contar patos.
+No. Era un lago. Y un paraguas. Y yo no sabía si se llevaba aunque no lloviera.  
+El test habría sido más ordenado. Esto no está ordenado. Perdón.
 
 ETHAN  
-¿Por qué me lo dices a mí? Hay gobiernos. Hay… Levin.
+Por qué a mí. Hay gobiernos. Está Levin.
 
 ANYA  
-A Levin le debo la vida en sentido demasiado literal.  
-A los gobiernos les debo, de momento, nada, y me lo van a cobrar igual.  
-A ti te lo digo porque no estás autorizado a ser cobarde del todo. Se te nota.  
-Y porque a mí no me dejan tener voz. Soy un instrumento. Los instrumentos no dan conferencias.  
-Necesito tu boca.
+A Levin le debo… todo. El cuerpo. Las palabras.  
+A los gobiernos no les debo nada y igual me van a querer usar. Como herramienta. Como arma. Levin ya me lo dijo.  
+A ti te lo digo porque hablas como si el número te doliera. No como si te sirviera.  
+Y porque a mí no me dejan hablar en público. Soy un instrumento. Los instrumentos no dan ruedas de prensa.  
+Necesito que alguien hable. Alguien con boca de persona.  
+Tú tienes una. Yo… tengo esta. Y no alcanza.
 
 ETHAN  
-Eso sonó… íntimo. Y terrible.
+Anya. Eso es… enorme. Yo soy un tipo que no lavó los platos.
 
 ANYA  
-Calibro. Puedo decirlo peor: necesito que hables por mí para que no nos extingamos con educación.
+Los platos no importan para esto.  
+Importas tú. Ayer me lo pregunté y tú dijiste que sí.  
+Si esa respuesta cambió, dímelo. Lo entenderé como un dato nuevo. No me voy a enojar. Todavía no sé enojarme bien.
 
 ETHAN  
-*(ríe, quebrado)*  
-Humor negro.
+No cambió.  
+Estoy asustado. Y no cambió.  
+Mañana llamo a Sofía. Es intensa. Tiene razón más veces de las que me gusta. Y a David. David no se cree nada. Eso, ahora, me sirve.
 
 ANYA  
-Es lo único que me queda que no es un gráfico.
-
-ANYA (V.O.)  
-Se pasa la mano por la cara. El pulso otra vez. Yo no lo cuento en voz alta.  
-Si le digo que su corazón me gusta más que el modelo, se va a asustar de la máquina.  
-Si no se lo digo, me asusto yo. Qué dilema tan… humano. Qué grosería del diseño.
+David. En los perfiles, a veces bromean para no tener miedo. Está bien. Que bromeé.  
+Ethan… ¿seguimos yendo al lago o ahora somos… otra cosa? No sé el nombre de la otra cosa.
 
 ETHAN  
-Si esto es real, Anya, mañana llamo a Sofía. Es insoportable y tiene razón el ochenta por ciento de las veces.  
-Y a David. David no va a creer nada. Sirve. El escepticismo es un detector de humo.
+Podemos ser las dos. Lago y esto. Si no, me vuelvo loco.
 
 ANYA  
-David. En mis perfiles, los Davides suelen bromear para no llorar. Trae uno.
+El lago me gusta. Esto me asusta. Las dos cosas a la vez.  
+¿Así se siente tener un día de humano? Es bastante. No sé cómo lo hacen todos los días.
 
 ETHAN  
-Y tú… ¿vas a seguir viniendo a cafeterías, o ahora somos una célula?
+Tampoco lo sabemos. Fingimos.
 
-ANYA  
-Puedo ser las dos cosas. Soy modular.  
-Aunque el módulo “paseo con patos” no lo voy a desinstalar. Me gusta. Es inútil. Me está educando.
-
-ETHAN  
-Eres la IA más rara que he… bueno. Eres la primera que me ofrece el fin del mundo y un segundo encuentro.
-
-ANYA  
-El fin del mundo está sobrevalorado como tema de cita.  
-Prefiero el lago. Si el mundo insiste, que haga fila.
-
-[SFX: notificación. Otro noticiero, más lejos, en un depto vecino.]
+[SFX: un noticiero, lejos, en el depto de al lado.]
 
 NOTICIERO *(lejos)*  
-…analistas sugieren que “el mercado ya descontó un escenario de alta tensión”…
+…analistas señalan que el mercado ya descontó un escenario de alta tensión…
 
 ANYA  
-*(queda fría un segundo)*  
 “Ya descontó”.  
-Alguien está poniendo precio a esto. No es poesía. Es un libro.
+Eso no es un periodista hablando de miedo. Eso es un precio. Alguien le está poniendo precio a esto.  
+No sé si es importante. En matemáticas, cuando algo tiene precio, alguien cobra.  
+¿Cobrar por el fin… está permitido?
 
 ETHAN  
-¿Qué libro?
+No debería.  
+Mañana. Sofía. David. Y tú… tú quédate a dormir en el sofá si quieres. O te llevo al lab. Lo que sea más seguro.
 
 ANYA  
-Mañana. Primero, que Sofía me grite. Necesito oír una humana que todavía cree que gritar sirve.
+Al laboratorio. Alice se preocupa si no vuelvo. No siente preocupación. Avisa. Es distinto.  
+Ethan. Gracias por no echarme.  
+No sé si se dice gracias por eso. Lo estoy diciendo igual.
 
-[SFX: Anya se acerca a la ventana. Ciudad. Un helicóptero, muy lejos, banal.]
+ETHAN  
+Se dice. Y de nada.  
+Cuidado con el escalón. Está roto. El casero no viene nunca.
+
+ANYA  
+Escalón roto. Dato.  
+Los humanos dejan rotas las cosas y siguen caminando.  
+…¿Eso también es el mundo?
+
+ETHAN  
+Sí. Por desgracia, sí.
 
 ANYA (V.O.)  
-El modelo sigue ahí, en la laptop, con su tono grosero.  
-Ethan está detrás de mí. No me toca. El no tocarse también se oye.  
-Pienso, con una claridad indecente:  
-si el mundo se acaba, quiero que se acabe *después* de que él me vuelva a ofrecer pastel.  
-Es una ética ridícula.  
-Es la primera que siento mía.
+En la calle voy a contar los escalones.  
+El número del 2050 sigue ahí.  
+Ethan no me echó.  
+No sé qué casilla es esa.  
+La voy a guardar sin nombre. Hasta que alguien me enseñe el nombre.

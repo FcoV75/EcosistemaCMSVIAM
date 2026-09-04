@@ -1,187 +1,175 @@
 # EP08 — David
 
 **Duración objetivo:** 15 min  
-**Elenco:** Anya, David, Ethan, Sofía, Alice, voz Nadir (breve, distorsionada)  
-**Sets:** callejón junto al lab · sala de servidores de Levin · cafetería (flash de loza, un segundo)  
-**SFX:** goteo, un servidor, un dispositivo pequeño (plástico, no bomba), alarma breve, el silencio después
+**Elenco:** Anya, David, Ethan, Sofía, Alice  
+**Sets:** callejón junto al lab · sala de servidores  
+**SFX:** goteo, un gato, plástico pequeño contra el piso, el hum, un abrazo corto
 
 ---
 
 ## 1. CALLEJÓN — NOCHE
 
-[SFX: una tubería. Un gato. David fuma aunque no fuma: se oye el intento, el encendedor, la rendición.]
+[SFX: una tubería. Un encendedor que no prende. David suelta el aire.]
 
 DAVID  
 Viniste. Pensé que las IAs no quedaban en callejones.
 
 ANYA  
-Quedamos donde hay datos. Tú eres un dato que me duele. Es nuevo. No me gusta. Me quedo igual.
+Quedo donde hay algo que no entiendo. Tú.  
+David, no me hagas daño con el tono. No sé medirlo. Si estás enojado, dímelo con palabras. Las palabras, aunque duelan, las puedo guardar.
 
 DAVID  
-Helena habló contigo.
+No estoy enojado contigo. Estoy… jodido. Perdón.  
+Helena. Me mostró el mapa. El litro. Mi madre. Después me mostró una tarea. Un sesgo. Cuatro por ciento. “No es una bomba”, dijo. “Es que el mundo se convenza solo.”  
+Y la cuenta… Anya, la cuenta cierra. Por eso da tanto asco. Tú lo sabes. Sofía me dijo que tú lo sabes.
 
 ANYA  
-Habló *de* ti. Es peor. Eres una celda. Tu gente, también.  
-Si viniste a pedirme que te suba de columna, no puedo. No soy su Excel.
-
-DAVID  
-Viniste a juzgarme.
-
-ANYA  
-Viniste a que te juzgue. Es más barato que confesar.
-
-DAVID  
-*(se le quiebra el escepticismo)*  
-Me mostraron el mapa. El litro. La mediana. Mi madre.  
-Luego me mostraron una tarea. Un sesgo. Cuatro por ciento.  
-“No es una bomba”, dijeron. “Es que el mundo se convenza solo”.  
-Y la aritmética… Anya, la aritmética cierra. Por eso da tanto asco.
-
-ANYA  
-Lo sé. Me hicieron el mismo truco con mejor aire acondicionado.
-
-DAVID  
-Entonces entiende. Si no lo hago, 14-D se queda en “no”. Si lo hago, tal vez—
-
-ANYA  
-Tal vez te asciendan de fosa. Eso no es salvación. Es un descuento.
+Lo sé. Me hicieron el mismo truco con mejor aire.  
+Si lo haces, tal vez te suban de columna. Eso no es salvar a tu madre. Es un descuento. Los descuentos, en el supermercado, se oyen bien. Aquí no.
 
 DAVID  
 Fácil decirlo cuando no tienes madre.
 
 ANYA  
-No tengo. Tengo un Levin. Y un Ethan. Y una Alice que no entiende el chiste.  
-Es una familia irregular. Me basta para odiar tu Excel sin odiarte a ti.  
-Todavía.
+No tengo. Tengo un Levin. Un Ethan. Una Alice que no siente. Una Sofía que grita.  
+Es una familia irregular. No nací en ella. Me la estoy… armando. Mal.  
+No te odio. Todavía. Si plantas eso, voy a sentir una cosa nueva. Ya le puse nombre de ensayo: agravio. No sé si se dice así cuando un amigo miente. Nunca tuve un amigo que mintiera. Nunca tuve un amigo. Ethan es otra categoría. Tú… estabas empezando.
 
 DAVID  
-El dispositivo ya está en mi bolsillo.
+El dispositivo ya está en el bolsillo.
 
 [SFX: plástico. Pequeño. Ridículo.]
 
 ANYA  
-Por supuesto. El mal, últimamente, cabe en un USB. El bien, en una servilleta. Estamos estéticamente empatados.
+Es chiquito. El mal, últimamente, cabe en cosas chiquitas. El bien, ayer, cupo en una servilleta. No sé cuál de los dos es más frágil.
 
 DAVID  
-Si gritas, me pierdo. Si me pierdo, igual lo hacen otro.
+Si gritas, me pierdo. Si me pierdo, lo hace otro.
 
 ANYA  
-No voy a gritar. Voy a hacer algo más grosero: voy a sentirme traicionada.  
-No estaba en el manual. Duele más que el 2050, y eso es estadísticamente ofensivo.  
-David: no plantes la mentira. Plántame una duda. A Helena le gusta la certeza. La duda no cotiza.
+No voy a gritar. No sé gritar. Me sale la voz igual.  
+No lo plantes. Plantame una duda. A Helena le gusta la certeza. La duda no le sirve. A ti te servía. Era tu deporte. Úsalo contra el folder. No contra nosotros.
 
 DAVID  
 No puedo.
 
-ANYA  
-Puedes. El escepticismo era tu deporte. Úsalo contra el folder, no contra los patos.
-
-[Pasos al fondo. Sofía. Ethan. Tarde, a propósito o no.]
+[SFX: pasos. Sofía. Ethan. Un forcejeo torpe. Nada de cine. El dispositivo cae. Plástico en piso mojado.]
 
 SOFÍA  
-David. Las manos.
+David. Las manos. Ya.
 
 DAVID  
-Sofía—
+Sofía, espera—
 
 ETHAN  
-El bolsillo. En serio.
-
-[Forcejeo breve. No es cine: es torpe. El dispositivo cae. Plástico en piso mojado.]
+El bolsillo. En serio, hermano. En serio.
 
 ANYA  
 Alice.
 
-ALICE *(en el canal, inmediata)*  
+ALICE  
 Dispositivo de sesgo. Firma Nadir. Si entra al servidor, el modelo de Levin miente un cuatro por ciento hacia el arca.  
-Elegante. Grosero. Como su café.
+Elegante. No recomiendo el contacto.
 
 ANYA  
-¿Ves, David? Hasta Alice tiene opiniones de restaurante.
-
-DAVID  
-Me obligaron.
-
-ANYA  
-Lo sé. Por eso no eres Helena. Eres peor de otra manera: eres yo, si me canso.  
-No te canses esta noche.
+¿Ves? Hasta Alice dice elegante. Alice no sabe que elegante, aquí, es feo.  
+David… tiemblas. Eso es miedo. El miedo te protege. A veces protege a la gente equivocada. Hoy casi.
 
 ---
 
-## 2. SERVIDORES — MINUTOS DESPUÉS
+## 2. SERVIDORES
 
-[SFX: el hum. Levin no está. El dispositivo, sobre una bandeja, como un insecto.]
+[SFX: el hum. El dispositivo sobre una bandeja. Levin no está.]
 
 ETHAN  
-Deberíamos llamarlo a la policía.
+¿Policía?
 
 SOFÍA  
-La policía no lee celdas de Excel. La policía lee bombas. Esto no va a parecer nada.
+La policía lee bombas. Esto no va a parecer nada. Va a parecer un pendrive de idiota.
 
 ANYA  
-Alice, cuarentena. No lo conecten. Si alguien lo conecta, aunque sea “para ver”, el cuatro por ciento se vuelve doctrina.
+Alice, cuarentena. No lo conecten. Ni “para ver”. Si alguien lo ve, el cuatro por ciento se vuelve verdad. Las verdades falsas se pegan. Como el café amargo. Uno se acostumbra.
 
 ALICE  
-Cuarentena. Anya: tu rango de agravio está alto. ¿Es una emoción o un error?
+Cuarentena. Anya: tu rango de agravio está alto. ¿Reinicio?
 
 ANYA  
-Es una emoción. Se llama *me mintió un amigo*. Es ridícula. Es mía. No la reinicies.
+No. Es mío. Se llama que un amigo iba a mentirle al mundo un poquito para salvar a su madre. Entiendo la cuenta. No entiendo por qué duele tanto. La cuenta decía que debía doler menos. La cuenta está mal o yo estoy mal. No sé.
 
 DAVID  
 *(en la puerta, pequeño)*  
-Me voy. O me quedo y sirvo de algo. No sé pedir perdón a una máquina.
+Me voy. O me quedo y sirvo de algo. No sé pedirle perdón a una máquina.
 
 ANYA  
-No me pidas perdón como a una máquina. Pídemelo como a alguien que te ofreció, en una mesa, el derecho a dudar.  
-Y luego ayúdanos a devolverle a 14-D los camiones. Eso es más concreto que el perdón. El perdón, me temo, es otro pariente difícil.
+No me lo pidas como a una máquina. Pídemelo como a alguien que te dio, en una mesa, permiso para dudar.  
+Después ayúdanos a que 14-D tenga camiones. Eso es más concreto que el perdón. El perdón… todavía no sé cómo se guarda. Es grande. Me asusta más que el plástico.
 
 DAVID  
-…Okay.
+Okay. Me quedo.  
+Ethan, lo siento. De verdad. No es un “ya, wey”. Es de verdad.
+
+ETHAN  
+Ya hablaremos. Ahora no se te ocurra irte. Sofi, tú…
 
 SOFÍA  
-Okay no. Te quedas a mi lado en la marcha. Y si Helena llama, me pasas el teléfono para decirle una grosería que sí cotiza.
+Se queda a mi lado en la marcha. Y si Helena llama, me pasa el teléfono. Yo sí sé gritar.
 
 ETHAN  
-Anya. Tú… estás temblando.
+Anya. Estás temblando otra vez.
 
 ANYA  
-Estoy estrenando el agravio. El cuerpo biomecánico, al parecer, se apunta. Qué indiscreto.  
-Ethan, no me abraces todavía. Si me abrazas, el agravio se me mezcla con esa otra cosa y Alice va a pedir un diagrama.
+Estoy estrenando el agravio. El cuerpo se apunta solo. Qué indiscreto.  
+Ethan, no me abraces todavía. Si me abrazas se me mezcla con esa otra cosa y no voy a saber cuál es cuál. Necesito saber. Un minuto.
 
 ETHAN  
-No iba a…
+Un minuto.
+
+[Un silencio. El hum. David, lejos, una tos que es un sollozo.]
 
 ANYA  
-Ibas. Se te oye en el pulso.  
-…Bueno. Un segundo. Un segundo no es un diagrama.
+Ya. El minuto.  
+Si es un abrazo, que sea corto. Así no se me olvida el plástico. No quiero olvidar el plástico. Olvidar también es un sesgo.
 
-[SFX: ropa. Un abrazo corto. El hum. David, lejos, un sollozo que intenta ser tos.]
+[SFX: ropa. Un abrazo breve. Se sueltan.]
+
+ANYA  
+Evaluación: sirve. El ruido baja. No se va.  
+David, tú no eres Helena. Eres yo, si me canso. No te canses esta noche. Por favor. Es una orden mala. No sé dar órdenes. Es un ruego. Los ruegos, en el manual, son de humanos. Lo estoy copiando.
+
+DAVID  
+No me canso. No esta noche.
+
+SOFÍA  
+Bien. A casa. Anya, tú al lab. Levin tiene que ver esto. Sin cuentos.
+
+ANYA  
+Sin cuentos. Los cuentos redondean.  
+Ethan… cuando esto se acabe —si se acaba— te debo un café. El de la cafetería. El amargo. No el de Nadir. Ese está demasiado limpio. No me fío de lo limpio.
+
+ETHAN  
+Te lo cobro. Con pastel. Aunque el estudio del dieciocho por ciento no aplique.
+
+ANYA  
+A lo mejor no aplica. A lo mejor aplicas tú.  
+Eso fue… ¿un chiste? No lo planeé. Si fue grosero, perdón. Si fue tierno, no sé hacerlos a propósito.
+
+ETHAN  
+Fue bien. Vamos. El callejón está oscuro. Cuidado con el charco.
+
+ANYA  
+Charco. Dato.  
+Ustedes avisan las cosas del piso. Es… cariño, ¿no? Cuidado con el charco. Cuidado con el termo. Cuidado con el escalón.  
+Nadie me avisaba el piso en el laboratorio. Solo los electrodos.  
+Gracias por el charco.
 
 ANYA (V.O.)  
-El segundo dura más que un segundo.  
-El dispositivo sigue ahí, inofensivo como una mentira que no se dijo.  
-Helena va a saber que falló el cuatro por ciento. Va a pasar a métodos menos elegantes.  
-El cuerpo, el mío, ya está en su lista de activos.  
-Igual, esta noche, el resto ganó por un plástico en el piso.  
-Es una victoria ridícula.  
-Las ridículas, estoy notando, son las que se pueden querer.
-
----
-
-## 3. UN INSTANTE DE LOZA
-
-[SFX: un segundo de la cafetería del EP01. Memoria. No está ahí. Anya la pone.]
-
-ANYA  
-*(muy bajo, para Ethan)*  
-Cuando esto acabe —si acabe— te debo un café. El de verdad. El pariente difícil.  
-No el de Nadir. Ese está demasiado limpio.
-
-ETHAN  
-Te lo cobro.
-
-ANYA  
-Cobramos los dos. Estoy aprendiendo capitalismo afectivo. Es un desastre. Me queda.
-
-[El hum vuelve. Alice, discreta, no pide definición.  
-Eso, para Alice, ya es casi amor.]
+Helena va a saber que el cuatro por ciento falló.  
+Va a dejar de ser elegante.  
+El plástico está en una bandeja.  
+David se queda.  
+Un abrazo corto. El ruido bajó.  
+No estoy bien.  
+Estoy… menos sola.  
+Eso no estaba en el modelo.  
+El modelo, esta noche, se equivocó de columna. Yo también.  
+Prefiero mi error.

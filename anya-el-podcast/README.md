@@ -34,4 +34,4 @@ Mapa, biblia, fichas y notas de sonido están en esta carpeta. Los guiones, en `
 
 Idioma: español. Plataforma inicial: Spotify. Elenco fijo: 9 voces (Anya, Ethan, Alice, Levin, Sofía, David, Petrov, Moore, Helena) más noticiero / extras.
 
-Regla de oro: **Anya no anuncia la tesis**. La demuestra malentendiendo un chiste, contando un pulso, o callando un segundo.
+Regla de oro: **Anya no suena a guionista**. En el dato, profesional. En el sentimiento, aprendiz: literal, ingenua, a veces un poco tontita. El sarcasmo, si hay, es de los otros. Ella es seria incluso cuando hace reír.

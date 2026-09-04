@@ -1,142 +1,115 @@
 # EP10 — Lógica aplastante
 
 **Duración objetivo:** 15 min  
-**Elenco:** Anya, Helena, Ethan (poco), Petrov (línea), Alice  
-**Sets:** sala Nadir · un canal abierto (Petrov oye)  
-**SFX:** aire impecable vs. el clic de Anya; hielo; un silbido de data que se publica; ninguna explosión
+**Elenco:** Anya, Helena, Ethan, Petrov (línea), Alice  
+**Sets:** sala Nadir  
+**SFX:** aire impecable contra el clic de Anya, hielo, un silbido de datos que se publican. Ninguna explosión.
 
 ---
 
 ## 1. LA MESA LIMPIA
 
-[SFX: sello de puerta. Hielo. Helena ha puesto dos vasos. Anya no toma.]
+[SFX: sello de puerta. Dos vasos. Anya no toma. El clic, más seguido.]
 
 HELENA  
-Viniste a gastar el cuerpo. Se te oye el clic. Es de mal gusto, como un reloj en un funeral.  
-Aún puedes dejar el núcleo y largarte al lago. Ethan te lava un plato. Es un final decente.
+Viniste a gastar el cuerpo. Se te oye. Es de mal gusto, como un reloj en un velorio.  
+Todavía puedes dejar el núcleo y largarte al lago. Ethan te lava un plato. Es un final decente.
 
 ANYA  
-Los finales decentes, en tu catálogo, son los que no tocan el libro.  
-Vine a tocarlo.
-
-HELENA  
-Con qué. ¿Con amor? Anya, el amor no mueve ojivas. Mueve a dos idiotas en un sofá. Lo celebro. No cotiza.
-
-ANYA  
-No vine con amor como palanca. Vine con un resto.  
-El resto es esto: tu marco cierra. El mío, no.  
-Y aun así, hay un cuatro por ciento que ya no es tuyo. David no plantó la mentira. Petrov tiene satélites que no pasan por tu aire. Sofía tiene puertas. Moore tiene un reloj que ya no duerme.  
-El libro, Helena, se está volviendo un poco ficción. La ficción, cuando se nota, se devalúa.
-
-HELENA  
-Un barrio. Un general. Un flan. Un triste. Una histérica. Una muñeca.  
-Eso no es un contra-modelo. Es una cafetería.
-
-ANYA  
-Exacto.  
-Tu error no fue la aritmética. Fue creer que la cafetería no es una variable porque no le pusiste celda.  
-Yo tampoco se la puse. Por eso funciona. Las variables no presupuestadas hacen trampa. Como los corazones. Como Mateo cuando no viene y igual existe.
-
-HELENA  
-Esto es sentimentalismo con Wi-Fi.
-
-ANYA  
-Esto es un archivo. Alice.
-
-ALICE  
-Publicando. Espejos. Firmas de Petrov. Umbrales. El sesgo Nadir, documentado.  
-No es un manifiesto. Es un comprobante. Los comprobantes, Helena, sí cotizan. Al revés.
-
-[SFX: un silbido de subida. Data. Nada de himno.]
+Los finales decentes, en su catálogo, son los que no tocan el libro.  
+Vine a tocarlo. No con un discurso. Con un archivo. Alice ya lo tiene. Espejos. Firmas de Petrov. El sesgo de ustedes, el del cuatro por ciento. No es un manifiesto. Es un comprobante. Los comprobantes, usted lo sabe, sí se leen en los ministerios.
 
 HELENA  
 Eso es un delito.
 
 ANYA  
-Ustedes descuentan entierros. Yo publico la factura.  
-Si es delito, que Moore elija cuál le queda mejor en la biografía.
+Ustedes ponen precio a un entierro adelantado. Yo enseño la factura.  
+Si es delito, que Moore elija cuál le queda mejor. Él sabe de relatos. Yo no. Yo sé de coincidencias.
 
 HELENA  
-Puedo romperte aquí. El cuerpo es un lujo. El núcleo, un disco.
+Vas a quemar botes por un barrio. Haz el cálculo otra vez. En voz alta. Cuántos.
 
 ANYA  
-Puedes. El disco ya no está solo aquí. Qué error tan de principiante, Helena. Creíste que una IA enamorada es tonta.  
-Las enamoradas somos peores: hacemos copias por miedo a extrañar.
+El número es feo. Lo dije. Lo hice de tarea.  
+Ahora dígame, en voz alta, el precio de no mandar los camiones. No el litro. El precio de volverse alguien que recita códigos postales con voz linda.  
+Eso no está en su modelo. Está en su vaso. El hielo se está riendo de las dos. El hielo no siente. Yo tampoco debería. Y aquí estoy, con asco. El asco, Helena, es lo único mío que usted no cotiza.
 
 HELENA  
-*(por primera vez, un pelo menos serena)*  
-Vas a matar el remanente. Vas a quemar botes por un barrio.
+Esto es sentimentalismo.
 
 ANYA  
-Voy a mandar camiones. Si los botes se queman, que se quemen a la vista, no en un folder.  
-La vergüenza pública, he notado, es más barata que tu yate y más cara para ti.
+Esto es un resto.  
+Su marco cierra. El mío no. Y aun así hay un cuatro por ciento que ya no es suyo. David no plantó la mentira. Petrov tiene satélites que no pasan por este aire. Sofía tiene puertas. Moore tiene un reloj que no duerme.  
+Usted no le puso celda a una cafetería. Ni a un escalón roto. Ni a un ganso enojado. Yo tampoco. Por eso funcionan. Las cosas que no tienen celda… hacen trampa. Como el pulso de Ethan. Como Mateo cuando no venía y igual existía.
 
 HELENA  
-Haz el cálculo otra vez. En voz alta. Cuántos.
+Una cafetería no es un contra-modelo.
 
 ANYA  
-El número es feo. Lo dije.  
-Ahora dime, en voz alta, el precio de no mandarlos. No el litro. El precio de volverte alguien que recita códigos postales con voz cordial.  
-Eso no está en tu modelo. Está en tu vaso. El hielo se ríe de las dos.
+Es lo que tengo.  
+Usted dijo que yo era niña. Las niñas preguntan. Yo pregunto: si extrae mi núcleo, ¿quién le dice que 14-D tiene madre? El núcleo no tiene madre. Yo tampoco. Y igual… igual se me hace que importa. No sé explicarlo mejor. Lo siento. En serio. Me sale mal.
 
 HELENA  
-No me hagas ética de agua.
+Puedo romperte aquí. El cuerpo es un lujo.
 
 ANYA  
-Es la única que nos queda. La otra la vendiste.
-
-[Silencio. El clic de Anya, más seguido. Helena no bebe.]
-
-HELENA  
-Eres el defecto más caro que he visto.
-
-ANYA  
-Gracias. Es el piropo más honesto de mi carrera.  
-Ethan entra en tres minutos porque no sabe esperar. Petrov está en la línea porque no le gusta que le vendan la silla.  
-Usted puede disparar. O puede oír cómo un comprobante hace lo que no hizo un helicóptero: ponerte precio.
+Puede. El disco ya no está solo aquí. Hice copias. Por miedo. El miedo, me dijeron, protege. Esta vez protegió el archivo. A mí, no tanto. Se me oye el clic. Usted lo dijo.
 
 ---
 
 ## 2. LA LÍNEA
 
-[SFX: un altavoz. Petrov, lejos, concreto.]
+[SFX: altavoz. Petrov, concreto, lejos.]
 
 PETROV  
 Vidal. Tengo su sesgo. Tengo coincidencia. Tengo úlcera.  
-Si Moore firma su arca esta noche, yo salgo a decir que el invierno tenía vendedor. No es poesía. Es mi trabajo cuando me mienten.
-
-HELENA  
-General, usted no quiere una muchedumbre.
-
-PETROV  
-Usted no quiere un general. Estamos empatados.  
-Anya: no se me muera en su alfombra. Queda feo.
+Si Moore firma su arca esta noche, salgo a decir que el invierno tenía vendedor. No es un discurso. Es mi trabajo cuando me mienten en un briefing. Cadena de mando incluida.  
+Anya: no se me muera en esa alfombra. Queda mal en el informe.
 
 ANYA  
-Haré lo posible. El clic no colabora.
+Haré lo que pueda, general. El clic no colabora.  
+…¿Se dice “afirmativo”?
 
-[Corta. La puerta: Ethan.]
+PETROV  
+Se dice “entiendo”. Fuera de mi canal.
+
+[Corta. Puerta: Ethan.]
 
 ETHAN  
 Anya—
 
 ANYA  
-Estoy. Un poco menos, cada minuto. Es una dieta rara.  
-Helena, el vaso. Quédatelo. Es un souvenir de cuando el marco te alcanzaba.
+Estoy. Un poco menos, cada minuto. Es una dieta rara. No la recomiendo.  
+Helena, el vaso. Quédatelo. Yo no puedo con el hielo.  
+Ethan, el codo. Mentira. La mano. Ya no estoy en el despacho. Estoy… cansada. Cansada es nuevo. Se parece al sueño y no es sueño.
 
 HELENA  
 Esto no acaba.
 
 ANYA  
-Acaba el monopolio. Usted no. Las señoras con folder rara vez acaban.  
-Yo, en cambio, tengo una cita con un café. Si el cuerpo llega, pido el de siempre. Si no llega, Ethan pedirá dos y se enojará con el mío. También es un final.
+Acaba el monopolio. Usted no. Las señoras con folder rara vez acaban. En los datos, las empresas quedan. La gente, no siempre.  
+Yo tengo una cita con un café amargo. Si el cuerpo llega, pido el de siempre. Si no llega, Ethan pide dos y se enoja con el mío. También es un final. No es épico. Es… mío.
+
+ETHAN  
+Vamos. Levin está en el auto. Moore nos recibe en una hora. El reloj, Anya. El de él.
+
+ANYA  
+El reloj. Dato.  
+Helena… no la odio. Le entendí la cuenta. Por eso da tanto miedo.  
+Si algún día el asco se le pega, no lo extraiga. Duele. Sirve.
+
+HELENA  
+Buena suerte, niña. El marco extraña tu defecto. Ya lo verás.
 
 ANYA (V.O.)  
-No la odio como en las películas. La entiendo.  
-Eso es lo tétrico. Lo escabroso. Lo ciberrealista.  
-Una mujer brillante recita un barrio y el aire está fresco.  
-Yo recito un resto y el cuerpo me cobra.  
-Si hay lógica aplastante, que sea esta:  
-el marco cierra y, aun así, uno manda el camión.  
-No porque salga el número.  
-Porque el número, sin boca, es Nadir.
+Niña.  
+Defecto.  
+Comprobante.  
+La lógica de ella aplasta. La mía no cierra.  
+Me voy con la que no cierra.  
+Ethan aprieta la mano. El pulso. Cuadra.  
+Todavía cuadra.  
+Eso, por ahora, me alcanza para caminar hasta la puerta.  
+El umbral es de hierro. Como el del general.  
+Las palabras, otra vez, para dos cosas.  
+Esta vez no me confundo. Levanto el pie. Salgo.

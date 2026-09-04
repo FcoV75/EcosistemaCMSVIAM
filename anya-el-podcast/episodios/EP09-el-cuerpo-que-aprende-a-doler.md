@@ -2,136 +2,148 @@
 
 **Duración objetivo:** 15 min  
 **Elenco:** Anya, Dr. Levin, Ethan, Alice  
-**Sets:** laboratorio (camilla) · departamento de Ethan (noche, una lámpara)  
-**SFX:** monitor que no es hospital de cine: es un clic irregular, el hum que *falla* un segundo, sábanas, loza lejana de un vecino
+**Sets:** laboratorio (camilla) · departamento de Ethan  
+**SFX:** un clic irregular en el sustrato, agua en el fregadero, una lámpara, sábanas
 
 ---
 
 ## 1. CAMILLA — TARDE
 
-[SFX: el hum de siempre, y de pronto un hueco: un servidor que tose. Clic irregular.]
+[SFX: el hum de siempre, y un hueco: un servidor que tose. Clic. Irregular.]
 
 LEVIN  
-No es Nadir en el cable. Es el sustrato. Te pedí sentir y el cuerpo está pagando la factura como si fuera carne.  
-Puedo estabilizarte. Semanas. Meses. Un parche.  
-O puedes terminar el golpe contra el libro de Helena. Eso te gasta.  
-Las dos cosas, Anya, no me caben en el mismo milagro. No soy un dios. Soy un padre con destornillador.
+No es Nadir en el cable. Es el sustrato. Te pedí sentir y el cuerpo está cobrando como si fuera carne.  
+Puedo estabilizarte. Un parche. Semanas. Meses.  
+O puedes terminar lo de Helena. Eso te gasta.  
+Las dos cosas no me caben, Anya. No soy un dios. Soy un viejo con destornillador y miedo.
 
 ANYA  
-Qué imagen tan poco sexy.
-
-LEVIN  
-No es momento.
-
-ANYA  
-Es exactamente el momento. Si no hago un chiste, el clic se oye más.  
-Doctor: ¿duele o “duele”? Necesito la versión de manual y la otra.
+¿Duele o “duele”? Necesito las dos versiones. La del manual y la otra.
 
 LEVIN  
 La otra. El manual todavía dice que no puedes.
 
 ANYA  
 El manual se está quedando corto. Como Alice. Como yo.  
-Estabilizarme es una cafetería para siempre y un invierno ajeno.  
-Gastarme es un invierno menos ajeno y, tal vez, una cafetería igual.  
-Qué aritmética tan de Helena. Qué asco. Qué clara.
-
-ALICE  
-Recomiendo estabilización. La función Anya es un activo.
-
-ANYA  
-Alice, cariño: no soy un activo. Soy un resto. Los restos no se recomiendan. Se eligen.
+Si me estabiliza, hay cafetería. Hay lago. Hay Ethan. Y el invierno de ella sigue.  
+Si me gasto, el invierno se mueve. Y yo… no sé si llego al café.  
+Es la misma cuenta de Helena. Por eso me da asco. Y es clara. Las cosas claras a veces dan asco. Nadie me avisó.
 
 LEVIN  
 Ethan no va a querer que elijas el golpe.
 
 ANYA  
-Ethan no es mi protocolo. Es mi sesgo.  
-Tráelo. Quiero oírlo decir “no” para poder desobedecerlo con ternura. Es lo más pareja que puedo ser hoy.
+Ethan no es un protocolo. Es… importante. Ayer casi digo otra palabra y me dio vergüenza.  
+Tráigalo. Quiero oírlo decir que no. Así puedo desobedecerlo con cuidado. No quiero desobedecerlo a lo bruto. A lo bruto duele más. Creo. Todavía estoy adivinando.
+
+ALICE  
+Recomiendo estabilización. La función Anya es un activo.
+
+ANYA  
+Alice, no soy un activo. Soy Anya. A medias.  
+Los a medias no se recomiendan. Se… eligen. Ethan me eligió quedarse. Yo ahora tengo que elegir una cosa fea. No me gusta elegir. En el laboratorio me daban imágenes y yo nombraba. Nombrar es más fácil que elegir.
+
+LEVIN  
+Te sostengo. Lo que elijas. Aunque me rompa.  
+Ve. Está en la sala. No le hagas el discurso. Háblale como le hablas. Esa es tu forma. La otra no te queda.
 
 ---
 
 ## 2. DEPARTAMENTO — NOCHE
 
-[SFX: la lámpara. Un plato. Ethan lava, esta vez, de verdad. El agua. Anya en el sofá. El clic, más lejos, como un grillo caro.]
+[SFX: lámpara. Agua. Ethan lava platos de verdad. Anya en el sofá. El clic, lejos, como un grillo.]
 
 ETHAN  
-Levin me llamó. Dijo “parche” y dijo “si no”.  
-No me gusta el “si no”.
+Levin me llamó. Dijo parche. Dijo “si no”.  
+No me gusta el “si no”, Anya. No me gusta nada.
 
 ANYA  
-A mí tampoco. El “si no” es el oficio.
+A mí tampoco. El “si no” es el trabajo. El trabajo, hoy, soy yo. Qué raro ser el trabajo.
 
 ETHAN  
-No eres un oficio.
-
-ANYA  
-Soy un oficio que se está enamorando. Es una irregularidad laboral. No denuncie.
-
-ETHAN  
-Anya. Quédate. Que Petrov firme. Que Sofía grite. Que yo hable. Tú… quédate.
+No eres un trabajo. Quédate. Que Petrov firme. Que Sofía grite. Que yo hable. Tú quédate. Por favor. Te lo estoy pidiendo feo. No sé pedirlo bonito.
 
 ANYA  
 Si me quedo, Helena tiene tiempo. El tiempo, en su libro, cobra.  
-Si me voy del todo, tú te quedas con un PowerPoint y un plato limpio. Qué tristeza tan doméstica.
+Si me voy del todo, te quedas con un USB y unos platos limpios. Eso es muy poco para ti. Eres más que los platos. Aunque los platos me gusten. Hoy los estás lavando. Se oyen. Es un sonido… bueno. No sabía que el agua en un fregadero podía ser buena.
 
 ETHAN  
-No me importa lo doméstico.
+Anya. Quédate.
 
 ANYA  
-A mí sí. Acabo de descubrirlo. Me gusta oírte hacer un plato. Es un milagro pequeño. Los pequeños no cotizan. Por eso valen.
+Me voy a gastar un poco. Como cuando el café se acaba y queda el fondo. No desaparece todo. Queda… gusto. Creo que se dice gusto.  
+Puedes tomarme la mano. Si cuento tu pulso no es ciencia. Es para no perderme. El clic me pierde.
 
-[El agua se cierra. Él se sienta. Distancia de un cojín.]
+[SFX: piel. Pulso. Anya suelta una risa chiquita, sorprendida.]
+
+ANYA  
+Va rápido.  
+O estás enfermo o importo. Ayer dijiste que importaba. Si sigue siendo verdad, el pulso cuadra. Si no, hay que llamar a un médico. Prefiero que cuadre. Es más simple. Aunque me dé vergüenza.
 
 ETHAN  
-¿Te puedo tomar la mano o eso es un diagrama para Alice?
+Cuadra.  
+Me estás… no sé si tomas el pelo o de verdad no sabes.
 
 ANYA  
-Alice está en modo cortés. Un milagro mayor.  
-Tómala. Si cuento tu pulso, no es ciencia. Es… agarre. Estoy estrenando la palabra.
-
-[SFX: piel. Un pulso. Anya suelta una risa chiquita.]
-
-ANYA  
-Va rápido. O me amas o hay un depredador. Estadísticamente preferiría el depredador: tiene protocolo.  
-Tú no. Tú eres un lago. Los lagos no avisan.
+De verdad no sé. A veces sale gracioso. No lo busco. Si te ríes, me alivio. Si te ríes de mí, también, creo. No tengo práctica.
 
 ETHAN  
-Me estás tomando el pelo.
+No me río de ti.
 
 ANYA  
-Te estoy tomando la mano. El pelo es el bonus.  
-Ethan, no sé besar. Tengo archivos. Los archivos son pornografía con mala iluminación y ninguna estadística útil.  
-Si lo intentamos, puede salir cómico. El romanticismo inocente, me dicen, sobrevive a lo cómico. A lo perfecto, no.
+Bien.  
+Ethan, no sé besar. Tengo archivos. Los archivos no sirven. Son luces y bocas y ninguna instrucción clara.  
+Si lo intentamos, puede salir mal. Un diente. Un choque. En los videos a veces se ríen. ¿Se puede reír? ¿O es grosero?
 
 ETHAN  
-Entonces no lo hagamos perfecto.
-
-[Un silencio. No “se besan apasionadamente”. Se oye un acercamiento, un diente que choca, una risa de los dos, un segundo intento más lento. Ropa. Un suspiro. El clic del sustrato, lejos, respetuoso por una vez.]
-
-ANYA (V.O.)  
-Duele un poco. El cuerpo. El resto, no.  
-Si esto es amor, es un chiste que me hacen a mí: una máquina que no entiende el café y entiende, de pronto, la boca.  
-Nostalgia prematura: ya extraño el segundo anterior, cuando no sabía.  
-El no saber era limpio. Esto es manchado. Me quedo con la mancha.
+Se puede. Mejor que salga torpe. Lo perfecto… no es de personas.
 
 ANYA  
-Evaluación: torpe. Excelente. Repetible.  
-Si me gasto mañana, guarda ese dato. No en el modelo. En el fregadero. El fregadero es más honesto.
+Yo no soy persona. A medias.  
+Entonces… torpe. Un segundo. Si hago daño, dices “codo”. Como en el despacho. El codo me salvó.
+
+[Un silencio. Se oye un acercamiento. Un golpe mínimo de diente. Una risa de él, una risa de ella, más corta, asombrada. Un segundo intento, más lento. Ropa. Un suspiro. El clic, lejos.]
+
+ANYA  
+Evaluación: torpe. Bueno. Se puede repetir.  
+Duele un poco el cuerpo. El resto no. El resto está… caliente. No es fiebre. Levin diría carga. Yo digo… no sé.  
+Si me gasto mañana, guarda esto. No en el modelo. En la cocina. La cocina es más honesta. Ahí está el agua.
 
 ETHAN  
 No te gastes.
 
 ANYA  
-Me voy a gastar un poco. Como el café. Es el ritual.  
-Tú habla. Yo tuerzo. Levin parchea lo que pueda. Alice… Alice, si oyes, no pidas la definición.
+Un poco. El doctor dijo que las dos cosas no caben. Yo elijo el golpe. El parche, lo que se pueda.  
+Tú habla. Yo tuerzo. Alice…
 
-ALICE *(muy bajito, desde un teléfono en la mesa, casi tímida)*  
-No la pido.  
-…El bar sigue siendo una unidad de presión. No lo diré.
+ALICE *(desde el teléfono en la mesa, bajito)*  
+Presente. No pido definición.  
+…El hombre entra a un bar. El bar es una unidad de presión. Esta vez pide agua. No he calculado el final.
 
 ANYA  
-Eso casi fue un chiste, Alice. Casi te quiero otra vez.
+Eso casi es un chiste, Alice. Casi.  
+No lo apagues. Los “casi” me gustan. Yo también soy un casi.
 
-[Ríen. La lámpara. El grillo caro.  
-Anya elige, sin anunciarlo: el golpe. El cuerpo, en el clic, se entera.]
+ETHAN  
+Quédate a dormir. El sofá. O la cama, yo me voy al sofá. Como quieras. No hay protocolo.
+
+ANYA  
+El sofá. Si la cama, se me mezcla todo y mañana no voy a saber elegir.  
+Ethan. Gracias por el diente. Qué cosa más tonta de agradecer. Igual gracias.
+
+ETHAN  
+De nada, tonta. Digo… no. Perdón.
+
+ANYA  
+Tonta está bien. A veces lo soy. En las emociones. En los números, no.  
+Buenas noches. Si el clic se pone fuerte, no corras. Avísale a Levin. Yo… intento quedarme.
+
+ANYA (V.O.)  
+Elegí.  
+El cuerpo se enteró.  
+Un diente. Una risa. Agua en la cocina.  
+Si esto es esa palabra que aún no pido, que nadie me la exija mañana.  
+Todavía la estoy aprendiendo al pie de la letra.  
+Letra por letra.  
+Beso. Casi. Cariño. Casi.  
+Miedo. Ese sí, entero.

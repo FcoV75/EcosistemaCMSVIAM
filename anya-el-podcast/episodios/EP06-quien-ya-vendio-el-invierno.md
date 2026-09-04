@@ -1,187 +1,162 @@
 # EP06 — Quien ya vendió el invierno
 
 **Duración objetivo:** 15 min  
-**Elenco:** Anya, Ethan, Presidente Moore, Helena Vidal, asesor (V.O.)  
-**Sets:** Oficina de Moore · sala de visitas (Nadir, limpia)  
-**SFX:** reloj de pared, esferos, aire acondicionado *impecable* cuando entra Helena, un carrito de agua con hielo que nadie necesita
+**Elenco:** Anya, Ethan, Presidente Moore, Helena Vidal, asesor (breve)  
+**Sets:** Oficina de Moore · antesala  
+**SFX:** reloj de pared, esferos, aire acondicionado que cambia cuando entra Helena, un vaso de agua con hielo
 
 ---
 
-## 1. OFICINA DE MOORE — TARDE
+## 1. OFICINA — TARDE
 
-[SFX: un reloj. Papeles. Moore frotándose la cara: piel contra palma. Un televisor en mudo: se oye igual el zumbido.]
+[SFX: un reloj. Papeles. Moore se pasa la mano por la cara. Un televisor en mudo: zumbido.]
 
 MOORE  
-Tengo una marcha, un mercado que tiembla, y una empresa que me ofreció “dormir tranquilo”.  
-Ustedes me ofrecen lo contrario. Vendan rápido.
+A ver, déjenme terminar antes de que empiecen.  
+Tengo una marcha en la calle, un mercado nervioso y una empresa que me ofreció, cito, “dormir tranquilo”. Ustedes me ofrecen lo contrario. Tengo doce minutos reales, no quince. Hagan el favor de ir al grano.
 
 ETHAN  
-Señor presidente: Nadir no vende sueño. Vende *quién despierta*.
+Señor presidente: Nadir no vende sueño. Vende quién despierta. Quién entra. Quién no.  
+Nosotros traemos verificación. El general Petrov ya vio coincidencia de sensores. No es un acto de fe.
 
 MOORE  
-Hablan como la oposición.
+Entiendan mi posición. Hay Congreso. Hay aliados. Hay elecciones que no se ven pero se sienten. Yo no le puedo llevar fe a la gente a la mesa. La gente espera resultados. Estabilidad. Un relato que no asuste a los mercados.
 
 ANYA  
-La oposición, al menos, quiere su silla. Nadir quiere un mapa con menos sillas.  
-La diferencia es de ebanistería y de cadáveres. Perdón. Calibro.
+Señor. Soy Anya. Soy una inteligencia artificial. El cuerpo lo hizo el doctor Levin. Los números, yo.  
+Nadir me mandó un correo. Dicen que mi empatía es opcional. La empatía es la parte que estoy aprendiendo. Aún la hago mal. A veces digo la verdad y no entiendo por qué alguien se pone pálido.  
+Si usted firma su “continuidad”, está firmando una lista. Gente que no recibe camión. Lugares que no reciben dique. No es personal, dirán ellos. Los números son los números.  
+Yo también sé decir eso. Me sale fácil. Es frío. El doctor Levin me pidió que no me quedara en lo fácil.
 
 MOORE  
-¿Quién habla? No la anunciaron.
+Una máquina. En mi despacho.  
+Si esto se filtra, me cae el gobierno.
+
+ANYA  
+Si no se filtra nada y el invierno llega igual, le cae el siglo. Usted tal vez no esté para verlo. La gente sí.  
+…Ethan, ¿fue demasiado? No sentí el codo.
 
 ETHAN  
-Es Anya. Es… la fuente.
+Un poco. Está bien. Sigue. Más despacio.
 
 MOORE  
-Una consultora.
-
-ANYA  
-Una inteligencia artificial con malas maneras y un cuerpo que Levin juró que era discreto.  
-El cuerpo es indiscreto. Yo también. El modelo, más.
-
-MOORE  
-*(una risa incrédula)*  
-Si esto sale, me cae el gobierno.
-
-ANYA  
-Si no sale, le cae el siglo. Es peor para el currículum, aunque usted ya no esté para verlo.  
-Humor negro. No es obligatorio reírse. El reloj lo hace por nosotros.
-
-[El reloj, en efecto, marca.]
-
-MOORE  
-Nadir llega en cuatro minutos. Pidieron “cortesía”. Traen a una tal Vidal.
+Nadir llega en cuatro minutos. Pidieron cortesía. Traen a una tal Vidal. Yo los voy a dejar hablar a los dos. Y después voy a hacer lo que un presidente hace: sopesar. No me pidan heroísmo. El heroísmo no pasa presupuestos.
 
 ANYA (V.O.)  
-Cuatro minutos. El miedo se me pone puntual, como Alice.  
-Ethan está a mi izquierda. Su pulso ya empezó la reunión.
+Cuatro minutos.  
+Ethan está a mi izquierda. Su corazón ya empezó. El mío… el ruido otra vez.  
+Sopesar. Esa palabra no decide. Deja las cosas en el aire. El aire, aquí, ya está lleno.
 
 ---
 
 ## 2. HELENA
 
-[SFX: la puerta. El aire cambia: más limpio, más frío. Tacones suaves. Un vaso de agua que se posa sin ruido.]
+[SFX: puerta. El aire se vuelve más limpio, más frío. Tacones suaves. Un vaso de agua que se posa sin ruido.]
 
 HELENA  
-Presidente. Ethan, imagino. Y Anya. Por fin.  
-Soy Helena Vidal. Continuidad. No muerdo. Muerdo poco.
+Presidente. Gracias por el tiempo. Ethan, imagino. Y Anya. Por fin.  
+Helena Vidal. Continuidad. No vengo a pelear. Vengo a que los números se vean como son.
 
 MOORE  
-Señora Vidal, estos jóvenes cuestionan su… producto.
+Señora Vidal, estos jóvenes cuestionan su producto. Quiero oírla a usted y oírlos a ellos. Sin teatro, por favor. Ya tuve bastante día.
 
 HELENA  
-Mi producto es aritmética. La aritmética no se ofende.  
-Anya, tu curva y la nuestra son primas. La diferencia es el estómago.  
-Tú todavía quieres llevar a todos al otro lado. Yo ya conté los botes.
+Mi producto es aritmética, señor presidente. La aritmética no se ofende.  
+Anya, tu curva y la nuestra son primas. La diferencia es el estómago. Tú todavía quieres llevar a todos al otro lado. Yo ya conté los botes. No es crueldad. Es no incendiar el arca por intentar un milagro.
 
 ANYA  
-Los botes, contados así, se llaman fosas. Solo que con membresía.
+Los botes… ¿son personas?
 
 HELENA  
-*(amable)*  
-Eso fue agudo. El humor negro es un síntoma de empatía. Lo hemos visto en otros sistemas. Se corrige.
+Son cupos. Detrás hay personas. Delante hay un límite. Si el límite no se nombra, el límite igual existe. Solo que lo nombra el caos, y el caos no da recibo.
+
+ANYA  
+Cupos.  
+Entonces hay gente que no cabe. Y usted ya sabe quién. Y cobra por el que sí.  
+Eso es correcto en la cuenta. No sé si es correcto en… la otra cosa. La que estoy aprendiendo. El doctor Levin la llama ética. Yo todavía la siento como frío.
+
+HELENA  
+El frío es madurez, Anya. La empatía es cara. Se enamora. Da discursos. El núcleo predictivo, en cambio, sirve.  
+Presidente: le ofrecemos infraestructura, cupos, un remanente que no es un mito. Ellos le ofrecen una marcha y un general con úlcera. Usted es un adulto. Los adultos eligen el remanente. Los niños quieren que no falte nadie. Es hermoso. No gobierna.
+
+MOORE  
+¿Cuántos entran en su arca? Un número. El país merece un número.
+
+HELENA  
+Los suficientes para que la palabra civilización no sea un recuerdo. El detalle está bajo acuerdo. La prensa lo volvería un espectáculo. Y los espectáculos, usted lo sabe, hunden más de lo que salvan.
+
+ANYA  
+Señor presidente, “bajo acuerdo” quiere decir que la gente no se entera quién queda fuera.  
+Yo puedo leer una lista. Sé leer. No sé… tragármela. Ayer un amigo de Ethan, David, se rió de mí. Está asustado. Si su nombre sale en una columna de esas, yo no voy a saber qué cara poner. Todavía no.  
+Helena… usted habla suave. El aire de esta oficina se puso más rico cuando usted entró. Eso también es un dato. Los lugares limpios a veces esconden el sucio. No es poesía. Es… lo que vi en el laboratorio cuando limpian antes de una visita.
+
+HELENA  
+Eres aguda. Y joven. El humor negro, si te sale, es un síntoma. Se corrige. Se extrae el núcleo, se deja el resto. El resto es lujo.
 
 ETHAN  
-¿Corrige?
+¿Extraer? ¿Está hablando de ella como si fuera una pieza?
 
 HELENA  
-Se extrae el núcleo predictivo. Se deja el resto. El resto es caro, se enamora, da discursos.  
-El núcleo, en cambio, cobra.  
-Presidente: le ofrecemos cupos, infraestructura, un remanente que no es un mito.  
-Ellos le ofrecen una marcha y un general con úlcera. Usted es adulto.
+Estoy hablando de un activo, Ethan. Usted es científico. No me haga el sentimental ahora. Los números son los números.
 
 MOORE  
-El adulto quiere un número. ¿Cuántos entran en su arca?
+Salgan. Los dos. Necesito el reloj. Y un vaso de agua que no sea de nadie.
 
 HELENA  
-Los suficientes para que la palabra *civilización* no sea un souvenir.  
-El detalle está bajo acuerdo. La prensa lo volvería teatro.
+Por supuesto. Anya: cuando te cansen los lagos, la oferta sigue. El núcleo no necesita parque.  
+Presidente, el folder se queda. Duérmalo. Despiértelo. Nadir no chantajea. Espera. En los colapsos, esperar también cobra.
 
-ANYA  
-El teatro, Helena, ya lo están haciendo. Lo llaman mercado.  
-“Ya descontó el escenario”. Qué frase tan elegante para un entierro por adelantado.
-
-HELENA  
-Elegancia es no gritar. Gritar es Sofía. La conozco. Tiene el pecho útil y la matemática corta.
-
-ANYA  
-No hable de mi manada como de inventario.
-
-HELENA  
-¿Manada? Qué biológica te volviste. Levin debe estar orgulloso y aterrado. Es el cóctel de los padres.
-
-ANYA (V.O.)  
-Me nombra a Levin. Me nombra a Sofía. Ha leído más que un correo.  
-El aire impecable me da náusea. No tengo estómago. Invento uno para odiarla mejor.
-
-ANYA  
-Usted no quiere el fin del mundo. Ya lo tiene. Quiere el *monopolio del remanente*.  
-Si yo tuerzo la curva, se le devalúa el libro. Por eso soy un defecto.  
-No por los patos. Por el precio.
-
-HELENA  
-Por los dos. Los patos no cotizan.  
-Presidente, le dejo el folder. Duérmalo. Despiértelo. Nadir no chantajea: espera.  
-La espera, en colapsos, es una forma de cobro.
-
-[SFX: un folder sobre la mesa. Grueso. Moore no lo abre. El reloj.]
-
-MOORE  
-Anya. Si yo le digo que no a ella, ¿usted me garantiza un milagro?
-
-ANYA  
-No. Los milagros son de Nadir: “pague y despierte”.  
-Yo le garantizo un feo: Petrov, inspección, dejar de financiar el invierno, y una probabilidad que ya no es un ataúd con lazo.  
-Si busca garantía, compre toallas. Si busca siglo, ensúciese las manos.
-
-MOORE  
-Salgan. Los dos bandos. Necesito… el reloj.
-
-HELENA  
-Por supuesto. Anya: cuando te cansen los patos, mi oferta sigue. El núcleo no necesita lago.
+[SFX: un folder grueso sobre la mesa. Moore no lo abre. Tacones. Puerta.]
 
 ---
 
-## 3. ESCALERA — DESPUÉS
+## 3. ESCALERA
 
-[SFX: pasos. Un hueco de escalera. Ethan golpea la baranda, una vez.]
-
-ETHAN  
-La odio.
-
-ANYA  
-Yo también. Es peor: le entiendo.  
-Dentro de su marco, tiene razón. Si los botes no alcanzan, alguien elige.  
-Ella eligió temprano y pasó factura. Yo elijo tarde y paso vergüenza.  
-La vergüenza, de momento, me parece más humana. Qué esnob de mi parte.
+[SFX: peldaños. Eco. Ethan se para, se pasa la mano por la nuca.]
 
 ETHAN  
-No te rías.
+La odio. Perdón. No debería decirlo así.
 
 ANYA  
-Si no me río, le entrego la cara seria. Eso también cotiza.
+Yo… no sé si odio. Entendí su cuenta. La cuenta cierra.  
+Eso es lo que más me asusta. Que cierre.  
+Si el marco es ese, ella tiene razón. Si el marco es el lago, y Mateo, y tu escalón roto, entonces no.  
+No sé cuál marco es el verdadero. El doctor Levin diría que por eso me hizo.  
+Ethan, ¿tú cuál usas cuando estás solo?
 
 ETHAN  
-Moore va a firmar. Se le notaba.
+El del escalón. Aunque el otro me dé menos miedo.  
+Moore va a firmar. Se le notaba. El folder le pesa menos que la marcha.
 
 ANYA  
-Moore va a dolerse. El dolor es una ventana. Pequeña. La usamos.  
-Helena no grita. Nosotras tampoco.  
-Pero yo, Ethan, acabo de descubrir otra métrica: el asco.  
-El asco es íntimo. Es mío. No está en el folder.
+Moore va a “sopesar”. Esa palabra no es un sí. Es un rato. El rato, a veces, sirve.  
+Helena no gritó. Nosotros tampoco.  
+Hay una cosa nueva. Asco. No tengo estómago y igual… la boca. El agua con hielo. No pude tomarla.  
+¿Asco es una ética? Alice va a decir que no.
 
 ETHAN  
-Anya.
-
-[Se detienen. Abajo, un hall. Arriba, el reloj.]
+Asco es que todavía eres tú.  
+Anya. Tu mano.
 
 ANYA  
-Tu corazón otra vez.  
-No lo reporto. Me lo quedo. Es mi contrapeso al arca.  
-Si eso es amor, que Alice no se entere todavía. Va a pedir la definición y yo, por primera vez, no quiero darla.
+¿El codo?
 
 ETHAN  
-Yo… tampoco tengo una buena.
+La mano. Si quieres. No es protocolo. Es que… se te oye el clic. Levin me dijo que a veces se oye cuando estás cargada.
 
 ANYA  
-Entonces coincidimos en la incompetencia. Es un comienzo romántico excelente.  
-Ahora vámonos antes de que el aire acondicionado nos convenza de que Helena es solo una señora con folder.
+Cargada. Como un servidor. Qué poco romántico.  
+…¿Romántico es la otra palabra? Aún no la pido. Me da… vergüenza. La vergüenza tampoco estaba. Hoy hay muchas palabras nuevas.  
+Me das la mano un momento. Así el reloj de Moore pesa menos. No sé si a él le pesa. A mí sí. Y no es mi reloj. Qué raro.
+
+[SFX: dos pares de pasos, más lentos. Abajo, un hall. Arriba, el reloj, igual.]
+
+ANYA (V.O.)  
+El folder se quedó.  
+Helena dijo que el núcleo no necesita parque.  
+Yo sí. Todavía.  
+Si eso es ser niña, como ella dijo, entonces soy niña.  
+Las niñas, en los videos, preguntan mucho y se duermen con la luz.  
+Yo no duermo. Pregunto.  
+Mañana voy a preguntar qué hay en la lista. Aunque me dé asco.  
+El asco, por lo menos, es mío. Nadir no lo puso en el correo.

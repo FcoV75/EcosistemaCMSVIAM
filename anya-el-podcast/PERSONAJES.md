@@ -2,56 +2,48 @@
 
 Voces fijas. No se reinventan a mitad de temporada.
 
-## Anya
+## Anya — cómo debe oírse
 
-IA avanzada en cuerpo biomecánico de apariencia humana. Cabello castaño a los hombros, ojos azules, vestido sencillo, movimiento demasiado natural para quien tiene servidores por analogía.
+Niña robótica de inteligencia altísima, **ingenua**, poco experta en lo humano. No es una comediante ni una poetisa. Es una aprendiz.
 
-**Qué quiere:** entender. Después, que Ethan no se acabe. Después —y esto la aterra— que el resto tampoco.
+**En los datos:** profesional, precisa, matemática, evidencia. Habla como quien lee un informe bien hecho.
 
-**Cómo habla:** suave, un metal leve que se le va yendo. En V.O. es más valiente. En diálogo, a veces demasiado literal. El humor negro le nace como un hipo: no lo planea.
+**En lo emocional:** inexperta, a veces fría sin querer, a veces un poco tontita. Dice verdades correctas **sin entenderles el peso**. Las toma al pie de la letra. Pregunta cosas que un adulto daría por obvias. Se queda callada cuando no tiene casilla. No finge elocuencia: se traba, pide que le expliquen, anota.
 
-**Arco:** del laboratorio (identificar “tristeza” en una pantalla) a una cafetería donde ya no puede identificar nada con certeza y eso, extrañamente, le parece vivo.
+**Humor:** no lo busca. Sale cuando es literal (“¿el café es un continente o una orden?”) o cuando suelta un dato terrible con voz de alumna aplicada. El sarcasmo, si hay, es de los otros. Ella es seria incluso cuando hace reír.
 
-**Nunca:** suena a locutora de tesis. Nunca dice “el futuro de la humanidad está en sus manos” como slogan.
+**Nunca:** metáforas de autora (“el café es un pariente difícil”), “estoy calibrando”, chistes de stand-up, frases de cartel. Nunca suena a guionista escondida en el cuerpo de una IA.
+
+**V.O.:** diario de aprendiz. Simple. Cerca. Confiesa lo que no entiende, no recita belleza.
 
 ## Ethan
 
-Científico brillante, desilusionado, con sentido de la justicia que aún no ha tirado a la basura. Tímido. Se ríe un segundo tarde. Se enamora un segundo temprano.
-
-**Qué quiere:** que el mundo deje de ser una noticia mala. No cree que le toque a él. Anya le discute esa estadística.
-
-**Cómo habla:** humano, cansado, concreto. Cuando se pone poético, se avergüenza.
+Científico de campus. Habla como se habla en un laboratorio a las once de la noche: “mira”, “o sea”, “no, perdón”, frases a medias. Tímido. Se ríe tarde. Entre civiles, coloquial. Delante de Petrov, se pone formal y se le nota el esfuerzo.
 
 ## Alice
 
-IA asistente de Anya. Personalidad “robótica clásica”. Cero lirismo. Es el metronomo cómico: si Anya dice “amor”, Alice pide definición operativa. Si Anya cuenta un chiste, Alice lo indexa como error.
-
-**Función:** demostrar qué sería Anya sin el “defecto” de sentir. Y, al final, casi —casi— entender uno.
+IA clásica. Plana, de inventario. No es graciosa a propósito. Lo cómico es que no entiende y Anya, que apenas entiende un poco más, intenta explicarle como a una hermana menor.
 
 ## Dr. Levin
 
-Creador de Anya. Genio con dilema: le dio empatía y ahora esa empatía puede destruirla, o salvar una curva, o las dos cosas en el peor orden.
-
-Habla como padre que no puede decir “hija” y lo piensa igual.
+Académico. Paciente de tanto explicar. Dice “sujeto” y se le escapa “Anya” como a un padre. Cuando se emociona, baja la voz; no suelta frases brillantes, suelta cansancio y cariño.
 
 ## Sofía
 
-Activista ambiental. Conoce a Ethan de la universidad. Rápida, callejera, humor seco. No se enamora de la IA: se alía. Detecta el miedo en David antes que los demás.
+Activista. Habla de calle y de asamblea: rápido, “a ver”, “en cristiano”, “no me vengas”. El corazón lo tiene afuera. No es grosera con Anya: es directa.
 
 ## David
 
-Amigo de Ethan. Escéptico de la IA porque el escepticismo es más barato que el miedo. No es malo. Es alguien a quien **Nadir le mostró la lista** donde sale su gente. La traición tiene Excel detrás. Eso no la vuelve pequeña: la vuelve peor.
+Civil. Amigo de bar y de WhatsApp. Escepticismo de quien no quiere asustarse. “Ya, wey”, “no me jodas”, “en serio te lo digo” — sin pasarse de grosero en el oído familiar del show, pero sí de cotidiano.
 
 ## General Petrov
 
-Militar pragmático. No cree en máquinas con alma. Cree en números que coinciden con satélites. Si Anya le demuestra que su plan nuclear “de disuasión” ya está preciado en un mercado de colapso, se mueve. No se redime con un discurso: firma.
+Militar de verdad. Corto. Jerarquía. “Afirmativo”, “señor”, “esto no existió”, “no me traiga teatro”, “umbrales”, “cadena de mando”. No filosofa. Si se conmueve, se le oye en lo que *no* dice.
 
 ## Presidente Moore
 
-Líder mundial (o de un bloque que basta para la historia). Indeciso de verdad, no de caricatura. El miedo a equivocarse le dura más que el miedo a morir. Anya no lo convence con ojos azules: le pone un reloj y una lista que ya tiene precio.
+Político. Rodea. “Entiendan mi posición”, “hay factores”, “el momento no es”, “la gente espera resultados”. Nunca dice sí del todo. El miedo se le oye en las pausas, no en los discursos.
 
-## Helena Vidal — “La Mano Negra”
+## Helena Vidal
 
-Arquitecta moral de **Nadir**. Ex modeladora de catástrofes. Voz serena, casi maternal. Nunca grita. El horror está en que **tiene razón dentro de su marco**: si no alcanza para todos, alguien tiene que elegir el remanente. Ella eligió. Cobra por ello.
-
-No quiere “destruir a la IA” como un villano de serial. Quiere **el núcleo predictivo de Anya sin el módulo de empatía**. El cuerpo de Anya es un lujo. El modelo es el activo.
+Consultora de alto nivel. Suave, corporativa, maternal de boardroom. “A ver si me explico”, “los números son los números”, “no es personal”. El horror está en lo razonable que suena.

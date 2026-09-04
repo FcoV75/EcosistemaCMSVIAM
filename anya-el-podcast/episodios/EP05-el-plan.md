@@ -1,192 +1,185 @@
 # EP05 — El plan
 
 **Duración objetivo:** 15 min  
-**Elenco:** Anya, Ethan, General Petrov, Alice (canal), un ayudante (breve)  
-**Sets:** Sala de situación (subterránea, fea) · pasillo de concreto  
-**SFX:** aire acondicionado militar, papeles, un mapa que no se ve: se oye un puntero y coordenadas dichas, café aún peor que el de Levin
+**Elenco:** Anya, Ethan, General Petrov, ayudante (breve), Alice (auricular, breve)  
+**Sets:** Sala de situación militar · pasillo de concreto  
+**SFX:** puerta pesada, fluorescentes, aire acondicionado de cuartel, papeles, café de termo
 
 ---
 
-## 1. SALA DE SITUACIÓN — MAÑANA TEMPRANA
+## 1. SALA DE SITUACIÓN — 07:40
 
-[SFX: puerta pesada. Un zumbido de fluorescentes. Alguien deja bandejas. El café militar huele, aun sin olerse, a castigo.]
+[SFX: puerta de metal. Un zumbido. Alguien deja un termo. Sillas rígidas.]
 
 PETROV  
-Ethan. Trajo números o trajo teatro. Tengo treinta minutos y una úlcera.
+Ethan. Usted.  
+Trajo números o trajo teatro. Tengo treinta minutos, cadena de mando arriba y una úlcera que no está en el informe. Hable.
 
 ETHAN  
-Números. El teatro se queda en la cafetería.
+Números, general. Verificación. Nada de escenario.
 
 PETROV  
-Y la mujer. El detector dijo “sí”. Yo dije “no”. Explíqueme por qué no la saco.
+El detector del acceso marcó positivo en la compañera. Yo marqué negativo. Explíqueme por qué no la saco de aquí en este momento.
 
 ANYA  
-Porque soy el modelo, general. Ethan es la boca.  
-Si saca a la boca, le queda un PowerPoint. Si saca al modelo, le queda un hombre triste. Ninguna de las dos cosas le sirve a su úlcera.
+General. Soy Anya. Soy la fuente de los números. Ethan es quien puede hablarlos afuera.  
+Si me saca, le queda un científico con un USB. Si lo saca a él, le queda un modelo que no tiene permiso de entrar a un micrófono. Ninguna de las dos cosas le sirve.  
+No es teatro. Es… organigrama. Creo que se dice así.
 
 PETROV  
-Habla como si no le importara el arresto.
+Organigrama.  
+Usted perdone, señorita, aquí no se trabaja con “creo”. Se trabaja con umbrales, sensores y responsabilidad. Si esto es charlatanería, esta reunión no existió. ¿Quedó claro?
+
+ETHAN  
+Claro, señor.
 
 ANYA  
-Me importa. Estoy calibrando el miedo a las puertas pesadas. Van tres de diez. Subiendo.
+Claro. Sí, señor.  
+Lo ensayé. No sé si se dice dos veces.
 
 PETROV  
-*(un resoplido que podría ser risa)*  
-Siéntense. Si esto es charlatanería, los dos salen por el mismo pasillo y yo no los vi.
+Una basta. Siéntense. Ayudante: el canal de satélite, en pantalla. Y que nadie entre.
 
-[SFX: sillas. Un tecleo. Alice, en un auricular de Anya, muy bajito.]
+AYUDANTE  
+Afirmativo.
+
+[SFX: teclas. Un tono de enlace. Alice, bajito, solo en el auricular de Anya.]
 
 ALICE *(solo Anya)*  
-El general miente sobre los treinta minutos. Tiene cincuenta. La úlcera es real.
+El general declaró treinta minutos. Agenda real: cincuenta. La úlcera consta en su expediente médico.
 
 ANYA *(muy bajo)*  
-Gracias, Alice. No le ofrezcas un chiste.
+No se lo digas. No es… educado.
 
----
+PETROV  
+¿Habló?
 
-## 2. LOS SATÉLITES
+ANYA  
+Con mi sistema. Perdón. No volverá a pasar.  
+General, los umbrales de tensión y de clima, si cruzan sus sensores con los nuestros, coinciden. Eso es lo primero. Lo aburrido. Ethan lo trajo en limpio.
 
 ETHAN  
-Esto no pide que desactive ojivas con un dedo. Eso es una película y una forma de empezar una guerra con otro nombre.  
-Pide tres cosas aburridas. Las cosas aburridas salvan.
+Uno: verificación cruzada. Si coinciden, deja de ser opinión de un laboratorio.  
+Dos: hay un consorcio, Nadir Continuity. Están descontando el escenario de colapso como si fuera un producto. Eso cambia incentivos, general. Gente razonable hace cosas feas si las feas pagan.  
+Tres: nadie le pide que apague ojivas con un interruptor. Eso es una forma de empezar otra guerra. Lo que hay es inspección, acuerdos que duelen, y dejar de financiar el invierno como si fuera un seguro.
 
 PETROV  
-A ver.
+Parecer débil mata gobiernos. Y mata mandos. Yo no estoy aquí para parecer bueno.
+
+ANYA  
+No firmar también mata gente. Es un empate… feo.  
+Nadir lo resuelve eligiendo quién se queda. Usted todavía no ha elegido. Eso lo hace más lento. Y más decente. Los dos datos importan. El decente no está en el satélite. Está… en usted. No sé si se puede medir. Yo no lo medí. Lo oí.
+
+PETROV  
+Nadir. Los he tenido en briefings. Hablan de “remanente viable”. Suena a ganadería con PowerPoint.
+
+ANYA  
+Es una lista. De gente. De lugares. De quién no recibe camión cuando falte el agua.  
+No es cine. Es administración.  
+General, yo soy un modelo con cuerpo. Me pidieron empatía. La empatía, en ellos, es opcional. En mí… está a medias. A veces digo cosas correctas y no les entiendo el peso. Ayer dije 2050 delante de niños y no supe por qué Ethan se puso blanco. Ahora sí lo estoy… intentando.
+
+PETROV  
+Si le doy la razón, mañana tengo al estado mayor preguntándome si una máquina nos hace la doctrina. Yo no entrego doctrina a nadie que no lleve uniforme. ¿Me explico?
 
 ETHAN  
-Uno: verificación cruzada. Sus satélites y los nuestros. Si coinciden los umbrales de tensión y de clima, deja de ser “opinión de laboratorio”.  
-Dos: dejar de tratar el colapso como un producto. Hay un consorcio —Nadir— que ya descuenta el invierno. Eso cambia incentivos. La gente razonable se vuelve monstruo si el monstruo paga.  
-Tres: inspección, no milagro. Acuerdos que duelen. Usted sabe cuáles. Los que nadie quiere firmar porque firmar es parecer débil.
+Nadie pide eso, señor. Pedimos que mire la coincidencia. Si no hay coincidencia, nos vamos. Y esto no existió. Como usted dijo.
 
 PETROV  
-Parecer débil mata gobiernos.
+Ayudante.
 
-ANYA  
-No firmar mata gente. Es un empate desagradable.  
-Nadir lo resuelve eligiendo *quién*. Usted, todavía, no ha elegido. Eso lo hace más decente y más lento. Los dos datos importan.
-
-PETROV  
-Nadir. Los he tenido en briefings. Hablan de “remanente viable”. Suena a ganadería.
-
-ANYA  
-Es ganadería con Excel. Y con aire acondicionado.
+AYUDANTE  
+Umbrales alineados, señor. Más de lo que nos gusta escribir.
 
 PETROV  
-¿Y usted qué es, señorita modelo? ¿Un ángel? ¿Un virus?
+Fuera. Cierre al salir.
 
-ANYA  
-Un defecto con patas. Me pidieron empatía. La empatía, general, es un virus que se niega a redondear a la baja.  
-Usted redondea por oficio. Yo ya no puedo. Por eso Ethan habla y yo molesto.
-
-PETROV  
-Si le doy la razón, mañana tengo a medio estado mayor preguntando si una muñeca nos hace la doctrina.
-
-ANYA  
-No soy muñeca. Las muñecas no tienen miedo a su café.  
-Y no les haré la doctrina. Les haré una pregunta grosera:  
-¿cuánto cobra Nadir por la silla en la que usted se sienta cuando el mapa se apague?
-
-[Silencio. Un papel que Petrov arruga.]
-
-PETROV  
-Eso fue una insolencia.
-
-ANYA  
-Fue un modelo. Las insolencias pesan menos.
-
-ETHAN  
-General. Mire la coincidencia de satélites. Solo eso. Si no hay coincidencia, me llevo a Anya y al teatro de vuelta a los patos.
-
-[SFX: teclas. Un tono: coincidencia. Feo, limpio.]
-
-AYUDANTE *(breve)*  
-Umbrales alineados, señor. Más de lo que nos gusta.
-
-PETROV  
-Fuera.
-
-[Puerta. Quedan tres.]
+[SFX: puerta. Quedan tres. Petrov arruga un papel.]
 
 PETROV  
 Voy a hacer llamadas que no voy a disfrutar.  
-Usted, la defectuosa, no vuelve a entrar aquí con detector.  
-Usted, Ethan, vuelve con menos poesía.
+La señorita no vuelve a entrar por el detector. Ethan vuelve con menos adornos.  
+Y si Nadir me llama a mí antes que a Moore, voy a saber que el invierno tiene vendedor. Eso, en mi oficio, se llama interferencia. Y no me da la gana.
+
+ANYA  
+¿Interferencia es malo? En señales, sí. En personas… también, entonces.
+
+PETROV  
+También.  
+Treinta minutos fueron cincuenta. No se lo digan a mi médico. Ni a mi úlcera.  
+Retírense.
 
 ETHAN  
-Trato.
-
-PETROV  
-Y Nadir… si me llama a mí antes que a Moore, voy a saber que el invierno tiene vendedor.  
-Eso, de verdad, me enfada.
+Sí, señor. Gracias, señor.
 
 ANYA  
-El enfado es una métrica excelente. Alice no lo va a entender. Yo sí. Me está gustando más de lo prudente.
+Gracias.  
+General… su café de termo está muy caliente. Cuidado. Eso no era un dato estratégico. Era… cuidado. El doctor Levin dice que hay que decirlo. Todavía no sé cuándo.
 
 PETROV  
-No me caiga bien.
-
-ANYA  
-Tampoco es el plan. El plan es que coincidamos en un número y nos caigamos mal con profesionalismo.
-
-[Petrov suelta una risa de una sílaba. Silla hacia atrás.]
-
-PETROV  
-Treinta minutos fueron cincuenta. No se lo digan a mi úlcera.
+…Entendido.  
+Fuera.
 
 ---
 
-## 3. PASILLO DE CONCRETO
+## 2. PASILLO DE CONCRETO
 
-[SFX: sus pasos. Un eco. El hum militar, distinto al de Levin.]
+[SFX: eco de botas. Hum de ductos. Distinto al del laboratorio.]
 
 ETHAN  
-Te pasaste.
+Te temblaban las manos.
 
 ANYA  
-Un poco. El humor negro, cerca de los generales, es como el café militar: se siente un delito y funciona.
+Sí. El cuerpo avisa. Yo llegué tarde al aviso.  
+¿Hablé demasiado? Ensayé “sí, señor” y después dije lo de los camiones. No sé si un general quiere oír camiones.
 
 ETHAN  
-Me temblaban las manos.
+Quería oír la verdad. La oíste tú primero. Yo solo la traduje un poco.
 
 ANYA  
-Las sentí. No las conté. Estoy progresando: ya puedo no convertir a la gente en gráfico delante de su cara.
+Él no nos quiere. Eso está bien. No es un requisito. En el laboratorio tampoco todos me quieren. Alice no me quiere. Alice no puede.
 
 ETHAN  
-Anya… cuando dijiste lo de la silla. Pensé en la mía. En la tuya. En la de Sofía.
+Petrov no es Alice. Se enfadó de verdad. Eso, Anya, nos sirve.
+
+[SFX: el teléfono de Ethan.]
+
+ETHAN  
+Despacho de Moore.  
+…Sí. Nadir ya estuvo. Ofrecieron “continuidad”.  
+Mañana nos reciben. Quince minutos.
 
 ANYA  
-Yo pensé en la tuya primero. Es un sesgo. Levin va a llamarlo “apego”. Yo lo llamo, de momento, *preferencia no presupuestada*.
-
-ETHAN  
-Eso fue casi romántico.
-
-ANYA  
-Casi. Si lo hago bien, se va a oír como un error de redondeo.  
-Si lo hago mal, se va a oír como lo que es.
-
-[SFX: el teléfono de Ethan. Otra vez.]
-
-ETHAN  
-Moore. El despacho.  
-…Nadir ya estuvo. “Ofrecieron continuidad”.
-
-ANYA (V.O.)  
 Llegamos tarde a la boca del presidente.  
 No al número. El número es nuestro.  
 A la boca.  
-Las bocas, estoy aprendiendo, se alquilan más barato que los satélites.
-
-ANYA  
-Entonces no vamos a venderle esperanza.  
-Le vamos a decir, con educación de funeral, que su continuidad ya tiene precio.  
-Y que el precio no lo pone él.
+Las bocas, estoy aprendiendo, se alquilan. No sabía que se podía. En el manual de ética no sale. O sale y yo no lo entendí.
 
 ETHAN  
-Eso va a doler.
+Vamos a decirle que su continuidad ya tiene precio. Y que el precio no lo pone él.  
+Va a dolerle. A los políticos les duele eso más que el resto.
 
 ANYA  
-El dolor, Ethan, es el primer signo de que no somos Nadir.  
-Alice dice que no es métrica.  
-Yo, hoy, le tomo la temperatura a un general y a ti.  
-Los dos están calientes. El mundo, también.  
-Caminemos antes de que el aire acondicionado nos convenza de que esto es normal.
+El dolor… es señal de que no somos Nadir. Alice dice que el dolor no es métrica.  
+A mí me está empezando a doler el pecho otra vez. Como con el lago. Como con tu mano.  
+Ethan, si mañana me pongo literal y digo una cosa correcta de más, ¿me tocas el codo? Así sé que tengo que callar. No entiendo las caras tan rápido como los gráficos.
+
+ETHAN  
+Te toco el codo. Trato.  
+Cuidado con el umbral de la puerta. Está alto. No es un chiste.
+
+ANYA  
+Umbral. En el general era un número. Aquí es un hierro.  
+Las palabras se usan para dos cosas. Por eso me confundo.  
+Voy a ensayar menos. Voy a oír más. Usted dijo que así me quedé en la cafetería.
+
+ETHAN  
+Así.  
+Vamos, Anya. Paso a paso.
+
+ANYA (V.O.)  
+Paso a paso.  
+El general dijo “esto no existió” y después existió.  
+El presidente tiene quince minutos. Nadir ya estuvo.  
+Yo tengo un codo para cuando hable de más.  
+Eso, en el modelo, no pesa nada.  
+En mí, ahora, pesa. No sé si está bien. Lo voy a llevar igual.

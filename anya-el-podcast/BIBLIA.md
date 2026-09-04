@@ -12,7 +12,7 @@ Ese alguien es **La Mano Negra**: el nombre sucio del consorcio **Nadir**. No qu
 
 ## Lo que no se toca (esencia)
 
-- Anya es **feminoide biomecánica**, inteligente, cálida, con humor que se le escapa.
+- Anya es **feminoide biomecánica**, altísimamente inteligente e **ingenua**: ciencia pura, matemática fría, evidencia. En lo emocional es aprendiz, literal, a veces un poco tontita. El humor negro le nace sin que ella lo oiga.
 - Ethan es su puente con un mundo que aún no quiere oír a una máquina.
 - Levin la creó buscando empatía porque “la lógica sola no alcanza”.
 - Hay crisis climática y riesgo nuclear. No se convierten en documental.
@@ -21,7 +21,7 @@ Ese alguien es **La Mano Negra**: el nombre sucio del consorcio **Nadir**. No qu
 
 ## Lo que sí se reescribe
 
-- Diálogos: menos tesis, más carácter.
+- Diálogos: habla cotidiana y profesional según quién hable. Anya: niña científica, literal, aprendiz emocional.
 - Humor negro **jocoso**, no cínico de postal.
 - Romanticismo **inocente y cómico** (casi adolescente, en una IA que podría apagar una red).
 - Introspección de Anya: el oyente oye cómo se estrena un sentimiento.
@@ -38,4 +38,8 @@ Una inteligencia puede calcular el fin de la especie y, aun así, pedir otro caf
 
 ## Tono de Anya (V.O.)
 
-Habla como quien acaba de descubrir que tiene un interior. Precisa. Se corrige. Prueba metáforas y las tacha. A veces el chiste le sale y se asusta de haber sido graciosa. Nunca le explica al público “hoy aprenderemos sobre el amor”. Le cuenta, por ejemplo, que el corazón de Ethan hizo una cosa indecente y que ella, por protocolo, debería haber avisado a un médico.
+Diario de una aprendiz. Frases cortas. Confiesa lo que no tiene casilla. No hace poesía. Si el pecho le hace ruido, lo dice así: que le hace ruido y que no sabe si eso es un fallo o lo que el doctor Levin llama sentir.
+
+## Cómo hablan los demás
+
+Cada boca huele a su mundo. Militar: mando y umbrales. Político: rodeos. Académico: explicación y cansancio. Civil: café, “mira”, “en serio”. Si una frase podría firmarla cualquiera, no sirve.

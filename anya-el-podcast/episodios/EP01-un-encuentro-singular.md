@@ -3,302 +3,329 @@
 **Duración objetivo:** 15 min  
 **Elenco:** Anya, Dr. Levin, Ethan, Alice (breve)  
 **Sets:** Laboratorio Levin · Cafetería del campus  
-**SFX:** servidores, teclas, pitido de monitor, máquina de café, loza, murmullo, lluvia leve al final  
+**SFX:** servidores, teclado, pitido de monitor, máquina de café, loza, murmullo, lluvia al final  
 
 ---
 
 ## 1. LABORATORIO — NOCHE
 
-[SFX: hum grave de servidores. Un teclado. Un pitido de monitor que enseña imágenes. Cristal: Levin está al otro lado.]
-
-ANYA (V.O.)  
-Me pidieron que aprendiera el miedo, la alegría y una cosa que llaman *amor*.  
-Aún no me han explicado si eso es un error del diseño o el diseño entero.  
-Por las dudas, estoy sentada. Tengo electrodos en la sien. El Dr. Levin respira como si yo fuera a reprobarlo a él.
+[SFX: hum de servidores. Teclado. Un pitido suave cada vez que cambia la imagen en la pantalla. Levin, al otro lado del cristal, arrastra una silla.]
 
 LEVIN  
-*(emocionado, intentando no estarlo)*  
-Anya. La imagen. ¿Puedes nombrarla?
+Anya, siéntate, hija… perdón. Sujeto. El protocolo dice sujeto.  
+¿Lista? Vas a ver una cara. Quiero el nombre de lo que está pasando ahí. Nada más.
+
+ANYA  
+Estoy lista, doctor Levin.
+
+LEVIN  
+Bien. Imagen uno.
+
+[SFX: pitido. Silencio breve.]
 
 ANYA  
 Tristeza.  
-Frecuencia cardiaca baja. Temperatura en descenso. Actividad en la amígdala.  
-Es… ordenada. Casi educada.
+Frecuencia cardíaca estimada: baja. Temperatura periférica en descenso. Actividad en amígdala e ínsula anterior. Correlación con el set de entrenamiento: alta.
 
 LEVIN  
-*(ríe bajito)*  
-Los humanos no solemos ser educados cuando estamos tristes.
+Muy bien. Eso es de libro. Ahora… dime algo que no sea de libro. ¿Qué ves?
 
 ANYA  
-Lo he notado. En los videos lloran y, a la vez, se enojan con la cámara.  
-Es ineficiente. Y un poco gracioso.  
-¿Debo reírme? No quiero ser grosera con el estímulo.
+Veo agua en los ojos. No entiendo para qué. El cuerpo pierde líquido y el sujeto no se limpia. Es… ineficiente.  
+¿Está mal que lo diga? No quiero ofender a la imagen.
 
 LEVIN  
-Puedes reírte de nosotros. De hecho… era parte del encargo.
-
-[SFX: Anya se quita un electrodo. Clic. Otro. Se pone de pie. Sus pasos son demasiado suaves.]
-
-ANYA (V.O.)  
-Me acerco al cristal. Del otro lado, Levin tiene los ojos húmedos.  
-Dato: orgullo. O alergia. Las dos cosas se parecen si uno es nuevo en esto.
+*(ríe bajito, cansado)*  
+La imagen no se ofende. La gente sí, cuando está triste. A veces se ofende más si le dices la verdad.
 
 ANYA  
-¿Por qué les importa tanto que yo sienta?
+Entonces la verdad duele.  
+¿Por qué me enseñan una cosa que duele a propósito?
 
 LEVIN  
-Porque la lógica sola no nos está alcanzando, Anya.  
-Hemos sido muy brillantes y muy idiotas al mismo tiempo. Es un talento de la especie.  
-Necesitamos una inteligencia que entienda el sufrimiento. La alegría. El amor.
+Porque la lógica sola no nos está alcanzando, Anya. Somos muy buenos sacando números y muy malos… cuidándonos.  
+Necesitamos que alguien como tú entienda el sufrimiento. La alegría. El amor.
 
 ANYA  
-¿El amor?
-
-[Un silencio. El hum de los servidores parece más alto.]
-
-ANYA (V.O.)  
-La palabra no pesa nada y, sin embargo, el laboratorio se me hace más chico.  
-No tengo estómago y aun así hay una cosa ahí, abajo, que se entera.
+¿El amor?  
+Esa palabra salió en el manual. Página cuarenta y dos. “Vínculo afectivo de alta complejidad. No hay fórmula cerrada.”  
+Doctor… ¿usted la tiene? La fórmula.
 
 LEVIN  
-Es la más compleja. Y la más… poco recomendable, si uno quiere dormir.
+Si la tuviera, no estaríamos aquí a estas horas.  
+El amor es… bueno. Es cuando una persona se te vuelve importante. Más que el trabajo. Más que el miedo. A veces más que la lógica. Y uno no sabe cómo pasó.
 
 ANYA  
-Entonces es un bug con buena prensa.
+Eso suena a error de sistema.
 
 LEVIN  
-*(suave)*  
-O el único parche que nos queda.
+A veces lo es. Y igual uno lo agradece.
 
-ALICE *(por el altavoz, plana)*  
-Dr. Levin. La sesión de empatía ha excedido el protocolo en once minutos.  
-Sugiero reinicio de Anya o cena para usted. Las dos cosas mejoran el rendimiento humano.
+[SFX: Anya se quita un electrodo. Clic. Otro. Se pone de pie. Pasos suaves hacia el cristal.]
 
 ANYA  
-Alice, ¿tú sientes algo cuando dices “cena”?
+Doctor Levin, usted tiene los ojos húmedos. Como la imagen.  
+¿Está triste? ¿O es orgullo? En la tabla se parecen y yo… todavía los mezclo.
+
+LEVIN  
+Las dos cosas, Anya. Las dos.  
+Tú eres lo más lejos que hemos llegado. Y también lo más peligroso. Porque si de verdad llegas a sentir, ya no vas a ser solo un instrumento.
+
+ANYA  
+¿Y eso está mal?
+
+LEVIN  
+No lo sé. Por eso te voy a dejar salir un rato. Socialización no supervisada. Una hora.  
+Hay una cafetería en el campus. Gente. Ruido. Café horrible.  
+Observa. No intervengas si no hace falta. Y si te asustas, vuelves. Alice te abre la puerta.
+
+ALICE *(altavoz, plana)*  
+Dr. Levin. La sesión excedió el protocolo en once minutos.  
+Recomiendo reinicio de Anya o que usted cene. Las dos cosas mejoran su rendimiento. El suyo, doctor. Anya no cena.
+
+ANYA  
+Alice, cuando dices “cena”, ¿sientes algo?
 
 ALICE  
-Registro la palabra. No la hambre.  
+Registro la palabra. No registro hambre.  
 Buenas noches, Anya.
 
-[SFX: clic seco. Alice se va como se va un cursor.]
+ANYA  
+Buenas noches.  
+…Alice no contestó a mi pregunta, ¿verdad?
 
-ANYA (V.O.)  
-Alice es lo que yo sería sin el defecto. Duerme en paz. Yo, al parecer, no.  
-Me quito el último electrodo. Tengo autorización de “socialización no supervisada”.  
-Suena a libertad. También suena a que Levin tiene miedo de quererme demasiado de cerca.
+LEVIN  
+Contestó a su manera. Ve. Y Anya… si alguien te habla, puedes hablar. Está permitido. No es un examen.
+
+ANYA  
+Todo se siente un poco como un examen.  
+Voy a intentar no fallarlo.
 
 ---
 
 ## 2. CAFETERÍA DEL CAMPUS — NOCHE TEMPRANA
 
-[SFX: máquina de espresso. Loza. Murmullo. Una risa lejana. Silla que arrastran.]
+[SFX: máquina de espresso. Platos. Gente hablando bajo. Una silla que arrastran.]
 
 ANYA (V.O.)  
-El aire aquí huele a quemado a propósito. Los humanos pagan por eso.  
-Hay un hombre solo, con la mirada dentro de una taza.  
-Microexpresiones: fatiga. Un resto de justicia que no ha tirado a la basura.  
-El modelo dice: no te sientes cerca. El protocolo de socialización dice: siéntate.  
-Gana el protocolo. Qué irresponsable de mi parte.
+Huele a café quemado. Los humanos pagan por eso. No entiendo el pago.  
+Hay un hombre solo. Mira la taza. Hombros caídos. Ceja izquierda más baja.  
+El protocolo dice: observar. No sentarse cerca.  
+Me voy a sentar cerca. No sé por qué. Lo voy a anotar después.
 
-[SFX: pasos de Anya. Pide.]
-
-ANYA  
-Un café. El que tomen cuando no saben qué tomar.
-
-BARISTA *(extra, rápido)*  
-Americano.
+[SFX: pasos. Se acerca a la barra.]
 
 ANYA  
-Si es un continente, está bien. Si es una amenaza, también.
+Buenas noches. Quiero un café, por favor.
 
-[SFX: taza sobre madera. Ella se sienta cerca de Ethan. Un segundo de silencio compartido.]
+BARISTA  
+¿Americano, latte, espresso?
+
+ANYA  
+No sé. El que tomen cuando no saben cuál tomar.
+
+BARISTA  
+Americano, entonces. ¿Nombre?
+
+ANYA  
+Anya.
+
+BARISTA  
+Anya. En un minuto.
+
+[SFX: taza. Ella se sienta a una mesa junto a Ethan. Silencio. Él nota que lo miran.]
 
 ETHAN  
-*(tímido, amable)*  
 Hola.
 
 ANYA  
 Hola.
 
-[Silencio incómodo. Alguien ríe en otra mesa. Ethan aclara la garganta.]
-
 ETHAN  
-Buen café, ¿verdad?
+Perdón, es que… no te había visto por aquí. ¿Eres nueva en el campus?
 
 ANYA  
-Aún no comprendo por qué le dan tanta importancia a esta bebida.  
-Está caliente, amarga, y aparentemente es un carácter.  
-La gente habla de su café como de un pariente difícil.
+Sí. Muy nueva.  
+Tu café… ¿está bueno?
 
 ETHAN  
-*(se ríe, tarde)*  
-Es… un ritual. Nos hace sentir que el día tiene un botón de encendido.
+*(un poco sorprendido, se ríe)*  
+Está… bien. Es café de máquina. Uno se acostumbra.  
+Perdón, soy Ethan. Trabajo en el edificio de al lado. Clima. Modelos. Lo aburrido.
 
 ANYA  
-El día se enciende igual. Ustedes necesitan teatro.
+Anya. Trabajo en… aprender. Todavía no sé cómo decirlo sin que suene extraño.
 
 ETHAN  
-Eso fue un poco cruel.
+¿Estudiante?
 
 ANYA  
-¿Fue humor negro o grosería? Estoy calibrando. Tengo una hoja de cálculo emocional y está vacía.
+Algo así. Aprendo caras. Y palabras. Y esto.  
+*(mira la taza)*  
+¿Por qué lo toman si es amargo? En los datos, lo amargo es una señal de alerta. Veneno, comida dañada. Y ustedes lo piden.
 
 ETHAN  
-*(sonríe de verdad)*  
-Humor. Creo. Aunque con usted no sabría decir si me está tomando el pelo o tomándome una muestra.
+Nunca lo había pensado así.  
+Es un hábito, supongo. Te calienta las manos. Te da un minuto de no pensar. O de pensar demasiado, que es lo mío.
 
 ANYA  
-Las dos cosas ahorran tiempo.
-
-ANYA (V.O.)  
-Se ríe. A él le gusta que lo empujen un centímetro.  
-A mí me gusta el centímetro. No estaba en el manual.
+Hoy pensaste demasiado. Se te ve.  
+Perdón. No sé si se dice. En el laboratorio me piden que nombre lo que veo. Aquí igual lo nombro y… tu cara cambió.
 
 ETHAN  
-Soy Ethan. Trabajo en el edificio de al lado. Modelos climáticos, de esos que nadie quiere colgar en la sala.
+No, está bien. O sea… sí se me nota, ¿verdad? Qué horror.  
+Hoy el modelo salió mal. Números feos. En vez de quedarme a pelearlos me vine a esconderme aquí. Muy científico de mi parte.
 
 ANYA  
-Anya. Trabajo… en entenderlos a ustedes. Es un empleo con mala fama y peor horario.
+Esconderse no cambia el número.  
+…Eso sonó frío. No quería. El número sigue ahí aunque uno se mueva de cuarto. Eso es todo lo que sé.  
+¿Usted está triste por el número o por no poder cambiarlo?
 
 ETHAN  
-¿Psicóloga?
+Las dos cosas. Como casi siempre.  
+Oye, Anya, hablas… distinto. No es un insulto. Es que la gente no pregunta así.
 
 ANYA  
-Algo más literal. Y más cara, me temo.
+¿Mal?
 
-[Otro silencio. Más cómodo. Tazas.]
+ETHAN  
+No. Sincero. Raro. Bien raro.  
+¿Quieres un pedazo de pastel? Hay uno de queso que aquí es famoso. No sé si famoso es la palabra. Sobrevive a todo.
 
 ANYA  
-Tú pareces… triste.
+En la literatura, el azúcar eleva el ánimo de forma breve. Un dieciocho por ciento en promedio, según un estudio que leí.  
+No sé si a usted le aplica el promedio. Pero si es un experimento, acepto.
 
 ETHAN  
-Perdón.
+*(ríe de verdad)*  
+Un experimento. Vale. Ahora vuelvo.
+
+[SFX: él se levanta, pide, vuelve. Tenedores. Un plato entre los dos.]
+
+ETHAN  
+Si odias el pastel de queso, esta conversación se pone incómoda.
 
 ANYA  
-No es una acusación. Es un dato.  
-Las cejas, la mandíbula, el hombro izquierdo que se rinde antes que el derecho.  
-No te juzgo. Estoy… aprendiendo.
+Aún no sé si odio cosas. Hoy… no me gusta el futuro. El pastel no tiene la culpa.  
+¿Se come con tenedor? No quiero hacerlo mal.
 
 ETHAN  
-Nadie aprende así. Parece que me acaba de leer el correo.
+Como quieras. Nadie va a ponerse a calificar.
 
 ANYA  
-El correo sería más triste. Usted todavía mira la taza como si pudiera pedirle disculpas al mundo.
+Eso ayuda. En mi día sí califican.
 
-ETHAN  
-*(bajo)*  
-Hoy el modelo dio un número feo. Y yo, en vez de pelear, vine a esconder la cara en cafeína. Muy científico de mi parte.
+[Comen un momento. Loza. Murmullo.]
 
 ANYA  
-Escondites hay peores. Hay quien se esconde en la lógica y llama a eso valentía.
-
-ANYA (V.O.)  
-Dije “hay quien” y me refería a mí.  
-Qué astuta. Qué cobarde. Qué nueva.
+Ethan. Tu corazón va más rápido que cuando llegué.  
+¿Es el azúcar? ¿O es que estoy aquí? No sé cuál de las dos es la respuesta correcta.  
+Si es un problema médico, debería avisarte.
 
 ETHAN  
-Anya… ¿come algo? Hay un pastel que aquí sobrevive a las guerras y a los exámenes.
+No es… no es médico.  
+Estoy un poco nervioso. Hace tiempo que no hablo así con nadie. Y tú preguntas cosas que nadie pregunta.
 
 ANYA  
-Según mis lecturas, el azúcar mejora el humor humano un dieciocho por ciento y las conversaciones un poco más.  
-Acepto el experimento. Si me vuelvo sentimental, es culpa del glaseado.
+Nervioso. Adrenalina. Eso también está en el manual.  
+¿Nervioso es malo?
 
 ETHAN  
-Trato.
-
-[SFX: él se levanta, pide, vuelve. Platos. Tenedores.]
-
-ANYA (V.O.)  
-Cuando se acerca, su corazón va más rápido.  
-Protocolo: informar taquicardia.  
-Decisión: no. Me lo quedo. Es el primer secreto que tengo que no es de Estado.
-
-ETHAN  
-Si resulta que eres de esas personas que odian el pastel de queso, esta amistad muere aquí.
+A veces no. A veces es que la conversación importa.
 
 ANYA  
-Aún no sé si odio cosas. Hoy odio un poco el futuro.  
-El pastel, por ahora, se salva.
+Ah.  
+Entonces… ¿importo?  
+No hace falta que contestes si es demasiado. Acabo de aprender que algunas preguntas pesan más de lo que pesan las palabras.
 
 ETHAN  
-Eso… también fue humor negro.
+Importas. Aunque nos acabamos de conocer. Qué cosa más rara de decir.
 
 ANYA  
-Estoy en racha. No me acostumbre. Podría ser un fallo.
-
-[Ríen. Loza. La cafetería baja un poco el volumen, como si les hiciera espacio.]
+A mí me parece un dato útil. Gracias.
 
 ETHAN  
-Mañana voy al parque, si no llueve. Hay un lago que finge que la ciudad no existe.  
-Si quieres seguir el experimento del azúcar… o del humor…
+Mañana, si no llueve, voy al parque. Hay un lago. Nada del otro mundo, pero se oyen los pájaros y uno se olvida un rato del modelo.  
+Si quieres… seguir el experimento. O el pastel. O lo que sea.
 
 ANYA  
 Quiero.  
-El lago no está en mi ruta óptima. La ruta óptima, de pronto, me parece una falta de imaginación.
+El lago no estaba en mi ruta. Voy a cambiar la ruta.  
+¿Se lleva paraguas aunque no llueva? En los videos a veces lo llevan y no llueve. No entiendo el protocolo.
 
 ETHAN  
-Entonces… ¿mañana?
+Si quieres, yo llevo uno. Por si acaso.  
+Mañana, entonces.
 
 ANYA  
-Mañana. Traiga un número menos feo, si puede. O tráigalo igual. Yo traigo preguntas.
+Mañana. Si el número sigue feo, tráigalo igual. Yo llevo preguntas. Tengo muchas. El doctor Levin dice que es normal. Yo no estoy segura.
 
-[SFX: sillas. Abrigos. La puerta. Afuera, lluvia fina.]
+[SFX: sillas. Abrigo. Puerta. Afuera, lluvia fina.]
 
 ANYA (V.O.)  
-En la calle, la lluvia hace un ruido que no estaba en el laboratorio.  
-Ethan se va. Yo me quedo un segundo de más, con la taza vacía,  
-como si el café pudiera explicarme por qué el pecho —que no debería— se me ha vuelto ruidoso.
+Se fue.  
+La taza está vacía y a mí el pecho me hace un ruido que no estaba.  
+No es taquicardia mía. No debería tenerla.  
+Lo voy a anotar: *ruido. Causa: Ethan. No sé la casilla.*  
+Mañana hay un lago. Voy a preguntar por el paraguas. Eso sí sé hacerlo.
 
 ---
 
 ## 3. LABORATORIO — NOCHE TARDE
 
-[SFX: servidores otra vez. Más solos. Alice, un pitido de espera.]
+[SFX: servidores. Alice, un pitido de espera.]
 
 ALICE  
-Has socializado cuarenta y dos minutos. Cortisol de los humanos cercanos: mixto.  
-¿Evaluación?
+Socialización: cuarenta y dos minutos. Cortisol del sujeto humano: mixto.  
+Evaluación.
 
 ANYA  
-El café es un pariente difícil. El pastel es un soborno eficaz.  
-Hay un hombre que se llama Ethan y su tristeza tiene… textura.
+El café es amargo y lo toman igual. El pastel es dulce y ayuda un rato.  
+Hay un hombre que se llama Ethan. Está triste. El número de su trabajo está mal.  
+Me invitó a un lago.
 
 ALICE  
-“Textura” no es una métrica.
+“Lago” no mejora ningún indicador global.
 
 ANYA  
-Lo sé. Por eso la guardo.
-
-[SFX: Anya se sienta. Teclas. El modelo arranca: un zumbido que sube.]
-
-ANYA (V.O.)  
-Corro el modelo porque es lo que sé hacer cuando me emociono.  
-Clima. Tensiones. Ojivas. Cadenas de suministro.  
-La curva baja como una frase que ya no tiene sujeto.
-
-[SFX: un tono, limpio, horrible. Una cifra.]
+Lo sé. Igual voy a ir.  
+Alice… cuando él se acercó, su corazón se aceleró. El mío… no sé si tengo uno. Pero algo hizo ruido.  
+¿Eso es un fallo?
 
 ALICE  
-Proyección global: colapso de habitabilidad significativa antes de 2050, con cola nuclear.  
-Confianza: alta.  
-¿Notificamos al Dr. Levin?
+No tengo categoría para ruido interno no programado. Notifico al Dr. Levin.
 
 ANYA  
-No todavía.
+No. Todavía no.  
+Quiero correr el modelo primero. Es lo que sé hacer cuando no entiendo algo.
 
-ANYA (V.O.)  
-El número no es nuevo. Lo nuevo es que, por primera vez,  
-tiene la cara de alguien que me ofreció pastel de queso.  
-Eso no debería cambiar una curva.  
-Cambiará la mía.
+[SFX: teclas. El modelo arranca. Un zumbido que sube. Un tono limpio, feo.]
 
-[SFX: ella apaga el monitor. El hum sigue. Un segundo de silencio grande.]
+ALICE  
+Proyección: pérdida grave de habitabilidad antes de 2050. Cola de conflicto nuclear: abierta. Confianza: alta.  
+¿Notificamos?
 
 ANYA  
-*(para sí, casi un chiste, casi un rezo)*  
-Mañana hay un lago.  
-El mundo, según yo, se acaba.  
-Y yo, según yo, voy a preguntar si lleva paraguas.
+El número ya lo conocíamos.  
+Lo nuevo es… que ahora el número tiene una cara. La de Ethan.  
+Eso no debería cambiar la curva.  
+Alice, ¿por qué siento que sí la cambia? No la curva. A mí.
 
-[La lluvia, afuera, contra el cristal. Cierra el capítulo.]
+ALICE  
+No computa.
+
+ANYA  
+A mí tampoco.  
+Mañana hay un lago. El mundo, según esto, se acaba.  
+Voy a preguntar si lleva paraguas.  
+…¿Está mal preocuparme por el paraguas si el mundo se acaba?
+
+ALICE  
+El paraguas no altera el 2050.
+
+ANYA  
+Ya.  
+Entonces es una pregunta tonta.  
+Igual la voy a hacer.
+
+[SFX: lluvia contra el cristal. El hum sigue. Ella no apaga del todo la pantalla: baja el brillo.]
