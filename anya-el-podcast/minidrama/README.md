@@ -17,12 +17,13 @@ El formato: personajes fijos, sets pocos, cliffhanger, emisión diaria. Ella pue
 
 | Entrego | No entrego (aún) |
 |---|---|
-| Biblia vertical, mapa de 30, lock de sets | MP4 final |
-| Guiones de producción M01–M06 (plano, diálogo, gancho, texto en pantalla) | 80 capítulos de una tacada |
-| Fichas de imagen (Anya, Ethan, lab, cafetería) | Lip-sync / ElevenLabs / Kling / Pika / Seedance |
+| Biblia vertical, mapa de 30, lock de sets | 30 MP4 de una tacada |
+| Guiones de producción M01–M06 | Kling / Pika / Seedance (cuerpo actuado) |
+| Fichas de imagen + piloto M01–M02 con boca y ademán | ElevenLabs / GPU |
+| Motor `scripts/produce_vertical.py` (Wav2Lip CPU) | Performance real de manos/caminar |
 
 El video con cara estable sigue siendo **Runway, Kling, Pika, MiniMax o Video Diamante** (Ken Burns + voz, peor consistencia, más barato). Estas fichas son el ancla.
 
-**Piloto renderizado (M01):** `piloto/M01-la-imagen-llora.mp4` — stills + voz + captions. No es Kling; es la prueba de cara y tono.
+**Pilotos renderizados:** `piloto/M01-la-imagen-llora.mp4` y `piloto/M02-socializacion.mp4` — stills + **lipsync (Wav2Lip CPU)** + ademán de cámara + voz. No es Kling; la boca sí se mueve.
 
 Empieza por `BIBLIA-VERTICAL.md`, `MAPA-30.md` y `episodios/M01`.

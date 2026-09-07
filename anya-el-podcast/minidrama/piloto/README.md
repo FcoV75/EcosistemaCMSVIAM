@@ -1,10 +1,14 @@
-# Piloto M01 — *La imagen llora*
+# Piloto — *Ecos de Singularidad* (vertical)
 
-Prueba de minidrama vertical **sin Kling/Pika**: stills con lock de Anya + Ken Burns + voces (edge-tts) + captions.
+Stills con lock de Anya + **movimiento** (reencuadre / respiración) + **lipsync CPU (Wav2Lip)** + voces edge-tts + captions.
 
-- Archivo: `M01-la-imagen-llora.mp4`
-- Formato: 1080×1920 (9:16), ~100 s
-- Voces: Anya = `es-MX-DaliaNeural`, Levin = `es-ES-AlvaroNeural`
-- Regenerar: `python3 ../scripts/produce_m01.py` (pide red para las voces)
+| Archivo | Capítulo |
+|---|---|
+| `M01-la-imagen-llora.mp4` | La imagen llora |
+| `M02-socializacion.mp4` | Socialización |
 
-Esto **no** es lip-sync ni video generado. Es el puente barato para ver si la cara, el tono y el gancho se sostienen. Si te convence, el siguiente paso es la misma toma en Kling/Pika con `assets/anya-lock-retrato.png`.
+- Formato: 1080×1920 (9:16)
+- Voces: Anya `es-MX-DaliaNeural` · Levin `es-ES-AlvaroNeural` · Alice `es-ES-ElviraNeural`
+- Regenerar: `python3 ../scripts/produce_vertical.py --ep all` (red para las voces; Wav2Lip en `/tmp/wav2lip/Wav2Lip`)
+
+Esto **no** es Kling/Pika: no hay performance de cuerpo completa. La boca la mueve Wav2Lip sobre el still; manos, cristal y puerta son cortes a fotos de gesto. Si la cara y el tono se sostienen, el siguiente salto es la misma toma en Kling anclada a `assets/anya-lock-retrato.png`.
