@@ -23,4 +23,6 @@ El formato: personajes fijos, sets pocos, cliffhanger, emisión diaria. Ella pue
 
 El video con cara estable sigue siendo **Runway, Kling, Pika, MiniMax o Video Diamante** (Ken Burns + voz, peor consistencia, más barato). Estas fichas son el ancla.
 
+**Piloto renderizado (M01):** `piloto/M01-la-imagen-llora.mp4` — stills + voz + captions. No es Kling; es la prueba de cara y tono.
+
 Empieza por `BIBLIA-VERTICAL.md`, `MAPA-30.md` y `episodios/M01`.

@@ -1,0 +1,40 @@
+{
+  "duration": 99.708333,
+  "shots": [
+    {
+      "id": "t0",
+      "seconds": 4.0,
+      "caption": "ECOS DE SINGULARIDAD"
+    },
+    {
+      "id": "t1",
+      "seconds": 8.0,
+      "caption": "Sesi\u00f3n de empat\u00eda"
+    },
+    {
+      "id": "t2",
+      "seconds": 16.61,
+      "caption": ""
+    },
+    {
+      "id": "t3",
+      "seconds": 20.6,
+      "caption": ""
+    },
+    {
+      "id": "t4",
+      "seconds": 16.0,
+      "caption": ""
+    },
+    {
+      "id": "t5",
+      "seconds": 22.47,
+      "caption": ""
+    },
+    {
+      "id": "t6",
+      "seconds": 12.0,
+      "caption": "Ma\u00f1ana: la dejan salir"
+    }
+  ]
+}
