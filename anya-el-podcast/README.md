@@ -30,6 +30,8 @@ Reescritura de la trama original (*Anya… el Podcast*, 20 capítulos) a una tem
 
 Mapa, biblia, fichas y notas de sonido están en esta carpeta. Los guiones, en `episodios/`.
 
+Adaptación a **minidrama vertical** (30 caps de ~90 s, piloto M01–M06 + fichas de imagen): `minidrama/`.
+
 ## Producción
 
 Idioma: español. Plataforma inicial: Spotify. Elenco fijo: 9 voces (Anya, Ethan, Alice, Levin, Sofía, David, Petrov, Moore, Helena) más noticiero / extras.
