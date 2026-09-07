@@ -1,40 +1,72 @@
 {
-  "duration": 99.708333,
+  "duration": 92.125,
   "shots": [
     {
       "id": "t0",
-      "seconds": 4.0,
+      "seconds": 3.95,
+      "lipsync": false,
       "caption": "ECOS DE SINGULARIDAD"
     },
     {
       "id": "t1",
-      "seconds": 8.0,
+      "seconds": 6.55,
+      "lipsync": false,
       "caption": "Sesi\u00f3n de empat\u00eda"
     },
     {
-      "id": "t2",
-      "seconds": 16.61,
+      "id": "t2a",
+      "seconds": 6.95,
+      "lipsync": false,
       "caption": ""
     },
     {
-      "id": "t3",
-      "seconds": 20.6,
+      "id": "t2b",
+      "seconds": 9.66,
+      "lipsync": true,
       "caption": ""
     },
     {
-      "id": "t4",
-      "seconds": 16.0,
+      "id": "t3a",
+      "seconds": 7.5,
+      "lipsync": true,
       "caption": ""
     },
     {
-      "id": "t5",
-      "seconds": 22.47,
+      "id": "t3b",
+      "seconds": 13.09,
+      "lipsync": true,
       "caption": ""
+    },
+    {
+      "id": "t4a",
+      "seconds": 6.42,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t4b",
+      "seconds": 6.88,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t5a",
+      "seconds": 11.13,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t5b",
+      "seconds": 11.34,
+      "lipsync": true,
+      "caption": "\u00bfUsted tiene la f\u00f3rmula?"
     },
     {
       "id": "t6",
-      "seconds": 12.0,
+      "seconds": 8.35,
+      "lipsync": false,
       "caption": "Ma\u00f1ana: la dejan salir"
     }
-  ]
+  ],
+  "engine": "wav2lip+sway"
 }

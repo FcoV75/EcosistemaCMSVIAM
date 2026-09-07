@@ -1,0 +1,84 @@
+{
+  "duration": 94.125,
+  "shots": [
+    {
+      "id": "t0",
+      "seconds": 3.75,
+      "lipsync": false,
+      "caption": "ECOS DE SINGULARIDAD"
+    },
+    {
+      "id": "t1",
+      "seconds": 14.1,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t2a",
+      "seconds": 12.73,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t2b",
+      "seconds": 2.75,
+      "lipsync": false,
+      "caption": ""
+    },
+    {
+      "id": "t2c",
+      "seconds": 2.46,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t2d",
+      "seconds": 14.13,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t3a",
+      "seconds": 9.54,
+      "lipsync": false,
+      "caption": ""
+    },
+    {
+      "id": "t3b",
+      "seconds": 4.48,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t3c",
+      "seconds": 6.78,
+      "lipsync": false,
+      "caption": ""
+    },
+    {
+      "id": "t4a",
+      "seconds": 6.4,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t4b",
+      "seconds": 5.34,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t5a",
+      "seconds": 5.15,
+      "lipsync": false,
+      "caption": "Una hora"
+    },
+    {
+      "id": "t5b",
+      "seconds": 6.15,
+      "lipsync": false,
+      "caption": "Si te asustas, vuelves"
+    }
+  ],
+  "engine": "wav2lip+sway"
+}

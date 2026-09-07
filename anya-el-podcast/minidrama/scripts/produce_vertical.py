@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
 OUT = ROOT / "piloto"
-WORK = OUT / "_build"
+WORK = OUT / "_build"  # produce() namespaces this per episode
 W, H, FPS = 1080, 1920, 24
 LS_W, LS_H = 720, 1280
 FONT = "/usr/share/fonts/truetype/macos/Inter-Bold.ttf"
@@ -610,7 +610,7 @@ def render_shot(shot: dict) -> Path:
 def concat_and_fade(pieces: list[Path], dest: Path) -> float:
     lst = WORK / "concat.txt"
     lst.write_text("".join(f"file '{p.resolve()}'\n" for p in pieces))
-    raw = dest.with_name(dest.stem + "_raw.mp4")
+    raw = WORK / f"{dest.stem}_raw.mp4"
     run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(raw)])
     tot = duration_sec(raw)
     fade_at = max(0.0, tot - 1.0)
@@ -643,6 +643,8 @@ def concat_and_fade(pieces: list[Path], dest: Path) -> float:
 
 
 def produce(ep: dict) -> Path:
+    global WORK
+    WORK = OUT / "_build" / ep["id"]
     WORK.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     pieces = []
