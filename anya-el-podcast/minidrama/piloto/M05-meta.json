@@ -1,0 +1,91 @@
+{
+  "duration": 89.730998,
+  "shots": [
+    {
+      "id": "t0",
+      "seconds": 3.45,
+      "avatar": false
+    },
+    {
+      "id": "t1a",
+      "seconds": 2.78,
+      "avatar": true
+    },
+    {
+      "id": "t1b",
+      "seconds": 2.65,
+      "avatar": true
+    },
+    {
+      "id": "t1c",
+      "seconds": 2.6,
+      "avatar": false
+    },
+    {
+      "id": "t2a",
+      "seconds": 8.01,
+      "avatar": true
+    },
+    {
+      "id": "t2b",
+      "seconds": 7.21,
+      "avatar": true
+    },
+    {
+      "id": "t2c",
+      "seconds": 1.63,
+      "avatar": false
+    },
+    {
+      "id": "t2d",
+      "seconds": 2.47,
+      "avatar": true
+    },
+    {
+      "id": "t2e",
+      "seconds": 12.25,
+      "avatar": true
+    },
+    {
+      "id": "t3a",
+      "seconds": 4.74,
+      "avatar": true
+    },
+    {
+      "id": "t3b",
+      "seconds": 2.57,
+      "avatar": false
+    },
+    {
+      "id": "t3c",
+      "seconds": 8.56,
+      "avatar": true
+    },
+    {
+      "id": "t3d",
+      "seconds": 9.05,
+      "avatar": true
+    },
+    {
+      "id": "t4a",
+      "seconds": 3.65,
+      "avatar": false
+    },
+    {
+      "id": "t4b",
+      "seconds": 10.52,
+      "avatar": false
+    },
+    {
+      "id": "t4c",
+      "seconds": 3.25,
+      "avatar": false
+    },
+    {
+      "id": "t4d",
+      "seconds": 4.25,
+      "avatar": false
+    }
+  ],
+  "engine": "elevenlabs+kling-avatar"
+}
