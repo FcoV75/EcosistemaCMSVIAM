@@ -30,11 +30,13 @@ SETTINGS = {
 P_ANYA = (
     "Young woman in a night cafe speaking Spanish, dusty blue pleated dress, "
     "shoulder-length chestnut hair, pale blue eyes, naive earnest face, "
-    "subtle natural blinks, small head movement, no big smile, photoreal."
+    "subtle natural blinks, small head movement, no big smile, photoreal. "
+    "No text, no letters, no captions, no subtitles, no watermark."
 )
 P_ETHAN = (
     "Tired young scientist in a dark knit sweater speaking quietly in Spanish, "
-    "short stubble, messy dark hair, shy, natural blinks, photoreal night cafe."
+    "short stubble, messy dark hair, shy, natural blinks, photoreal night cafe. "
+    "No text, no letters, no captions, no subtitles, no watermark, no signs."
 )
 
 SHOTS = [
@@ -56,7 +58,7 @@ SHOTS = [
     },
     {
         "id": "t1b",
-        "image": "m03-ethan-hola.png",
+        "image": "m05-ethan-clean.png",
         "who": "ethan",
         "text": "Como quieras. Nadie va a calificar.",
         "avatar": True,
@@ -67,7 +69,8 @@ SHOTS = [
         "image": "m03-anya-taza.png",
         "who": "anya",
         "text": "Eso ayuda. En mi día sí califican.",
-        "avatar": False,
+        "avatar": True,
+        "prompt": P_ANYA,
     },
     {
         "id": "t2a",
@@ -79,7 +82,7 @@ SHOTS = [
     },
     {
         "id": "t2b",
-        "image": "m03-ethan-hola.png",
+        "image": "m05-ethan-clean.png",
         "who": "ethan",
         "text": "No es médico. Estoy nervioso. Hace tiempo que no hablo así. Tú preguntas cosas que nadie pregunta.",
         "avatar": True,
@@ -89,12 +92,13 @@ SHOTS = [
         "id": "t2c",
         "image": "m04-anya-mira.png",
         "who": "anya",
-        "text": "¿Nervioso es malo?",
-        "avatar": False,
+        "text": "¿Nervioso... es malo?",
+        "avatar": True,
+        "prompt": P_ANYA,
     },
     {
         "id": "t2d",
-        "image": "m03-ethan-hola.png",
+        "image": "m05-ethan-clean.png",
         "who": "ethan",
         "text": "A veces es que la conversación importa.",
         "avatar": True,
@@ -110,7 +114,7 @@ SHOTS = [
     },
     {
         "id": "t3a",
-        "image": "m03-ethan-hola.png",
+        "image": "m05-ethan-clean.png",
         "who": "ethan",
         "text": "Importas. Aunque nos acabamos de conocer. Qué cosa más rara.",
         "avatar": True,
@@ -121,11 +125,12 @@ SHOTS = [
         "image": "m03-anya-taza.png",
         "who": "anya",
         "text": "A mí me parece un dato útil. Gracias.",
-        "avatar": False,
+        "avatar": True,
+        "prompt": P_ANYA,
     },
     {
         "id": "t3c",
-        "image": "m03-ethan-hola.png",
+        "image": "m05-ethan-clean.png",
         "who": "ethan",
         "text": "Mañana, si no llueve, hay un lago. Pájaros. Uno se olvida del modelo. Si quieres seguir el experimento.",
         "avatar": True,
@@ -141,7 +146,7 @@ SHOTS = [
     },
     {
         "id": "t4a",
-        "image": "m05-lluvia-ventana.png",
+        "image": "m05-taza-vacia.png",
         "seconds": 3.4,
         "avatar": False,
     },
@@ -249,10 +254,15 @@ def ken(img: Path, seconds: float, dest: Path) -> None:
 
 
 def to_916(src: Path, dest: Path, seconds: float) -> None:
+    # Recorta un poco arriba y abajo: Kling a veces pinta letras basura en el borde.
+    vf = (
+        f"crop=iw:ih*0.86:0:ih*0.06,"
+        f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},format=yuv420p"
+    )
     run(
         [
             "ffmpeg", "-y", "-i", str(src),
-            "-vf", f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},format=yuv420p",
+            "-vf", vf,
             "-t", f"{seconds:.3f}", "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "19", str(dest),
         ]
     )

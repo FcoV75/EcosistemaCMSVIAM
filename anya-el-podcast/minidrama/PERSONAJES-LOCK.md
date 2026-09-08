@@ -24,6 +24,7 @@ Usa **siempre** estas fotos como referencia. Si Kling/Pika/Runway/MiniMax invent
 | `assets/m05-lluvia-ventana.png` | Ventana del café con lluvia |
 | `assets/m05-anya-pecho.png` | El ruido en el pecho |
 | `assets/m05-lab-lluvia.png` | Cristal del lab con lluvia (cliff) |
+| `assets/m05-ethan-clean.png` | Ethan MCU sin letreros |
 
 Anya: castaño a los hombros, ojos azules, vestido azul grisáceo, postura recta, casi no sonríe.  
 Ethan: jersey oscuro, barba de dos días, ojeras, tímido.
