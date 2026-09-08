@@ -1,0 +1,15 @@
+{
+  "name": "Ecosistema CMS VIAM",
+  "install": "sudo apt-get update && sudo apt-get install -y python-is-python3 && pip install --user -r requirements.txt && npm install",
+  "terminals": [
+    {
+      "name": "flask-api",
+      "command": "PORT=5000 python -m gunicorn server:app --bind 0.0.0.0:5000 --workers 1 --threads 4 --timeout 600 --graceful-timeout 120"
+    },
+    {
+      "name": "static-site",
+      "command": "python3 -m http.server 8080 --bind 0.0.0.0"
+    }
+  ],
+  "ports": [5000, 8080]
+}
