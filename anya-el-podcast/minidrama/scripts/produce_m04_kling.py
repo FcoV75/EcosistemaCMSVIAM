@@ -50,7 +50,7 @@ SHOTS = [
         "id": "t1",
         "image": "m04-anya-mira.png",
         "who": "anya",
-        "text": "Hola.",
+        "text": "Hola...",
         "avatar": True,
         "prompt": P_ANYA,
     },
