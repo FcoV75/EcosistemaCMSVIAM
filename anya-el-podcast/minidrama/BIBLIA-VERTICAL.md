@@ -19,13 +19,20 @@ Si un capítulo se puede cortar y sigue teniendo sentido, estaba largo.
 
 | Ancla | Fijo |
 |---|---|
-| Anya | Cabello castaño a los hombros, ojos azules, vestido azul grisáceo sencillo, postura demasiado recta, casi nunca sonríe con dientes |
+| Anya (M01–M23) | Cabello castaño a los hombros, ojos azules, vestido azul grisáceo sencillo, postura demasiado recta, casi nunca sonríe con dientes |
+| Anya post-transfer | Solo `assets/refs/anya-cuerpo-nuevo.png` (cuerpo biológico). Prohibida en el café del encuentro |
 | Ethan | Jersey oscuro gastado, barba de dos días, ojeras, tímido |
-| Lab Levin | Cristal, electrodos, hum de racks, luz fría |
-| Cafetería | Máquina espresso, madera clara, taza blanca, lluvia en el ventanal al final de M04 |
-| Nadir | Aire demasiado limpio, vaso con hielo, folder |
+| Sofía | Rubia, denim, botas, pins verdes. No es Anya |
+| David | Gafas, vaquera, parche A, mochila. No es Ethan |
+| Moore | Despacho, traje, pin de bandera |
+| Petrov | Uniforme de tres estrellas, puente frío |
+| Lab Levin | Cristal, electrodos, camas, racks azules, luz clínica (`refs/set-lab-camas.png`) |
+| Servidores | Pantalla curva, cables azules (`refs/set-servidores.png`) |
+| Cafetería noche | Máquina espresso, madera, taza blanca, lluvia (M03–M05) |
+| Cafetería atardecer | Vacío, sol bajo, nostalgia (`refs/set-cafe-atardecer.png`, M29–M30) |
+| Nadir | Aire demasiado limpio, vaso con hielo, folder. Helena se genera en esta paleta |
 
-Fotos en `assets/`. Toda toma nueva **referencia** esas fotos. Si el modelo inventa flequillo o vestido rojo, se tira.
+Fotos en `assets/` y `assets/refs/`. Toda toma nueva **referencia** esas fotos. Si el modelo inventa flequillo, vestido rojo, o mezcla a Sofía con Anya, se tira.
 
 ## Lo que no es este show
 

@@ -19,4 +19,23 @@ Usa **siempre** estas fotos como referencia. Si Kling/Pika/Runway/MiniMax invent
 Anya: castaño a los hombros, ojos azules, vestido azul grisáceo, postura recta, casi no sonríe.  
 Ethan: jersey oscuro, barba de dos días, ojeras, tímido.
 
-Esto es lo que Claude no puede darte desde el chat. La consistencia *entre videos* sigue siendo de la herramienta de video (Kling Elements, Pika, etc.) anclada a estas cuatro imágenes.
+## Elenco y sets (pack de referencia)
+
+Láminas en `assets/refs/`. Anya/Ethan/Levin de M01–M03 **no se reemplazan**. El resto del drama se ancla aquí.
+
+| Archivo | Personaje / set |
+|---|---|
+| `refs/sofia-lock.png` | Sofía |
+| `refs/david-lock.png` | David |
+| `refs/moore-lock.png` | Presidente Moore |
+| `refs/petrov-lock.png` | General Petrov |
+| `refs/medico-sala-c.png` | Médico de transferencia (distinto de Levin) |
+| `refs/set-lab-camas.png` | Lab / hospital / camas de cristal |
+| `refs/set-servidores.png` | Racks, puente, Alice |
+| `refs/set-cafe-atardecer.png` | Café del epílogo (M29), no el de noche |
+| `refs/anya-cuerpo-nuevo.png` | Anya **post-transferencia** únicamente |
+| `refs/crisis-bata.png` | Variante sucia de lab (cacería) |
+
+Detalle y reglas: `assets/refs/README.md`.
+
+Esto es lo que Claude no puede darte desde el chat. La consistencia *entre videos* sigue siendo de la herramienta de video (Kling Elements, Pika, etc.) anclada a estas fotos.
