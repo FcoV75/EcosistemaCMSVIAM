@@ -9,15 +9,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --ink: #f7f2e8;
-      --muted: rgba(247, 242, 232, 0.78);
-      --gold: #f0c45c;
-      --gold-deep: #c9922a;
-      --night: #0b1020;
-      --indigo: #1a2450;
-      --indigo-2: #243066;
-      --teal: #2ec4b6;
-      --rose: #e8a598;
+      --ink: #1c2438;
+      --muted: #4a5568;
+      --gold: #c48a12;
+      --gold-soft: #f3c96a;
+      --paper: #f7f9fc;
+      --paper-2: #eef3fb;
+      --sky: #dce9f8;
+      --indigo: #3d4f8c;
+      --teal: #0f8f86;
       --panel-w: 3.6667in;
       --page-h: 8.5in;
       --page-w: 11in;
@@ -27,7 +27,7 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: #1a1a1a;
+      background: #e8edf5;
       color: var(--ink);
       font-family: Outfit, system-ui, sans-serif;
     }
@@ -40,11 +40,11 @@
     .screen-only h1.guide {
       font-family: Cinzel, serif;
       font-size: 1.35rem;
-      color: var(--gold);
+      color: var(--indigo);
       margin: 0 0 .35rem;
     }
     .screen-only .hint {
-      color: rgba(255,255,255,.7);
+      color: var(--muted);
       font-size: .92rem;
       margin: 0 0 1.25rem;
       line-height: 1.45;
@@ -54,7 +54,7 @@
       font-size: .75rem;
       letter-spacing: .14em;
       text-transform: uppercase;
-      color: var(--gold);
+      color: var(--indigo);
       margin: 1.4rem 0 .55rem;
       font-weight: 700;
     }
@@ -62,17 +62,17 @@
       display: flex;
       width: min(100%, 1000px);
       aspect-ratio: 11 / 8.5;
-      border: 1px solid rgba(255,255,255,.15);
-      box-shadow: 0 18px 50px rgba(0,0,0,.45);
+      border: 1px solid rgba(61,79,140,.18);
+      box-shadow: 0 14px 40px rgba(40,55,90,.14);
       overflow: hidden;
-      background: var(--night);
+      background: var(--paper);
     }
     .spread .panel {
       flex: 1 1 0;
       min-width: 0;
       position: relative;
       overflow: hidden;
-      border-right: 1px dashed rgba(240,196,92,.28);
+      border-right: 1px dashed rgba(196,138,18,.35);
     }
     .spread .panel:last-child { border-right: 0; }
 
@@ -111,126 +111,142 @@
       overflow: hidden;
     }
 
-    /* Shared panel styles */
     .panel {
-      background: linear-gradient(160deg, #12182e 0%, #1c2748 48%, #0d1324 100%);
+      background: linear-gradient(165deg, #ffffff 0%, #f3f7fc 45%, #e8f0fa 100%);
       color: var(--ink);
     }
     .panel-inner {
       position: relative;
       z-index: 2;
       height: 100%;
-      padding: 4.5% 6%;
+      padding: 4% 5.5%;
       display: flex;
       flex-direction: column;
+      gap: .35rem;
     }
     .bg-photo {
       position: absolute;
       inset: 0;
       background-size: cover;
       background-position: center;
-      opacity: .38;
+      opacity: .18;
       z-index: 0;
     }
     .bg-shade {
       position: absolute;
       inset: 0;
       z-index: 1;
-      background:
-        linear-gradient(180deg, rgba(8,12,24,.35) 0%, rgba(8,12,24,.82) 55%, rgba(8,12,24,.95) 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(247,249,252,.88) 50%, rgba(238,243,251,.96) 100%);
     }
     .kicker {
-      font-size: .62rem;
-      letter-spacing: .16em;
+      font-size: .6rem;
+      letter-spacing: .14em;
       text-transform: uppercase;
       color: var(--gold);
-      font-weight: 700;
-      margin: 0 0 .4rem;
+      font-weight: 800;
+      margin: 0;
     }
     .display {
       font-family: Cinzel, serif;
       font-weight: 700;
       line-height: 1.08;
-      color: #fff3c8;
-      margin: 0 0 .55rem;
+      color: #2a3660;
+      margin: 0;
     }
     .lede {
-      font-size: .72rem;
-      line-height: 1.45;
+      font-size: .68rem;
+      line-height: 1.4;
       color: var(--muted);
       margin: 0;
     }
     .logo {
       display: block;
       object-fit: contain;
-      filter: drop-shadow(0 4px 14px rgba(0,0,0,.45));
+      filter: drop-shadow(0 3px 10px rgba(40,55,90,.12));
     }
     .list {
       list-style: none;
-      margin: .7rem 0 0;
+      margin: .35rem 0 0;
       padding: 0;
     }
     .list li {
       position: relative;
-      padding: .42rem 0 .42rem .85rem;
-      font-size: .68rem;
-      line-height: 1.35;
+      padding: .32rem 0 .32rem .85rem;
+      font-size: .62rem;
+      line-height: 1.32;
       color: var(--ink);
-      border-bottom: 1px solid rgba(255,255,255,.08);
+      border-bottom: 1px solid rgba(61,79,140,.1);
     }
     .list li::before {
       content: "";
       position: absolute;
       left: 0;
-      top: .72rem;
-      width: .35rem;
-      height: .35rem;
+      top: .55rem;
+      width: .32rem;
+      height: .32rem;
       border-radius: 50%;
       background: var(--gold);
-      box-shadow: 0 0 8px rgba(240,196,92,.55);
     }
     .list li strong {
-      color: var(--gold);
+      color: #2f3f78;
       font-weight: 700;
     }
     .pill {
       display: inline-block;
-      margin-top: .55rem;
+      margin-top: .35rem;
       padding: .28rem .55rem;
       border-radius: 999px;
-      background: linear-gradient(135deg, var(--gold), var(--gold-deep));
-      color: #16120a;
-      font-size: .62rem;
+      background: linear-gradient(135deg, var(--gold-soft), var(--gold));
+      color: #1a1408;
+      font-size: .58rem;
       font-weight: 800;
-      letter-spacing: .02em;
+    }
+    .shot {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(61,79,140,.16);
+      box-shadow: 0 8px 18px rgba(40,55,90,.1);
+      object-fit: cover;
+      background: #fff;
+      display: block;
+    }
+    .shot-pizarra {
+      height: 1.85in;
+      object-position: top center;
+    }
+    .shot-perfil {
+      height: 1.7in;
+      object-position: top center;
     }
     .qr-box {
       margin-top: auto;
       display: flex;
       align-items: center;
-      gap: .55rem;
-      padding: .45rem;
-      border: 1px solid rgba(240,196,92,.35);
-      background: rgba(255,255,255,.96);
+      gap: .45rem;
+      padding: .35rem;
+      border: 1px solid rgba(196,138,18,.4);
+      background: #fff;
       color: #111;
       border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(40,55,90,.08);
     }
     .qr-box img {
-      width: .95in;
-      height: .95in;
+      width: .88in;
+      height: .88in;
       flex-shrink: 0;
     }
     .qr-box .meta {
-      font-size: .58rem;
-      line-height: 1.3;
+      font-size: .54rem;
+      line-height: 1.28;
     }
     .qr-box .meta b {
       display: block;
-      font-size: .68rem;
-      margin-bottom: .15rem;
+      font-size: .64rem;
+      margin-bottom: .1rem;
+      color: #1c2438;
     }
-    .qr-box a, .url {
-      color: #0b3d91;
+    .url {
+      color: #1d4f9c;
       font-weight: 700;
       word-break: break-all;
       text-decoration: none;
@@ -239,128 +255,170 @@
       display: grid;
       grid-template-rows: 1fr 1fr;
       height: 100%;
-      gap: 0;
     }
     .split-half {
       position: relative;
       overflow: hidden;
-      padding: 5% 6%;
+      padding: 4% 5%;
       display: flex;
       flex-direction: column;
+      gap: .15rem;
+      min-height: 0;
     }
     .split-half + .split-half {
-      border-top: 1px solid rgba(240,196,92,.35);
+      border-top: 1px solid rgba(196,138,18,.35);
+    }
+    .split-half .bg-photo { opacity: .14; }
+    .split-copy {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: .2rem;
+      height: 100%;
+      min-height: 0;
+    }
+    .product-head {
+      display: grid;
+      grid-template-columns: 1fr .78in;
+      gap: .3rem;
+      align-items: start;
+    }
+    .product-head .lede {
+      font-size: .52rem;
+      margin-top: .1rem;
     }
     .mini-qr {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: .4rem;
-      margin-top: auto;
+      gap: .1rem;
       background: #fff;
       color: #111;
       border-radius: 8px;
-      padding: .3rem;
+      padding: .18rem;
+      border: 1px solid rgba(61,79,140,.22);
+      box-shadow: 0 3px 10px rgba(40,55,90,.08);
+      flex-shrink: 0;
     }
     .mini-qr img {
-      width: .72in;
-      height: .72in;
+      width: .68in;
+      height: .68in;
+      display: block;
     }
     .mini-qr .meta {
-      font-size: .52rem;
-      line-height: 1.25;
+      font-size: .4rem;
+      line-height: 1.1;
+      text-align: center;
+      color: #1c2438;
+      word-break: break-all;
     }
-    .mini-qr b { display: block; font-size: .58rem; }
+    .mini-qr b { display: block; font-size: .46rem; }
     .brand-stack {
       display: flex;
       align-items: center;
-      gap: .45rem;
-      margin-bottom: .35rem;
+      gap: .3rem;
     }
     .brand-stack img {
-      height: .55in;
+      height: .36in;
       width: auto;
-      max-width: 42%;
+      max-width: 46%;
+      object-fit: contain;
+    }
+    .logos-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .25rem;
+      margin-top: .25rem;
+      padding: .3rem;
+      border-radius: 10px;
+      background: rgba(255,255,255,.85);
+      border: 1px solid rgba(61,79,140,.12);
+    }
+    .logos-row img {
+      height: .42in;
+      width: auto;
+      max-width: 31%;
       object-fit: contain;
     }
     .cta-block {
       margin-top: auto;
-      padding: .55rem .6rem;
+      padding: .5rem .55rem;
       border-radius: 12px;
-      background: linear-gradient(135deg, rgba(240,196,92,.95), rgba(201,146,42,.92));
-      color: #16120a;
+      background: linear-gradient(135deg, #f6d27a, #d4a017);
+      color: #1a1408;
       text-align: center;
     }
     .cta-block .big {
       font-family: Cinzel, serif;
-      font-size: .85rem;
+      font-size: .8rem;
       font-weight: 700;
-      margin: 0 0 .2rem;
+      margin: 0 0 .15rem;
     }
     .cta-block .sub {
-      font-size: .58rem;
+      font-size: .55rem;
       margin: 0;
-      font-weight: 600;
+      font-weight: 700;
     }
-    .fold-mark {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 0;
-      border-left: 1px dotted rgba(255,255,255,.12);
-      z-index: 5;
-      pointer-events: none;
-    }
-
-    /* Panel-specific denser type for print fidelity on screen */
-    .p-front .display { font-size: clamp(1.15rem, 2.4vw, 1.7rem); }
-    .p-front .lede { font-size: clamp(.68rem, 1.15vw, .8rem); }
-    .p-front .logo { width: min(72%, 2.4in); margin: 0 auto .6rem; }
-    .p-front .panel-inner { justify-content: flex-end; text-align: center; padding-bottom: 7%; }
     .stat-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: .35rem;
-      margin: .7rem 0 .4rem;
+      gap: .3rem;
+      margin: .25rem 0;
     }
     .stat {
-      border: 1px solid rgba(240,196,92,.28);
+      border: 1px solid rgba(61,79,140,.14);
       border-radius: 10px;
-      padding: .4rem .45rem;
-      background: rgba(0,0,0,.28);
-      text-align: left;
+      padding: .35rem .4rem;
+      background: rgba(255,255,255,.85);
     }
     .stat b {
       display: block;
-      color: var(--gold);
-      font-size: .72rem;
+      color: #2f3f78;
+      font-size: .62rem;
     }
     .stat span {
-      font-size: .55rem;
+      font-size: .5rem;
       color: var(--muted);
       line-height: 1.25;
     }
     .section-title {
       font-family: Cinzel, serif;
-      font-size: .95rem;
-      color: #fff3c8;
-      margin: 0 0 .35rem;
+      font-size: .9rem;
+      color: #2a3660;
+      margin: 0;
     }
     .tiny {
-      font-size: .55rem;
+      font-size: .5rem;
       color: var(--muted);
-      line-height: 1.35;
-      margin: .35rem 0 0;
+      line-height: 1.3;
+      margin: 0;
     }
     .eco-badge {
       align-self: flex-start;
-      font-size: .55rem;
+      font-size: .5rem;
       letter-spacing: .08em;
       text-transform: uppercase;
-      border: 1px solid rgba(46,196,182,.45);
-      color: #9ff0e7;
-      padding: .2rem .45rem;
+      border: 1px solid rgba(15,143,134,.35);
+      color: var(--teal);
+      padding: .16rem .4rem;
       border-radius: 999px;
-      margin-bottom: .45rem;
+      background: rgba(15,143,134,.08);
+    }
+    .p-front .display { font-size: clamp(1.1rem, 2.3vw, 1.55rem); }
+    .p-front .lede { font-size: clamp(.64rem, 1.1vw, .76rem); }
+    .p-front .logo { width: min(68%, 2.2in); margin: 0 auto .4rem; }
+    .p-front .panel-inner { justify-content: flex-end; text-align: center; padding-bottom: 6%; }
+    .p-front .bg-photo { opacity: .32; }
+    .p-front .bg-shade {
+      background: linear-gradient(180deg, rgba(255,255,255,.45) 0%, rgba(247,249,252,.72) 48%, rgba(238,243,251,.96) 100%);
+    }
+    .btn-print {
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+      margin-bottom: 1rem;
     }
   </style>
 </head>
@@ -370,9 +428,9 @@
     <p class="hint">
       Vista previa a tamaño real de carta horizontal (11&quot; × 8.5&quot;). Imprime a
       <strong>doble cara, voltear por el borde corto</strong>, sin márgenes.
-      Dobla en tres paneles iguales. Archivo listo para distribución digital o impresión.
+      Dobla en tres paneles iguales.
     </p>
-    <button type="button" onclick="window.print()" class="pill" style="border:0;cursor:pointer;font:inherit;margin-bottom:1rem">
+    <button type="button" onclick="window.print()" class="pill btn-print">
       Imprimir / Guardar PDF
     </button>
 
@@ -383,22 +441,21 @@
     <div class="spread" id="preview-in" aria-label="Interior del tríptico"></div>
   </div>
 
-  <!-- PRINT / SOURCE PANELS -->
   <template id="tpl-out-left">
     <div class="panel p-back">
-      <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/oficios-mexico.jpg');opacity:.32"></div>
       <div class="bg-shade"></div>
       <div class="panel-inner">
         <p class="kicker">Empieza hoy</p>
-        <h2 class="display" style="font-size:1.15rem">Tu oficio merece ser encontrado</h2>
+        <h2 class="display" style="font-size:1.05rem">Tu oficio merece ser encontrado</h2>
+        <img class="shot shot-pizarra" src="Assets/triptico-contacneed/captura-pizarra.jpg" alt="Captura de la Pizarra ContacNeed" />
         <p class="lede">
-          No más perfiles perdidos en redes genéricas. En ContacNeed te buscan por
+          En ContacNeed te buscan por
           <strong style="color:var(--gold)">oficio, estado y especialidad</strong>.
+          Mira la pizarra: evidencia real, no ruido vacío.
         </p>
         <ul class="list">
           <li><strong>Gratis para publicar</strong> y ser visible ante quien sí necesita tu servicio.</li>
           <li><strong>Registro en minutos</strong> y misma cuenta para todo el ecosistema VIAM.</li>
-          <li><strong>Escanea y entra</strong> directo a crear tu cuenta.</li>
         </ul>
         <div class="qr-box">
           <img src="Assets/triptico-contacneed/qr-contacneed.png" alt="Código QR ContacNeed registro" />
@@ -406,7 +463,7 @@
             <b>Regístrate ahora</b>
             Escanea con tu celular<br />
             <span class="url">https://contacneed.com/registro</span><br />
-            <span style="display:block;margin-top:.2rem">Sitio: <span class="url">https://contacneed.com</span></span>
+            <span style="display:block;margin-top:.15rem">Sitio: <span class="url">https://contacneed.com</span></span>
           </div>
         </div>
       </div>
@@ -415,29 +472,23 @@
 
   <template id="tpl-out-center">
     <div class="panel">
-      <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/contacneed-visual.jpg');opacity:.28"></div>
       <div class="bg-shade"></div>
       <div class="panel-inner">
         <span class="eco-badge">Ecosistema VIAM</span>
         <h2 class="section-title">Una red. Tres potencias.</h2>
+        <img class="shot shot-perfil" src="Assets/triptico-contacneed/captura-perfil-tienda.jpg" alt="Captura de perfil y tienda ContacNeed" />
         <p class="lede">
-          ContacNeed te conecta con clientes y colegas.
-          Sincronía Nexus ordena tu vida interior.
-          Video Diamante convierte tu historia en contenido que vende.
+          Perfil + tienda en ContacNeed. Luego abre Nexus y Video Diamante con la misma cuenta.
         </p>
         <ul class="list">
           <li><strong>ContacNeed</strong> — red social de oficios y profesiones en México.</li>
           <li><strong>Sincronía Nexus</strong> — presencia, escucha y decisiones con faro humano.</li>
           <li><strong>Video Diamante</strong> — producción audiovisual con IA, lista para publicar.</li>
         </ul>
-        <p class="tiny">
-          Centro Multidisciplinario para la Salud · IA VIAM Music and Publicity ·
-          Misma cuenta ContacNeed abre puertas a todo el ecosistema.
-        </p>
-        <div class="brand-stack" style="margin-top:auto;justify-content:space-between">
-          <img class="logo" src="Assets/triptico-contacneed/contacneed-logo.png" alt="ContacNeed" style="height:.48in;width:auto;max-width:30%" />
-          <img class="logo" src="Assets/triptico-contacneed/sincronia-nexus-logo.png" alt="Sincronía Nexus" style="height:.48in;width:auto;max-width:30%" />
-          <img class="logo" src="Assets/triptico-contacneed/ia-viam-logo.png" alt="IA VIAM" style="height:.48in;width:auto;max-width:30%" />
+        <div class="logos-row">
+          <img class="logo" src="Assets/triptico-contacneed/contacneed-logo.png" alt="ContacNeed" />
+          <img class="logo" src="Assets/triptico-contacneed/sincronia-nexus-logo.png" alt="Sincronía Nexus" />
+          <img class="logo" src="Assets/triptico-contacneed/ia-viam-logo.png" alt="IA VIAM" />
         </div>
       </div>
     </div>
@@ -445,8 +496,8 @@
 
   <template id="tpl-out-front">
     <div class="panel p-front">
-      <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/oficios-mexico.jpg');opacity:.55"></div>
-      <div class="bg-shade" style="background:linear-gradient(180deg,rgba(8,12,24,.2) 0%,rgba(8,12,24,.55) 40%,rgba(8,12,24,.96) 100%)"></div>
+      <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/oficios-mexico.jpg')"></div>
+      <div class="bg-shade"></div>
       <div class="panel-inner">
         <img class="logo" src="Assets/triptico-contacneed/contacneed-logo.png" alt="ContacNeed" />
         <p class="kicker">La red social de oficios</p>
@@ -462,7 +513,7 @@
 
   <template id="tpl-in-left">
     <div class="panel">
-      <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/oficios-mexico.jpg');opacity:.22"></div>
+      <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/oficios-mexico.jpg');opacity:.12"></div>
       <div class="bg-shade"></div>
       <div class="panel-inner">
         <p class="kicker">Ventajas ContacNeed</p>
@@ -481,7 +532,7 @@
 
   <template id="tpl-in-center">
     <div class="panel">
-      <div class="bg-shade" style="background:linear-gradient(160deg,#152048,#0f1730 70%)"></div>
+      <div class="bg-shade"></div>
       <div class="panel-inner">
         <p class="kicker">Por qué ahora</p>
         <h2 class="section-title">De invisible a imprescindible</h2>
@@ -505,48 +556,50 @@
   </template>
 
   <template id="tpl-in-right">
-    <div class="panel" style="padding:0;background:#0b1020">
+    <div class="panel" style="padding:0;background:#f7f9fc">
       <div class="split">
-        <div class="split-half" style="background:linear-gradient(135deg,#1a1430,#0d1020)">
-          <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/video-diamante-scene.jpg');opacity:.42"></div>
-          <div class="bg-shade" style="background:linear-gradient(90deg,rgba(10,12,24,.88),rgba(10,12,24,.55))"></div>
-          <div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column">
-            <div class="brand-stack">
-              <img src="Assets/triptico-contacneed/ia-viam-logo.png" alt="IA VIAM / Video Diamante" />
-            </div>
-            <p class="kicker" style="color:#f0c45c">Video Diamante</p>
-            <h3 class="section-title" style="font-size:.82rem;margin:0 0 .25rem">Tu historia en video que vende</h3>
-            <p class="lede" style="font-size:.58rem">
-              Producción audiovisual con IA: guion, imagen, voz y ritmo listos para redes y clientes.
-              Ideal para oficios que necesitan verse profesionales en segundos.
-            </p>
-            <div class="mini-qr">
-              <img src="Assets/triptico-contacneed/qr-video-diamante.png" alt="QR Video Diamante" />
-              <div class="meta">
-                <b>Abrir Video Diamante</b>
-                <span class="url">https://centromultidisciplinarioags.com/video_diamante</span>
+        <div class="split-half" style="background:linear-gradient(135deg,#fff8e8,#f7f9fc)">
+          <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/video-diamante-scene.jpg')"></div>
+          <div class="bg-shade" style="background:linear-gradient(90deg,rgba(255,255,255,.94),rgba(255,255,255,.8))"></div>
+          <div class="split-copy">
+            <div class="product-head">
+              <div>
+                <div class="brand-stack">
+                  <img src="Assets/triptico-contacneed/ia-viam-logo.png" alt="IA VIAM / Video Diamante" />
+                </div>
+                <p class="kicker">Video Diamante</p>
+                <h3 class="section-title" style="font-size:.74rem">Tu historia en video que vende</h3>
+                <p class="lede">
+                  Producción con IA: guion, imagen, voz y ritmo listos para redes y clientes.
+                </p>
+                <p class="tiny"><span class="url">centromultidisciplinarioags.com/video_diamante</span></p>
+              </div>
+              <div class="mini-qr">
+                <img src="Assets/triptico-contacneed/qr-video-diamante.png" alt="QR Video Diamante" width="68" height="68" />
+                <div class="meta"><b>Escanear</b></div>
               </div>
             </div>
           </div>
         </div>
-        <div class="split-half" style="background:linear-gradient(135deg,#0f2a32,#0d1524)">
-          <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/nexus-scene.jpg');opacity:.4"></div>
-          <div class="bg-shade" style="background:linear-gradient(90deg,rgba(8,18,24,.9),rgba(8,18,24,.55))"></div>
-          <div style="position:relative;z-index:2;height:100%;display:flex;flex-direction:column">
-            <div class="brand-stack">
-              <img src="Assets/triptico-contacneed/sincronia-nexus-logo.png" alt="Sincronía Nexus" />
-            </div>
-            <p class="kicker" style="color:#7ee0d6">Sincronía Nexus</p>
-            <h3 class="section-title" style="font-size:.82rem;margin:0 0 .25rem">Presencia, escucha y claridad</h3>
-            <p class="lede" style="font-size:.58rem">
-              El espacio del ecosistema para ordenar decisiones, soltar cargas y conversar con método —
-              con faro visible y veto humano cuando importa.
-            </p>
-            <div class="mini-qr">
-              <img src="Assets/triptico-contacneed/qr-nexus.png" alt="QR Sincronía Nexus" />
-              <div class="meta">
-                <b>Abrir Sincronía Nexus</b>
-                <span class="url">https://centromultidisciplinarioags.com/nexus</span>
+        <div class="split-half" style="background:linear-gradient(135deg,#e8f7f5,#f7f9fc)">
+          <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/nexus-scene.jpg')"></div>
+          <div class="bg-shade" style="background:linear-gradient(90deg,rgba(255,255,255,.94),rgba(255,255,255,.8))"></div>
+          <div class="split-copy">
+            <div class="product-head">
+              <div>
+                <div class="brand-stack">
+                  <img src="Assets/triptico-contacneed/sincronia-nexus-logo.png" alt="Sincronía Nexus" />
+                </div>
+                <p class="kicker" style="color:var(--teal)">Sincronía Nexus</p>
+                <h3 class="section-title" style="font-size:.74rem">Presencia, escucha y claridad</h3>
+                <p class="lede">
+                  Ordena decisiones y suelta cargas con método — faro visible y veto humano.
+                </p>
+                <p class="tiny"><span class="url">centromultidisciplinarioags.com/nexus</span></p>
+              </div>
+              <div class="mini-qr">
+                <img src="Assets/triptico-contacneed/qr-nexus.png" alt="QR Sincronía Nexus" width="68" height="68" />
+                <div class="meta"><b>Escanear</b></div>
               </div>
             </div>
           </div>
@@ -555,7 +608,6 @@
     </div>
   </template>
 
-  <!-- Print sheets -->
   <div class="print-sheet" id="print-outside">
     <div class="print-row" id="print-out-row"></div>
   </div>
@@ -572,10 +624,8 @@
       el.innerHTML = '';
       ids.forEach((id) => el.appendChild(cloneTemplate(id)));
     }
-    // Outside LTR when flat: back | middle | front
     fill('preview-out', ['tpl-out-left', 'tpl-out-center', 'tpl-out-front']);
     fill('preview-in', ['tpl-in-left', 'tpl-in-center', 'tpl-in-right']);
-    // Print outside: same order for short-edge flip duplex with matching inside
     fill('print-out-row', ['tpl-out-left', 'tpl-out-center', 'tpl-out-front']);
     fill('print-in-row', ['tpl-in-left', 'tpl-in-center', 'tpl-in-right']);
   </script>
