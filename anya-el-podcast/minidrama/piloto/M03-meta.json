@@ -1,67 +1,56 @@
 {
-  "duration": 60.166667,
+  "duration": 43.262993,
   "shots": [
     {
       "id": "t0",
-      "seconds": 4.35,
-      "lipsync": false,
-      "caption": "Campus \u00b7 noche"
+      "seconds": 4.25,
+      "avatar": false
     },
     {
       "id": "t1a",
-      "seconds": 3.09,
-      "lipsync": true,
-      "caption": ""
+      "seconds": 2.12,
+      "avatar": true
     },
     {
       "id": "t1b",
-      "seconds": 3.83,
-      "lipsync": true,
-      "caption": ""
+      "seconds": 2.18,
+      "avatar": true
     },
     {
       "id": "t1c",
-      "seconds": 5.41,
-      "lipsync": true,
-      "caption": ""
+      "seconds": 3.12,
+      "avatar": true
     },
     {
       "id": "t1d",
-      "seconds": 3.95,
-      "lipsync": true,
-      "caption": ""
+      "seconds": 2.12,
+      "avatar": true
     },
     {
       "id": "t1e",
-      "seconds": 8.32,
-      "lipsync": true,
-      "caption": ""
+      "seconds": 5.08,
+      "avatar": true
     },
     {
       "id": "t2",
-      "seconds": 10.36,
-      "lipsync": false,
-      "caption": ""
+      "seconds": 6.55,
+      "avatar": false
     },
     {
       "id": "t3",
-      "seconds": 12.11,
-      "lipsync": false,
-      "caption": ""
+      "seconds": 9.21,
+      "avatar": false
     },
     {
       "id": "t4",
-      "seconds": 6.55,
-      "lipsync": false,
-      "caption": "Protocolo: no"
+      "seconds": 6.45,
+      "avatar": false
     },
     {
       "id": "t5",
-      "seconds": 2.01,
-      "lipsync": true,
-      "caption": ""
+      "seconds": 2.12,
+      "avatar": true
     }
   ],
-  "engine": "wav2lip+gaze",
-  "ambience": "cafe"
+  "engine": "elevenlabs+kling-avatar"
 }
