@@ -19,6 +19,11 @@ Usa **siempre** estas fotos como referencia. Si Kling/Pika/Runway/MiniMax invent
 | `assets/m04-pastel.png` | El pastel de queso llega |
 | `assets/m04-cerca.png` | Se sienta más cerca |
 | `assets/m04-mano-plato.png` | Mano deja el plato (cliff) |
+| `assets/m05-tenedor.png` | Tenedor y pastel |
+| `assets/m05-taza-vacia.png` | Sola, taza, lluvia |
+| `assets/m05-lluvia-ventana.png` | Ventana del café con lluvia |
+| `assets/m05-anya-pecho.png` | El ruido en el pecho |
+| `assets/m05-lab-lluvia.png` | Cristal del lab con lluvia (cliff) |
 
 Anya: castaño a los hombros, ojos azules, vestido azul grisáceo, postura recta, casi no sonríe.  
 Ethan: jersey oscuro, barba de dos días, ojeras, tímido.

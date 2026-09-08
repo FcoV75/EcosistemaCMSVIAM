@@ -24,6 +24,6 @@ El formato: personajes fijos, sets pocos, cliffhanger, emisión diaria. Ella pue
 
 El video con cara estable sigue siendo **Runway, Kling, Pika, MiniMax o Video Diamante** (Ken Burns + voz, peor consistencia, más barato). Estas fichas son el ancla.
 
-**Pilotos:** M01–M02 (Wav2Lip), M03–M04 (ElevenLabs + Kling Avatar). Elenco amplio: `assets/refs/`.
+**Pilotos:** M01–M02 (Wav2Lip), M03–M05 (ElevenLabs + Kling Avatar). Elenco amplio: `assets/refs/`.
 
 Empieza por `BIBLIA-VERTICAL.md`, `MAPA-30.md` y `episodios/M01`.
