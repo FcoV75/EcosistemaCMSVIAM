@@ -1,0 +1,67 @@
+{
+  "duration": 59.208333,
+  "shots": [
+    {
+      "id": "t0",
+      "seconds": 4.35,
+      "lipsync": false,
+      "caption": "Campus \u00b7 noche"
+    },
+    {
+      "id": "t1a",
+      "seconds": 3.09,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t1b",
+      "seconds": 3.45,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t1c",
+      "seconds": 5.41,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t1d",
+      "seconds": 3.35,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t1e",
+      "seconds": 8.32,
+      "lipsync": true,
+      "caption": ""
+    },
+    {
+      "id": "t2",
+      "seconds": 10.36,
+      "lipsync": false,
+      "caption": ""
+    },
+    {
+      "id": "t3",
+      "seconds": 12.11,
+      "lipsync": false,
+      "caption": ""
+    },
+    {
+      "id": "t4",
+      "seconds": 6.55,
+      "lipsync": false,
+      "caption": "Protocolo: no"
+    },
+    {
+      "id": "t5",
+      "seconds": 2.01,
+      "lipsync": true,
+      "caption": ""
+    }
+  ],
+  "engine": "wav2lip+blink+gaze",
+  "ambience": "cafe"
+}
