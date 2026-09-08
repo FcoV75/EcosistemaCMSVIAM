@@ -2,8 +2,8 @@
 """Minidrama vertical: stills 9:16 + Ken Burns/ademán + Wav2Lip CPU + edge-tts.
 
 No es Kling. La boca es Wav2Lip sobre el lock; el cuerpo se mueve con
-reencuadre (respiración, paneo, pulso del altavoz). Parpadeo y micro-mirada
-con YuNet sobre el video ya hablado.
+reencuadre. El “parpadeo” de elipses sobre los ojos se desactivó: no era
+parpadeo, era un círculo de piel.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ VOICES = {
     "anya": {"voice": "es-MX-DaliaNeural", "rate": "-8%"},
     "levin": {"voice": "es-ES-AlvaroNeural", "rate": "-12%"},
     "alice": {"voice": "es-ES-ElviraNeural", "rate": "+6%"},
-    "barista": {"voice": "es-MX-JorgeNeural", "rate": "+4%"},
+    "barista": {"voice": "es-MX-JorgeNeural", "rate": "-6%", "pitch": "-2Hz"},
     "ethan": {"voice": "es-US-AlonsoNeural", "rate": "-10%"},
 }
 
@@ -266,7 +266,7 @@ M03 = {
             "id": "t1b",
             "image": "m03-barista.png",
             "who": "barista",
-            "text": "¿Americano, latte, espresso?",
+            "text": "¿Americano, latte... o espresso?",
             "lipsync": True,
             "motion": "sway",
         },
@@ -282,7 +282,7 @@ M03 = {
             "id": "t1d",
             "image": "m03-barista.png",
             "who": "barista",
-            "text": "Americano. ¿Nombre?",
+            "text": "Americano. ¿Y el nombre?",
             "lipsync": True,
             "motion": "sway",
         },
@@ -368,18 +368,11 @@ def fit_cover(src: Path, dest: Path, tw: int = W, th: int = H) -> None:
 def tts(who: str, text: str, dest: Path) -> None:
     cfg = VOICES[who]
     dest.parent.mkdir(parents=True, exist_ok=True)
-    run(
-        EDGE
-        + [
-            "--voice",
-            cfg["voice"],
-            f"--rate={cfg['rate']}",
-            "--text",
-            text,
-            "--write-media",
-            str(dest),
-        ]
-    )
+    cmd = EDGE + ["--voice", cfg["voice"], f"--rate={cfg['rate']}"]
+    if cfg.get("pitch"):
+        cmd.append(f"--pitch={cfg['pitch']}")
+    cmd += ["--text", text, "--write-media", str(dest)]
+    run(cmd)
 
 
 def mp3_to_wav16(src: Path, dest: Path) -> None:
@@ -830,7 +823,7 @@ def render_shot(shot: dict) -> Path:
 
     vid = WORK / f"{sid}_kb.mp4"
     animate(talking if used_lipsync else still, seconds, vid, shot.get("motion") or "sway")
-    if shot.get("blink", True):
+    if shot.get("blink", False):
         blinked = WORK / f"{sid}_blink.mp4"
         if add_blinks(vid, blinked):
             vid = blinked
@@ -900,7 +893,7 @@ def produce(ep: dict) -> Path:
     dest = OUT / ep["outfile"]
     dur = concat_and_fade(pieces, dest)
     (OUT / f"{ep['id']}-meta.json").write_text(
-        json.dumps({"duration": dur, "shots": meta, "engine": "wav2lip+blink+gaze", "ambience": AMBIENCE}, indent=2)
+        json.dumps({"duration": dur, "shots": meta, "engine": "wav2lip+gaze", "ambience": AMBIENCE}, indent=2)
     )
     print("LISTO", dest, dur)
     return dest
