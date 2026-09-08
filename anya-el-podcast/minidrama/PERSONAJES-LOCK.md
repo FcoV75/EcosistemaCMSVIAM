@@ -13,6 +13,8 @@ Usa **siempre** estas fotos como referencia. Si Kling/Pika/Runway/MiniMax invent
 | `assets/m02-anya-electrodo.png` | Se quita el sensor |
 | `assets/m02-anya-puerta.png` | Mira atrás, umbral |
 | `assets/m02-alice-altavoz.png` | Alice (LED, sin cara) |
+| `assets/m03-anya-barra.png` | Anya en la barra (café) |
+| `assets/m03-ethan-solo.png` / `m03-ethan-hola.png` | Ethan: solo / “Hola” |
 
 Anya: castaño a los hombros, ojos azules, vestido azul grisáceo, postura recta, casi no sonríe.  
 Ethan: jersey oscuro, barba de dos días, ojeras, tímido.

@@ -2,7 +2,8 @@
 """Minidrama vertical: stills 9:16 + Ken Burns/ademán + Wav2Lip CPU + edge-tts.
 
 No es Kling. La boca es Wav2Lip sobre el lock; el cuerpo se mueve con
-reencuadre (respiración, paneo, pulso del altavoz).
+reencuadre (respiración, paneo, pulso del altavoz). Parpadeo y micro-mirada
+con YuNet sobre el video ya hablado.
 """
 
 from __future__ import annotations
@@ -27,11 +28,15 @@ if not Path(FONT).exists():
 EDGE = [sys.executable, "-m", "edge_tts"]
 W2L = Path("/tmp/wav2lip/Wav2Lip")
 CKPT = W2L / "checkpoints" / "wav2lip_gan.pth"
+YUNET = Path(__file__).resolve().parent / "models" / "face_detection_yunet_2023mar.onnx"
+AMBIENCE = "lab"
 
 VOICES = {
     "anya": {"voice": "es-MX-DaliaNeural", "rate": "-8%"},
     "levin": {"voice": "es-ES-AlvaroNeural", "rate": "-12%"},
     "alice": {"voice": "es-ES-ElviraNeural", "rate": "+6%"},
+    "barista": {"voice": "es-MX-JorgeNeural", "rate": "+4%"},
+    "ethan": {"voice": "es-US-AlonsoNeural", "rate": "-10%"},
 }
 
 M01 = {
@@ -235,7 +240,95 @@ M02 = {
     ],
 }
 
-EPISODES = {"M01": M01, "M02": M02}
+M03 = {
+    "id": "M03",
+    "outfile": "M03-americano.mp4",
+    "ambience": "cafe",
+    "shots": [
+        {
+            "id": "t0",
+            "image": "m02-espresso-cliff.png",
+            "seconds": 4.0,
+            "caption": "Campus · noche",
+            "caption2": "M03 · ¿Americano?",
+            "motion": "zoom_in",
+            "blink": False,
+        },
+        {
+            "id": "t1a",
+            "image": "m03-anya-barra.png",
+            "who": "anya",
+            "text": "Un café, por favor.",
+            "lipsync": True,
+            "motion": "sway",
+        },
+        {
+            "id": "t1b",
+            "image": "m03-barista.png",
+            "who": "barista",
+            "text": "¿Americano, latte, espresso?",
+            "lipsync": True,
+            "motion": "sway",
+        },
+        {
+            "id": "t1c",
+            "image": "m03-anya-barra.png",
+            "who": "anya",
+            "text": "No sé. El que tomen cuando no saben cuál tomar.",
+            "lipsync": True,
+            "motion": "sway",
+        },
+        {
+            "id": "t1d",
+            "image": "m03-barista.png",
+            "who": "barista",
+            "text": "Americano. ¿Nombre?",
+            "lipsync": True,
+            "motion": "sway",
+        },
+        {
+            "id": "t1e",
+            "image": "m03-anya-barra.png",
+            "who": "anya",
+            "text": "Anya. Si es un continente, está bien. Si es una orden, también.",
+            "lipsync": True,
+            "motion": "sway",
+        },
+        {
+            "id": "t2",
+            "image": "m03-anya-taza.png",
+            "who": "anya",
+            "text": "Es amargo. En los datos, lo amargo avisa veneno. Ellos pagan por eso. No entiendo el pago.",
+            "lipsync": False,
+            "motion": "sway",
+        },
+        {
+            "id": "t3",
+            "image": "m03-ethan-solo.png",
+            "who": "anya",
+            "text": "Hombros caídos. Ceja izquierda más baja. Tristeza. El protocolo: observar. No sentarse cerca.",
+            "lipsync": False,
+            "motion": "sway",
+        },
+        {
+            "id": "t4",
+            "image": "m03-anya-sienta.png",
+            "seconds": 6.2,
+            "caption": "Protocolo: no",
+            "motion": "zoom_in",
+        },
+        {
+            "id": "t5",
+            "image": "m03-ethan-hola.png",
+            "who": "ethan",
+            "text": "Hola.",
+            "lipsync": True,
+            "motion": "sway",
+        },
+    ],
+}
+
+EPISODES = {"M01": M01, "M02": M02, "M03": M03}
 
 
 def run(cmd: list[str], **kw) -> None:
@@ -407,11 +500,12 @@ def lipsync(face: Path, audio: Path, dest: Path) -> bool:
 
 def motion_filter(style: str, seconds: float, src_is_video: bool) -> str:
     frames = max(1, int(round(seconds * FPS)))
+    # Dos frecuencias: respiración lenta + micro-sácada de mirada.
     sway = (
-        "scale=1188:2112,"
+        "scale=1220:2168,"
         "crop=1080:1920:"
-        "x='(in_w-1080)/2+16*sin(2*PI*t/5.4)':"
-        "y='(in_h-1920)/2+10*sin(2*PI*t/7.1+0.5)'"
+        "x='(in_w-1080)/2+13*sin(2*PI*t/5.7)+6*sin(2*PI*t/1.85)+3*sin(2*PI*t/11.0)':"
+        "y='(in_h-1920)/2+8*sin(2*PI*t/6.9+0.4)+4*sin(2*PI*t/2.55)'"
     )
     if style == "pulse":
         return (
@@ -464,6 +558,142 @@ def animate(src: Path, seconds: float, dest: Path, style: str) -> None:
     run(cmd)
 
 
+def _yunet(size: tuple[int, int]):
+    import cv2
+
+    det = cv2.FaceDetectorYN_create(str(YUNET), "", size, 0.65, 0.3, 5000)
+    return det
+
+
+def _paint_lids(frame, face, amount: float):
+    """Cierra párpados con el color de la frente (parpadeo barato, visible)."""
+    import cv2
+    import numpy as np
+
+    if amount <= 0.05:
+        return frame
+    re = face[4:6]
+    le = face[6:8]
+    dist = float(np.hypot(le[0] - re[0], le[1] - re[1])) or 40.0
+    fx, fy = (re[0] + le[0]) / 2.0, (re[1] + le[1]) / 2.0
+    bw = max(6, int(dist * 0.22))
+    bh = max(4, int(dist * 0.16))
+    x1, x2 = int(fx - bw), int(fx + bw)
+    y1, y2 = int(fy - dist * 0.42), int(fy - dist * 0.22)
+    h, w = frame.shape[:2]
+    x1, y1 = max(0, x1), max(0, y1)
+    x2, y2 = min(w, x2), min(h, y2)
+    patch = frame[y1:y2, x1:x2]
+    if patch.size == 0:
+        return frame
+    skin = np.median(patch.reshape(-1, 3), axis=0)
+    overlay = frame.copy()
+    ew = max(4, int(dist * 0.16))
+    eh = max(2, int(dist * (0.045 + 0.11 * amount)))
+    for cx, cy in (re, le):
+        cv2.ellipse(
+            overlay,
+            (int(cx), int(cy - dist * 0.02)),
+            (ew, eh),
+            0,
+            0,
+            360,
+            skin.tolist(),
+            -1,
+            cv2.LINE_AA,
+        )
+        # línea de pestaña
+        cv2.ellipse(
+            overlay,
+            (int(cx), int(cy + dist * 0.01)),
+            (ew, max(1, int(eh * 0.35))),
+            0,
+            0,
+            180,
+            (int(skin[0] * 0.55), int(skin[1] * 0.55), int(skin[2] * 0.55)),
+            1,
+            cv2.LINE_AA,
+        )
+    a = 0.2 + 0.75 * amount
+    return cv2.addWeighted(overlay, a, frame, 1.0 - a, 0)
+
+
+def add_blinks(src: Path, dest: Path) -> bool:
+    """Parpadeos de 4 fotogramas cada ~3.4 s. Si no hay cara, copia el video."""
+    import cv2
+    import numpy as np
+
+    if not YUNET.exists():
+        return False
+    cap = cv2.VideoCapture(str(src))
+    if not cap.isOpened():
+        return False
+    fps = cap.get(cv2.CAP_PROP_FPS) or FPS
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    det = _yunet((w, h))
+    ff = subprocess.Popen(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "bgr24",
+            "-s",
+            f"{w}x{h}",
+            "-r",
+            str(fps),
+            "-i",
+            "-",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "19",
+            "-pix_fmt",
+            "yuv420p",
+            "-an",
+            str(dest),
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    # calendario de parpadeos: inicio en ~1.1s, luego cada 3.1–4.2s
+    blink_len = 4
+    starts = []
+    t = 1.15
+    dur = (n / fps) if n else 2.0
+    rng = np.random.default_rng(int(dur * 1000) % 997)
+    while t < dur - 0.35:
+        starts.append(int(round(t * fps)))
+        t += 3.15 + float(rng.random()) * 1.05
+    active = {s + k: [0.45, 1.0, 1.0, 0.4][k] for s in starts for k in range(blink_len)}
+    i = 0
+    last_face = None
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            break
+        amt = active.get(i, 0.0)
+        if amt:
+            det.setInputSize((w, h))
+            _ok, faces = det.detect(frame)
+            if faces is not None and len(faces):
+                last_face = faces[0]
+            if last_face is not None:
+                frame = _paint_lids(frame, last_face, float(amt))
+        ff.stdin.write(frame.tobytes())
+        i += 1
+    cap.release()
+    ff.stdin.close()
+    ff.wait()
+    return dest.exists() and dest.stat().st_size > 1000
+
+
 def caption_png(text: str, text2: str, dest: Path) -> None:
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     dr = ImageDraw.Draw(im)
@@ -509,8 +739,14 @@ def overlay_caption(video: Path, cap: Path, dest: Path) -> None:
 
 
 def mux(video: Path, voice: Path, dest: Path, seconds: float) -> None:
-    hum = WORK / "hum.wav"
+    hum = WORK / f"hum_{AMBIENCE}.wav"
     if not hum.exists():
+        src = (
+            "anoisesrc=color=pink:amplitude=0.038:sample_rate=44100"
+            if AMBIENCE == "cafe"
+            else "anoisesrc=color=brown:amplitude=0.045:sample_rate=44100"
+        )
+        lp = "1800" if AMBIENCE == "cafe" else "700"
         run(
             [
                 "ffmpeg",
@@ -518,12 +754,15 @@ def mux(video: Path, voice: Path, dest: Path, seconds: float) -> None:
                 "-f",
                 "lavfi",
                 "-i",
-                "anoisesrc=color=brown:amplitude=0.045:sample_rate=44100",
+                src,
                 "-t",
                 "240",
+                "-af",
+                f"lowpass=f={lp}",
                 str(hum),
             ]
         )
+    bed_vol = "0.16" if AMBIENCE == "cafe" else "0.20"
     run(
         [
             "ffmpeg",
@@ -537,7 +776,7 @@ def mux(video: Path, voice: Path, dest: Path, seconds: float) -> None:
             "-i",
             str(hum),
             "-filter_complex",
-            "[1:a]volume=1.12[v];[2:a]volume=0.20,lowpass=f=700[h];"
+            f"[1:a]volume=1.12[v];[2:a]volume={bed_vol}[h];"
             "[v][h]amix=inputs=2:duration=first:dropout_transition=0[a]",
             "-map",
             "0:v",
@@ -591,6 +830,10 @@ def render_shot(shot: dict) -> Path:
 
     vid = WORK / f"{sid}_kb.mp4"
     animate(talking if used_lipsync else still, seconds, vid, shot.get("motion") or "sway")
+    if shot.get("blink", True):
+        blinked = WORK / f"{sid}_blink.mp4"
+        if add_blinks(vid, blinked):
+            vid = blinked
 
     cap_txt = shot.get("caption") or ""
     cap2 = shot.get("caption2") or ""
@@ -643,8 +886,9 @@ def concat_and_fade(pieces: list[Path], dest: Path) -> float:
 
 
 def produce(ep: dict) -> Path:
-    global WORK
+    global WORK, AMBIENCE
     WORK = OUT / "_build" / ep["id"]
+    AMBIENCE = ep.get("ambience") or "lab"
     WORK.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     pieces = []
@@ -656,7 +900,7 @@ def produce(ep: dict) -> Path:
     dest = OUT / ep["outfile"]
     dur = concat_and_fade(pieces, dest)
     (OUT / f"{ep['id']}-meta.json").write_text(
-        json.dumps({"duration": dur, "shots": meta, "engine": "wav2lip+sway"}, indent=2)
+        json.dumps({"duration": dur, "shots": meta, "engine": "wav2lip+blink+gaze", "ambience": AMBIENCE}, indent=2)
     )
     print("LISTO", dest, dur)
     return dest
@@ -664,9 +908,9 @@ def produce(ep: dict) -> Path:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ep", choices=["M01", "M02", "all"], default="all")
+    ap.add_argument("--ep", choices=["M01", "M02", "M03", "all"], default="all")
     args = ap.parse_args()
-    keys = ["M01", "M02"] if args.ep == "all" else [args.ep]
+    keys = ["M01", "M02", "M03"] if args.ep == "all" else [args.ep]
     for k in keys:
         produce(EPISODES[k])
 
