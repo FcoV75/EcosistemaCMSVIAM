@@ -1,0 +1,71 @@
+{
+  "duration": 89.875,
+  "shots": [
+    {
+      "id": "t0",
+      "seconds": 3.65,
+      "avatar": false
+    },
+    {
+      "id": "t1",
+      "seconds": 2.12,
+      "avatar": true
+    },
+    {
+      "id": "t2a",
+      "seconds": 9.21,
+      "avatar": true
+    },
+    {
+      "id": "t2b",
+      "seconds": 9.52,
+      "avatar": true
+    },
+    {
+      "id": "t2c",
+      "seconds": 7.8,
+      "avatar": true
+    },
+    {
+      "id": "t3a",
+      "seconds": 8.09,
+      "avatar": true
+    },
+    {
+      "id": "t3b",
+      "seconds": 7.96,
+      "avatar": true
+    },
+    {
+      "id": "t3c",
+      "seconds": 10.23,
+      "avatar": true
+    },
+    {
+      "id": "t4a",
+      "seconds": 4.27,
+      "avatar": true
+    },
+    {
+      "id": "t4b",
+      "seconds": 12.25,
+      "avatar": true
+    },
+    {
+      "id": "t5a",
+      "seconds": 3.85,
+      "avatar": false
+    },
+    {
+      "id": "t5b",
+      "seconds": 6.41,
+      "avatar": false
+    },
+    {
+      "id": "t5c",
+      "seconds": 4.45,
+      "avatar": false
+    }
+  ],
+  "engine": "elevenlabs+kling-avatar"
+}
