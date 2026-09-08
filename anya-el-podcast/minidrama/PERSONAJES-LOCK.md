@@ -15,6 +15,10 @@ Usa **siempre** estas fotos como referencia. Si Kling/Pika/Runway/MiniMax invent
 | `assets/m02-alice-altavoz.png` | Alice (LED, sin cara) |
 | `assets/m03-anya-barra.png` | Anya en la barra (café) |
 | `assets/m03-ethan-solo.png` / `m03-ethan-hola.png` | Ethan: solo / “Hola” |
+| `assets/m04-anya-mira.png` | Anya en la mesa, mira a Ethan |
+| `assets/m04-pastel.png` | El pastel de queso llega |
+| `assets/m04-cerca.png` | Se sienta más cerca |
+| `assets/m04-mano-plato.png` | Mano deja el plato (cliff) |
 
 Anya: castaño a los hombros, ojos azules, vestido azul grisáceo, postura recta, casi no sonríe.  
 Ethan: jersey oscuro, barba de dos días, ojeras, tímido.
