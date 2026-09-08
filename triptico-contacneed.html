@@ -77,17 +77,29 @@
     .spread .panel:last-child { border-right: 0; }
 
     @media print {
-      .screen-only { display: none !important; }
+      .no-print { display: none !important; }
       body { background: #fff; }
-      .print-sheet {
-        display: block !important;
-        page-break-after: always;
-        width: var(--page-w);
-        height: var(--page-h);
+      .screen-only {
+        max-width: none;
         margin: 0;
+        padding: 0;
+      }
+      .spread {
+        display: flex !important;
+        width: 11in;
+        height: 8.5in;
+        aspect-ratio: auto;
+        border: 0;
+        box-shadow: none;
+        page-break-after: always;
         overflow: hidden;
       }
-      .print-sheet:last-child { page-break-after: auto; }
+      .spread:last-of-type { page-break-after: auto; }
+      .spread .panel {
+        width: 3.6667in;
+        height: 8.5in;
+        flex: 0 0 3.6667in;
+      }
       @page {
         size: letter landscape;
         margin: 0;
@@ -420,34 +432,33 @@
       font: inherit;
       margin-bottom: 1rem;
     }
+  
+    /* Fallback tipografía si Google Fonts no carga */
+    body { font-family: Outfit, "Segoe UI", Tahoma, sans-serif; }
   </style>
 </head>
 <body>
   <div class="screen-only">
-    <h1 class="guide">Tríptico ContacNeed</h1>
-    <p class="hint">
-      Vista previa a tamaño real de carta horizontal (11&quot; × 8.5&quot;). Imprime a
-      <strong>doble cara, voltear por el borde corto</strong>, sin márgenes.
-      Dobla en tres paneles iguales.
-    </p>
-    <button type="button" onclick="window.print()" class="pill btn-print">
-      Imprimir / Guardar PDF
-    </button>
+    <div class="no-print">
+      <h1 class="guide">Tríptico ContacNeed</h1>
+      <p class="hint">
+        Abre este enlace en el ecosistema CMS:
+        <strong><a href="/triptico-contacneed.html">centromultidisciplinarioags.com/triptico</a></strong>.
+        Imprime a <strong>doble cara, voltear por el borde corto</strong>, sin márgenes.
+      </p>
+      <button type="button" onclick="window.print()" class="pill btn-print">
+        Imprimir / Guardar PDF
+      </button>
+    </div>
 
-    <div class="spread-label">Exterior (portada a la derecha · ecosistema al centro · ContacNeed QR al dorso izquierdo)</div>
-    <div class="spread" id="preview-out" aria-label="Exterior del tríptico"></div>
-
-    <div class="spread-label">Interior (ventajas ContacNeed · llamada a acción · Video Diamante + Sincronía Nexus)</div>
-    <div class="spread" id="preview-in" aria-label="Interior del tríptico"></div>
-  </div>
-
-  <template id="tpl-out-left">
-    <div class="panel p-back">
+    <div class="spread-label no-print">Exterior (portada a la derecha · ecosistema al centro · ContacNeed QR al dorso izquierdo)</div>
+    <div class="spread" aria-label="Exterior del tríptico">
+<div class="panel p-back">
       <div class="bg-shade"></div>
       <div class="panel-inner">
         <p class="kicker">Empieza hoy</p>
         <h2 class="display" style="font-size:1.05rem">Tu oficio merece ser encontrado</h2>
-        <img class="shot shot-pizarra" src="Assets/triptico-contacneed/captura-pizarra.jpg" alt="Captura de la Pizarra ContacNeed" />
+        <img class="shot shot-pizarra" src="/Assets/triptico-contacneed/captura-pizarra.jpg" alt="Captura de la Pizarra ContacNeed" />
         <p class="lede">
           En ContacNeed te buscan por
           <strong style="color:var(--gold)">oficio, estado y especialidad</strong>.
@@ -458,7 +469,7 @@
           <li><strong>Registro en minutos</strong> y misma cuenta para todo el ecosistema VIAM.</li>
         </ul>
         <div class="qr-box">
-          <img src="Assets/triptico-contacneed/qr-contacneed.png" alt="Código QR ContacNeed registro" />
+          <img src="/Assets/triptico-contacneed/qr-contacneed.png" alt="Código QR ContacNeed registro" />
           <div class="meta">
             <b>Regístrate ahora</b>
             Escanea con tu celular<br />
@@ -468,15 +479,12 @@
         </div>
       </div>
     </div>
-  </template>
-
-  <template id="tpl-out-center">
-    <div class="panel">
+<div class="panel">
       <div class="bg-shade"></div>
       <div class="panel-inner">
         <span class="eco-badge">Ecosistema VIAM</span>
         <h2 class="section-title">Una red. Tres potencias.</h2>
-        <img class="shot shot-perfil" src="Assets/triptico-contacneed/captura-perfil-tienda.jpg" alt="Captura de perfil y tienda ContacNeed" />
+        <img class="shot shot-perfil" src="/Assets/triptico-contacneed/captura-perfil-tienda.jpg" alt="Captura de perfil y tienda ContacNeed" />
         <p class="lede">
           Perfil + tienda en ContacNeed. Luego abre Nexus y Video Diamante con la misma cuenta.
         </p>
@@ -486,20 +494,17 @@
           <li><strong>Video Diamante</strong> — producción audiovisual con IA, lista para publicar.</li>
         </ul>
         <div class="logos-row">
-          <img class="logo" src="Assets/triptico-contacneed/contacneed-logo.png" alt="ContacNeed" />
-          <img class="logo" src="Assets/triptico-contacneed/sincronia-nexus-logo.png" alt="Sincronía Nexus" />
-          <img class="logo" src="Assets/triptico-contacneed/ia-viam-logo.png" alt="IA VIAM" />
+          <img class="logo" src="/Assets/triptico-contacneed/contacneed-logo.png" alt="ContacNeed" />
+          <img class="logo" src="/Assets/triptico-contacneed/sincronia-nexus-logo.png" alt="Sincronía Nexus" />
+          <img class="logo" src="/Assets/triptico-contacneed/ia-viam-logo.png" alt="IA VIAM" />
         </div>
       </div>
     </div>
-  </template>
-
-  <template id="tpl-out-front">
-    <div class="panel p-front">
-      <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/oficios-mexico.jpg')"></div>
+<div class="panel p-front">
+      <div class="bg-photo" style="background-image:url('/Assets/triptico-contacneed/oficios-mexico.jpg')"></div>
       <div class="bg-shade"></div>
       <div class="panel-inner">
-        <img class="logo" src="Assets/triptico-contacneed/contacneed-logo.png" alt="ContacNeed" />
+        <img class="logo" src="/Assets/triptico-contacneed/contacneed-logo.png" alt="ContacNeed" />
         <p class="kicker">La red social de oficios</p>
         <h1 class="display">Donde tu talento deja de esconderse</h1>
         <p class="lede">
@@ -509,11 +514,12 @@
         <span class="pill">Ábrelo · Descubre por qué conviene unirte hoy</span>
       </div>
     </div>
-  </template>
+    </div>
 
-  <template id="tpl-in-left">
-    <div class="panel">
-      <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/oficios-mexico.jpg');opacity:.12"></div>
+    <div class="spread-label no-print">Interior (ventajas ContacNeed · llamada a acción · Video Diamante + Sincronía Nexus)</div>
+    <div class="spread" aria-label="Interior del tríptico">
+<div class="panel">
+      <div class="bg-photo" style="background-image:url('/Assets/triptico-contacneed/oficios-mexico.jpg');opacity:.12"></div>
       <div class="bg-shade"></div>
       <div class="panel-inner">
         <p class="kicker">Ventajas ContacNeed</p>
@@ -528,10 +534,7 @@
         <p class="tiny">ContacNeed no compite con “likes vacíos”. Compite con resultados: citas, contratos y reputación local.</p>
       </div>
     </div>
-  </template>
-
-  <template id="tpl-in-center">
-    <div class="panel">
+<div class="panel">
       <div class="bg-shade"></div>
       <div class="panel-inner">
         <p class="kicker">Por qué ahora</p>
@@ -553,19 +556,16 @@
         </div>
       </div>
     </div>
-  </template>
-
-  <template id="tpl-in-right">
-    <div class="panel" style="padding:0;background:#f7f9fc">
+<div class="panel" style="padding:0;background:#f7f9fc">
       <div class="split">
         <div class="split-half" style="background:linear-gradient(135deg,#fff8e8,#f7f9fc)">
-          <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/video-diamante-scene.jpg')"></div>
+          <div class="bg-photo" style="background-image:url('/Assets/triptico-contacneed/video-diamante-scene.jpg')"></div>
           <div class="bg-shade" style="background:linear-gradient(90deg,rgba(255,255,255,.94),rgba(255,255,255,.8))"></div>
           <div class="split-copy">
             <div class="product-head">
               <div>
                 <div class="brand-stack">
-                  <img src="Assets/triptico-contacneed/ia-viam-logo.png" alt="IA VIAM / Video Diamante" />
+                  <img src="/Assets/triptico-contacneed/ia-viam-logo.png" alt="IA VIAM / Video Diamante" />
                 </div>
                 <p class="kicker">Video Diamante</p>
                 <h3 class="section-title" style="font-size:.74rem">Tu historia en video que vende</h3>
@@ -575,20 +575,20 @@
                 <p class="tiny"><span class="url">centromultidisciplinarioags.com/video_diamante</span></p>
               </div>
               <div class="mini-qr">
-                <img src="Assets/triptico-contacneed/qr-video-diamante.png" alt="QR Video Diamante" width="68" height="68" />
+                <img src="/Assets/triptico-contacneed/qr-video-diamante.png" alt="QR Video Diamante" width="68" height="68" />
                 <div class="meta"><b>Escanear</b></div>
               </div>
             </div>
           </div>
         </div>
         <div class="split-half" style="background:linear-gradient(135deg,#e8f7f5,#f7f9fc)">
-          <div class="bg-photo" style="background-image:url('Assets/triptico-contacneed/nexus-scene.jpg')"></div>
+          <div class="bg-photo" style="background-image:url('/Assets/triptico-contacneed/nexus-scene.jpg')"></div>
           <div class="bg-shade" style="background:linear-gradient(90deg,rgba(255,255,255,.94),rgba(255,255,255,.8))"></div>
           <div class="split-copy">
             <div class="product-head">
               <div>
                 <div class="brand-stack">
-                  <img src="Assets/triptico-contacneed/sincronia-nexus-logo.png" alt="Sincronía Nexus" />
+                  <img src="/Assets/triptico-contacneed/sincronia-nexus-logo.png" alt="Sincronía Nexus" />
                 </div>
                 <p class="kicker" style="color:var(--teal)">Sincronía Nexus</p>
                 <h3 class="section-title" style="font-size:.74rem">Presencia, escucha y claridad</h3>
@@ -598,7 +598,7 @@
                 <p class="tiny"><span class="url">centromultidisciplinarioags.com/nexus</span></p>
               </div>
               <div class="mini-qr">
-                <img src="Assets/triptico-contacneed/qr-nexus.png" alt="QR Sincronía Nexus" width="68" height="68" />
+                <img src="/Assets/triptico-contacneed/qr-nexus.png" alt="QR Sincronía Nexus" width="68" height="68" />
                 <div class="meta"><b>Escanear</b></div>
               </div>
             </div>
@@ -606,28 +606,7 @@
         </div>
       </div>
     </div>
-  </template>
-
-  <div class="print-sheet" id="print-outside">
-    <div class="print-row" id="print-out-row"></div>
+    </div>
   </div>
-  <div class="print-sheet" id="print-inside">
-    <div class="print-row" id="print-in-row"></div>
-  </div>
-
-  <script>
-    function cloneTemplate(id) {
-      return document.getElementById(id).content.cloneNode(true);
-    }
-    function fill(target, ids) {
-      const el = document.getElementById(target);
-      el.innerHTML = '';
-      ids.forEach((id) => el.appendChild(cloneTemplate(id)));
-    }
-    fill('preview-out', ['tpl-out-left', 'tpl-out-center', 'tpl-out-front']);
-    fill('preview-in', ['tpl-in-left', 'tpl-in-center', 'tpl-in-right']);
-    fill('print-out-row', ['tpl-out-left', 'tpl-out-center', 'tpl-out-front']);
-    fill('print-in-row', ['tpl-in-left', 'tpl-in-center', 'tpl-in-right']);
-  </script>
 </body>
 </html>
