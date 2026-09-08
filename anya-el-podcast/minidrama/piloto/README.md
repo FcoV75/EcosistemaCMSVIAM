@@ -1,15 +1,16 @@
 # Piloto — *Ecos de Singularidad* (vertical)
 
-Stills con lock de Anya + reencuadre + **lipsync CPU (Wav2Lip)** + voces edge-tts.
+M01–M02: stills + Wav2Lip CPU + edge-tts. M03–M04: ElevenLabs + Kling Avatar.
 
 | Archivo | Capítulo |
 |---|---|
 | `M01-la-imagen-llora.mp4` | La imagen llora |
 | `M02-socializacion.mp4` | Socialización |
 | `M03-americano.mp4` | ¿Americano? |
+| `M04-estas-triste.mp4` | Estás triste |
 
 - Formato: 1080×1920 (9:16)
-- Voces: Anya `es-MX-DaliaNeural` · Levin `es-ES-AlvaroNeural` · Alice `es-ES-ElviraNeural` · Ethan `es-US-AlonsoNeural` · barista `es-MX-JorgeNeural` (más lento; aún no es actuación)
-- Regenerar: `python3 ../scripts/produce_vertical.py --ep all`
+- Regenerar M01–M02: `python3 ../scripts/produce_vertical.py --ep all`
+- Regenerar M03 / M04 (keys en entorno): `python3 ../scripts/produce_m03_kling.py` · `python3 ../scripts/produce_m04_kling.py`
 
-El “parpadeo” de círculos de piel está **apagado**. Ojos y cuerpo de verdad piden Kling/Hedra + voces ElevenLabs.
+El “parpadeo” de círculos de piel está **apagado**.
