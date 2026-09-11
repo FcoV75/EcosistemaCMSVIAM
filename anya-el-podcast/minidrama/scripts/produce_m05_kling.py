@@ -337,7 +337,7 @@ def mux(video: Path, voice: Path, dest: Path, seconds: float, rain: bool = False
             "-stream_loop", "-1", "-i", str(rain_wav),
             "-filter_complex", fc,
             "-map", "0:v", "-map", "[a]", "-t", f"{seconds:.3f}",
-            "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", str(dest),
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ac", "2", str(dest),
         ]
     else:
         cmd = [
@@ -345,7 +345,7 @@ def mux(video: Path, voice: Path, dest: Path, seconds: float, rain: bool = False
             "-stream_loop", "-1", "-i", str(hum),
             "-filter_complex", "[1:a]volume=1.15[v];[2:a]volume=0.14[h];[v][h]amix=inputs=2:duration=first:dropout_transition=0[a]",
             "-map", "0:v", "-map", "[a]", "-t", f"{seconds:.3f}",
-            "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", str(dest),
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ac", "2", str(dest),
         ]
     run(cmd)
 
@@ -444,7 +444,7 @@ def main() -> None:
             "-vf", f"fade=t=out:st={fade_at:.2f}:d=1.0,format=yuv420p",
             "-af", f"afade=t=out:st={fade_at:.2f}:d=1.0",
             "-c:v", "libx264", "-preset", "medium", "-crf", "21",
-            "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(dest),
+            "-c:a", "aac", "-b:a", "192k", "-ac", "2", "-movflags", "+faststart", str(dest),
         ]
     )
     (OUT / "M05-meta.json").write_text(

@@ -265,7 +265,9 @@ def mux(video: Path, voice: Path, dest: Path, seconds: float) -> None:
             "-c:a",
             "aac",
             "-b:a",
-            "160k",
+            "192k",
+            "-ac",
+            "2",
             str(dest),
         ]
     )
@@ -375,7 +377,9 @@ def main() -> None:
             "-c:a",
             "aac",
             "-b:a",
-            "160k",
+            "192k",
+            "-ac",
+            "2",
             "-movflags",
             "+faststart",
             str(dest),
