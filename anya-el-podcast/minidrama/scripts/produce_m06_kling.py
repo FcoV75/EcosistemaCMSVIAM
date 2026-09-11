@@ -71,11 +71,12 @@ SHOTS = [
     },
     {
         "id": "t1d",
-        "image": "m06-anya-habla.png",
+        "image": "m06-anya-habla-mcu.png",
         "who": "anya",
         "text": "Lo sé. Igual voy a ir.",
         "avatar": True,
-        "prompt": P_ANYA + " Quiet decision, literal, no smile.",
+        "tight_crop": True,
+        "prompt": P_ANYA + " Quiet decision, literal, no smile. Close on face.",
     },
     {
         "id": "t2a",
@@ -94,11 +95,12 @@ SHOTS = [
     },
     {
         "id": "t2c",
-        "image": "m06-anya-habla.png",
+        "image": "m06-anya-habla-mcu.png",
         "who": "anya",
         "text": "No. Todavía no. Primero el modelo. Es lo que sé hacer cuando no entiendo.",
         "avatar": True,
-        "prompt": P_ANYA,
+        "tight_crop": True,
+        "prompt": P_ANYA + " Close on face.",
     },
     {
         "id": "t3est",
@@ -146,11 +148,12 @@ SHOTS = [
     },
     {
         "id": "t5a",
-        "image": "m06-anya-habla.png",
+        "image": "m06-anya-habla-mcu.png",
         "who": "anya",
         "text": "Ya. Entonces es una pregunta tonta. Igual la voy a hacer.",
         "avatar": True,
-        "prompt": P_ANYA + " Soft resolve, looking slightly aside, not cute.",
+        "tight_crop": True,
+        "prompt": P_ANYA + " Soft resolve, looking slightly aside, not cute. Close on face.",
     },
     {
         "id": "t5b",
@@ -260,10 +263,11 @@ def black_video(seconds: float, dest: Path) -> None:
     )
 
 
-def to_916(src: Path, dest: Path, seconds: float) -> None:
-    # Recorta un poco arriba y abajo: Kling a veces pinta letras basura en el borde.
+def to_916(src: Path, dest: Path, seconds: float, tight: bool = False) -> None:
+    # Recorta bordes (y más abajo si Kling pintó basura en el vestido).
+    crop = "crop=iw:ih*0.50:0:ih*0.04" if tight else "crop=iw:ih*0.86:0:ih*0.06"
     vf = (
-        f"crop=iw:ih*0.86:0:ih*0.06,"
+        f"{crop},"
         f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},format=yuv420p"
     )
     run(
@@ -473,7 +477,7 @@ def main() -> None:
         if shot.get("avatar") and who and text:
             raw = WORK / f"{sid}_avatar.mp4"
             kling_avatar(ASSETS / shot["image"], WORK / f"{sid}_{who}.mp3", raw, shot.get("prompt") or ".")
-            to_916(raw, vid, max(seconds, duration_sec(raw)))
+            to_916(raw, vid, max(seconds, duration_sec(raw)), tight=bool(shot.get("tight_crop")))
             seconds = max(seconds, duration_sec(vid))
             pad_audio(voice, voice.with_name(voice.stem + "_pad.wav"), seconds)
             voice = voice.with_name(voice.stem + "_pad.wav")
@@ -512,7 +516,8 @@ def main() -> None:
             "-af",
             f"loudnorm=I=-16:TP=-1.5:LRA=11,afade=t=out:st={fade_at:.2f}:d=1.0",
             "-c:v", "libx264", "-preset", "medium", "-crf", "21",
-            "-c:a", "aac", "-b:a", "192k", "-ac", "2", "-movflags", "+faststart", str(dest),
+            "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
+            "-movflags", "+faststart", str(dest),
         ]
     )
     audio = verify_audio(dest)

@@ -1,0 +1,103 @@
+{
+  "duration": 93.3,
+  "shots": [
+    {
+      "id": "t0",
+      "seconds": 3.45,
+      "avatar": false
+    },
+    {
+      "id": "t1a",
+      "seconds": 3.91,
+      "avatar": false
+    },
+    {
+      "id": "t1b",
+      "seconds": 9.03,
+      "avatar": true
+    },
+    {
+      "id": "t1c",
+      "seconds": 2.6,
+      "avatar": false
+    },
+    {
+      "id": "t1d",
+      "seconds": 2.12,
+      "avatar": true
+    },
+    {
+      "id": "t2a",
+      "seconds": 8.69,
+      "avatar": true
+    },
+    {
+      "id": "t2b",
+      "seconds": 5.11,
+      "avatar": false
+    },
+    {
+      "id": "t2c",
+      "seconds": 5.08,
+      "avatar": true
+    },
+    {
+      "id": "t3est",
+      "seconds": 3.25,
+      "avatar": false
+    },
+    {
+      "id": "t3a",
+      "seconds": 11.01,
+      "avatar": false
+    },
+    {
+      "id": "t3b",
+      "seconds": 12.92,
+      "avatar": true
+    },
+    {
+      "id": "t3c",
+      "seconds": 1.45,
+      "avatar": false
+    },
+    {
+      "id": "t4a",
+      "seconds": 12.25,
+      "avatar": true
+    },
+    {
+      "id": "t4b",
+      "seconds": 2.65,
+      "avatar": false
+    },
+    {
+      "id": "t5a",
+      "seconds": 4.27,
+      "avatar": true
+    },
+    {
+      "id": "t5b",
+      "seconds": 4.45,
+      "avatar": false
+    },
+    {
+      "id": "t5c",
+      "seconds": 1.35,
+      "avatar": false
+    }
+  ],
+  "engine": "elevenlabs+kling-avatar",
+  "audio": {
+    "channels": 2,
+    "codec": "aac",
+    "sample_rate": "48000",
+    "mean_db": -20.5,
+    "max_db": -1.5
+  },
+  "glyphs_fixed": [
+    "t1d",
+    "t2c",
+    "t5a"
+  ]
+}
