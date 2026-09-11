@@ -25,6 +25,12 @@ Usa **siempre** estas fotos como referencia. Si Kling/Pika/Runway/MiniMax invent
 | `assets/m05-anya-pecho.png` | El ruido en el pecho |
 | `assets/m05-lab-lluvia.png` | Cristal del lab con lluvia (cliff) |
 | `assets/m05-ethan-clean.png` | Ethan MCU sin letreros |
+| `assets/m06-anya-habla.png` | Anya lab, MCU, sin electrodos |
+| `assets/m06-anya-silla.png` | Silla de electrodos, sin cables; mano en el pecho |
+| `assets/m06-anya-monitor.png` | Cara en luz fea del monitor |
+| `assets/m06-anya-alice.png` | Mira al altavoz, sin sensor |
+| `assets/m06-servidores.png` | Sala de racks, noche, sin marca |
+| `assets/m06-monitor-glow.png` | Monitor abstracto (el 2050 se quema encima, no en la foto) |
 
 Anya: castaño a los hombros, ojos azules, vestido azul grisáceo, postura recta, casi no sonríe.  
 Ethan: jersey oscuro, barba de dos días, ojeras, tímido.
