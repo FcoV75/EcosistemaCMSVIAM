@@ -38,6 +38,12 @@
 [functions.estudio-imagen]
   timeout = 90
 
+[functions.estudio-director]
+  timeout = 60
+
+[functions.estudio-letra]
+  timeout = 60
+
 [functions.download-libro]
   included_files = ["Assets/Docs/**"]
 

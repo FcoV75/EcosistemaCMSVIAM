@@ -1,6 +1,6 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import { LIMITES_CLIP, clamp, esPremiumPayload } from './lib/estudio-limites.mjs';
-import { expandirPromptVisual, promptClipReforzado } from './lib/estudio-prompt-visual.mjs';
+import { expandirPromptVisual } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
 async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 50000) {
@@ -155,7 +155,8 @@ export default async (req) => {
     const lim = premium ? LIMITES_CLIP.premium : LIMITES_CLIP.free;
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
-    const promptEn = promptClipReforzado(expansion.promptEn, prompt);
+    const promptEn = expansion.promptEn;
+    const dir = expansion.director;
 
     let nativo = null;
     try {
@@ -177,6 +178,14 @@ export default async (req) => {
         console.warn('Replicate clip:', err?.message || err);
       }
     }
+    const metaDirector = dir
+      ? {
+          intencion: dir.intencion,
+          inferencias: dir.inferencias?.slice(0, 4) || [],
+          resumen_es: dir.resumen_es,
+          via: dir.via,
+        }
+      : null;
     if (nativo?.video_url) {
       return jsonResponse({
         success: true,
@@ -186,8 +195,9 @@ export default async (req) => {
         duracionSeg: duracion,
         fuente: nativo.fuente,
         resumen: expansion.resumen || '',
-        prompt_en: promptEn.slice(0, 400),
+        prompt_en: promptEn.slice(0, 500),
         via_prompt: expansion.via || '',
+        director: metaDirector,
       });
     }
 
@@ -213,8 +223,9 @@ export default async (req) => {
       fuente: cine.fuente,
       movimiento: true,
       resumen: expansion.resumen || '',
-      prompt_en: promptEn.slice(0, 400),
+      prompt_en: promptEn.slice(0, 500),
       via_prompt: expansion.via || '',
+      director: metaDirector,
       aviso: `Clip de ${duracion} s (placa + Ken Burns): no es una imagen fija de la pestaña Imagen; el navegador graba el movimiento.`,
     });
   } catch (e) {
