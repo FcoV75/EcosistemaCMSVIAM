@@ -208,19 +208,36 @@ function actualizarPreviewTipografia() {
     ctx.fillText(`Escala ×${escala}`, w / 2, 28);
 }
 
-async function fetchEstudio(endpoint, body) {
+async function fetchEstudio(endpoint, body, { timeoutMs } = {}) {
     await ensureAccessToken();
     let fn = "estudio-imagen";
     if (endpoint.includes("letra")) fn = "estudio-letra";
     else if (endpoint.includes("voz")) fn = "estudio-voz";
     else if (endpoint.includes("clip")) fn = "estudio-clip";
-    const r2 = await fetch(`/.netlify/functions/${fn}`, {
-        method: "POST",
-        headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(body)
-    });
-    const d2 = await parseJsonSeguro(r2);
-    return { ok: r2.ok, data: d2 };
+    const ctrl = timeoutMs ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+    try {
+        const r2 = await fetch(`/.netlify/functions/${fn}`, {
+            method: "POST",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(body),
+            signal: ctrl?.signal
+        });
+        const d2 = await parseJsonSeguro(r2);
+        return { ok: r2.ok, data: d2 };
+    } catch (err) {
+        if (err?.name === "AbortError") {
+            return {
+                ok: false,
+                data: {
+                    error: "La petición tardó demasiado (timeout). Vuelve a intentar; si el texto es largo, acórtalo un poco."
+                }
+            };
+        }
+        throw err;
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
 }
 
 function puedeUsarEstudio() {
@@ -565,11 +582,18 @@ async function generarVozIA() {
     const voz = $("#estudio-voz-estilo")?.value || "femenina";
 
     if (btn) { btn.disabled = true; btn.textContent = "Generando locución..."; }
-    if (status) status.textContent = `La IA adapta el texto y crea la voz (hasta ${maxSeg} s)...`;
+    if (status) status.textContent = `Creando la voz (hasta ${maxSeg} s). Suele tardar unos segundos…`;
 
     try {
-        const { ok, data: d } = await fetchEstudio("/estudio/voz", { texto, voz, maxSeg, adaptar: true });
-        if (!ok || !d.audio_base64) throw new Error(d.error || "No se pudo generar la voz.");
+        // 55 s: por debajo del límite Netlify (60) y del "Inactivity Timeout" de Safari/iPad.
+        const { ok, data: d } = await fetchEstudio("/estudio/voz", { texto, voz, maxSeg, adaptar: true }, { timeoutMs: 55000 });
+        if (!ok || !d.audio_base64) {
+            const raw = String(d.error || "No se pudo generar la voz.");
+            if (/inactivity timeout|too much time has passed/i.test(raw)) {
+                throw new Error("El servidor tardó demasiado en responder. Intenta de nuevo; con textos cortos suele ir al primer intento.");
+            }
+            throw new Error(raw);
+        }
         incrementarEstudioGens("voz");
         const mime = d.mime || "audio/mpeg";
         const blob = blobDesdeBase64(d.audio_base64, mime);
@@ -586,7 +610,12 @@ async function generarVozIA() {
             status.textContent = `Voz lista (${d.fuente || d.modelo || "IA"}).${extra} Ponla en el riel de locución; el MP3 o MIDI se queda en el riel de fondo.`;
         }
     } catch (e) {
-        if (status) status.textContent = "No se pudo generar la voz: " + e.message;
+        const msg = String(e?.message || e);
+        if (status) {
+            status.textContent = /inactivity timeout|too much time/i.test(msg)
+                ? "No se pudo generar la voz: la conexión se cortó por espera larga. Pulsa Generar voz otra vez."
+                : "No se pudo generar la voz: " + msg;
+        }
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = "🗣️ Generar voz"; }
     }

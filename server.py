@@ -665,6 +665,32 @@ def estudio_generar_voz():
     }
     groq_key = os.environ.get("GROQ_API_KEY")
     gemini_key = os.environ.get("GEMINI_API_KEY")
+    # Groq primero (rápido); Gemini como respaldo con timeout corto.
+    if groq_key:
+        try:
+            resp = http_requests.post(
+                "https://api.groq.com/openai/v1/audio/speech",
+                headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "playai-tts",
+                    "voice": voces_groq.get(voz, "Celeste-PlayAI"),
+                    "input": texto[:4000],
+                    "response_format": "mp3",
+                },
+                timeout=20,
+            )
+            if resp.ok and resp.content and len(resp.content) > 400:
+                return jsonify({
+                    "success": True,
+                    "audio_base64": base64.b64encode(resp.content).decode("ascii"),
+                    "mime": "audio/mpeg",
+                    "modelo": "playai-tts",
+                    "recortado": recortado,
+                    "adaptado": adaptado,
+                    "fuente": "groq",
+                })
+        except Exception as exc:
+            print(f"Groq voz falló: {exc}")
     if gemini_key:
         try:
             modelo = "gemini-2.5-flash-preview-tts"
@@ -678,7 +704,7 @@ def estudio_generar_voz():
                         "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voces.get(voz, "Kore")}}},
                     },
                 },
-                timeout=120,
+                timeout=12,
             )
             data = resp.json()
             if resp.ok:
@@ -696,33 +722,7 @@ def estudio_generar_voz():
                         })
         except Exception as exc:
             print(f"Gemini voz falló: {exc}")
-    if not groq_key:
-        return jsonify({"error": "Configura GEMINI_API_KEY o GROQ_API_KEY para voz IA."}), 500
-    try:
-        resp = http_requests.post(
-            "https://api.groq.com/openai/v1/audio/speech",
-            headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
-            json={
-                "model": "playai-tts",
-                "voice": voces_groq.get(voz, "Celeste-PlayAI"),
-                "input": texto[:4000],
-                "response_format": "mp3",
-            },
-            timeout=120,
-        )
-        if resp.ok and resp.content:
-            return jsonify({
-                "success": True,
-                "audio_base64": base64.b64encode(resp.content).decode("ascii"),
-                "mime": "audio/mpeg",
-                "modelo": "playai-tts",
-                "recortado": recortado,
-                "adaptado": adaptado,
-                "fuente": "groq",
-            })
-        return jsonify({"error": "No se pudo generar la voz."}), 502
-    except Exception as exc:
-        return jsonify({"error": f"Error generando voz: {exc}"}), 502
+    return jsonify({"error": "No se pudo generar la voz a tiempo. Intenta de nuevo."}), 502
 
 
 @app.route('/estudio/clip', methods=['POST', 'OPTIONS'])
