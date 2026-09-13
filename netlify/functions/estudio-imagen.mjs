@@ -21,6 +21,7 @@ export default async (req) => {
       width: 1920,
       height: 1080,
       seed: Date.now() % 99999,
+      original: prompt,
     });
     if (!imagen) return jsonResponse({ error: 'Fallo al generar imagen.' }, 502);
 

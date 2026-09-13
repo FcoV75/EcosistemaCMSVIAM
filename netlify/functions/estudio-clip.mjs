@@ -196,6 +196,7 @@ export default async (req) => {
       width: 1920,
       height: 1080,
       seed: Date.now() % 99999,
+      original: prompt,
     });
     if (!cine) {
       return jsonResponse({
