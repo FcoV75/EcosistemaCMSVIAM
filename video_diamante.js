@@ -28,6 +28,9 @@ let midiEstudioAudioFile = null;
 let vozEstudioAudioFile = null;
 let clipEstudioBlob = null;
 let clipEstudioTipo = "imagen";
+let previewMovImg = null;
+let previewMovRaf = 0;
+let previewMovPizarraGen = 0;
 let movimientoPendienteRender = 0;
 let accessToken = localStorage.getItem("video_diamante_access_token") || "";
 
@@ -282,11 +285,64 @@ function movimientoPorDefecto() {
     return !!$("#chk-movimiento-nuevas")?.checked;
 }
 
+function detenerPreviewMovimientoEstudio() {
+    if (previewMovRaf) {
+        cancelAnimationFrame(previewMovRaf);
+        previewMovRaf = 0;
+    }
+}
+
+function animarPreviewMovimientoEstudio(ts) {
+    const canvas = $("#canvas-preview-movimiento");
+    if (!canvas || !previewMovImg) {
+        previewMovRaf = 0;
+        return;
+    }
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const cicloMs = 6500;
+    const phase = (ts % (cicloMs * 2)) / cicloMs;
+    const t = phase <= 1 ? phase : 2 - phase;
+    dibujarKenBurnsCanvas(ctx, previewMovImg, t, canvas.width, canvas.height, estiloMovimientoActual());
+    previewMovRaf = requestAnimationFrame(animarPreviewMovimientoEstudio);
+}
+
 function mostrarPreviewMovimiento(src) {
     const wrap = $("#preview-movimiento-estudio");
-    const img = $("#img-preview-movimiento");
-    if (img) img.src = src;
-    if (wrap) wrap.style.display = "block";
+    const canvas = $("#canvas-preview-movimiento");
+    const imgLegacy = $("#img-preview-movimiento");
+    if (imgLegacy) imgLegacy.style.display = "none";
+    if (!wrap || !canvas || !src) return;
+    wrap.style.display = "block";
+    const img = new Image();
+    img.onload = () => {
+        previewMovImg = img;
+        detenerPreviewMovimientoEstudio();
+        previewMovRaf = requestAnimationFrame(animarPreviewMovimientoEstudio);
+        const st = $("#status-movimiento-estudio");
+        if (st) {
+            st.textContent = `Vista previa del estilo «${estiloMovimientoActual()}». Cambia el menú para ver otro movimiento.`;
+        }
+    };
+    img.src = src;
+}
+
+function detenerPreviewsMovimientoPizarra() {
+    previewMovPizarraGen += 1;
+}
+
+function iniciarPreviewMovimientoCelda(canvas, img, getEstilo) {
+    if (!canvas || !img) return;
+    const gen = previewMovPizarraGen;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const cicloMs = 6500;
+    const tick = (ts) => {
+        if (gen !== previewMovPizarraGen || !canvas.isConnected) return;
+        const phase = (ts % (cicloMs * 2)) / cicloMs;
+        const t = phase <= 1 ? phase : 2 - phase;
+        dibujarKenBurnsCanvas(ctx, img, t, canvas.width, canvas.height, getEstilo() || "zoom_in");
+        requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
 }
 
 function nombrePistaSucio(nombre) {
@@ -343,7 +399,9 @@ function dibujarKenBurnsCanvas(ctx, img, t, w, h, estilo) {
     let scale = factor;
     if (estilo === "zoom_out" || estilo === "zoom_out_izquierda") scale = factor - ease * (factor - 1);
     else if (!esPanPuro) scale = 1 + ease * (factor - 1);
-    const imgRatio = img.width / Math.max(1, img.height);
+    const iw = img.naturalWidth || img.width || 1;
+    const ih = img.naturalHeight || img.height || 1;
+    const imgRatio = iw / Math.max(1, ih);
     const canvasRatio = w / h;
     let dw;
     let dh;
@@ -476,7 +534,7 @@ async function generarImagenIA() {
         mostrarPreviewMovimiento(url);
         if (status) {
             const extra = d.resumen ? ` · ${d.resumen}` : "";
-            status.textContent = `Imagen lista (${d.fuente || "IA"})${extra} — añádela a la pizarra o genera otra.`;
+            status.textContent = `Imagen fija lista (${d.fuente || "IA"})${extra} — no es un clip; el movimiento solo aplica si lo activas.`;
         }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -671,8 +729,8 @@ async function generarClipIA() {
             const still = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
             const urlStill = URL.createObjectURL(still);
             if (img) { img.src = urlStill; img.style.display = "block"; }
-            mostrarPreviewMovimiento(urlStill);
-            if (status) status.textContent = `Escena lista. Grabando movimiento Ken Burns de ${duracionSeg} s…`;
+            // No mezclar con la pestaña Movimiento/Imagen: el clip usa su propio preview.
+            if (status) status.textContent = `Placa del clip lista. Grabando movimiento Ken Burns de ${duracionSeg} s…`;
             try {
                 const videoBlob = await grabarClipKenBurns(still, duracionSeg, estiloMovimientoDesdePrompt(prompt));
                 clipEstudioBlob = videoBlob;
@@ -685,7 +743,7 @@ async function generarClipIA() {
                 clipEstudioTipo = "cinematico";
                 console.warn("Clip Ken Burns:", grabErr);
                 if (status) {
-                    status.textContent = `La escena se generó, pero este navegador no grabó el video. Al renderizar se aplicará el movimiento (${grabErr.message}).`;
+                    status.textContent = `Placa del clip lista; este navegador no grabó el video. Al añadirla irá como imagen con movimiento (${grabErr.message}).`;
                 }
             }
         } else {
@@ -695,10 +753,11 @@ async function generarClipIA() {
         if (btnAdd) btnAdd.style.display = "inline-block";
         if (status && clipEstudioTipo === "video") {
             const extra = d.resumen ? ` · ${d.resumen}` : "";
-            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s con movimiento listo${extra}. Añádelo a la pizarra.`;
-        } else if (status && clipEstudioTipo !== "cinematico") {
+            const via = d.tipo === "cinematico" || d.aviso ? " (placa+movimiento)" : " (video nativo)";
+            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${extra}. Añádelo a la pizarra como video.`;
+        } else if (status && clipEstudioTipo === "cinematico") {
             status.textContent = d.aviso
-                || `Clip listo (${d.fuente || "IA"} · ${d.duracionSeg || duracionSeg} s). Añádelo a la pizarra.`;
+                || `Clip (placa) listo (${d.fuente || "IA"} · ${d.duracionSeg || duracionSeg} s). Se añadirá como imagen con Ken Burns.`;
         }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -712,13 +771,20 @@ function anadirClipAPizarra() {
     if (!clipEstudioBlob) return;
     if (clipEstudioTipo === "video") {
         const ext = (clipEstudioBlob.type || "").includes("mp4") ? "mp4" : "webm";
-        agregarMedioDesdeBlob(clipEstudioBlob, `estudio-clip-${Date.now()}.${ext}`, "video");
-        $("#status-clip-estudio").textContent = "Clip de video con movimiento añadido a la pizarra.";
+        agregarMedioDesdeBlob(clipEstudioBlob, `estudio-clip-${Date.now()}.${ext}`, "video", {
+            origen: "clip_video"
+        });
+        $("#status-clip-estudio").textContent = "Clip de video añadido a la pizarra (no es imagen fija).";
         return;
     }
     const file = new File([clipEstudioBlob], `estudio-clip-${Date.now()}.jpg`, { type: clipEstudioBlob.type || "image/jpeg" });
-    agregarMedios([file], "imagen", { movimiento: true, movimientoIncluido: true, estilo_movimiento: estiloMovimientoDesdePrompt($("#estudio-prompt-clip")?.value) });
-    $("#status-clip-estudio").textContent = "Escena añadida; el movimiento Ken Burns se aplica al renderizar.";
+    agregarMedios([file], "imagen", {
+        movimiento: true,
+        movimientoIncluido: true,
+        estilo_movimiento: estiloMovimientoDesdePrompt($("#estudio-prompt-clip")?.value),
+        origen: "clip_cinematico"
+    });
+    $("#status-clip-estudio").textContent = "Placa del clip añadida como imagen con Ken Burns (fallback, no video nativo).";
 }
 
 function midiU16(n) { return [(n >> 8) & 255, n & 255]; }
@@ -1515,9 +1581,27 @@ function agregarMedios(files, tipoForzado, extra = {}) {
     const lim = limitesActuales();
 
     Array.from(files).forEach((file) => {
-        const esVideo = tipoForzado === "video" || (tipoForzado !== "imagen" && file.type.startsWith("video/"));
-        const esImagen = tipoForzado === "imagen" || (tipoForzado !== "video" && file.type.startsWith("image/"));
-        if (!esVideo && !esImagen) return;
+        const mime = String(file.type || "").toLowerCase();
+        const nombre = String(file.name || "").toLowerCase();
+        const mimeVideo = mime.startsWith("video/");
+        const mimeImage = mime.startsWith("image/");
+        const extVideo = /\.(mp4|webm|mov|mkv|m4v)$/i.test(nombre);
+        const extImage = /\.(jpe?g|png|gif|webp|bmp|avif)$/i.test(nombre);
+
+        // MIME/extensión mandan para no cruzar clips con fotos fijas.
+        let esVideo = false;
+        let esImagen = false;
+        if (mimeVideo || (!mimeImage && extVideo)) {
+            esVideo = true;
+        } else if (mimeImage || (!mimeVideo && extImage)) {
+            esImagen = true;
+        } else if (tipoForzado === "video") {
+            esVideo = true;
+        } else if (tipoForzado === "imagen") {
+            esImagen = true;
+        } else {
+            return;
+        }
 
         const imgsActuales = mediaItems.filter((m) => m.tipo === "imagen").length;
         const vidsActuales = mediaItems.filter((m) => m.tipo === "video").length;
@@ -1545,7 +1629,8 @@ function agregarMedios(files, tipoForzado, extra = {}) {
             silenciado: true,
             movimiento,
             movimientoIncluido: !!extra.movimientoIncluido,
-            estilo_movimiento: extra.estilo_movimiento || estiloMovimientoActual()
+            estilo_movimiento: extra.estilo_movimiento || estiloMovimientoActual(),
+            origen: extra.origen || (esVideo ? "video" : "imagen")
         });
     });
     renderizarPizarras();
@@ -1553,6 +1638,7 @@ function agregarMedios(files, tipoForzado, extra = {}) {
 
 function renderizarPizarras() {
     revocarUrls();
+    detenerPreviewsMovimientoPizarra();
     const cont = $("#pizarra-secuencia");
     if (!cont) return;
     cont.innerHTML = "";
@@ -1574,17 +1660,25 @@ function renderizarPizarras() {
 
         const preview = item.tipo === "video"
             ? `<video src="${url}" class="miniatura-media" muted playsinline></video>`
-            : `<img src="${url}" class="miniatura-media" alt="">`;
+            : (item.movimiento
+                ? `<canvas class="miniatura-media canvas-mov-celda" data-index="${index}" width="320" height="180"></canvas>
+                   <img src="${url}" class="src-mov-celda" data-index="${index}" alt="" hidden>`
+                : `<img src="${url}" class="miniatura-media" alt="">`);
 
-        const badge = item.tipo === "video" ? "🎬 Video" : "🖼️ Imagen";
+        let badge = item.tipo === "video" ? "🎬 Video" : "🖼️ Imagen";
+        if (item.origen === "clip_video") badge = "✨ Clip video";
+        else if (item.origen === "clip_cinematico") badge = "✨ Clip (Ken Burns)";
+        else if (item.origen === "imagen_ia") badge = "🖼️ Imagen IA";
+
         const muteHtml = item.tipo === "video"
             ? `<label class="chk-silencio"><input type="checkbox" class="chk-mute" data-index="${index}" ${item.silenciado ? "checked" : ""}> Silenciar audio del clip</label>`
             : "";
         const movHtml = item.tipo === "imagen"
             ? `<label class="chk-movimiento"><input type="checkbox" class="chk-mov" data-index="${index}" ${item.movimiento ? "checked" : ""}> Movimiento cinematográfico</label>
-               <select class="select-tipografia select-movimiento-celda" data-index="${index}" ${item.movimiento ? "" : "disabled"}>
+               <select class="select-tipografia select-movimiento-celda" data-index="${index}" ${item.movimiento ? "" : "disabled"} title="Estilo Ken Burns de esta imagen">
                  ${htmlOpcionesMovimiento(item.estilo_movimiento || "zoom_in")}
-               </select>`
+               </select>
+               <p class="hint-mov-celda">${item.movimiento ? "La miniatura anima el estilo elegido." : "Activa el movimiento para elegir estilo."}</p>`
             : "";
 
         celda.innerHTML = `
@@ -1616,8 +1710,7 @@ function renderizarPizarras() {
             const i = parseInt(this.dataset.index, 10);
             if (!mediaItems[i]) return;
             mediaItems[i].movimiento = this.checked;
-            const sel = cont.querySelector(`.select-movimiento-celda[data-index="${i}"]`);
-            if (sel) sel.disabled = !this.checked;
+            renderizarPizarras();
         });
     });
     document.querySelectorAll(".select-movimiento-celda").forEach((sel) => {
@@ -1631,6 +1724,17 @@ function renderizarPizarras() {
             mediaItems.splice(parseInt(this.dataset.index, 10), 1);
             renderizarPizarras();
         });
+    });
+
+    cont.querySelectorAll(".canvas-mov-celda").forEach((canvas) => {
+        const i = parseInt(canvas.dataset.index, 10);
+        const srcImg = cont.querySelector(`.src-mov-celda[data-index="${i}"]`);
+        if (!srcImg || !mediaItems[i]) return;
+        const boot = () => {
+            iniciarPreviewMovimientoCelda(canvas, srcImg, () => mediaItems[i]?.estilo_movimiento || "zoom_in");
+        };
+        if (srcImg.complete && srcImg.naturalWidth) boot();
+        else srcImg.addEventListener("load", boot, { once: true });
     });
 
     configurarReorden(cont);
@@ -2502,9 +2606,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!imagenEstudioBlob) return;
         agregarMedioDesdeBlob(imagenEstudioBlob, `estudio-${Date.now()}.jpg`, "imagen", {
             movimiento: !!$("#chk-imagen-con-movimiento")?.checked,
-            estilo_movimiento: estiloMovimientoActual()
+            estilo_movimiento: estiloMovimientoActual(),
+            origen: "imagen_ia"
         });
-        $("#status-imagen-estudio").textContent = "Imagen añadida a la pizarra.";
+        $("#status-imagen-estudio").textContent = "Imagen IA añadida a la pizarra (foto fija"
+            + ($("#chk-imagen-con-movimiento")?.checked ? " + Ken Burns)." : ").");
     });
     $("#btn-usar-letra-subtitulos")?.addEventListener("click", usarLetraEnSubtitulos);
     $("#btn-pasar-discurso-a-voz")?.addEventListener("click", pasarDiscursoAVoz);
@@ -2512,6 +2618,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#btn-usar-voz-audio")?.addEventListener("click", usarVozComoAudio);
     $("#btn-generar-clip")?.addEventListener("click", generarClipIA);
     $("#btn-anadir-clip-pizarra")?.addEventListener("click", anadirClipAPizarra);
+    $("#estudio-estilo-movimiento")?.addEventListener("change", () => {
+        if (previewMovImg) {
+            detenerPreviewMovimientoEstudio();
+            previewMovRaf = requestAnimationFrame(animarPreviewMovimientoEstudio);
+            const st = $("#status-movimiento-estudio");
+            if (st) st.textContent = `Vista previa del estilo «${estiloMovimientoActual()}».`;
+        }
+    });
+    $("#chk-movimiento-nuevas")?.addEventListener("change", () => {
+        const chkImg = $("#chk-imagen-con-movimiento");
+        if (chkImg) chkImg.checked = movimientoPorDefecto();
+    });
+    $("#chk-imagen-con-movimiento")?.addEventListener("change", () => {
+        const chkNuevas = $("#chk-movimiento-nuevas");
+        if (chkNuevas) chkNuevas.checked = !!$("#chk-imagen-con-movimiento")?.checked;
+    });
 
     $("#input-audio-real")?.addEventListener("change", (e) => {
         if (e.target.files[0]) cargarAudio(e.target.files[0], "fondo");

@@ -1,4 +1,6 @@
-/** Generadores de imagen HD para Estudio VIAM (Gemini, luego Flux). */
+/** Generadores de imagen HD para Estudio VIAM (Imagen 4 → Gemini → Pollinations). */
+
+import { negativosParaEscena, promptCortoParaFlux } from './estudio-prompt-visual.mjs';
 
 async function extraerImagenGemini(data) {
   const parts = data?.candidates?.[0]?.content?.parts || [];
@@ -57,12 +59,14 @@ export async function generarImagenGemini(promptEn) {
   return null;
 }
 
-export async function generarImagenPollinations(promptEn, { width = 1920, height = 1080, seed } = {}) {
-  const escena = String(promptEn || '').trim().slice(0, 900);
+export async function generarImagenPollinations(promptEn, { width = 1920, height = 1080, seed, original = '' } = {}) {
+  // Flux ignora prompts largos y sesga a paisajes: prompt corto + negativos según escena.
+  const escena = promptCortoParaFlux(original || promptEn, promptEn);
   if (!escena) return null;
   const n = Number.isFinite(Number(seed)) ? Number(seed) : Math.floor(Math.random() * 99999);
-  const negativo = encodeURIComponent('empty blue sky, silhouette bird, no flowers, no river, no mountain, watermark, text, logo');
-  const modelos = ['flux', 'flux-realism', 'gptimage'];
+  const negativo = encodeURIComponent(negativosParaEscena(original || promptEn));
+  // gptimage suele obedecer mejor escenas con personas; flux al final.
+  const modelos = ['gptimage', 'flux-realism', 'flux'];
   for (const model of modelos) {
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(escena)}?width=${width}&height=${height}&nologo=true&enhance=false&model=${model}&seed=${n}&negative=${negativo}`;
     try {

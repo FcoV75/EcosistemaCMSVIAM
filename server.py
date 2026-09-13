@@ -597,14 +597,20 @@ def estudio_generar_imagen():
     prompt = str(body.get("prompt", "")).strip()
     if not prompt:
         return jsonify({"error": "Describe la imagen que deseas."}), 400
-    prompt_en = f"{prompt}, cinematic lighting, high quality, 16:9 composition, no text, no watermark"
+    prompt_en = (
+        f"MUST INCLUDE every named subject from: {prompt}. "
+        f"Photorealistic 16:9 of the EXACT scene. OBEY exactly. "
+        f"Do NOT invent landscapes, rivers, meadows or mountains unless asked. "
+        f"FORBIDDEN: replacing people/indoor scenes with outdoor nature. "
+        f"Scene: {prompt}. No text, no watermark."
+    )
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key:
         try:
             resp = http_requests.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key={gemini_key}",
                 json={
-                    "contents": [{"parts": [{"text": f"Genera una imagen fotográfica profesional: {prompt_en}"}]}],
+                    "contents": [{"parts": [{"text": f"Generate a professional photograph. Obey the scene exactly: {prompt_en}"}]}],
                     "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]},
                 },
                 timeout=120,
@@ -622,7 +628,14 @@ def estudio_generar_imagen():
                         })
         except Exception as exc:
             print(f"Gemini imagen falló: {exc}")
-    url = f"https://image.pollinations.ai/prompt/{quote(prompt_en)}?width=1280&height=720&nologo=true&seed={abs(hash(prompt)) % 99999}"
+    negativo = quote(
+        "watermark, text, logo, outdoor landscape, meadow, river valley, mountains scenery, wrong scene"
+    )
+    url = (
+        f"https://image.pollinations.ai/prompt/{quote(prompt_en[:780])}"
+        f"?width=1280&height=720&nologo=true&enhance=false&model=gptimage"
+        f"&seed={abs(hash(prompt)) % 99999}&negative={negativo}"
+    )
     try:
         img = http_requests.get(url, timeout=90)
         if img.ok and img.content:
@@ -739,10 +752,17 @@ def estudio_generar_clip():
     duracion = int(body.get("duracionSeg") or body.get("duracion") or 8)
     duracion = max(8, min(12, duracion))
     prompt_en = (
-        "Photorealistic cinematic 16:9 film still. OBEY THIS SCENE EXACTLY, include every named subject, "
-        f"do not replace it with only sky or clouds: {prompt}. Sharp details, no text, no watermark"
+        f"MUST INCLUDE: {prompt}. Photorealistic cinematic 16:9 film plate of the EXACT user scene. "
+        "OBEY THIS SCENE EXACTLY. If volcano/eruption/lightning: show ash, lava, lightning and drama — "
+        "FORBIDDEN peaceful lake postcard or flowers meadow. "
+        f"Scene: {prompt}. Sharp details, no text, no watermark"
     )
-    url = f"https://image.pollinations.ai/prompt/{quote(prompt_en)}?width=1280&height=720&nologo=true&enhance=true&model=flux&seed={abs(hash(prompt)) % 99999}"
+    negativo = quote("peaceful lake, calm postcard, tourist flowers meadow, watermark, text, logo")
+    url = (
+        f"https://image.pollinations.ai/prompt/{quote(prompt_en[:780])}"
+        f"?width=1280&height=720&nologo=true&enhance=false&model=gptimage"
+        f"&seed={abs(hash(prompt)) % 99999}&negative={negativo}"
+    )
     try:
         img = http_requests.get(url, timeout=90)
         if img.ok and img.content:
@@ -754,7 +774,8 @@ def estudio_generar_clip():
                 "duracionSeg": duracion,
                 "movimiento": True,
                 "fuente": "pollinations-cinematico",
-                "aviso": f"Clip cinematográfico de {duracion} s: escena IA; el navegador graba el movimiento Ken Burns.",
+                "prompt_en": prompt_en[:400],
+                "aviso": f"Clip de {duracion} s (placa + Ken Burns): no es Imagen IA; el navegador graba el movimiento.",
             })
     except Exception as exc:
         return jsonify({"error": f"Error generando clip: {exc}"}), 502

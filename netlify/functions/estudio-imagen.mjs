@@ -16,19 +16,24 @@ export default async (req) => {
     if (!prompt?.trim()) return jsonResponse({ error: 'Describe la imagen.' }, 400);
 
     const expansion = await expandirPromptVisual(prompt, { modo: 'imagen' });
-    const imagen = await generarImagenEstudio(promptImagenReforzado(expansion.promptEn, prompt), {
+    const promptEn = promptImagenReforzado(expansion.promptEn, prompt);
+    const imagen = await generarImagenEstudio(promptEn, {
       width: 1920,
       height: 1080,
       seed: Date.now() % 99999,
+      original: prompt,
     });
     if (!imagen) return jsonResponse({ error: 'Fallo al generar imagen.' }, 502);
 
     return jsonResponse({
       success: true,
+      tipo: 'imagen',
       imagen_base64: imagen.imagen_base64,
       mime: imagen.mime,
       fuente: imagen.fuente,
       resumen: expansion.resumen || '',
+      prompt_en: promptEn.slice(0, 400),
+      via_prompt: expansion.via || '',
     });
   } catch (e) {
     return jsonResponse({ error: String(e) }, 500);
