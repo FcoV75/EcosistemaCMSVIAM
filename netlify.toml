@@ -35,6 +35,9 @@
 [functions.estudio-clip]
   timeout = 60
 
+[functions.estudio-imagen]
+  timeout = 90
+
 [functions.download-libro]
   included_files = ["Assets/Docs/**"]
 
