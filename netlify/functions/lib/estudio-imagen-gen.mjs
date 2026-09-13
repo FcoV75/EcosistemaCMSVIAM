@@ -1,4 +1,6 @@
-/** Generadores de imagen HD para Estudio VIAM (Imagen 4 → Gemini → Pollinations). */
+/** Generadores de imagen HD para Estudio VIAM.
+ * Orden: Imagen 4 → Fal Flux → Gemini → Replicate → Pollinations (último recurso).
+ */
 
 import { negativosParaEscena, promptCortoParaFlux } from './estudio-prompt-visual.mjs';
 
@@ -16,6 +18,16 @@ async function extraerImagenGemini(data) {
   return null;
 }
 
+async function fetchConTimeout(url, opciones, timeoutMs = 45000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opciones, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function generarImagenGemini(promptEn) {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) return null;
@@ -26,18 +38,23 @@ export async function generarImagenGemini(promptEn) {
     'gemini-2.0-flash-preview-image-generation',
   ];
   const cuerpo = {
-    contents: [{ parts: [{ text: promptEn }] }],
+    contents: [{
+      parts: [{
+        text: `${promptEn}\n\nHard requirements: show EVERY named subject and prop; correct anatomy; full heads in frame; ultra sharp 16:9 photoreal; no text.`,
+      }],
+    }],
     generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
   };
   for (const modelo of modelos) {
     try {
-      const r = await fetch(
+      const r = await fetchConTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(cuerpo),
         },
+        50000,
       );
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -53,34 +70,142 @@ export async function generarImagenGemini(promptEn) {
         };
       }
     } catch (err) {
-      console.warn('Gemini imagen', modelo, err?.message || err);
+      console.warn('Gemini imagen', modelo, err?.name || err?.message || err);
     }
   }
   return null;
 }
 
-export async function generarImagenPollinations(promptEn, { width = 1920, height = 1080, seed, original = '' } = {}) {
-  // Flux ignora prompts largos y sesga a paisajes: prompt corto + negativos según escena.
-  const escena = promptCortoParaFlux(original || promptEn, promptEn);
-  if (!escena) return null;
-  const n = Number.isFinite(Number(seed)) ? Number(seed) : Math.floor(Math.random() * 99999);
-  const negativo = encodeURIComponent(negativosParaEscena(original || promptEn));
-  // gptimage suele obedecer mejor escenas con personas; flux al final.
-  const modelos = ['gptimage', 'flux-realism', 'flux'];
+/** Fal Flux Pro / Dev: mucho mejor obediencia y nitidez que Pollinations. */
+export async function generarImagenFal(promptEn) {
+  const key = (process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
+  if (!key) return null;
+  const modelos = [
+    process.env.FAL_IMAGE_MODEL,
+    'fal-ai/flux-pro/v1.1',
+    'fal-ai/flux/dev',
+    'fal-ai/recraft/v3/text-to-image',
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
+  const headers = {
+    Authorization: `Key ${key}`,
+    'Content-Type': 'application/json',
+  };
+
   for (const model of modelos) {
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(escena)}?width=${width}&height=${height}&nologo=true&enhance=false&model=${model}&seed=${n}&negative=${negativo}`;
     try {
-      const img = await fetch(url);
+      const r = await fetchConTimeout(`https://fal.run/${model}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          prompt: String(promptEn || '').slice(0, 2500),
+          image_size: 'landscape_16_9',
+          num_images: 1,
+          enable_safety_checker: true,
+          output_format: 'jpeg',
+        }),
+      }, 55000);
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        console.warn('Fal imagen', model, r.status, JSON.stringify(data).slice(0, 180));
+        continue;
+      }
+      const url = data?.images?.[0]?.url || data?.image?.url || data?.output?.url;
+      if (!url) continue;
+      const img = await fetchConTimeout(url, {}, 30000);
       if (!img.ok) continue;
       const buf = Buffer.from(await img.arrayBuffer());
       if (buf.length < 8000) continue;
       return {
         imagen_base64: buf.toString('base64'),
         mime: img.headers.get('content-type') || 'image/jpeg',
+        fuente: `fal:${model}`,
+      };
+    } catch (err) {
+      console.warn('Fal imagen', model, err?.name || err?.message || err);
+    }
+  }
+  return null;
+}
+
+export async function generarImagenReplicate(promptEn) {
+  const token = (process.env.REPLICATE_API_TOKEN || '').trim();
+  if (!token) return null;
+  const modelos = [
+    process.env.REPLICATE_IMAGE_MODEL,
+    'black-forest-labs/flux-1.1-pro',
+    'black-forest-labs/flux-schnell',
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
+  for (const model of modelos) {
+    try {
+      const r = await fetchConTimeout(`https://api.replicate.com/v1/models/${model}/predictions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Prefer: 'wait=50',
+        },
+        body: JSON.stringify({
+          input: {
+            prompt: String(promptEn || '').slice(0, 2000),
+            aspect_ratio: '16:9',
+            output_format: 'jpg',
+            output_quality: 90,
+          },
+        }),
+      }, 55000);
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        console.warn('Replicate imagen', model, r.status, JSON.stringify(data).slice(0, 180));
+        continue;
+      }
+      const out = data.output;
+      const url = Array.isArray(out) ? out[0] : (out?.url || out);
+      if (!url || typeof url !== 'string') continue;
+      const img = await fetchConTimeout(url, {}, 30000);
+      if (!img.ok) continue;
+      const buf = Buffer.from(await img.arrayBuffer());
+      if (buf.length < 8000) continue;
+      return {
+        imagen_base64: buf.toString('base64'),
+        mime: img.headers.get('content-type') || 'image/jpeg',
+        fuente: `replicate:${model}`,
+      };
+    } catch (err) {
+      console.warn('Replicate imagen', model, err?.name || err?.message || err);
+    }
+  }
+  return null;
+}
+
+export async function generarImagenPollinations(promptEn, { width = 1920, height = 1080, seed, original = '' } = {}) {
+  const escena = promptCortoParaFlux(original || promptEn, promptEn);
+  if (!escena) return null;
+  const baseSeed = Number.isFinite(Number(seed)) ? Number(seed) : Math.floor(Math.random() * 99999);
+  const negativo = encodeURIComponent(negativosParaEscena(original || promptEn));
+  // Varios intentos: gptimage primero, luego flux-realism con enhance.
+  const intentos = [
+    { model: 'gptimage', enhance: true },
+    { model: 'flux-realism', enhance: true },
+    { model: 'flux', enhance: true },
+  ];
+  for (let i = 0; i < intentos.length; i += 1) {
+    const { model, enhance } = intentos[i];
+    const n = baseSeed + i * 17;
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(escena)}?width=${width}&height=${height}&nologo=true&enhance=${enhance ? 'true' : 'false'}&model=${model}&seed=${n}&negative=${negativo}`;
+    try {
+      const img = await fetchConTimeout(url, {}, 40000);
+      if (!img.ok) continue;
+      const buf = Buffer.from(await img.arrayBuffer());
+      if (buf.length < 12000) continue; // umbral algo más alto = menos basura borrosa
+      return {
+        imagen_base64: buf.toString('base64'),
+        mime: img.headers.get('content-type') || 'image/jpeg',
         fuente: `pollinations-${model}`,
       };
     } catch (err) {
-      console.warn('Pollinations', model, err?.message || err);
+      console.warn('Pollinations', model, err?.name || err?.message || err);
     }
   }
   return null;
@@ -91,19 +216,24 @@ export async function generarImagenImagen4(promptEn) {
   if (!apiKey) return null;
   const escena = String(promptEn || '').trim();
   if (!escena) return null;
-  const modelos = ['imagen-4.0-generate-001', 'imagen-4.0-fast-generate-001'];
+  const modelos = ['imagen-4.0-generate-001', 'imagen-4.0-ultra-generate-001', 'imagen-4.0-fast-generate-001'];
   for (const modelo of modelos) {
     try {
-      const r = await fetch(
+      const r = await fetchConTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:predict?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             instances: [{ prompt: escena }],
-            parameters: { sampleCount: 1, aspectRatio: '16:9' },
+            parameters: {
+              sampleCount: 1,
+              aspectRatio: '16:9',
+              personGeneration: 'allow_adult',
+            },
           }),
         },
+        55000,
       );
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -116,16 +246,25 @@ export async function generarImagenImagen4(promptEn) {
         return { imagen_base64: b64, mime: 'image/png', fuente: modelo };
       }
     } catch (err) {
-      console.warn('Imagen', modelo, err?.message || err);
+      console.warn('Imagen', modelo, err?.name || err?.message || err);
     }
   }
   return null;
 }
 
 export async function generarImagenEstudio(promptEn, opts = {}) {
+  // Modelos fuertes primero: Imagen 4 y Fal dominan detalle/obediencia.
   const imagen4 = await generarImagenImagen4(promptEn);
   if (imagen4) return imagen4;
+
+  const fal = await generarImagenFal(promptEn);
+  if (fal) return fal;
+
   const gemini = await generarImagenGemini(promptEn);
   if (gemini) return gemini;
+
+  const replicate = await generarImagenReplicate(promptEn);
+  if (replicate) return replicate;
+
   return generarImagenPollinations(promptEn, opts);
 }
