@@ -23,6 +23,11 @@ const VOCES_GROQ = {
   firme: 'Thunder-PlayAI',
 };
 
+/** Tiempo máximo por intento a un proveedor (evita colgar Safari/Netlify). */
+const TIMEOUT_GEMINI_MS = 12000;
+const TIMEOUT_GROQ_MS = 20000;
+const TIMEOUT_CONDENSAR_MS = 8000;
+
 function pcm16ToWav(pcmBuf, sampleRate = 24000, channels = 1) {
   const header = Buffer.alloc(44);
   header.write('RIFF', 0);
@@ -83,13 +88,23 @@ function extraerPcmGemini(data) {
   return null;
 }
 
+async function fetchConTimeout(url, opciones, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opciones, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function ttsGemini(apiKey, texto, voz) {
+  // Un solo modelo TTS estable: reintentar 3 modelos lentos colgaba Netlify/Safari.
   const modelos = [
     'gemini-2.5-flash-preview-tts',
     'gemini-2.5-pro-preview-tts',
-    'gemini-2.0-flash-exp',
   ];
-  const chunks = partirTexto(texto);
+  const chunks = partirTexto(texto, 380);
   let sampleRate = 24000;
   const pcmParts = [];
   let modeloUsado = '';
@@ -97,31 +112,39 @@ async function ttsGemini(apiKey, texto, voz) {
   for (const chunk of chunks) {
     let okChunk = false;
     for (const modelo of modelos) {
-      const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: chunk }] }],
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-              speechConfig: {
-                voiceConfig: { prebuiltVoiceConfig: { voiceName: voz } },
+      try {
+        const r = await fetchConTimeout(
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: chunk }] }],
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                  voiceConfig: { prebuiltVoiceConfig: { voiceName: voz } },
+                },
               },
-            },
-          }),
-        },
-      );
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) continue;
-      const extraido = extraerPcmGemini(data);
-      if (!extraido) continue;
-      sampleRate = extraido.sampleRate || sampleRate;
-      pcmParts.push(extraido.buf);
-      modeloUsado = modelo;
-      okChunk = true;
-      break;
+            }),
+          },
+          TIMEOUT_GEMINI_MS,
+        );
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          console.warn('Gemini TTS', modelo, r.status, JSON.stringify(data).slice(0, 160));
+          continue;
+        }
+        const extraido = extraerPcmGemini(data);
+        if (!extraido) continue;
+        sampleRate = extraido.sampleRate || sampleRate;
+        pcmParts.push(extraido.buf);
+        modeloUsado = modelo;
+        okChunk = true;
+        break;
+      } catch (err) {
+        console.warn('Gemini TTS timeout/error', modelo, err?.name || err?.message || err);
+      }
     }
     if (!okChunk) {
       if (pcmParts.length) break;
@@ -140,20 +163,24 @@ async function ttsGemini(apiKey, texto, voz) {
   return { buffer: wav, mime: 'audio/wav', modelo: modeloUsado, formato: 'wav' };
 }
 
-async function ttsGroq(apiKey, texto, voz) {
-  const r = await fetch('https://api.groq.com/openai/v1/audio/speech', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+async function ttsGroqUnBloque(apiKey, texto, voz) {
+  const r = await fetchConTimeout(
+    'https://api.groq.com/openai/v1/audio/speech',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'playai-tts',
+        voice: voz,
+        input: texto,
+        response_format: 'mp3',
+      }),
     },
-    body: JSON.stringify({
-      model: 'playai-tts',
-      voice: voz,
-      input: texto,
-      response_format: 'mp3',
-    }),
-  });
+    TIMEOUT_GROQ_MS,
+  );
   if (!r.ok) {
     const err = await r.text().catch(() => '');
     console.warn('Groq TTS:', r.status, err.slice(0, 240));
@@ -161,7 +188,34 @@ async function ttsGroq(apiKey, texto, voz) {
   }
   const buf = Buffer.from(await r.arrayBuffer());
   if (buf.length < 400) return null;
-  return { buffer: buf, mime: 'audio/mpeg', modelo: 'playai-tts', formato: 'mp3' };
+  return buf;
+}
+
+async function ttsGroq(apiKey, texto, voz) {
+  // PlayAI acepta bloques cortos; partimos para no fallar en tomas largas.
+  const chunks = partirTexto(texto, 900);
+  const partes = [];
+  for (const chunk of chunks) {
+    try {
+      const buf = await ttsGroqUnBloque(apiKey, chunk, voz);
+      if (!buf) {
+        if (partes.length) break;
+        return null;
+      }
+      partes.push(buf);
+    } catch (err) {
+      console.warn('Groq TTS timeout/error:', err?.name || err?.message || err);
+      if (partes.length) break;
+      return null;
+    }
+  }
+  if (!partes.length) return null;
+  return {
+    buffer: partes.length === 1 ? partes[0] : Buffer.concat(partes),
+    mime: 'audio/mpeg',
+    modelo: 'playai-tts',
+    formato: 'mp3',
+  };
 }
 
 async function condensarTextoParaToma(texto, maxSeg, groqKey) {
@@ -172,28 +226,32 @@ async function condensarTextoParaToma(texto, maxSeg, groqKey) {
   }
   const maxPalabras = recorte.palabras;
   try {
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${groqKey}`,
-        'Content-Type': 'application/json',
+    const r = await fetchConTimeout(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${groqKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          temperature: 0.3,
+          max_tokens: 700,
+          messages: [
+            {
+              role: 'system',
+              content: 'Condensas locuciones en español mexicano. Conservas el mensaje, el tono y la llamada a la acción. No inventas datos. Solo devuelves el texto hablado, sin títulos.',
+            },
+            {
+              role: 'user',
+              content: `Reescribe este discurso en máximo ${maxPalabras} palabras (cabe en ~${maxSeg} segundos al hablar). Conserva nombres, beneficios y el cierre.\n\n${texto}`,
+            },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        temperature: 0.3,
-        max_tokens: 700,
-        messages: [
-          {
-            role: 'system',
-            content: 'Condensas locuciones en español mexicano. Conservas el mensaje, el tono y la llamada a la acción. No inventas datos. Solo devuelves el texto hablado, sin títulos.',
-          },
-          {
-            role: 'user',
-            content: `Reescribe este discurso en máximo ${maxPalabras} palabras (cabe en ~${maxSeg} segundos al hablar). Conserva nombres, beneficios y el cierre.\n\n${texto}`,
-          },
-        ],
-      }),
-    });
+      TIMEOUT_CONDENSAR_MS,
+    );
     const data = await r.json().catch(() => ({}));
     const limpio = String(data?.choices?.[0]?.message?.content || '').replace(/\s+/g, ' ').trim();
     if (limpio.length > 40) {
@@ -201,7 +259,7 @@ async function condensarTextoParaToma(texto, maxSeg, groqKey) {
       return { texto: segundo.texto, recortado: segundo.recortado, palabras: segundo.palabras, adaptado: true };
     }
   } catch (err) {
-    console.warn('condensarTextoParaToma:', err?.message || err);
+    console.warn('condensarTextoParaToma:', err?.name || err?.message || err);
   }
   return { ...recorte, adaptado: false };
 }
@@ -229,17 +287,21 @@ export default async (req) => {
     const estilo = String(body.voz || body.estilo || 'femenina').toLowerCase();
     const geminiKey = process.env.GEMINI_API_KEY || '';
     const groqKey = process.env.GROQ_API_KEY || '';
+    const vozGemini = VOCES_GEMINI[estilo] || VOCES_GEMINI.femenina;
+    const vozGroq = VOCES_GROQ[estilo] || VOCES_GROQ.femenina;
 
+    // Groq primero (rápido): evita el "Inactivity Timeout" de Safari cuando Gemini se cuelga.
+    // Gemini después para español más natural si Groq falla.
     let audio = null;
-    if (geminiKey) {
-      audio = await ttsGemini(geminiKey, recorte.texto, VOCES_GEMINI[estilo] || VOCES_GEMINI.femenina);
+    if (groqKey) {
+      audio = await ttsGroq(groqKey, recorte.texto, vozGroq);
     }
-    if (!audio && groqKey) {
-      audio = await ttsGroq(groqKey, recorte.texto, VOCES_GROQ[estilo] || VOCES_GROQ.femenina);
+    if (!audio && geminiKey) {
+      audio = await ttsGemini(geminiKey, recorte.texto, vozGemini);
     }
     if (!audio) {
       return jsonResponse({
-        error: 'No se pudo generar la voz. Configura GEMINI_API_KEY (español) o GROQ_API_KEY.',
+        error: 'No se pudo generar la voz a tiempo. Intenta de nuevo en unos segundos (texto un poco más corto ayuda).',
       }, 502);
     }
 
@@ -253,9 +315,15 @@ export default async (req) => {
       adaptado: !!recorte.adaptado,
       maxSeg,
       palabras: recorte.palabras,
-      fuente: audio.modelo?.includes('gemini') ? 'gemini' : 'groq',
+      fuente: String(audio.modelo || '').includes('gemini') ? 'gemini' : 'groq',
     });
   } catch (e) {
-    return jsonResponse({ error: String(e?.message || e) }, 500);
+    const msg = String(e?.message || e);
+    if (/abort|timeout/i.test(msg)) {
+      return jsonResponse({
+        error: 'La generación de voz tardó demasiado. Intenta de nuevo; si el texto es largo, acórtalo un poco.',
+      }, 504);
+    }
+    return jsonResponse({ error: msg }, 500);
   }
 };
