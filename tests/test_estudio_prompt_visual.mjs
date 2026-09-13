@@ -8,7 +8,9 @@ import {
   escenaPidePaisaje,
   escenaEsInteriorOPersonas,
   escenaEsDramatica,
+  escenaTieneDosPersonas,
   clausulaProhibidos,
+  clausulaCalidadComposicion,
   negativosParaEscena,
 } from '../netlify/functions/lib/estudio-prompt-visual.mjs';
 import assert from 'node:assert/strict';
@@ -70,19 +72,20 @@ const clipRef = promptClipReforzado('Bakery at dawn with steam', 'panadería al 
 assert.match(clipRef, /Cinematic 16:9|clip/i);
 assert.match(clipRef, /bakery|panadería|panaderia/i);
 
-// Casos de las capturas del usuario: café en escritorio y volcán.
-const cafePrompt = 'Un muy hermosa mujer oriental obsequiándole un café a su novio que está en su escritorio trabajando en su laptop y éste le sonríe al recibirlo';
+// Café + novio: ambos visibles, taza, sin recorte.
+const cafePrompt = 'Una muy hermosa mujer oriental obsequiándole un café a su novio que está en su escritorio trabajando en su laptop y éste le sonríe al recibirlo';
 assert.ok(escenaEsInteriorOPersonas(cafePrompt));
+assert.ok(escenaTieneDosPersonas(cafePrompt));
 assert.equal(escenaPidePaisaje(cafePrompt), false);
 const cafeRef = promptImagenReforzado('A beautiful East Asian woman giving coffee to her boyfriend at a desk with a laptop', cafePrompt);
-assert.match(cafeRef, /INDOOR|Do NOT invent|FORBIDDEN/i);
+assert.match(cafeRef, /BOTH people|Coffee cup clearly|full scene|correct.*anatomy/i);
 assert.match(cafeRef, /coffee|café|cafe|laptop|escritorio|novio|mujer/i);
-assert.doesNotMatch(cafeRef, /LANDSCAPE FIRST/i);
-assert.match(negativosParaEscena(cafePrompt), /outdoor landscape|meadow|river valley/i);
+assert.match(clausulaProhibidos(cafePrompt), /only one person|coffee cup|second person/i);
+assert.match(negativosParaEscena(cafePrompt), /missing boyfriend|cropped head|bad anatomy/i);
 const cafeCorto = promptCortoParaFlux(cafePrompt, cafeRef);
-assert.match(cafeCorto, /MUST INCLUDE visible/i);
+assert.match(cafeCorto, /MUST SHOW|Ultra HD/i);
 assert.match(cafeCorto, /laptop|escritorio|café|cafe|novio|mujer/i);
-assert.ok(cafeCorto.length <= 780);
+assert.ok(cafeCorto.length <= 850);
 
 const volcanPrompt = 'un volcán haciendo erupción en una isla con una fumarola muy alta vista desde un avión, hay relámpagos y rayos en la nube piroclástica';
 assert.ok(escenaEsDramatica(volcanPrompt));
@@ -91,5 +94,15 @@ const volcanRef = promptClipReforzado('Volcano erupting on an island with lightn
 assert.match(volcanRef, /eruption|FORBIDDEN|lightning|volcan/i);
 assert.match(clausulaProhibidos(volcanPrompt), /peaceful lake|postcard|eruption/i);
 assert.match(negativosParaEscena(volcanPrompt), /peaceful lake|postcard/i);
+assert.match(clausulaCalidadComposicion(volcanPrompt), /Ultra sharp|anatomy|Medium-wide/i);
+
+// Gato siamés + casco + cometa.
+const gatoPrompt = 'un gato siamés con un casco de astronauta arriba de un cometa que está pasando al lado del sol mientras observa las estrellas y los planetas';
+const gatoRef = promptClipReforzado('Siamese cat with astronaut helmet on a comet near the sun', gatoPrompt);
+assert.match(gatoRef, /Siamese|cream body|astronaut helmet|comet/i);
+assert.match(clausulaProhibidos(gatoPrompt), /grey tabby|helmet/i);
+assert.match(negativosParaEscena(gatoPrompt), /grey tabby|helmet/i);
+assert.ok(extraerElementos(gatoPrompt).some((w) => /siamés|siames/i.test(w)));
+assert.ok(extraerElementos(gatoPrompt).some((w) => /casco/i.test(w)));
 
 console.log('estudio-prompt-visual ok');

@@ -59,6 +59,7 @@ const GLOSARIO_VISUAL = {
   flores: 'flowers',
   flor: 'flower',
   cafe: 'coffee cup',
+  taza: 'cup',
   novio: 'boyfriend',
   novia: 'girlfriend',
   escritorio: 'desk',
@@ -82,6 +83,14 @@ const GLOSARIO_VISUAL = {
   piroclastico: 'pyroclastic',
   avion: 'airplane',
   nube: 'cloud',
+  siames: 'Siamese cat',
+  siamesa: 'Siamese cat',
+  casco: 'astronaut helmet',
+  astronauta: 'astronaut',
+  cometa: 'comet',
+  planeta: 'planet',
+  planetas: 'planets',
+  estrellas: 'stars',
 };
 
 export function groqKeyVisual() {
@@ -160,14 +169,62 @@ export function escenaEsDramatica(texto) {
     || /\b(relampagos|rayos)\b/.test(n);
 }
 
+/** Dos personas nombradas (mujer+novio, etc.): ambas deben verse enteras. */
+export function escenaTieneDosPersonas(texto) {
+  const n = sinAcentos(texto);
+  const roles = [
+    /\bmujer\b/, /\bhombre\b/, /\bnovio\b/, /\bnovia\b/, /\bpersona\b/,
+    /\bchico\b/, /\bchica\b/, /\bamigo\b/, /\bamiga\b/,
+  ];
+  let hits = 0;
+  for (const re of roles) {
+    if (re.test(n)) hits += 1;
+  }
+  // "mujer … novio" = 2; también "pareja".
+  if (/\bpareja\b/.test(n)) return true;
+  return hits >= 2;
+}
+
+export function clausulaCalidadComposicion(texto) {
+  const partes = [
+    ' Ultra sharp photorealistic detail, correct human/animal anatomy, natural hands and faces, no deformities.',
+    ' Medium-wide 16:9 framing that shows the FULL scene; heads and key props fully inside the frame (never cropped mid-face).',
+  ];
+  if (escenaTieneDosPersonas(texto)) {
+    partes.push(' BOTH people fully visible together interacting in the same shot — never a solo close-up of only one person.');
+  }
+  const n = sinAcentos(texto);
+  if (/\bsiames|siamesa\b/.test(n)) {
+    partes.push(' Exact Siamese cat breed: cream body, dark brown points on face ears paws, blue eyes — not a grey tabby.');
+  }
+  if (/\bcasco|astronauta\b/.test(n)) {
+    partes.push(' Clear astronaut helmet on the subject, fully visible and unmistakable.');
+  }
+  if (/\bcafe|taza\b/.test(n)) {
+    partes.push(' Coffee cup clearly visible being handed over.');
+  }
+  if (/\bcometa\b/.test(n)) {
+    partes.push(' Subject riding on a bright comet with a glowing tail near the sun, stars and planets visible.');
+  }
+  return partes.join('');
+}
+
 export function clausulaProhibidos(texto) {
+  const bits = [];
   if (escenaEsInteriorOPersonas(texto) && !escenaPidePaisaje(texto)) {
-    return ' FORBIDDEN: replacing the scene with an outdoor landscape, meadow, river, mountains, field, nature scenery, or a lone silhouette in a valley. This is an INDOOR / people scene.';
+    bits.push('FORBIDDEN: outdoor landscape, meadow, river, mountains scenery, lone silhouette in a valley. This is an INDOOR / people scene.');
   }
   if (escenaEsDramatica(texto)) {
-    return ' FORBIDDEN: peaceful lake postcard, calm flowers meadow, sunny tourist landscape, Mount Fuji calm postcard look. SHOW the eruption, ash, lightning and drama described.';
+    bits.push('FORBIDDEN: peaceful lake postcard, calm flowers meadow, sunny tourist landscape. SHOW eruption/ash/lightning/drama.');
   }
-  return ' FORBIDDEN: inventing a different place or dropping named subjects.';
+  if (escenaTieneDosPersonas(texto)) {
+    bits.push('FORBIDDEN: cropping to only one person; omitting the second person, the coffee cup, or the laptop/desk interaction.');
+  }
+  if (/\bsiames|siamesa\b/.test(sinAcentos(texto))) {
+    bits.push('FORBIDDEN: grey tabby or wrong cat breed; missing astronaut helmet when asked.');
+  }
+  bits.push('FORBIDDEN: inventing a different place, dropping named subjects, blurry low-res, extra fingers, warped faces.');
+  return ` ${bits.join(' ')}`;
 }
 
 export function reforzarSujetos(prompt) {
@@ -199,10 +256,11 @@ export function promptVisualFallback(prompt, modo = 'imagen') {
   const cabezaMust = clausulaMustInclude(escena);
   const ancla = anclarVueloAlPaisaje(escena);
   const prohibidos = clausulaProhibidos(escena);
+  const calidad = clausulaCalidadComposicion(escena);
   const cabeza = modo === 'clip'
     ? 'Photorealistic cinematic 16:9 film plate of the EXACT user scene. Sharp details, lighting matching the described time of day.'
     : 'Photorealistic 16:9 photograph of the EXACT user scene, sharp focus, high detail, natural professional lighting.';
-  return `${cabezaMust}${cabeza} Original scene (keep it): "${escena}". OBEY THIS SCENE EXACTLY (do not invent a different place or drop characters): ${sujetos}${ancla}${prohibidos} No text, no watermark, no logo, no letters.`;
+  return `${cabezaMust}${cabeza}${calidad} Original scene (keep it): "${escena}". OBEY THIS SCENE EXACTLY (do not invent a different place or drop characters): ${sujetos}${ancla}${prohibidos} No text, no watermark, no logo, no letters.`;
 }
 
 /** Refuerzo para Imagen IA: obedece la escena; no inyecta paisaje genérico. */
@@ -213,10 +271,11 @@ export function promptImagenReforzado(promptEn, original = '') {
   const ancla = anclarVueloAlPaisaje(src);
   const must = clausulaMustInclude(src);
   const prohibidos = clausulaProhibidos(src);
+  const calidad = clausulaCalidadComposicion(src);
   const paisaje = escenaPidePaisaje(src)
     ? 'Show the full place and setting the user described; keep all named subjects visible together.'
     : 'OBEY the user scene exactly. Do NOT invent rivers, flowers, mountains, birds, bakeries or landscapes that were not asked for.';
-  return `${must}Photorealistic 16:9 still. ${paisaje} Do not replace or simplify the scene.${ancla}${prohibidos} ${p}`
+  return `${must}Photorealistic 16:9 still. ${paisaje}${calidad} Do not replace or simplify the scene.${ancla}${prohibidos} ${p}`
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -229,10 +288,11 @@ export function promptClipReforzado(promptEn, original = '') {
   const ancla = anclarVueloAlPaisaje(src);
   const must = clausulaMustInclude(src);
   const prohibidos = clausulaProhibidos(src);
+  const calidad = clausulaCalidadComposicion(src);
   const paisaje = escenaPidePaisaje(src)
     ? 'Keep the described place fully visible while the camera moves.'
     : 'OBEY the user scene exactly. Do NOT invent extra places or drop named subjects.';
-  return `${must}Cinematic 16:9 clip / film plate. ${paisaje} Natural motion matching the description (zoom, pan or subject motion).${ancla}${prohibidos} ${p}`
+  return `${must}Cinematic 16:9 clip / film plate. ${paisaje}${calidad} Natural motion matching the description (zoom, pan or subject motion).${ancla}${prohibidos} ${p}`
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -242,25 +302,34 @@ export function promptCortoParaFlux(original, promptEn = '') {
   const src = String(original || '').replace(/\s+/g, ' ').trim();
   const must = clausulaMustInclude(src).replace(/^MUST INCLUDE:\s*/i, '').replace(/\.\s*$/, '');
   const prohibidos = clausulaProhibidos(src);
-  const base = String(promptEn || '').trim();
-  const corto = base
-    ? base.slice(0, 420)
-    : `Photorealistic 16:9 of: ${src}`;
-  return `MUST INCLUDE visible: ${must || src}. ${corto}${prohibidos} Exact scene only. No text.`
+  const calidad = clausulaCalidadComposicion(src);
+  // Sujetos primero, calidad breve, luego un trozo del prompt EN.
+  const cabeza = `Ultra HD 16:9 photoreal. MUST SHOW: ${must || src}.${calidad}`;
+  const resto = String(promptEn || src).replace(/\s+/g, ' ').trim().slice(0, 280);
+  return `${cabeza} ${resto}${prohibidos} Exact scene only. No text.`
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 780);
+    .slice(0, 850);
 }
 
 export function negativosParaEscena(original = '') {
-  const base = ['watermark', 'text', 'logo', 'letters', 'blurry', 'low quality', 'wrong scene'];
+  const base = [
+    'watermark', 'text', 'logo', 'letters', 'blurry', 'low quality', 'wrong scene',
+    'cropped head', 'cut off face', 'deformed hands', 'extra fingers', 'bad anatomy', 'ugly',
+  ];
   if (escenaEsInteriorOPersonas(original) && !escenaPidePaisaje(original)) {
-    return [...base, 'outdoor landscape', 'meadow', 'river valley', 'mountains scenery', 'nature field', 'lone silhouette in grass', 'empty landscape'].join(', ');
+    base.push('outdoor landscape', 'meadow', 'river valley', 'mountains scenery', 'nature field', 'lone silhouette in grass', 'empty landscape', 'solo portrait missing second person');
+  }
+  if (escenaTieneDosPersonas(original)) {
+    base.push('only one person', 'missing boyfriend', 'missing coffee cup', 'close-up crop');
   }
   if (escenaEsDramatica(original)) {
-    return [...base, 'peaceful lake', 'calm postcard', 'tourist flowers meadow', 'sunny serene mountain', 'no eruption', 'no lightning'].join(', ');
+    base.push('peaceful lake', 'calm postcard', 'tourist flowers meadow', 'sunny serene mountain', 'no eruption', 'no lightning');
   }
-  return [...base, 'empty blue sky only', 'lone silhouette'].join(', ');
+  if (/\bsiames|siamesa\b/.test(sinAcentos(original))) {
+    base.push('grey tabby', 'wrong cat breed', 'no helmet', 'missing astronaut helmet');
+  }
+  return base.join(', ');
 }
 
 function parsearExpansion(raw) {
@@ -302,15 +371,14 @@ export async function expandirPromptVisual(prompt, { modo = 'imagen' } = {}) {
 
   const system = `You turn a user's scene (usually Spanish) into ONE English image/video prompt.
 Rules:
-- First line of prompt_en MUST list required subjects: "MUST INCLUDE: …" using English names plus the original Spanish in parentheses (example: coffee cup (café), boyfriend (novio), desk (escritorio), volcano (volcán)).
-- Keep EVERY subject, place, time of day, weather and camera idea from the user. Quote the original sentence inside the English prompt.
-- If two people or animals are named, both must appear, named twice (example: "a woman AND a man, both fully visible").
+- First line of prompt_en MUST list required subjects: "MUST INCLUDE: …" using English names plus the original Spanish in parentheses (example: coffee cup (café), boyfriend (novio), Siamese cat (gato siamés), astronaut helmet (casco)).
+- Keep EVERY subject, place, prop, breed, accessory, time of day, weather and camera idea. Quote the original sentence inside the English prompt.
+- If two people are named (mujer + novio), BOTH must be fully visible interacting; use a medium-wide shot, never a solo close-up.
+- If a breed is named (Siamese), state the breed traits explicitly. If a helmet/casco is named, it must be on the subject.
 - Do NOT invent subjects, places or props the user did not mention.
-- If the scene is indoor/people (desk, laptop, coffee, couple): describe an INDOOR room. Never turn it into a nature landscape.
-- If the scene is a volcano/eruption/lightning: keep ash, lava, lightning, drama — never a peaceful postcard mountain.
-- Only if the user says volando/flying near flowers or a river: describe hovering at the blossoms with those places still in frame.
-- 50-110 words. Photorealistic, sharp, 16:9. Exact obedience over generic beauty.
-- No text, watermark, logo or letters in the image.
+- Indoor/people scenes stay INDOOR. Volcano/eruption scenes keep ash, lightning and drama.
+- End with: sharp photoreal detail, correct anatomy, full heads in frame, no text/watermark.
+- 60-120 words. Exact obedience over generic beauty.
 - Reply ONLY JSON: {"prompt_en":"...","resumen":"una línea en español de lo que debe verse","elementos":["..."]}`;
 
   const messages = [
