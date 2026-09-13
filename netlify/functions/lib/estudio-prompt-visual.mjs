@@ -1,5 +1,10 @@
 /** Reescribe la escena del usuario a un prompt visual en inglés, sin perder sujetos. */
 
+import {
+  briefAPromptVisual,
+  dirigirEscena,
+} from './estudio-director-semantico.mjs';
+
 const MODELOS_GROQ_VISUAL = [
   'llama-3.3-70b-versatile',
   'openai/gpt-oss-20b',
@@ -361,9 +366,37 @@ export async function expandirPromptVisual(prompt, { modo = 'imagen' } = {}) {
     promptEn: promptVisualFallback(original, modo),
     resumen: '',
     via: 'fallback',
+    director: null,
   };
+  if (!original) return fallback;
+
+  // Cerebro principal: Director Semántico (conjuntos + inferencias), no glosario palabra a palabra.
+  try {
+    const director = await dirigirEscena(original, {
+      modalidad: modo === 'clip' ? 'clip' : 'imagen',
+    });
+    const motion = modo === 'clip';
+    let promptEn = briefAPromptVisual(director, { motion });
+    if (!promptEn || promptEn.length < 24) {
+      promptEn = promptVisualFallback(original, modo);
+    }
+    // Red de seguridad: calidad/composición y prohibidos locales.
+    promptEn = motion
+      ? promptClipReforzado(promptEn, original)
+      : promptImagenReforzado(promptEn, original);
+    return {
+      promptEn: promptEn.slice(0, 2000),
+      resumen: director.resumen_es || director.intencion || '',
+      via: director.via || 'director',
+      director,
+    };
+  } catch (err) {
+    console.warn('expandirPromptVisual/director:', err?.message || err);
+  }
+
+  // Fallback clásico si el director falla.
   const apiKey = groqKeyVisual();
-  if (!apiKey || !original) return fallback;
+  if (!apiKey) return fallback;
 
   const tarea = modo === 'clip'
     ? 'Write an English prompt for a cinematic 16:9 film plate or short clip of the EXACT user scene. Prefer clear subjects and natural motion; never invent a different place.'
@@ -371,20 +404,9 @@ export async function expandirPromptVisual(prompt, { modo = 'imagen' } = {}) {
 
   const system = `You turn a user's scene (usually Spanish) into ONE English image/video prompt.
 Rules:
-- First line of prompt_en MUST list required subjects: "MUST INCLUDE: …" using English names plus the original Spanish in parentheses (example: coffee cup (café), boyfriend (novio), Siamese cat (gato siamés), astronaut helmet (casco)).
-- Keep EVERY subject, place, prop, breed, accessory, time of day, weather and camera idea. Quote the original sentence inside the English prompt.
-- If two people are named (mujer + novio), BOTH must be fully visible interacting; use a medium-wide shot, never a solo close-up.
-- If a breed is named (Siamese), state the breed traits explicitly. If a helmet/casco is named, it must be on the subject.
-- Do NOT invent subjects, places or props the user did not mention.
-- Indoor/people scenes stay INDOOR. Volcano/eruption scenes keep ash, lightning and drama.
-- End with: sharp photoreal detail, correct anatomy, full heads in frame, no text/watermark.
-- 60-120 words. Exact obedience over generic beauty.
-- Reply ONLY JSON: {"prompt_en":"...","resumen":"una línea en español de lo que debe verse","elementos":["..."]}`;
-
-  const messages = [
-    { role: 'system', content: system },
-    { role: 'user', content: `${tarea}\nEscena del usuario: ${original}` },
-  ];
+- First line of prompt_en MUST list required subjects: "MUST INCLUDE: …"
+- Keep EVERY subject, place, prop, breed, accessory and implied world logic.
+- Reply ONLY JSON: {"prompt_en":"...","resumen":"...","elementos":["..."]}`;
 
   try {
     for (const model of MODELOS_GROQ_VISUAL) {
@@ -398,7 +420,10 @@ Rules:
           model,
           temperature: 0.05,
           max_tokens: 400,
-          messages,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: `${tarea}\nEscena del usuario: ${original}` },
+          ],
         }),
       });
       const data = await r.json().catch(() => ({}));
@@ -413,10 +438,12 @@ Rules:
           : `${must}${parsed.promptEn} Original: "${original}"`;
         if (ancla && !/FORBIDDEN: empty blue sky/i.test(promptEn)) promptEn += ancla;
         if (!/FORBIDDEN:/i.test(promptEn)) promptEn += prohibidos;
-        else if (!escenaPidePaisaje(original) && escenaEsInteriorOPersonas(original) && !/INDOOR/i.test(promptEn)) {
-          promptEn += prohibidos;
-        }
-        return { promptEn: promptEn.slice(0, 1600), resumen: parsed.resumen, via: `groq:${model}` };
+        return {
+          promptEn: promptEn.slice(0, 1600),
+          resumen: parsed.resumen,
+          via: `groq:${model}`,
+          director: null,
+        };
       }
     }
   } catch (err) {

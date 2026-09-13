@@ -1,5 +1,5 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
-import { expandirPromptVisual, promptImagenReforzado } from './lib/estudio-prompt-visual.mjs';
+import { expandirPromptVisual } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
 export default async (req) => {
@@ -16,7 +16,7 @@ export default async (req) => {
     if (!prompt?.trim()) return jsonResponse({ error: 'Describe la imagen.' }, 400);
 
     const expansion = await expandirPromptVisual(prompt, { modo: 'imagen' });
-    const promptEn = promptImagenReforzado(expansion.promptEn, prompt);
+    const promptEn = expansion.promptEn;
     const imagen = await generarImagenEstudio(promptEn, {
       width: 1920,
       height: 1080,
@@ -25,6 +25,7 @@ export default async (req) => {
     });
     if (!imagen) return jsonResponse({ error: 'Fallo al generar imagen.' }, 502);
 
+    const dir = expansion.director;
     return jsonResponse({
       success: true,
       tipo: 'imagen',
@@ -32,8 +33,16 @@ export default async (req) => {
       mime: imagen.mime,
       fuente: imagen.fuente,
       resumen: expansion.resumen || '',
-      prompt_en: promptEn.slice(0, 400),
+      prompt_en: promptEn.slice(0, 500),
       via_prompt: expansion.via || '',
+      director: dir
+        ? {
+            intencion: dir.intencion,
+            inferencias: dir.inferencias?.slice(0, 4) || [],
+            resumen_es: dir.resumen_es,
+            via: dir.via,
+          }
+        : null,
     });
   } catch (e) {
     return jsonResponse({ error: String(e) }, 500);

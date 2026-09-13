@@ -217,6 +217,7 @@ async function fetchEstudio(endpoint, body, { timeoutMs } = {}) {
     if (endpoint.includes("letra")) fn = "estudio-letra";
     else if (endpoint.includes("voz")) fn = "estudio-voz";
     else if (endpoint.includes("clip")) fn = "estudio-clip";
+    else if (endpoint.includes("director")) fn = "estudio-director";
     const ctrl = timeoutMs ? new AbortController() : null;
     const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
     try {
@@ -241,6 +242,14 @@ async function fetchEstudio(endpoint, body, { timeoutMs } = {}) {
     } finally {
         if (timer) clearTimeout(timer);
     }
+}
+
+function textoDirectorStatus(d) {
+    const dir = d?.director;
+    if (!dir) return d?.resumen ? ` · ${d.resumen}` : "";
+    const infer = Array.isArray(dir.inferencias) && dir.inferencias[0] ? ` · ${dir.inferencias[0]}` : "";
+    const res = dir.resumen_es || d.resumen || "";
+    return res ? ` · Director: ${res}${infer && !String(res).includes(String(dir.inferencias[0])) ? infer : ""}` : infer;
 }
 
 function puedeUsarEstudio() {
@@ -533,8 +542,7 @@ async function generarImagenIA() {
         if (btnAdd) btnAdd.style.display = "inline-block";
         mostrarPreviewMovimiento(url);
         if (status) {
-            const extra = d.resumen ? ` · ${d.resumen}` : "";
-            status.textContent = `Imagen fija lista (${d.fuente || "IA"})${extra} — no es un clip; el movimiento solo aplica si lo activas.`;
+            status.textContent = `Imagen fija lista (${d.fuente || "IA"})${textoDirectorStatus(d)} — no es un clip; el movimiento solo aplica si lo activas.`;
         }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -579,7 +587,7 @@ async function generarLetraIA() {
         if (preview) preview.style.display = "block";
         if (btnUsar) btnUsar.style.display = "inline-block";
         if (btnVoz) btnVoz.style.display = "inline-block";
-        if (status) status.textContent = `Discurso listo (${d.modelo || "IA"} · ${duracionSeg} s) — úsalo en subtítulos o pásalo a Voz IA.`;
+        if (status) status.textContent = `Discurso listo (${d.modelo || "IA"} · ${duracionSeg} s)${textoDirectorStatus(d)} — úsalo en subtítulos o pásalo a Voz IA.`;
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
         alert("Error generando discurso: " + e.message);
@@ -752,12 +760,11 @@ async function generarClipIA() {
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
         if (status && clipEstudioTipo === "video") {
-            const extra = d.resumen ? ` · ${d.resumen}` : "";
             const via = d.tipo === "cinematico" || d.aviso ? " (placa+movimiento)" : " (video nativo)";
-            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${extra}. Añádelo a la pizarra como video.`;
+            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${textoDirectorStatus(d)}. Añádelo a la pizarra como video.`;
         } else if (status && clipEstudioTipo === "cinematico") {
-            status.textContent = d.aviso
-                || `Clip (placa) listo (${d.fuente || "IA"} · ${d.duracionSeg || duracionSeg} s). Se añadirá como imagen con Ken Burns.`;
+            status.textContent = (d.aviso || `Clip (placa) listo (${d.fuente || "IA"} · ${d.duracionSeg || duracionSeg} s).`)
+                + textoDirectorStatus(d);
         }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -905,19 +912,41 @@ async function generarMidiEstudio() {
     const btn = $("#btn-generar-midi");
     const btnDl = $("#btn-descargar-midi");
     const btnUsar = $("#btn-usar-midi-audio");
-    const estilo = $("#estudio-estilo-midi")?.value || "calma";
+    let estilo = $("#estudio-estilo-midi")?.value || "calma";
     const duracionSeg = clampDuracionEstudio($("#estudio-duracion-midi")?.value);
+    const pistaHint = ($("#nombre-pista-video")?.value || $("#estudio-prompt-imagen")?.value || $("#estudio-tema-letra")?.value || "").trim();
 
     if (btn) { btn.disabled = true; btn.textContent = "Componiendo..."; }
-    if (status) status.textContent = `Creando MIDI y audio de ${duracionSeg} s...`;
+    if (status) status.textContent = `Director Semántico + MIDI (${duracionSeg} s)...`;
 
     try {
+        if (pistaHint.length >= 8) {
+            try {
+                const { ok, data: d } = await fetchEstudio("/estudio/director", {
+                    orden: pistaHint,
+                    modalidad: "musica"
+                }, { timeoutMs: 20000 });
+                const mood = String(d?.director?.brief_musica?.estilo || d?.director?.brief_musica?.mood || "").toLowerCase();
+                if (ok && mood) {
+                    if (/energia|energet|accion|upbeat/.test(mood)) estilo = "energia";
+                    else if (/cinema|drama|epico|epic/.test(mood)) estilo = "cinematico";
+                    else if (/corpo|negocio|clean/.test(mood)) estilo = "corporativo";
+                    else if (/region|folk|acust/.test(mood)) estilo = "regional";
+                    else if (/calma|suave|pad|ambient/.test(mood)) estilo = "calma";
+                    const sel = $("#estudio-estilo-midi");
+                    if (sel && [...sel.options].some((o) => o.value === estilo)) sel.value = estilo;
+                }
+            } catch {
+                /* MIDI local sigue aunque el director falle */
+            }
+        }
+
         midiEstudioBlob = construirArchivoMidi(duracionSeg, estilo);
         midiEstudioAudioFile = await midiBufferAMp3(duracionSeg, estilo);
         if (btnDl) btnDl.style.display = "inline-block";
         if (btnUsar) btnUsar.style.display = "inline-block";
         if (status) {
-            status.textContent = `Listo: ${duracionSeg} s · ${(midiEstudioAudioFile.size / 1024).toFixed(0)} KB. Descarga el .mid o ponlo en el riel de fondo.`;
+            status.textContent = `Listo: ${duracionSeg} s · estilo ${estilo} · ${(midiEstudioAudioFile.size / 1024).toFixed(0)} KB. Descarga el .mid o ponlo en el riel de fondo.`;
         }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;

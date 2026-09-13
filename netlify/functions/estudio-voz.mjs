@@ -6,6 +6,7 @@ import {
   partirTexto,
   recortarTextoParaVoz,
 } from './lib/estudio-limites.mjs';
+import { briefAGuiaOral, dirigirEscena } from './lib/estudio-director-semantico.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -278,7 +279,24 @@ export default async (req) => {
     const premium = esPremiumPayload(guard.payload);
     const limites = premium ? LIMITES_VOZ.premium : LIMITES_VOZ.free;
     const maxSeg = limites.maxSeg;
-    const adaptado = await condensarTextoParaToma(body.texto || body.text || '', maxSeg, process.env.GROQ_API_KEY || '');
+    const textoEntrada = String(body.texto || body.text || '').trim();
+    if (!textoEntrada) {
+      return jsonResponse({ error: 'Escribe el texto que quieres convertir a voz.' }, 400);
+    }
+
+    // Director: entiende el sentido del texto (no solo recorta palabras).
+    let director = null;
+    try {
+      director = await dirigirEscena(textoEntrada.slice(0, 900), { modalidad: 'voz' });
+    } catch (err) {
+      console.warn('director voz:', err?.message || err);
+    }
+    const guia = briefAGuiaOral(director);
+    const textoParaVoz = guia && guia.length > 40 && textoEntrada.length < 120
+      ? `${textoEntrada}\n\n(Contexto semántico: ${director?.resumen_es || ''})`.trim()
+      : textoEntrada;
+
+    const adaptado = await condensarTextoParaToma(textoParaVoz, maxSeg, process.env.GROQ_API_KEY || '');
     if (!adaptado.texto) {
       return jsonResponse({ error: 'Escribe el texto que quieres convertir a voz.' }, 400);
     }
@@ -316,6 +334,14 @@ export default async (req) => {
       maxSeg,
       palabras: recorte.palabras,
       fuente: String(audio.modelo || '').includes('gemini') ? 'gemini' : 'groq',
+      director: director
+        ? {
+            intencion: director.intencion,
+            inferencias: director.inferencias?.slice(0, 3) || [],
+            resumen_es: director.resumen_es,
+            via: director.via,
+          }
+        : null,
     });
   } catch (e) {
     const msg = String(e?.message || e);
