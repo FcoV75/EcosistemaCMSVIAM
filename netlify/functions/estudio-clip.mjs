@@ -1,6 +1,6 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import { LIMITES_CLIP, clamp, esPremiumPayload } from './lib/estudio-limites.mjs';
-import { expandirPromptVisual, promptImagenReforzado } from './lib/estudio-prompt-visual.mjs';
+import { expandirPromptVisual, promptClipReforzado } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
 async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 50000) {
@@ -155,7 +155,7 @@ export default async (req) => {
     const lim = premium ? LIMITES_CLIP.premium : LIMITES_CLIP.free;
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
-    const promptEn = promptImagenReforzado(expansion.promptEn, prompt);
+    const promptEn = promptClipReforzado(expansion.promptEn, prompt);
 
     let nativo = null;
     try {
@@ -186,9 +186,12 @@ export default async (req) => {
         duracionSeg: duracion,
         fuente: nativo.fuente,
         resumen: expansion.resumen || '',
+        prompt_en: promptEn.slice(0, 400),
+        via_prompt: expansion.via || '',
       });
     }
 
+    // Fallback: still + Ken Burns en el navegador (no es "Imagen IA"; es placa de clip).
     const cine = await generarImagenEstudio(promptEn, {
       width: 1920,
       height: 1080,
@@ -209,7 +212,9 @@ export default async (req) => {
       fuente: cine.fuente,
       movimiento: true,
       resumen: expansion.resumen || '',
-      aviso: `Clip de ${duracion} s: escena según tu descripción; el navegador graba el movimiento.`,
+      prompt_en: promptEn.slice(0, 400),
+      via_prompt: expansion.via || '',
+      aviso: `Clip de ${duracion} s (placa + Ken Burns): no es una imagen fija de la pestaña Imagen; el navegador graba el movimiento.`,
     });
   } catch (e) {
     return jsonResponse({ error: String(e?.message || e) }, 500);

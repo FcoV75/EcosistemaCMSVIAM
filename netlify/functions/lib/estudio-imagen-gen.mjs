@@ -61,7 +61,8 @@ export async function generarImagenPollinations(promptEn, { width = 1920, height
   const escena = String(promptEn || '').trim().slice(0, 900);
   if (!escena) return null;
   const n = Number.isFinite(Number(seed)) ? Number(seed) : Math.floor(Math.random() * 99999);
-  const negativo = encodeURIComponent('empty blue sky, silhouette bird, no flowers, no river, no mountain, watermark, text, logo');
+  // Negativos genéricos: no forzar flores/río/montaña (sesgaban escenas que no las pedían).
+  const negativo = encodeURIComponent('watermark, text, logo, letters, blurry, low quality, empty blue sky only, lone silhouette');
   const modelos = ['flux', 'flux-realism', 'gptimage'];
   for (const model of modelos) {
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(escena)}?width=${width}&height=${height}&nologo=true&enhance=false&model=${model}&seed=${n}&negative=${negativo}`;

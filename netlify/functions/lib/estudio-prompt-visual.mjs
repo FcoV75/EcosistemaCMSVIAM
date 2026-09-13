@@ -1,6 +1,11 @@
 /** Reescribe la escena del usuario a un prompt visual en inglés, sin perder sujetos. */
 
-const MODELOS_GROQ_VISUAL = ['openai/gpt-oss-20b', 'llama-3.1-8b-instant', 'qwen/qwen3.6-27b'];
+const MODELOS_GROQ_VISUAL = [
+  'llama-3.3-70b-versatile',
+  'openai/gpt-oss-20b',
+  'llama-3.1-8b-instant',
+  'qwen/qwen3.6-27b',
+];
 
 const GLOSARIO_VISUAL = {
   venado: 'deer',
@@ -111,6 +116,11 @@ export function clausulaMustInclude(prompt) {
   return `MUST INCLUDE: ${elementos.map(traducirElemento).join(', ')}. `;
 }
 
+export function escenaPidePaisaje(texto) {
+  const n = sinAcentos(texto);
+  return /montana|rio|orilla|bosque|selva|playa|valle|atardecer|amanecer|paisaje|landscape|river|mountain|forest|beach|jungle|sunset|dawn|lake|lago/.test(n);
+}
+
 export function reforzarSujetos(prompt) {
   const escena = String(prompt || '').replace(/\s+/g, ' ').trim();
   if (!escena) return '';
@@ -140,16 +150,39 @@ export function promptVisualFallback(prompt, modo = 'imagen') {
   const cabezaMust = clausulaMustInclude(escena);
   const ancla = anclarVueloAlPaisaje(escena);
   const cabeza = modo === 'clip'
-    ? 'Photorealistic cinematic 16:9 LANDSCAPE still (wide enough to show the place). Sharp details, lighting matching the described time of day.'
-    : 'Photorealistic 16:9 photograph of the full scene, sharp focus, high detail, natural professional lighting.';
+    ? 'Photorealistic cinematic 16:9 film plate of the EXACT user scene. Sharp details, lighting matching the described time of day.'
+    : 'Photorealistic 16:9 photograph of the EXACT user scene, sharp focus, high detail, natural professional lighting.';
   return `${cabezaMust}${cabeza} Original scene (keep it): "${escena}". OBEY THIS SCENE EXACTLY (do not invent a different place or drop characters): ${sujetos}${ancla} No text, no watermark, no logo, no letters.`;
 }
 
+/** Refuerzo para Imagen IA: obedece la escena; no inyecta paisaje genérico. */
 export function promptImagenReforzado(promptEn, original = '') {
   const p = String(promptEn || '').trim();
   if (!p) return '';
-  const ancla = anclarVueloAlPaisaje(original || p);
-  return `LANDSCAPE FIRST, 16:9 photorealistic. Show the PLACE filling most of the frame (flowers, river, mountain, sunset as a complete environment). Any bird or insect is small, at the flowers in the foreground — never a sky-only shot. Depict every MUST INCLUDE subject together.${ancla} ${p}`;
+  const src = String(original || p).trim();
+  const ancla = anclarVueloAlPaisaje(src);
+  const must = clausulaMustInclude(src);
+  const paisaje = escenaPidePaisaje(src)
+    ? 'Show the full place and setting the user described; keep all named subjects visible together.'
+    : 'OBEY the user scene exactly. Do NOT invent rivers, flowers, mountains, birds, bakeries or landscapes that were not asked for.';
+  return `${must}Photorealistic 16:9 still. ${paisaje} Do not replace or simplify the scene.${ancla} ${p}`
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Refuerzo para Clip IA: escena exacta + idea de movimiento, sin sesgo de paisaje. */
+export function promptClipReforzado(promptEn, original = '') {
+  const p = String(promptEn || '').trim();
+  if (!p) return '';
+  const src = String(original || p).trim();
+  const ancla = anclarVueloAlPaisaje(src);
+  const must = clausulaMustInclude(src);
+  const paisaje = escenaPidePaisaje(src)
+    ? 'Keep the described place fully visible while the camera moves.'
+    : 'OBEY the user scene exactly. Do NOT invent extra places or drop named subjects.';
+  return `${must}Cinematic 16:9 clip / film plate. ${paisaje} Natural motion matching the description (zoom, pan or subject motion).${ancla} ${p}`
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function parsearExpansion(raw) {
@@ -186,18 +219,18 @@ export async function expandirPromptVisual(prompt, { modo = 'imagen' } = {}) {
   if (!apiKey || !original) return fallback;
 
   const tarea = modo === 'clip'
-    ? 'Write an English prompt for a WIDE 16:9 landscape film still. If a bird is flying or sipping flowers, it is hovering AT the flowers in the landscape. Never a bird in empty sky.'
-    : 'Write an English prompt for a single photorealistic 16:9 photograph of the full scene.';
+    ? 'Write an English prompt for a cinematic 16:9 film plate or short clip of the EXACT user scene. Prefer clear subjects and natural motion; never invent a different place.'
+    : 'Write an English prompt for a single photorealistic 16:9 photograph of the EXACT user scene.';
 
-  const system = `You turn a user's scene (usually Spanish) into ONE English image prompt.
+  const system = `You turn a user's scene (usually Spanish) into ONE English image/video prompt.
 Rules:
-- First line of prompt_en MUST list required subjects: "MUST INCLUDE: …" using English names plus the original Spanish in parentheses (example: hummingbird (colibrí), lilies (lirios), river (río), mountain (montaña), sunset (atardecer)).
-- Keep EVERY subject, place, time of day, weather and camera idea from the user.
+- First line of prompt_en MUST list required subjects: "MUST INCLUDE: …" using English names plus the original Spanish in parentheses (example: hummingbird (colibrí), bread (pan)).
+- Keep EVERY subject, place, time of day, weather and camera idea from the user. Quote the original sentence inside the English prompt.
 - If two animals or people are named, both must appear, named twice (example: "a deer AND a zebra, both fully visible in the same frame").
+- Do NOT invent subjects, places or props the user did not mention (no extra rivers, flowers, mountains, birds, bakeries, etc.).
 - Do not replace the scene with clouds, a lone sky, or a flying silhouette.
-- If the user says volando/flying near flowers or a river, describe hovering at the blossoms with river+mountain+sunset still in frame.
-- Quote the original user sentence inside the English prompt.
-- 50-110 words. Photorealistic, sharp, 16:9, landscape-first.
+- Only if the user says volando/flying near flowers or a river: describe hovering at the blossoms with those places still in frame.
+- 50-110 words. Photorealistic, sharp, 16:9. Exact obedience over generic beauty.
 - No text, watermark, logo or letters in the image.
 - Reply ONLY JSON: {"prompt_en":"...","resumen":"una línea en español de lo que debe verse","elementos":["..."]}`;
 
@@ -216,8 +249,8 @@ Rules:
         },
         body: JSON.stringify({
           model,
-          temperature: 0.15,
-          max_tokens: 320,
+          temperature: 0.1,
+          max_tokens: 360,
           messages,
         }),
       });
@@ -231,7 +264,10 @@ Rules:
           ? parsed.promptEn
           : `${must}${parsed.promptEn} Original: "${original}"`;
         if (ancla && !/FORBIDDEN: empty blue sky/i.test(promptEn)) promptEn += ancla;
-        return { promptEn: promptEn.slice(0, 1600), resumen: parsed.resumen, via: 'groq' };
+        if (!escenaPidePaisaje(original) && !/Do NOT invent/i.test(promptEn)) {
+          promptEn += ' Do NOT invent rivers, flowers, mountains or birds that were not asked for.';
+        }
+        return { promptEn: promptEn.slice(0, 1600), resumen: parsed.resumen, via: `groq:${model}` };
       }
     }
   } catch (err) {

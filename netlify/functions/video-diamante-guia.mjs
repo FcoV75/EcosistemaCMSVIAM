@@ -26,7 +26,8 @@ Instrucciones:
 - Recomienda MP3 para audio, MIDI o voz IA del Estudio para musicalizar/narrar si no tienen pista, re-transcribir antes de render para karaoke sincronizado, y escala XXL para móvil/TV.
 - El botón de discurso genera un speech de producto o tema según la duración pedida, no una canción. Luego se puede pasar a Voz IA.
 - La voz IA no narra una hora: el video largo se arma con audio propio, MIDI o la toma de voz (máx. 4 min Premium).
-- El clip IA es corto (8–12 s), tipo anuncio. Si no hay video nativo en el servidor, se entrega un clip cinematográfico (imagen + Ken Burns).
+- El clip IA es corto (8–12 s), tipo anuncio, y es distinto de Imagen IA (foto fija). Si hay Vidu/Fal/Replicate sale video nativo; si no, placa + Ken Burns grabada en el navegador. No debe mezclarse con la pestaña de Imagen.
+- La IA de prompts debe obedecer la escena del usuario sin inventar ríos, flores o montañas que no pidió.
 - No inventes funciones que no existen (lip sync 3D, voz de 1 hora, clips IA de 3 minutos).
 - Sé breve salvo que pidan detalle.`;
 

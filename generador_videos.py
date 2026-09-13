@@ -855,8 +855,9 @@ def generar_video_cloud():
     def item_quiere_movimiento(item):
         if not isinstance(item, dict):
             return False
+        # Sin flag explícito: sin movimiento (antes default True cruzaba fotos fijas).
         if "movimiento" not in item:
-            return True
+            return False
         return quiere_movimiento(item.get("movimiento"))
 
     n_pizarra_mov = sum(

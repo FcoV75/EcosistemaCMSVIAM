@@ -1,4 +1,11 @@
-import { extraerElementos, promptVisualFallback, reforzarSujetos } from '../netlify/functions/lib/estudio-prompt-visual.mjs';
+import {
+  extraerElementos,
+  promptVisualFallback,
+  promptImagenReforzado,
+  promptClipReforzado,
+  reforzarSujetos,
+  escenaPidePaisaje,
+} from '../netlify/functions/lib/estudio-prompt-visual.mjs';
 import assert from 'node:assert/strict';
 
 const panaderia = promptVisualFallback(
@@ -8,6 +15,7 @@ const panaderia = promptVisualFallback(
 assert.match(panaderia, /^MUST INCLUDE:/);
 assert.match(panaderia, /panadería|panaderia|pan/i);
 assert.match(panaderia, /bread \(pan\)|bakery/i);
+assert.doesNotMatch(panaderia, /LANDSCAPE FIRST/i);
 
 const elementosPan = extraerElementos(
   'toma de una panadería al amanecer, el vapor del pan saliendo, cámara lenta, zoom progresivo acabando en el pan',
@@ -22,6 +30,7 @@ assert.ok(elementos.some((w) => /cebra/i.test(w)));
 assert.ok(elementos.some((w) => /montaña|montana/i.test(w)));
 assert.match(promptVisualFallback(venadoPrompt, 'imagen'), /deer \(venado\)|venado/i);
 assert.match(promptVisualFallback(venadoPrompt, 'imagen'), /zebra \(cebra\)|cebra/i);
+assert.ok(escenaPidePaisaje(venadoPrompt));
 
 const venado = reforzarSujetos(venadoPrompt);
 assert.match(venado, /venado AND/i);
@@ -45,5 +54,15 @@ assert.doesNotMatch(colibriFb, /brillantes AND/i);
 const simple = promptVisualFallback('Atardecer en Acapulco', 'imagen');
 assert.match(simple, /Acapulco/);
 assert.match(simple, /sky, clouds/);
+
+const retrato = 'Retrato de una mujer con sombrero rojo en estudio';
+assert.equal(escenaPidePaisaje(retrato), false);
+const retratoRef = promptImagenReforzado('A woman with a red hat in a studio', retrato);
+assert.match(retratoRef, /Do NOT invent/i);
+assert.doesNotMatch(retratoRef, /LANDSCAPE FIRST|flowers, river, mountain/i);
+
+const clipRef = promptClipReforzado('Bakery at dawn with steam', 'panadería al amanecer con vapor');
+assert.match(clipRef, /Cinematic 16:9|clip/i);
+assert.match(clipRef, /bakery|panadería|panaderia/i);
 
 console.log('estudio-prompt-visual ok');
