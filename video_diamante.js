@@ -512,6 +512,59 @@ async function agregarImagenDesdeBase64(b64, mime) {
     agregarMedioDesdeBlob(blob, `estudio-${Date.now()}.jpg`, "imagen");
 }
 
+/**
+ * Cubre el logo residual de pollinations.ai (esquina inferior derecha)
+ * y, en plan gratuito, estampa "video_diamante". Premium: sin marca.
+ */
+async function aplicarMarcaEstudioImagen(blob, opts = {}) {
+    const fuente = String(opts.fuente || "");
+    const forzarLimpieza = !!opts.marca_agua_pollinations || /pollinations/i.test(fuente);
+    const stampFree = !isPremium;
+    if (!forzarLimpieza && !stampFree) return blob;
+    try {
+        const bmp = await createImageBitmap(blob);
+        const w = bmp.width;
+        const h = bmp.height;
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(bmp, 0, 0, w, h);
+        bmp.close?.();
+        if (forzarLimpieza) {
+            // Zona típica del watermark de Pollinations (abajo-derecha).
+            const bw = Math.max(140, Math.round(w * 0.22));
+            const bh = Math.max(36, Math.round(h * 0.07));
+            const sample = ctx.getImageData(Math.max(0, w - bw), Math.max(0, h - bh), Math.min(8, bw), Math.min(8, bh));
+            let r = 0, g = 0, b = 0, n = sample.data.length / 4;
+            for (let i = 0; i < sample.data.length; i += 4) {
+                r += sample.data[i]; g += sample.data[i + 1]; b += sample.data[i + 2];
+            }
+            r = Math.round(r / n); g = Math.round(g / n); b = Math.round(b / n);
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.fillRect(w - bw, h - bh, bw, bh);
+        }
+        if (stampFree) {
+            const texto = "video_diamante";
+            const size = Math.max(14, Math.round(h * 0.028));
+            ctx.font = `600 ${size}px "Segoe UI", system-ui, sans-serif`;
+            ctx.textAlign = "right";
+            ctx.textBaseline = "bottom";
+            const pad = Math.round(size * 0.7);
+            ctx.fillStyle = "rgba(0,0,0,0.45)";
+            ctx.fillText(texto, w - pad + 1, h - pad + 1);
+            ctx.fillStyle = "rgba(230,230,230,0.88)";
+            ctx.fillText(texto, w - pad, h - pad);
+        }
+        const mime = blob.type && blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+        const out = await new Promise((resolve) => canvas.toBlob(resolve, mime, 0.92));
+        return out || blob;
+    } catch (err) {
+        console.warn("Marca estudio:", err);
+        return blob;
+    }
+}
+
 async function generarImagenIA() {
     if (!puedeUsarEstudio()) return;
     const prompt = $("#estudio-prompt-imagen")?.value?.trim();
@@ -530,10 +583,12 @@ async function generarImagenIA() {
 
         incrementarEstudioGens("imagen");
         const mime = d.mime || "image/jpeg";
-        const bin = atob(d.imagen_base64);
-        const arr = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-        imagenEstudioBlob = new Blob([arr], { type: mime });
+        let blob = blobDesdeBase64(d.imagen_base64, mime);
+        blob = await aplicarMarcaEstudioImagen(blob, {
+            fuente: d.fuente,
+            marca_agua_pollinations: d.marca_agua_pollinations,
+        });
+        imagenEstudioBlob = blob;
 
         const url = URL.createObjectURL(imagenEstudioBlob);
         const img = $("#img-preview-estudio");
@@ -734,7 +789,11 @@ async function generarClipIA() {
             const url = URL.createObjectURL(blob);
             if (vid) { vid.src = url; vid.style.display = "block"; }
         } else if (d.imagen_base64) {
-            const still = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
+            let still = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
+            still = await aplicarMarcaEstudioImagen(still, {
+                fuente: d.fuente,
+                marca_agua_pollinations: d.marca_agua_pollinations,
+            });
             const urlStill = URL.createObjectURL(still);
             if (img) { img.src = urlStill; img.style.display = "block"; }
             // No mezclar con la pestaña Movimiento/Imagen: el clip usa su propio preview.
@@ -2319,7 +2378,7 @@ window.generarVideo = async function () {
             letra_palabras: letraPalabras,
             subtitulos_activos: !!subtitulosOn,
             es_premium: isPremium,
-            sin_marca_agua: !!(isPremium && $("#chk-sin-marca-agua")?.checked),
+            sin_marca_agua: !!isPremium,
             escala_texto: obtenerEscalaTexto(),
             nombre_pista: nombrePistaParaVideo(),
             volumen_voz: volVoz,

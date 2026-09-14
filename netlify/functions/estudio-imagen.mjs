@@ -1,5 +1,5 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
-import { expandirPromptVisual } from './lib/estudio-prompt-visual.mjs';
+import { expandirPromptVisual, seedDesdePrompt } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
 export default async (req) => {
@@ -20,7 +20,7 @@ export default async (req) => {
     const imagen = await generarImagenEstudio(promptEn, {
       width: 1920,
       height: 1080,
-      seed: Date.now() % 99999,
+      seed: seedDesdePrompt(prompt),
       original: prompt,
     });
     if (!imagen) return jsonResponse({ error: 'Fallo al generar imagen.' }, 502);
@@ -32,6 +32,7 @@ export default async (req) => {
       imagen_base64: imagen.imagen_base64,
       mime: imagen.mime,
       fuente: imagen.fuente,
+      marca_agua_pollinations: !!imagen.marca_agua_pollinations,
       resumen: expansion.resumen || '',
       prompt_en: promptEn.slice(0, 500),
       via_prompt: expansion.via || '',

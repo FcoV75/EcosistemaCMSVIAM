@@ -73,6 +73,8 @@ const GLOSARIO_VISUAL = {
   computadora: 'computer',
   oficina: 'office',
   oriental: 'East Asian',
+  ucraniana: 'Ukrainian',
+  ucraniano: 'Ukrainian',
   sonrie: 'smiling',
   sonrisa: 'smile',
   volcan: 'volcano',
@@ -96,6 +98,19 @@ const GLOSARIO_VISUAL = {
   planeta: 'planet',
   planetas: 'planets',
   estrellas: 'stars',
+  carro: 'luxury car',
+  coche: 'car',
+  auto: 'car',
+  automovil: 'automobile',
+  manejando: 'driving',
+  conduciendo: 'driving',
+  volante: 'steering wheel',
+  ventanilla: 'car window',
+  tienda: 'store',
+  diamantes: 'diamonds',
+  diamante: 'diamond',
+  lujoso: 'luxury',
+  lujosa: 'luxury',
 };
 
 export function groqKeyVisual() {
@@ -174,6 +189,12 @@ export function escenaEsDramatica(texto) {
     || /\b(relampagos|rayos)\b/.test(n);
 }
 
+/** Escena con vehículo / conducir / escaparate urbano. */
+export function escenaEsVehiculoOCalle(texto) {
+  const n = sinAcentos(texto);
+  return /\b(carro|coche|auto|automovil|conduc|manej|volante|ventanilla|tienda|diamante|ucranian|lujoso|lujosa)\w*\b/.test(n);
+}
+
 /** Dos personas nombradas (mujer+novio, etc.): ambas deben verse enteras. */
 export function escenaTieneDosPersonas(texto) {
   const n = sinAcentos(texto);
@@ -194,6 +215,7 @@ export function clausulaCalidadComposicion(texto) {
   const partes = [
     ' Ultra sharp photorealistic detail, correct human/animal anatomy, natural hands and faces, no deformities.',
     ' Medium-wide 16:9 framing that shows the FULL scene; heads and key props fully inside the frame (never cropped mid-face).',
+    ' SFW: all people fully clothed, tasteful, family-friendly; never nude, topless, lingerie or erotic posing.',
   ];
   if (escenaTieneDosPersonas(texto)) {
     partes.push(' BOTH people fully visible together interacting in the same shot — never a solo close-up of only one person.');
@@ -206,7 +228,13 @@ export function clausulaCalidadComposicion(texto) {
     partes.push(' Clear astronaut helmet on the subject, fully visible and unmistakable.');
   }
   if (/\bcafe|taza\b/.test(n)) {
-    partes.push(' Coffee cup clearly visible being handed over.');
+    partes.push(' Coffee cup clearly visible being handed over; clothed office/home interaction, not a portrait nude.');
+  }
+  if (escenaEsVehiculoOCalle(texto)) {
+    partes.push(' Show luxury car interior (steering wheel, dashboard) with the driver; exterior storefront/street visible through the window — never a floating headshot without the car.');
+  }
+  if (/\bucranian\w*\b/.test(n)) {
+    partes.push(' Ukrainian (Eastern European) appearance as requested; do not swap ethnicity.');
   }
   if (/\bcometa\b/.test(n)) {
     partes.push(' Subject riding on a bright comet with a glowing tail near the sun, stars and planets visible.');
@@ -216,7 +244,7 @@ export function clausulaCalidadComposicion(texto) {
 
 export function clausulaProhibidos(texto) {
   const bits = [];
-  if (escenaEsInteriorOPersonas(texto) && !escenaPidePaisaje(texto)) {
+  if (escenaEsInteriorOPersonas(texto) && !escenaPidePaisaje(texto) && !escenaEsVehiculoOCalle(texto)) {
     bits.push('FORBIDDEN: outdoor landscape, meadow, river, mountains scenery, lone silhouette in a valley. This is an INDOOR / people scene.');
   }
   if (escenaEsDramatica(texto)) {
@@ -225,10 +253,13 @@ export function clausulaProhibidos(texto) {
   if (escenaTieneDosPersonas(texto)) {
     bits.push('FORBIDDEN: cropping to only one person; omitting the second person, the coffee cup, or the laptop/desk interaction.');
   }
+  if (escenaEsVehiculoOCalle(texto)) {
+    bits.push('FORBIDDEN: solo beauty portrait, missing car interior, missing diamond store/street outside the window, recycled face from another scene.');
+  }
   if (/\bsiames|siamesa\b/.test(sinAcentos(texto))) {
     bits.push('FORBIDDEN: grey tabby or wrong cat breed; missing astronaut helmet when asked.');
   }
-  bits.push('FORBIDDEN: inventing a different place, dropping named subjects, blurry low-res, extra fingers, warped faces.');
+  bits.push('FORBIDDEN: nude, naked, topless, NSFW, erotic, lingerie, inventing a different place, dropping named subjects, blurry low-res, extra fingers, warped faces, pollinations watermark, any logo.');
   return ` ${bits.join(' ')}`;
 }
 
@@ -308,10 +339,10 @@ export function promptCortoParaFlux(original, promptEn = '') {
   const must = clausulaMustInclude(src).replace(/^MUST INCLUDE:\s*/i, '').replace(/\.\s*$/, '');
   const prohibidos = clausulaProhibidos(src);
   const calidad = clausulaCalidadComposicion(src);
-  // Sujetos primero, calidad breve, luego un trozo del prompt EN.
-  const cabeza = `Ultra HD 16:9 photoreal. MUST SHOW: ${must || src}.${calidad}`;
-  const resto = String(promptEn || src).replace(/\s+/g, ' ').trim().slice(0, 280);
-  return `${cabeza} ${resto}${prohibidos} Exact scene only. No text.`
+  // Sujetos primero + SFW duro (gptimage/flux libres tienden a NSFW si no se ancla).
+  const cabeza = `SFW fully clothed Ultra HD 16:9 photoreal. MUST SHOW: ${must || src}.${calidad}`;
+  const resto = String(promptEn || src).replace(/\s+/g, ' ').trim().slice(0, 260);
+  return `${cabeza} ${resto}${prohibidos} Exact scene only. No text, no logo, no watermark.`
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 850);
@@ -319,14 +350,20 @@ export function promptCortoParaFlux(original, promptEn = '') {
 
 export function negativosParaEscena(original = '') {
   const base = [
-    'watermark', 'text', 'logo', 'letters', 'blurry', 'low quality', 'wrong scene',
+    'watermark', 'text', 'logo', 'letters', 'pollinations', 'pollinations.ai',
+    'blurry', 'low quality', 'wrong scene',
     'cropped head', 'cut off face', 'deformed hands', 'extra fingers', 'bad anatomy', 'ugly',
+    'nude', 'naked', 'nsfw', 'topless', 'lingerie', 'erotic', 'porn', 'sexual',
+    'bare breasts', 'undressed', 'explicit', 'seductive nude pose',
   ];
-  if (escenaEsInteriorOPersonas(original) && !escenaPidePaisaje(original)) {
+  if (escenaEsInteriorOPersonas(original) && !escenaPidePaisaje(original) && !escenaEsVehiculoOCalle(original)) {
     base.push('outdoor landscape', 'meadow', 'river valley', 'mountains scenery', 'nature field', 'lone silhouette in grass', 'empty landscape', 'solo portrait missing second person');
   }
   if (escenaTieneDosPersonas(original)) {
     base.push('only one person', 'missing boyfriend', 'missing coffee cup', 'close-up crop');
+  }
+  if (escenaEsVehiculoOCalle(original)) {
+    base.push('solo portrait', 'beauty headshot', 'missing car', 'missing steering wheel', 'no storefront', 'wrong ethnicity');
   }
   if (escenaEsDramatica(original)) {
     base.push('peaceful lake', 'calm postcard', 'tourist flowers meadow', 'sunny serene mountain', 'no eruption', 'no lightning');
@@ -335,6 +372,19 @@ export function negativosParaEscena(original = '') {
     base.push('grey tabby', 'wrong cat breed', 'no helmet', 'missing astronaut helmet');
   }
   return base.join(', ');
+}
+
+/** Seed estable por escena + jitter anti-caché (evita cruzar con la generación anterior). */
+export function seedDesdePrompt(texto = '') {
+  const s = String(texto || '');
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const base = Math.abs(h) % 900000;
+  const jitter = Date.now() % 997;
+  return base + jitter;
 }
 
 function parsearExpansion(raw) {

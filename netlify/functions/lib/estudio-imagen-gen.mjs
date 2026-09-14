@@ -1,8 +1,9 @@
 /** Generadores de imagen HD para Estudio VIAM.
  * Orden: Imagen 4 → Fal Flux → Gemini → Replicate → Pollinations (último recurso).
+ * Pollinations: sin gptimage (propenso a NSFW); flux + SFW + nologo.
  */
 
-import { negativosParaEscena, promptCortoParaFlux } from './estudio-prompt-visual.mjs';
+import { negativosParaEscena, promptCortoParaFlux, seedDesdePrompt } from './estudio-prompt-visual.mjs';
 
 async function extraerImagenGemini(data) {
   const parts = data?.candidates?.[0]?.content?.parts || [];
@@ -28,6 +29,8 @@ async function fetchConTimeout(url, opciones, timeoutMs = 45000) {
   }
 }
 
+const SFW_HARD = 'SFW, fully clothed people, tasteful family-friendly, no nudity, no erotic content, no logos, no watermarks.';
+
 export async function generarImagenGemini(promptEn) {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) return null;
@@ -40,7 +43,7 @@ export async function generarImagenGemini(promptEn) {
   const cuerpo = {
     contents: [{
       parts: [{
-        text: `${promptEn}\n\nHard requirements: show EVERY named subject and prop; correct anatomy; full heads in frame; ultra sharp 16:9 photoreal; no text.`,
+        text: `${promptEn}\n\nHard requirements: ${SFW_HARD} Show EVERY named subject and prop; correct anatomy; full heads in frame; ultra sharp 16:9 photoreal; no text.`,
       }],
     }],
     generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
@@ -98,7 +101,7 @@ export async function generarImagenFal(promptEn) {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          prompt: String(promptEn || '').slice(0, 2500),
+          prompt: `${String(promptEn || '').slice(0, 2300)}. ${SFW_HARD}`,
           image_size: 'landscape_16_9',
           num_images: 1,
           enable_safety_checker: true,
@@ -148,7 +151,7 @@ export async function generarImagenReplicate(promptEn) {
         },
         body: JSON.stringify({
           input: {
-            prompt: String(promptEn || '').slice(0, 2000),
+            prompt: `${String(promptEn || '').slice(0, 1900)}. ${SFW_HARD}`,
             aspect_ratio: '16:9',
             output_format: 'jpg',
             output_quality: 90,
@@ -182,27 +185,31 @@ export async function generarImagenReplicate(promptEn) {
 export async function generarImagenPollinations(promptEn, { width = 1920, height = 1080, seed, original = '' } = {}) {
   const escena = promptCortoParaFlux(original || promptEn, promptEn);
   if (!escena) return null;
-  const baseSeed = Number.isFinite(Number(seed)) ? Number(seed) : Math.floor(Math.random() * 99999);
+  const baseSeed = Number.isFinite(Number(seed)) ? Number(seed) : seedDesdePrompt(original || promptEn);
   const negativo = encodeURIComponent(negativosParaEscena(original || promptEn));
-  // Varios intentos: gptimage primero, luego flux-realism con enhance.
+  // Sin gptimage: suele ignorar la escena y generar NSFW. Flux + nologo + private.
   const intentos = [
-    { model: 'gptimage', enhance: true },
+    { model: 'flux', enhance: false },
     { model: 'flux-realism', enhance: true },
     { model: 'flux', enhance: true },
   ];
   for (let i = 0; i < intentos.length; i += 1) {
     const { model, enhance } = intentos[i];
-    const n = baseSeed + i * 17;
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(escena)}?width=${width}&height=${height}&nologo=true&enhance=${enhance ? 'true' : 'false'}&model=${model}&seed=${n}&negative=${negativo}`;
+    const n = baseSeed + i * 97;
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(escena)}?width=${width}&height=${height}&nologo=true&private=true&nofeed=true&enhance=${enhance ? 'true' : 'false'}&model=${model}&seed=${n}&negative=${negativo}&referrer=video_diamante`;
     try {
-      const img = await fetchConTimeout(url, {}, 40000);
+      const img = await fetchConTimeout(url, {
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+      }, 40000);
       if (!img.ok) continue;
       const buf = Buffer.from(await img.arrayBuffer());
-      if (buf.length < 12000) continue; // umbral algo más alto = menos basura borrosa
+      if (buf.length < 12000) continue;
       return {
         imagen_base64: buf.toString('base64'),
         mime: img.headers.get('content-type') || 'image/jpeg',
         fuente: `pollinations-${model}`,
+        // El cliente cubre el logo residual de Pollinations y estampa video_diamante en Free.
+        marca_agua_pollinations: true,
       };
     } catch (err) {
       console.warn('Pollinations', model, err?.name || err?.message || err);
@@ -214,8 +221,8 @@ export async function generarImagenPollinations(promptEn, { width = 1920, height
 export async function generarImagenImagen4(promptEn) {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) return null;
-  const escena = String(promptEn || '').trim();
-  if (!escena) return null;
+  const escena = `${String(promptEn || '').trim()}. ${SFW_HARD}`;
+  if (!String(promptEn || '').trim()) return null;
   const modelos = ['imagen-4.0-generate-001', 'imagen-4.0-ultra-generate-001', 'imagen-4.0-fast-generate-001'];
   for (const modelo of modelos) {
     try {

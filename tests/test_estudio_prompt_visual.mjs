@@ -9,9 +9,11 @@ import {
   escenaEsInteriorOPersonas,
   escenaEsDramatica,
   escenaTieneDosPersonas,
+  escenaEsVehiculoOCalle,
   clausulaProhibidos,
   clausulaCalidadComposicion,
   negativosParaEscena,
+  seedDesdePrompt,
 } from '../netlify/functions/lib/estudio-prompt-visual.mjs';
 import assert from 'node:assert/strict';
 
@@ -78,14 +80,23 @@ assert.ok(escenaEsInteriorOPersonas(cafePrompt));
 assert.ok(escenaTieneDosPersonas(cafePrompt));
 assert.equal(escenaPidePaisaje(cafePrompt), false);
 const cafeRef = promptImagenReforzado('A beautiful East Asian woman giving coffee to her boyfriend at a desk with a laptop', cafePrompt);
-assert.match(cafeRef, /BOTH people|Coffee cup clearly|full scene|correct.*anatomy/i);
+assert.match(cafeRef, /BOTH people|Coffee cup clearly|full scene|correct.*anatomy|SFW|fully clothed/i);
 assert.match(cafeRef, /coffee|café|cafe|laptop|escritorio|novio|mujer/i);
-assert.match(clausulaProhibidos(cafePrompt), /only one person|coffee cup|second person/i);
-assert.match(negativosParaEscena(cafePrompt), /missing boyfriend|cropped head|bad anatomy/i);
+assert.match(clausulaProhibidos(cafePrompt), /only one person|coffee cup|second person|nude|NSFW/i);
+assert.match(negativosParaEscena(cafePrompt), /missing boyfriend|cropped head|bad anatomy|nude|nsfw/i);
 const cafeCorto = promptCortoParaFlux(cafePrompt, cafeRef);
-assert.match(cafeCorto, /MUST SHOW|Ultra HD/i);
+assert.match(cafeCorto, /MUST SHOW|Ultra HD|SFW|fully clothed/i);
 assert.match(cafeCorto, /laptop|escritorio|café|cafe|novio|mujer/i);
 assert.ok(cafeCorto.length <= 850);
+
+// Auto de lujo + tienda de diamantes: no retrato suelto.
+const autoPrompt = 'Una mujer ucraniana manejando un carro muy lujoso mientras observa por la ventana una tienda de diamantes';
+assert.ok(escenaEsVehiculoOCalle(autoPrompt));
+const autoRef = promptImagenReforzado('Ukrainian woman driving luxury car looking at diamond store', autoPrompt);
+assert.match(autoRef, /luxury car|steering|window|storefront|Ukrainian|SFW/i);
+assert.match(clausulaProhibidos(autoPrompt), /solo beauty portrait|missing car|diamond store/i);
+assert.match(negativosParaEscena(autoPrompt), /solo portrait|missing car|nude/i);
+assert.match(promptCortoParaFlux(autoPrompt, autoRef), /carro|ucraniana|diamante|car|Ukrainian|diamond/i);
 
 const volcanPrompt = 'un volcán haciendo erupción en una isla con una fumarola muy alta vista desde un avión, hay relámpagos y rayos en la nube piroclástica';
 assert.ok(escenaEsDramatica(volcanPrompt));
@@ -104,5 +115,10 @@ assert.match(clausulaProhibidos(gatoPrompt), /grey tabby|helmet/i);
 assert.match(negativosParaEscena(gatoPrompt), /grey tabby|helmet/i);
 assert.ok(extraerElementos(gatoPrompt).some((w) => /siamés|siames/i.test(w)));
 assert.ok(extraerElementos(gatoPrompt).some((w) => /casco/i.test(w)));
+
+const s1 = seedDesdePrompt('escena A');
+const s2 = seedDesdePrompt('escena B distinta');
+assert.ok(Number.isFinite(s1) && Number.isFinite(s2));
+assert.notEqual(s1, s2);
 
 console.log('estudio-prompt-visual ok');

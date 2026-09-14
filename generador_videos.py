@@ -34,7 +34,7 @@ TAM_NOMBRE_PISTA = 32
 TAM_TEXTO_ESCENA = 36
 MARGEN_INTRO_LETRA = 15.0
 MARGEN_OUTRO_LETRA = 12.0
-MARCA_AGUA_TEXTO = "IAVIAM VIDEO_DIAMANTE"
+MARCA_AGUA_TEXTO = "video_diamante"
 TAM_MARCA_AGUA = 22
 MAX_PALABRAS_LINEA_KARAOKE = 10
 PADDING_FONDO = 8
@@ -756,8 +756,8 @@ def generar_video_cloud():
     subtitulos_activos = config.get("subtitulos_activos", False)
     nombre_pista = _normalizar_texto(config.get("nombre_pista", "") or "Pista VIAM")
     es_premium = bool(config.get("es_premium", False))
-    sin_marca_agua = bool(config.get("sin_marca_agua", False))
-    mostrar_marca_agua = not es_premium or not sin_marca_agua
+    # Free: siempre "video_diamante". Pro: sin ninguna marca de agua.
+    mostrar_marca_agua = not es_premium
 
     ruta_audio = args.audio
     archivo_final = args.output
