@@ -652,6 +652,54 @@ async function generarLetraIA() {
     }
 }
 
+function textosLetraEquivalentes(a, b) {
+    const norm = (t) => String(t || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const na = norm(a);
+    const nb = norm(b);
+    if (!na || !nb) return !na && !nb;
+    if (na === nb) return true;
+    if (na.slice(0, 80) !== nb.slice(0, 80)) return false;
+    return Math.abs(na.length - nb.length) <= Math.max(12, Math.floor(na.length * 0.18));
+}
+
+/** Guarda la letra editada; si cambió vs la transcripción, descarta el sync viejo. */
+function sincronizarLetraEditada({ anunciar = false } = {}) {
+    const area = $("#letra-cancion");
+    const actual = area?.value || "";
+    letraGuardada = actual;
+    if (letraPalabras.length) {
+        const textoPalabras = letraPalabras
+            .map((p) => (p && (p.word || p.text || p.texto)) || "")
+            .join(" ");
+        if (!textosLetraEquivalentes(actual, textoPalabras)) {
+            letraPalabras = [];
+            letraSegmentos = [];
+            if (anunciar) {
+                const st = $("#status-transcripcion");
+                if (st) {
+                    st.textContent = "Letra corregida guardada — se usará tu texto editado en el video (sync por renglones).";
+                }
+            }
+            return { guardada: true, syncInvalidado: true };
+        }
+    }
+    if (anunciar) {
+        const st = $("#status-transcripcion");
+        if (st) {
+            st.textContent = letraPalabras.length
+                ? "Letra guardada — se conserva el sync de la transcripción."
+                : "Letra guardada — se sincronizará por renglones con la pista.";
+        }
+    }
+    return { guardada: true, syncInvalidado: false };
+}
+
 function usarLetraEnSubtitulos() {
     if (!letraEstudioGenerada) return;
     const area = $("#letra-cancion");
@@ -770,8 +818,15 @@ async function generarClipIA() {
     if (status) status.textContent = `Creando clip de ${duracionSeg} s...`;
 
     try {
-        const { ok, data: d } = await fetchEstudio("/estudio/clip", { prompt, duracionSeg });
-        if (!ok) throw new Error(d.error || "No se pudo generar el clip.");
+        // 55 s: por debajo del límite Netlify (60) y del "Inactivity Timeout" de Safari/iPad.
+        const { ok, data: d } = await fetchEstudio("/estudio/clip", { prompt, duracionSeg }, { timeoutMs: 55000 });
+        if (!ok) {
+            const raw = String(d.error || "No se pudo generar el clip.");
+            if (/inactivity timeout|too much time has passed/i.test(raw)) {
+                throw new Error("El servidor tardó demasiado. Intenta de nuevo; suele completar en el segundo intento.");
+            }
+            throw new Error(raw);
+        }
         incrementarEstudioGens("clip");
         clipEstudioBlob = null;
         if (img) img.style.display = "none";
@@ -827,8 +882,13 @@ async function generarClipIA() {
                 + textoDirectorStatus(d);
         }
     } catch (e) {
-        if (status) status.textContent = "Error: " + e.message;
-        alert("Error generando clip: " + e.message);
+        const msg = String(e?.message || e);
+        if (status) {
+            status.textContent = /inactivity timeout|too much time|tardó demasiado/i.test(msg)
+                ? "No se pudo generar el clip: la conexión se cortó por espera larga. Pulsa Generar clip otra vez."
+                : "Error: " + msg;
+        }
+        alert("Error generando clip: " + msg);
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = "✨ Generar clip"; }
     }
@@ -2351,6 +2411,7 @@ window.generarVideo = async function () {
         }
 
         const subtitulosOn = $("#chk-subtitulos")?.checked;
+        sincronizarLetraEditada();
         const letra = $("#letra-cancion")?.value || letraGuardada || "";
         const volVoz = volumenRielVoz();
         const volFondo = volumenRielFondo();
@@ -2775,11 +2836,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     $("#btn-transcribir")?.addEventListener("click", transcribirAudio);
     $("#btn-guardar-letra")?.addEventListener("click", () => {
-        letraGuardada = $("#letra-cancion")?.value || "";
-        const conservaSync = letraPalabras.length > 0;
-        $("#status-transcripcion").textContent = conservaSync
-            ? "Letra guardada — se conserva el sync de la transcripción. Si cambiaste mucho el texto, vuelve a transcribir."
-            : "Letra guardada — se sincronizará por renglones con la pista.";
+        sincronizarLetraEditada({ anunciar: true });
+    });
+    $("#letra-cancion")?.addEventListener("input", () => {
+        // Autosave suave: al editar, invalidar sync viejo si el texto ya no coincide.
+        sincronizarLetraEditada({ anunciar: false });
     });
 
     $("#btn-plan-mensual")?.addEventListener("click", () => iniciarStripe("mensual"));

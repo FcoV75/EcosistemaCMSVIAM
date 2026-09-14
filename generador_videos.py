@@ -582,7 +582,15 @@ def normalizar_segmentos_letra(segmentos_raw, duracion_total):
 def preparar_palabras_subtitulo(letra_palabras, letra_cancion, letra_segmentos, duracion_total, subtitulos_on):
     if not subtitulos_on:
         return []
+    cancion = _normalizar_texto(letra_cancion or "")
     palabras = normalizar_palabras_raw(letra_palabras, duracion_total)
+    if palabras and cancion:
+        texto_palabras = " ".join(str(p.get("text") or "").strip() for p in palabras)
+        a = "".join(ch for ch in cancion.lower() if ch.isalnum() or ch.isspace())
+        b = "".join(ch for ch in texto_palabras.lower() if ch.isalnum() or ch.isspace())
+        # Si diverge mucho, invalidar sync viejo y usar la letra editada por renglones.
+        if a and b and (a[:80] != b[:80] or abs(len(a) - len(b)) > max(12, int(len(a) * 0.18))):
+            palabras = []
     if palabras:
         return ajustar_tiempos_karaoke(palabras, duracion_total)
     lineas = parsear_lineas_letra(letra_cancion)
@@ -866,10 +874,12 @@ def generar_video_cloud():
     )
 
     def tomar_movimiento(reservar_pizarra=False):
+        """Aplica Ken Burns respetando el tope diario. La pizarra tiene prioridad."""
         nonlocal usados_movimiento
-        tope = max_movimiento - n_pizarra_mov if reservar_pizarra else max_movimiento
-        tope = max(0, tope)
-        if usados_movimiento >= tope:
+        if usados_movimiento >= max_movimiento:
+            return None
+        # Portada/cierre no deben consumir cupos si la pizarra ya los necesita todos.
+        if reservar_pizarra and (usados_movimiento + n_pizarra_mov) >= max_movimiento:
             return None
         usados_movimiento += 1
         return True
