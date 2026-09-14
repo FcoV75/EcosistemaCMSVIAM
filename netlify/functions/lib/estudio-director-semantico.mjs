@@ -102,6 +102,13 @@ export function inferenciasLocales(orden) {
   if (/\bvolcan|erupcion|piroclast|relampago|rayo\b/.test(n)) {
     out.push('Ambiente dramático: humo/ceniza, relámpagos y energía de erupción, no postal pacífica.');
   }
+  if (/\b(cangrejo|anguila|pez|tiburon|delfin|ballena|pulpo|venado|cebra|colibri|animal)\w*\b/.test(n)
+    && !/\b(mujer|hombre|persona|novio|novia)\w*\b/.test(n)) {
+    out.push('Fauna/naturaleza: mostrar los animales nombrados en su hábitat; NO sustituir por personas ni bañistas en el agua.');
+  }
+  if (/\bcangrejo\b/.test(n) && /\banguila/.test(n)) {
+    out.push('Cangrejo nadando entre anguilas eléctricas en río caudaloso de montaña — vida acuática realista, sin humanos.');
+  }
   if (/\b(amanecer|atardecer|noche|lluvia|nieve|niebla)\b/.test(n)) {
     out.push('La atmósfera y la luz deben coherir con el momento del día o clima nombrado.');
   }
@@ -142,11 +149,21 @@ export function directorFallback(orden, modalidad = 'imagen') {
     'Mostrar el conjunto completo (sujetos, objetos, acciones y atmósfera) en un solo cuadro coherente.',
   ].filter(Boolean).join(' ');
 
+  const nOrig = sinAcentos(original);
+  const fauna = /\b(cangrejo|anguila|pez|tiburon|delfin|ballena|pulpo|venado|cebra|colibri|animal|crab|eel)\w*\b/.test(nOrig)
+    && !/\b(mujer|hombre|persona|novio|novia)\w*\b/.test(nOrig);
+  const personas = /\b(mujer|hombre|persona|novio|novia|chico|chica|afroamerican|ucranian)\w*\b/.test(nOrig);
+  const calidad = fauna
+    ? 'Show the named wildlife clearly in habitat with correct animal anatomy, hyperrealistic detail, natural lighting. No people. No text/watermark.'
+    : personas
+      ? 'Show the complete set together with perfect symmetrical human anatomy, hyperrealistic detail, natural lighting. No text/watermark.'
+      : 'Show the complete set together with coherent geometry/perspective, hyperrealistic detail, natural lighting. Do not invent people. No text/watermark.';
+
   const briefVisual = [
     `Photorealistic 16:9 scene that OBEYS the full meaning of: "${original}".`,
     `Key elements: ${tokens.join(', ') || original}.`,
     inferencias.length ? `Implied world logic: ${inferencias.join(' ')}` : '',
-    'Show the complete set together with perfect symmetrical anatomy, hyperrealistic detail, natural lighting. No text/watermark.',
+    calidad,
   ].filter(Boolean).join(' ');
 
   const briefMotion = [
@@ -184,6 +201,7 @@ export function directorFallback(orden, modalidad = 'imagen') {
       'omitir sujetos u objetos del conjunto',
       'paisaje genérico si no se pidió',
       'recorte que rompa la acción',
+      ...(fauna ? ['sustituir animales por personas', 'bañistas humanas', 'grupo de mujeres en el agua'] : []),
     ],
     estilo_camara: modalidad === 'clip' ? 'plano continuo con movimiento natural' : 'plano medio-ancho 16:9',
     resumen_es: elegirResumenInferencias(inferencias, original),

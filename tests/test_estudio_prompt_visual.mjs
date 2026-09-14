@@ -13,6 +13,9 @@ import {
   escenaEsConduccionExterior,
   escenaEsVehiculoMirandoAfuera,
   escenaEsEspejoORecamara,
+  escenaEsAnimalONaturaleza,
+  escenaPidePersonas,
+  clausulaMustInclude,
   clausulaProhibidos,
   clausulaCalidadComposicion,
   clausulaAnatomiaHiperrealismo,
@@ -133,8 +136,28 @@ assert.match(negativosParaEscena(gatoPrompt), /grey tabby|helmet/i);
 assert.ok(extraerElementos(gatoPrompt).some((w) => /siamés|siames/i.test(w)));
 assert.ok(extraerElementos(gatoPrompt).some((w) => /casco/i.test(w)));
 
-assert.match(clausulaAnatomiaHiperrealismo({ corto: true }), /symmetrical face|five fingers|8k/i);
-assert.match(clausulaAnatomiaHiperrealismo({ corto: false }), /pores|symmetrical face|Vehicles|Landscapes/i);
+assert.match(clausulaAnatomiaHiperrealismo('una mujer en estudio', { corto: true }), /symmetrical face|five fingers|8k/i);
+assert.match(clausulaAnatomiaHiperrealismo('una mujer en estudio', { corto: false }), /human anatomy|symmetrical face|Landscapes|perspective/i);
+assert.match(clausulaAnatomiaHiperrealismo('un cangrejo nadando', { corto: true }), /wildlife|animal|No people/i);
+assert.doesNotMatch(clausulaAnatomiaHiperrealismo('un cangrejo nadando', { corto: true }), /symmetrical face|five fingers/i);
+
+// Cangrejo + anguilas: fauna, sin sesgo a personas (caso real del usuario).
+const cangrejoPrompt = 'un cangrejo nadando entre anguilas electricas en un río caudaloso en la montaña';
+assert.ok(escenaEsAnimalONaturaleza(cangrejoPrompt));
+assert.equal(escenaPidePersonas(cangrejoPrompt), false);
+const cangrejoMust = clausulaMustInclude(cangrejoPrompt);
+assert.match(cangrejoMust, /crab \(cangrejo\)|cangrejo/i);
+assert.match(cangrejoMust, /eel|anguila/i);
+const cangrejoFb = promptVisualFallback(cangrejoPrompt, 'imagen');
+assert.match(cangrejoFb, /crab|cangrejo|eel|anguila|wildlife|No people|FORBIDDEN: people/i);
+assert.doesNotMatch(cangrejoFb, /Perfect human anatomy|SFW fully clothed|beauty headshot/i);
+assert.match(clausulaProhibidos(cangrejoPrompt), /people|women|human bathers/i);
+assert.match(negativosParaEscena(cangrejoPrompt), /people|women|bathers|replacing animals/i);
+const cangrejoCorto = promptCortoParaFlux(cangrejoPrompt, '');
+assert.match(cangrejoCorto, /SCENE:|wildlife|crab|eel/i);
+assert.match(cangrejoCorto, /crab swimming among electric eels|Animals only/i);
+assert.doesNotMatch(cangrejoCorto, /perfect symmetrical face|SFW opaque clothes|5 fingers per hand/i);
+assert.ok(cangrejoCorto.length <= 850);
 
 const s1 = seedDesdePrompt('escena A');
 const s2 = seedDesdePrompt('escena B distinta');
