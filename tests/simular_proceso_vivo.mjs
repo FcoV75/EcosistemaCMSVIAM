@@ -20,6 +20,12 @@ mkdirSync(OUT, { recursive: true });
 
 const CASOS = [
   {
+    id: 'imagen-cangrejo-anguilas',
+    modo: 'imagen',
+    prompt:
+      'un cangrejo nadando entre anguilas electricas en un río caudaloso en la montaña',
+  },
+  {
     id: 'imagen-espejo-manzana',
     modo: 'imagen',
     prompt:

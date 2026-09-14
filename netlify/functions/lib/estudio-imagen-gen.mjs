@@ -3,7 +3,13 @@
  * Pollinations: sin gptimage (propenso a NSFW); flux + SFW + nologo.
  */
 
-import { negativosParaEscena, promptCortoParaFlux, seedDesdePrompt } from './estudio-prompt-visual.mjs';
+import {
+  escenaEsAnimalONaturaleza,
+  escenaPidePersonas,
+  negativosParaEscena,
+  promptCortoParaFlux,
+  seedDesdePrompt,
+} from './estudio-prompt-visual.mjs';
 
 async function extraerImagenGemini(data) {
   const parts = data?.candidates?.[0]?.content?.parts || [];
@@ -29,12 +35,34 @@ async function fetchConTimeout(url, opciones, timeoutMs = 45000) {
   }
 }
 
-const SFW_HARD = 'SFW, fully clothed opaque clothing, tasteful family-friendly, no nudity, no erotic content, no logos, no watermarks.';
-const ANATOMY_HARD = 'Hyperrealistic 8k detail; perfect symmetrical human face (aligned eyes, natural nose/mouth); correct hands with five fingers; coherent body proportions; no deformed/melted/warped anatomy; vehicles and objects with clean symmetric geometry; landscapes with coherent perspective.';
+const SFW_HARD_PERSONAS = 'SFW, fully clothed opaque clothing, tasteful family-friendly, no nudity, no erotic content, no logos, no watermarks.';
+const SFW_HARD_BASE = 'SFW, family-friendly, no nudity, no erotic content, no logos, no watermarks.';
+const ANATOMY_HARD_PERSONAS = 'Hyperrealistic 8k detail; perfect symmetrical human face (aligned eyes, natural nose/mouth); correct hands with five fingers; coherent body proportions; no deformed/melted/warped anatomy; vehicles and objects with clean symmetric geometry; landscapes with coherent perspective.';
+const ANATOMY_HARD_ANIMAL = 'Hyperrealistic 8k wildlife detail; correct animal anatomy and species features; natural limbs/fins/claws; coherent mountain/river/habitat perspective; FORBIDDEN: people, women, men, human faces, bathers replacing animals.';
+const ANATOMY_HARD_OBJETO = 'Hyperrealistic 8k detail; clean symmetric object/vehicle geometry; landscapes with coherent perspective; no deformed anatomy; do not invent people unless asked.';
 
-export async function generarImagenGemini(promptEn) {
+/** Requisitos duros según si la escena pide personas o fauna (evita sesgo a rostros humanos). */
+export function requisitosDurosEscena(texto = '') {
+  const src = String(texto || '');
+  const personas = escenaPidePersonas(src);
+  const animales = escenaEsAnimalONaturaleza(src) && !personas;
+  if (animales) {
+    return `${SFW_HARD_BASE} ${ANATOMY_HARD_ANIMAL}`;
+  }
+  if (personas) {
+    return `${SFW_HARD_PERSONAS} ${ANATOMY_HARD_PERSONAS}`;
+  }
+  return `${SFW_HARD_BASE} ${ANATOMY_HARD_OBJETO}`;
+}
+
+function textoEscena(promptEn, opts = {}) {
+  return String(opts.original || promptEn || '');
+}
+
+export async function generarImagenGemini(promptEn, opts = {}) {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) return null;
+  const hard = requisitosDurosEscena(textoEscena(promptEn, opts));
   const modelos = [
     'gemini-2.5-flash-image',
     'gemini-2.5-flash-image-preview',
@@ -44,7 +72,7 @@ export async function generarImagenGemini(promptEn) {
   const cuerpo = {
     contents: [{
       parts: [{
-        text: `${promptEn}\n\nHard requirements: ${SFW_HARD} ${ANATOMY_HARD} Show EVERY named subject and prop; full heads in frame; ultra sharp 16:9 photoreal; no text.`,
+        text: `${promptEn}\n\nHard requirements: ${hard} Show EVERY named subject and prop; ultra sharp 16:9 photoreal; no text.`,
       }],
     }],
     generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
@@ -81,9 +109,10 @@ export async function generarImagenGemini(promptEn) {
 }
 
 /** Fal Flux Pro / Dev: mucho mejor obediencia y nitidez que Pollinations. */
-export async function generarImagenFal(promptEn) {
+export async function generarImagenFal(promptEn, opts = {}) {
   const key = (process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
   if (!key) return null;
+  const hard = requisitosDurosEscena(textoEscena(promptEn, opts));
   const modelos = [
     process.env.FAL_IMAGE_MODEL,
     'fal-ai/flux-pro/v1.1',
@@ -102,7 +131,7 @@ export async function generarImagenFal(promptEn) {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          prompt: `${String(promptEn || '').slice(0, 2100)}. ${SFW_HARD} ${ANATOMY_HARD}`,
+          prompt: `${String(promptEn || '').slice(0, 2100)}. ${hard}`,
           image_size: 'landscape_16_9',
           num_images: 1,
           enable_safety_checker: true,
@@ -134,9 +163,10 @@ export async function generarImagenFal(promptEn) {
   return null;
 }
 
-export async function generarImagenReplicate(promptEn) {
+export async function generarImagenReplicate(promptEn, opts = {}) {
   const token = (process.env.REPLICATE_API_TOKEN || '').trim();
   if (!token) return null;
+  const hard = requisitosDurosEscena(textoEscena(promptEn, opts));
   const modelos = [
     process.env.REPLICATE_IMAGE_MODEL,
     'black-forest-labs/flux-1.1-pro',
@@ -154,7 +184,7 @@ export async function generarImagenReplicate(promptEn) {
         },
         body: JSON.stringify({
           input: {
-            prompt: `${String(promptEn || '').slice(0, 1700)}. ${SFW_HARD} ${ANATOMY_HARD}`,
+            prompt: `${String(promptEn || '').slice(0, 1700)}. ${hard}`,
             aspect_ratio: '16:9',
             output_format: 'jpg',
             output_quality: 95,
@@ -192,9 +222,10 @@ export async function generarImagenPollinations(promptEn, { width = 1920, height
   const negativo = encodeURIComponent(negativosParaEscena(original || promptEn));
   // Personas: enhance=true en Pollinations suele derretir caras/manos.
   // Priorizar flux-realism sin enhance para anatomía más limpia.
-  const conPersonas = /\b(mujer|hombre|woman|man|person|girl|boy|driver|novio|novia)\b/i.test(
-    `${original} ${promptEn} ${escena}`,
-  );
+  const conPersonas = escenaPidePersonas(`${original} ${promptEn}`)
+    || /\b(mujer|hombre|woman|man|person|girl|boy|driver|novio|novia)\b/i.test(
+      `${original} ${promptEn} ${escena}`,
+    );
   const intentos = conPersonas
     ? [
         { model: 'flux-realism', enhance: false },
@@ -231,11 +262,14 @@ export async function generarImagenPollinations(promptEn, { width = 1920, height
   return null;
 }
 
-export async function generarImagenImagen4(promptEn) {
+export async function generarImagenImagen4(promptEn, opts = {}) {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) return null;
-  const escena = `${String(promptEn || '').trim()}. ${SFW_HARD} ${ANATOMY_HARD}`;
+  const src = textoEscena(promptEn, opts);
+  const hard = requisitosDurosEscena(src);
+  const escena = `${String(promptEn || '').trim()}. ${hard}`;
   if (!String(promptEn || '').trim()) return null;
+  const personas = escenaPidePersonas(src);
   const modelos = ['imagen-4.0-generate-001', 'imagen-4.0-ultra-generate-001', 'imagen-4.0-fast-generate-001'];
   for (const modelo of modelos) {
     try {
@@ -249,7 +283,8 @@ export async function generarImagenImagen4(promptEn) {
             parameters: {
               sampleCount: 1,
               aspectRatio: '16:9',
-              personGeneration: 'allow_adult',
+              // Evita que Imagen invente adultos en escenas de fauna/paisaje.
+              personGeneration: personas ? 'allow_adult' : 'dont_allow',
             },
           }),
         },
@@ -274,16 +309,16 @@ export async function generarImagenImagen4(promptEn) {
 
 export async function generarImagenEstudio(promptEn, opts = {}) {
   // Modelos fuertes primero: Imagen 4 y Fal dominan detalle/obediencia.
-  const imagen4 = await generarImagenImagen4(promptEn);
+  const imagen4 = await generarImagenImagen4(promptEn, opts);
   if (imagen4) return imagen4;
 
-  const fal = await generarImagenFal(promptEn);
+  const fal = await generarImagenFal(promptEn, opts);
   if (fal) return fal;
 
-  const gemini = await generarImagenGemini(promptEn);
+  const gemini = await generarImagenGemini(promptEn, opts);
   if (gemini) return gemini;
 
-  const replicate = await generarImagenReplicate(promptEn);
+  const replicate = await generarImagenReplicate(promptEn, opts);
   if (replicate) return replicate;
 
   return generarImagenPollinations(promptEn, opts);

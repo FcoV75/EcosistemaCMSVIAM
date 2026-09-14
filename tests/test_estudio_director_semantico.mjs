@@ -40,4 +40,13 @@ assert.match(autoBrief.resumen_es, /conducci|vehículo|carretera|montaña|ciudad
 const tienda = 'Una mujer ucraniana manejando un carro muy lujoso mientras observa por la ventana una tienda de diamantes';
 assert.ok(inferenciasLocales(tienda).some((x) => /ventan|tienda|diamante|Interior de auto/i.test(x)));
 
+const cangrejo = 'un cangrejo nadando entre anguilas electricas en un río caudaloso en la montaña';
+const cangrejoInfer = inferenciasLocales(cangrejo);
+assert.ok(cangrejoInfer.some((x) => /fauna|animales|NO sustituir|personas/i.test(x)));
+assert.ok(cangrejoInfer.some((x) => /cangrejo|anguilas|río|rio/i.test(x)));
+const cangrejoBrief = directorFallback(cangrejo, 'imagen');
+assert.match(cangrejoBrief.brief_visual_en, /wildlife|animal anatomy|No people/i);
+assert.doesNotMatch(cangrejoBrief.brief_visual_en, /symmetrical human anatomy/i);
+assert.ok(cangrejoBrief.prohibidos.some((x) => /personas|bañistas|mujeres/i.test(x)));
+
 console.log('estudio-director-semantico ok');

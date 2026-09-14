@@ -127,6 +127,33 @@ const GLOSARIO_VISUAL = {
   elegante: 'elegant',
   observando: 'looking at',
   llevandola: 'bringing it',
+  cangrejo: 'crab',
+  cangrejos: 'crabs',
+  anguila: 'eel',
+  anguilas: 'eels',
+  electricas: 'electric',
+  electrica: 'electric',
+  'anguilas electricas': 'electric eels',
+  'anguila electrica': 'electric eel',
+  nadando: 'swimming',
+  caudaloso: 'fast-flowing',
+  caudalosa: 'fast-flowing',
+  pez: 'fish',
+  peces: 'fish',
+  tiburon: 'shark',
+  delfin: 'dolphin',
+  ballena: 'whale',
+  pulpo: 'octopus',
+  medusa: 'jellyfish',
+  serpiente: 'snake',
+  leon: 'lion',
+  tigre: 'tiger',
+  oso: 'bear',
+  lobo: 'wolf',
+  mono: 'monkey',
+  elefante: 'elephant',
+  insecto: 'insect',
+  mariposa: 'butterfly',
 };
 
 export function groqKeyVisual() {
@@ -252,26 +279,60 @@ export function escenaTieneDosPersonas(texto) {
   return hits >= 2;
 }
 
-/** Anatomía + hiperrealismo (largo: Imagen/Fal/Gemini; corto: Pollinations). */
-export function clausulaAnatomiaHiperrealismo({ corto = false } = {}) {
+/** Escena de animales / naturaleza sin personas pedidas. */
+export function escenaEsAnimalONaturaleza(texto) {
+  const n = sinAcentos(texto);
+  const animal = /\b(cangrejo|anguila|pez|peces|tiburon|delfin|ballena|pulpo|medusa|serpiente|leon|tigre|oso|lobo|mono|elefante|insecto|mariposa|venado|ciervo|cebra|colibri|pajaro|aguila|caballo|perro|gato|camaleon|animal|animals|crab|eel|fish|bird|deer|zebra)\w*\b/.test(n);
+  const persona = /\b(mujer|hombre|persona|novio|novia|chico|chica|afroamerican|ucranian|oriental|pareja|retratro|retrato)\w*\b/.test(n);
+  return animal && !persona;
+}
+
+/** ¿La escena pide personas humanas? */
+export function escenaPidePersonas(texto) {
+  const n = sinAcentos(texto);
+  return /\b(mujer|hombre|persona|novio|novia|chico|chica|afroamerican|ucranian|oriental|pareja|retrato|conductor|conductora|astronauta)\w*\b/.test(n)
+    || escenaTieneDosPersonas(texto)
+    || escenaEsEspejoORecamara(texto);
+}
+
+/** Anatomía + hiperrealismo (adapta personas vs animales/paisaje). */
+export function clausulaAnatomiaHiperrealismo(texto = '', { corto = false } = {}) {
+  const personas = escenaPidePersonas(texto);
+  const animales = escenaEsAnimalONaturaleza(texto);
   if (corto) {
+    if (animales && !personas) {
+      return ' Hyperrealistic 8k wildlife detail, correct animal anatomy, natural motion in water/terrain, coherent mountain/river perspective. No people.';
+    }
+    if (!personas) {
+      return ' Hyperrealistic 8k detail, sharp clean object/landscape geometry, balanced perspective. No invented people.';
+    }
     return ' Hyperrealistic 8k detail, perfect symmetrical face, natural eyes/nose/mouth aligned, realistic hands with five fingers, coherent body proportions, sharp clean car/object edges, balanced landscape perspective.';
   }
-  return [
-    ' Hyperrealistic commercial photography quality (8k, crisp micro-detail, natural skin texture with pores, no plastic skin).',
-    ' Perfect human anatomy: symmetrical face, aligned eyes same size, straight nose, natural mouth, intact ears; five fingers per hand, correct joints; balanced body proportions; no melted/warped features.',
-    ' Animals: correct breed anatomy, natural limbs and eyes, no extra limbs.',
-    ' Vehicles/objects: clean symmetric geometry, sharp edges, realistic materials and reflections.',
-    ' Landscapes: coherent perspective, detailed depth, natural lighting, no warped horizon.',
-  ].join('');
+  const partes = [
+    ' Hyperrealistic commercial photography quality (8k, crisp micro-detail).',
+  ];
+  if (personas) {
+    partes.push(' Perfect human anatomy: symmetrical face, aligned eyes, natural hands with five fingers, balanced proportions; natural skin texture; no melted/warped features.');
+  }
+  if (animales || !personas) {
+    partes.push(' Animals/wildlife: correct species anatomy, natural limbs and eyes, no extra limbs; do NOT replace animals with people.');
+  }
+  partes.push(' Landscapes/objects: coherent perspective, detailed depth, natural lighting, clean geometry, no warped horizon.');
+  return partes.join('');
 }
 
 export function clausulaCalidadComposicion(texto) {
   const partes = [
-    clausulaAnatomiaHiperrealismo({ corto: false }),
-    ' Medium-wide 16:9 FULL scene (never a solo beauty headshot that drops the setting).',
-    ' SFW fully clothed (opaque clothes, no sheer/see-through dress), family-friendly.',
+    clausulaAnatomiaHiperrealismo(texto, { corto: false }),
+    ' Medium-wide 16:9 FULL scene that shows the EXACT subjects asked (never replace them).',
   ];
+  if (escenaPidePersonas(texto)) {
+    partes.push(' SFW fully clothed (opaque clothes, no sheer/see-through dress), family-friendly.');
+    partes.push(' Never a solo beauty headshot that drops the setting.');
+  }
+  if (escenaEsAnimalONaturaleza(texto)) {
+    partes.push(' Wildlife nature documentary framing: show the named animals clearly in the described habitat.');
+  }
   if (escenaTieneDosPersonas(texto)) {
     partes.push(' BOTH people fully visible together interacting in the same shot — never a solo close-up of only one person.');
   }
@@ -299,12 +360,18 @@ export function clausulaCalidadComposicion(texto) {
   if (/\bcometa\b/.test(n)) {
     partes.push(' Subject riding on a bright comet with a glowing tail near the sun, stars and planets visible.');
   }
+  if (/\bcangrejo|crab\b/.test(n)) {
+    partes.push(' Clear crab visible swimming; electric eels around it in a fast mountain river — not people in a lake.');
+  }
   return partes.join('');
 }
 
 export function clausulaProhibidos(texto) {
   const bits = [];
-  if (escenaEsInteriorOPersonas(texto) && !escenaPidePaisaje(texto) && !escenaEsConduccionExterior(texto)) {
+  if (escenaEsAnimalONaturaleza(texto)) {
+    bits.push('FORBIDDEN: people, women, men, human bathers, group of girls, replacing animals with humans.');
+  }
+  if (escenaEsInteriorOPersonas(texto) && !escenaPidePaisaje(texto) && !escenaEsConduccionExterior(texto) && !escenaEsAnimalONaturaleza(texto)) {
     bits.push('FORBIDDEN: outdoor landscape, meadow, river, mountains scenery, lone silhouette in a valley. This is an INDOOR / people scene.');
   }
   if (escenaEsDramatica(texto)) {
@@ -324,7 +391,10 @@ export function clausulaProhibidos(texto) {
   if (/\bsiames|siamesa\b/.test(sinAcentos(texto))) {
     bits.push('FORBIDDEN: grey tabby or wrong cat breed; missing astronaut helmet when asked.');
   }
-  bits.push('FORBIDDEN: deformed faces, asymmetric eyes, melted features, extra fingers, warped bodies, nude, naked, topless, NSFW, erotic, inventing a different place, dropping named subjects, logos, watermarks.');
+  if (escenaPidePersonas(texto)) {
+    bits.push('FORBIDDEN: deformed faces, asymmetric eyes, melted features, extra fingers, warped bodies, nude, naked, topless, NSFW, erotic.');
+  }
+  bits.push('FORBIDDEN: inventing a different place, dropping named subjects, logos, watermarks.');
   return ` ${bits.join(' ')}`;
 }
 
@@ -373,10 +443,16 @@ export function promptImagenReforzado(promptEn, original = '') {
   const must = clausulaMustInclude(src);
   const prohibidos = clausulaProhibidos(src);
   const calidad = clausulaCalidadComposicion(src);
+  const animal = escenaEsAnimalONaturaleza(src) && !escenaPidePersonas(src);
   const paisaje = escenaPidePaisaje(src)
-    ? 'Show the full place and setting the user described; keep all named subjects visible together.'
+    ? (animal
+      ? 'Animals LARGE in frame in the described habitat; landscape is background only — never an empty nature postcard without the animals.'
+      : 'Show the full place and setting the user described; keep all named subjects visible together.')
     : 'OBEY the user scene exactly. Do NOT invent rivers, flowers, mountains, birds, bakeries or landscapes that were not asked for.';
-  return `${must}Photorealistic 16:9 still. ${paisaje}${calidad} Do not replace or simplify the scene.${ancla}${prohibidos} ${p}`
+  const leadAnimal = animal
+    ? 'PRIMARY SUBJECTS ARE THE NAMED ANIMALS (fill most of the frame). '
+    : '';
+  return `${leadAnimal}${must}Photorealistic 16:9 still. ${paisaje}${calidad} Do not replace or simplify the scene.${ancla}${prohibidos} ${p}`
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -401,6 +477,8 @@ export function promptClipReforzado(promptEn, original = '') {
 /** Prompt corto EN-first para Pollinations/Flux (truncan ~850 chars: la ESCENA debe ir primero). */
 export function promptCortoParaFlux(original, promptEn = '') {
   const src = String(original || '').replace(/\s+/g, ' ').trim();
+  const animal = escenaEsAnimalONaturaleza(src) && !escenaPidePersonas(src);
+  const personas = escenaPidePersonas(src);
   // Traducir tokens al inglés: Flux entiende poco el español suelto.
   const mustEn = extraerElementos(src)
     .map((w) => {
@@ -408,7 +486,7 @@ export function promptCortoParaFlux(original, promptEn = '') {
       return en || w;
     })
     .filter(Boolean)
-    .slice(0, 12)
+    .slice(0, animal ? 14 : 12)
     .join(', ');
 
   let anclaEscena = '';
@@ -418,28 +496,46 @@ export function promptCortoParaFlux(original, promptEn = '') {
     anclaEscena = `SCENE: Photoreal award-winning photo of an elegant Ukrainian Eastern-European woman with fair Slavic features sitting in the driver's seat of a luxury sports car, both hands on the steering wheel, mountain road and distant city skyline outside. Visible together: woman driving inside car + car + road + mountains + city. Perfect symmetrical face, realistic hands, sharp car geometry. Opaque elegant clothes. Not standing outside. Not East Asian features.`;
   } else if (escenaEsVehiculoMirandoAfuera(src)) {
     anclaEscena = `SCENE: ${mustEn || src}. Driver inside luxury car looking through window at store/street outside. Woman + car interior + outside view all visible. Perfect symmetrical face, realistic hands.`;
+  } else if (animal) {
+    const esCangrejo = /\bcangrejo|crab\b/.test(sinAcentos(src));
+    anclaEscena = esCangrejo
+      ? `SCENE: A crab swimming among electric eels in a fast-flowing mountain river — photoreal wildlife close-up. Named animals first and large in frame: ${mustEn || 'crab, electric eels'}. Clear crab body/claws + several electric eels in rushing water between mountains. Animals only; no people, no women, no human bathers, no group of girls.`
+      : `SCENE: Photoreal wildlife close-up — named animals LARGE and clear in frame first: ${mustEn || src}. Habitat supports the animals (not an empty landscape). Animals only; no people, no women, no human bathers.`;
+  } else if (!personas) {
+    anclaEscena = `SCENE (exact): ${mustEn ? `${mustEn}. ${src}` : src}. Photoreal award-winning photo of the place/objects described — do not invent people.`;
   } else {
     anclaEscena = `SCENE (exact): ${mustEn ? `${mustEn}. ${src}` : src}. Photoreal award-winning photo, perfect symmetrical face, realistic hands.`;
   }
 
-  const reglas = [
-    'SFW opaque clothes.',
-    '16:9 hyperrealistic medium-wide (NOT beauty headshot).',
-    'Canon EOS R5 85mm, perfect symmetrical face, natural skin pores, 5 fingers per hand, sharp car/object geometry.',
-    mustEn ? `MUST SHOW: ${mustEn}.` : '',
-    escenaEsInteriorOPersonas(src) && !escenaEsConduccionExterior(src)
-      ? 'Indoor setting. No outdoor park portrait.'
-      : '',
-    'No text, no logo, no watermark.',
-  ].filter(Boolean).join(' ');
+  const reglasTxt = (animal
+    ? [
+        '16:9 hyperrealistic wildlife documentary framing.',
+        'Correct animal anatomy, natural water/terrain motion, coherent mountain/river perspective.',
+        mustEn ? `MUST SHOW: ${mustEn}.` : '',
+        'FORBIDDEN: humans, faces, women in water, beauty portrait.',
+        'No text, no logo, no watermark.',
+      ]
+    : [
+        personas ? 'SFW opaque clothes.' : 'No invented people unless asked.',
+        '16:9 hyperrealistic medium-wide (NOT beauty headshot).',
+        personas
+          ? 'Canon EOS R5 85mm, perfect symmetrical face, natural skin pores, 5 fingers per hand, sharp car/object geometry.'
+          : 'Canon EOS R5, sharp clean geometry, coherent perspective, natural light.',
+        mustEn ? `MUST SHOW: ${mustEn}.` : '',
+        escenaEsInteriorOPersonas(src) && !escenaEsConduccionExterior(src)
+          ? 'Indoor setting. No outdoor park portrait.'
+          : '',
+        'No text, no logo, no watermark.',
+      ]
+  ).filter(Boolean).join(' ');
 
   // Prioridad: ancla de escena + must; reglas al final; nunca cortar la escena.
-  const cuerpo = `${anclaEscena} ${reglas}`.replace(/\s+/g, ' ').trim();
+  const cuerpo = `${anclaEscena} ${reglasTxt}`.replace(/\s+/g, ' ').trim();
   if (cuerpo.length <= 850) return cuerpo;
   // Si aún pasa, recortar reglas, no la ancla.
   const maxAncla = Math.min(anclaEscena.length, 520);
   const resto = 850 - maxAncla - 1;
-  return `${anclaEscena.slice(0, maxAncla)} ${reglas.slice(0, Math.max(40, resto))}`.replace(/\s+/g, ' ').trim().slice(0, 850);
+  return `${anclaEscena.slice(0, maxAncla)} ${reglasTxt.slice(0, Math.max(40, resto))}`.replace(/\s+/g, ' ').trim().slice(0, 850);
 }
 
 export function negativosParaEscena(original = '') {
@@ -473,6 +569,12 @@ export function negativosParaEscena(original = '') {
   }
   if (escenaEsDramatica(original)) {
     base.push('peaceful lake', 'calm postcard', 'tourist flowers meadow', 'no eruption', 'no lightning');
+  }
+  if (escenaEsAnimalONaturaleza(original) && !escenaPidePersonas(original)) {
+    base.push(
+      'people', 'humans', 'women', 'men', 'girls bathing', 'group of women', 'human faces',
+      'replacing animals with people', 'swimsuit models', 'lake bathers',
+    );
   }
   if (/\bsiames|siamesa\b/.test(sinAcentos(original))) {
     base.push('grey tabby', 'wrong cat breed', 'no helmet', 'missing astronaut helmet');
