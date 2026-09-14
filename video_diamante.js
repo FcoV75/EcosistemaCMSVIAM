@@ -246,10 +246,14 @@ async function fetchEstudio(endpoint, body, { timeoutMs } = {}) {
 
 function textoDirectorStatus(d) {
     const dir = d?.director;
-    if (!dir) return d?.resumen ? ` · ${d.resumen}` : "";
-    const infer = Array.isArray(dir.inferencias) && dir.inferencias[0] ? ` · ${dir.inferencias[0]}` : "";
-    const res = dir.resumen_es || d.resumen || "";
-    return res ? ` · Director: ${res}${infer && !String(res).includes(String(dir.inferencias[0])) ? infer : ""}` : infer;
+    const esGenerico = (t) => /continuidad temporal/i.test(String(t || ""));
+    if (!dir) {
+        if (d?.resumen && !esGenerico(d.resumen)) return ` · ${d.resumen}`;
+        return "";
+    }
+    const inferencias = Array.isArray(dir.inferencias) ? dir.inferencias.filter((x) => !esGenerico(x)) : [];
+    const res = (!esGenerico(dir.resumen_es) && dir.resumen_es) || (!esGenerico(d.resumen) && d.resumen) || inferencias[0] || "";
+    return res ? ` · Director: ${res}` : "";
 }
 
 function puedeUsarEstudio() {
@@ -515,6 +519,7 @@ async function agregarImagenDesdeBase64(b64, mime) {
 /**
  * Cubre el logo residual de pollinations.ai (esquina inferior derecha)
  * y, en plan gratuito, estampa "video_diamante". Premium: sin marca.
+ * Usa recorte/zoom (no un rectángulo de color sólido).
  */
 async function aplicarMarcaEstudioImagen(blob, opts = {}) {
     const fuente = String(opts.fuente || "");
@@ -529,21 +534,17 @@ async function aplicarMarcaEstudioImagen(blob, opts = {}) {
         canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(bmp, 0, 0, w, h);
-        bmp.close?.();
         if (forzarLimpieza) {
-            // Zona típica del watermark de Pollinations (abajo-derecha).
-            const bw = Math.max(140, Math.round(w * 0.22));
-            const bh = Math.max(36, Math.round(h * 0.07));
-            const sample = ctx.getImageData(Math.max(0, w - bw), Math.max(0, h - bh), Math.min(8, bw), Math.min(8, bh));
-            let r = 0, g = 0, b = 0, n = sample.data.length / 4;
-            for (let i = 0; i < sample.data.length; i += 4) {
-                r += sample.data[i]; g += sample.data[i + 1]; b += sample.data[i + 2];
-            }
-            r = Math.round(r / n); g = Math.round(g / n); b = Math.round(b / n);
-            ctx.fillStyle = `rgb(${r},${g},${b})`;
-            ctx.fillRect(w - bw, h - bh, bw, bh);
+            // Recorta ~5% inferior y ~12% derecho (zona del logo) y reescala a 16:9.
+            const cropR = Math.round(w * 0.12);
+            const cropB = Math.round(h * 0.055);
+            const sw = w - cropR;
+            const sh = h - cropB;
+            ctx.drawImage(bmp, 0, 0, sw, sh, 0, 0, w, h);
+        } else {
+            ctx.drawImage(bmp, 0, 0, w, h);
         }
+        bmp.close?.();
         if (stampFree) {
             const texto = "video_diamante";
             const size = Math.max(14, Math.round(h * 0.028));

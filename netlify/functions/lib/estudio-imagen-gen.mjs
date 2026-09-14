@@ -188,10 +188,11 @@ export async function generarImagenPollinations(promptEn, { width = 1920, height
   const baseSeed = Number.isFinite(Number(seed)) ? Number(seed) : seedDesdePrompt(original || promptEn);
   const negativo = encodeURIComponent(negativosParaEscena(original || promptEn));
   // Sin gptimage: suele ignorar la escena y generar NSFW. Flux + nologo + private.
+  // enhance=true en el 2º intento: a veces recupera props omitidos (espejo/manzana/conductora).
   const intentos = [
-    { model: 'flux', enhance: false },
-    { model: 'flux-realism', enhance: true },
     { model: 'flux', enhance: true },
+    { model: 'flux-realism', enhance: true },
+    { model: 'flux', enhance: false },
   ];
   for (let i = 0; i < intentos.length; i += 1) {
     const { model, enhance } = intentos[i];

@@ -76,10 +76,18 @@ export function inferenciasLocales(orden) {
     || /\b(cafe|taza).{0,80}(novio|novia|mujer|hombre)\b/.test(n)) {
     out.push('Escena de interacción SFW: ambas personas vestidas, taza de café entregada y sonrisa en el mismo plano (nunca desnudos ni retrato erótico).');
   }
-  if (/\b(carro|coche|auto|automovil|conduc|manej|volante|ventanilla)\b/.test(n)) {
+  if (/\b(espejo|recamara|habitacion).{0,40}(manzana|afroamerican|mujer)|manzana.{0,60}(espejo|recamara)\b/.test(n)
+    || (/\bespejo\b/.test(n) && /\b(recamara|habitacion|manzana)\b/.test(n))) {
+    out.push('Recámara + espejo de cuerpo completo: se ve el reflejo, la manzana en la mano hacia la boca y el cuarto; no un retrato outdoor sin espejo.');
+  }
+  if (/\b(carro|coche|auto|automovil|vehiculo|deportivo).{0,80}(carretera|camino|montana|ciudad)\b/.test(n)
+    || /\b(manej|conduc).{0,80}(carretera|camino|montana)\b/.test(n)) {
+    out.push('Plano amplio de conducción: vehículo deportivo en la carretera/montaña con la ciudad al fondo; no un close-up de cara sin coche.');
+  } else if (/\b(carro|coche|auto|automovil|conduc|manej|volante|ventanilla)\b/.test(n)
+    && /\b(tienda|escaparat|joyeria|diamante)\b/.test(n)) {
     out.push('Interior de auto de lujo: conductora al volante, tablero/asientos visibles; la tienda o calle se ve POR LA VENTANA (no un retrato suelto sin coche).');
   }
-  if (/\b(tienda|escaparat|joyeria|diamante)\b/.test(n)) {
+  if (/\b(tienda|escaparat|joyeria|diamante)\b/.test(n) && !/\b(carretera|montana)\b/.test(n)) {
     out.push('Escaparate/tienda de diamantes o joyería reconocible fuera del vehículo o en la calle descrita.');
   }
   if (/\bucranian\w*\b/.test(n)) {
@@ -97,9 +105,8 @@ export function inferenciasLocales(orden) {
   if (/\b(amanecer|atardecer|noche|lluvia|nieve|niebla)\b/.test(n)) {
     out.push('La atmósfera y la luz deben coherir con el momento del día o clima nombrado.');
   }
-  // Continuidad genérica al final y solo si hay acción/secuencia real (no “mientras” solo).
-  if (/\b(caminando|camina|recorriendo|secuencia|luego|despues)\b/.test(n)
-    || (/\bmientras\b/.test(n) && out.length === 0)) {
+  // Continuidad genérica al final y solo si no hay inferencia concreta de escena.
+  if (out.length === 0 && /\b(caminando|camina|recorriendo|secuencia|luego|despues|mientras)\b/.test(n)) {
     out.push('Hay continuidad temporal: el movimiento y la secuencia deben sentirse lógicos cuadro a cuadro.');
   }
   return out;

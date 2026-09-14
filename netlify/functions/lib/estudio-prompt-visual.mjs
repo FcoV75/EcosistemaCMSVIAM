@@ -111,6 +111,22 @@ const GLOSARIO_VISUAL = {
   diamante: 'diamond',
   lujoso: 'luxury',
   lujosa: 'luxury',
+  afroamericana: 'African American woman',
+  afroamericano: 'African American man',
+  manzana: 'apple',
+  mano: 'hand',
+  boca: 'mouth',
+  espejo: 'full-length mirror',
+  recamara: 'bedroom',
+  habitacion: 'bedroom',
+  vehiculo: 'vehicle',
+  deportivo: 'sports car',
+  carretera: 'road',
+  camino: 'roadway',
+  lejos: 'in the distance',
+  elegante: 'elegant',
+  observando: 'looking at',
+  llevandola: 'bringing it',
 };
 
 export function groqKeyVisual() {
@@ -144,6 +160,7 @@ export function extraerElementos(prompt) {
     'volando', 'vuela', 'vuelo', 'brillantes', 'variados', 'colores', 'libando', 'hermosa',
     'hermoso', 'esta', 'este', 'recien', 'recibirlo', 'obsequiandole', 'trabajando',
     'haciendo', 'alta', 'alto', 'vista', 'hay', 'muy', 'recien',
+    'misma', 'mismo', 'completo', 'completa', 'cuerpo', 'si', 'esta',
   ]);
   const palabras = escena.split(' ').map((w) => w.trim()).filter((w) => {
     const n = sinAcentos(w);
@@ -179,7 +196,7 @@ export function escenaPidePaisaje(texto) {
 /** Interior / gente / oficina: nunca sustituir por un paisaje genérico. */
 export function escenaEsInteriorOPersonas(texto) {
   const n = sinAcentos(texto);
-  return /\b(mujer|hombre|persona|novio|novia|escritorio|laptop|ordenador|computadora|oficina|cocina|cafe|taza|interior|cuarto|habitacion|salon|estudio|retrato|pareja|sonrie|sonrisa|obsequi)\w*\b/.test(n);
+  return /\b(mujer|hombre|persona|novio|novia|escritorio|laptop|ordenador|computadora|oficina|cocina|cafe|taza|interior|cuarto|habitacion|salon|estudio|retrato|pareja|sonrie|sonrisa|obsequi|espejo|recamara|manzana|afroamerican)\w*\b/.test(n);
 }
 
 /** Acción dramática (volcán, tormenta, erupción): no postcard pacífico. */
@@ -189,10 +206,34 @@ export function escenaEsDramatica(texto) {
     || /\b(relampagos|rayos)\b/.test(n);
 }
 
-/** Escena con vehículo / conducir / escaparate urbano. */
+/** Conducir por carretera / paisaje: coche + entorno exterior (no solo interior). */
+export function escenaEsConduccionExterior(texto) {
+  const n = sinAcentos(texto);
+  const vehiculo = /\b(carro|coche|auto|automovil|vehiculo|deportivo|conduc|manej|volante)\w*\b/.test(n);
+  const exterior = /\b(carretera|camino|montana|ciudad|autopista|ruta|paisaje|lejos)\w*\b/.test(n);
+  return vehiculo && exterior;
+}
+
+/** Mirando tienda/calle desde dentro del auto (no confundir con ruta de montaña). */
+export function escenaEsVehiculoMirandoAfuera(texto) {
+  const n = sinAcentos(texto);
+  if (escenaEsConduccionExterior(texto) && !/\b(tienda|escaparat|diamante|joyeria|ventanilla)\b/.test(n)) {
+    return false;
+  }
+  return /\b(carro|coche|auto|automovil|vehiculo|conduc|manej|volante|ventanilla)\w*\b/.test(n)
+    && /\b(tienda|escaparat|diamante|joyeria|ventanilla|observa.*ventana)\w*\b/.test(n);
+}
+
+/** Escena con vehículo (cualquier tipo). */
 export function escenaEsVehiculoOCalle(texto) {
   const n = sinAcentos(texto);
-  return /\b(carro|coche|auto|automovil|conduc|manej|volante|ventanilla|tienda|diamante|ucranian|lujoso|lujosa)\w*\b/.test(n);
+  return /\b(carro|coche|auto|automovil|vehiculo|deportivo|conduc|manej|volante|ventanilla|tienda|diamante|carretera)\w*\b/.test(n);
+}
+
+/** Habitación + espejo / autorretrato. */
+export function escenaEsEspejoORecamara(texto) {
+  const n = sinAcentos(texto);
+  return /\b(espejo|recamara|habitacion|manzana|afroamerican)\w*\b/.test(n);
 }
 
 /** Dos personas nombradas (mujer+novio, etc.): ambas deben verse enteras. */
@@ -213,9 +254,9 @@ export function escenaTieneDosPersonas(texto) {
 
 export function clausulaCalidadComposicion(texto) {
   const partes = [
-    ' Ultra sharp photorealistic detail, correct human/animal anatomy, natural hands and faces, no deformities.',
-    ' Medium-wide 16:9 framing that shows the FULL scene; heads and key props fully inside the frame (never cropped mid-face).',
-    ' SFW: all people fully clothed, tasteful, family-friendly; never nude, topless, lingerie or erotic posing.',
+    ' Ultra sharp photorealistic detail, correct anatomy, natural hands and faces.',
+    ' Medium-wide 16:9 FULL scene (never a solo beauty headshot that drops the setting).',
+    ' SFW fully clothed (opaque clothes, no sheer/see-through dress), family-friendly.',
   ];
   if (escenaTieneDosPersonas(texto)) {
     partes.push(' BOTH people fully visible together interacting in the same shot — never a solo close-up of only one person.');
@@ -228,10 +269,15 @@ export function clausulaCalidadComposicion(texto) {
     partes.push(' Clear astronaut helmet on the subject, fully visible and unmistakable.');
   }
   if (/\bcafe|taza\b/.test(n)) {
-    partes.push(' Coffee cup clearly visible being handed over; clothed office/home interaction, not a portrait nude.');
+    partes.push(' Coffee cup clearly visible being handed over; clothed office/home interaction.');
   }
-  if (escenaEsVehiculoOCalle(texto)) {
-    partes.push(' Show luxury car interior (steering wheel, dashboard) with the driver; exterior storefront/street visible through the window — never a floating headshot without the car.');
+  if (escenaEsEspejoORecamara(texto)) {
+    partes.push(' Bedroom interior with a full-length mirror reflecting the woman; apple in hand near her mouth — show mirror + room + apple, not an outdoor portrait.');
+  }
+  if (escenaEsConduccionExterior(texto)) {
+    partes.push(' Wide shot: elegant driver in a luxury sports car ON the mountain road, city skyline far away — car body and landscape must be visible, not a face crop.');
+  } else if (escenaEsVehiculoMirandoAfuera(texto)) {
+    partes.push(' Luxury car interior (steering wheel, dashboard) with driver; storefront/street visible through the window — never a floating headshot without the car.');
   }
   if (/\bucranian\w*\b/.test(n)) {
     partes.push(' Ukrainian (Eastern European) appearance as requested; do not swap ethnicity.');
@@ -244,7 +290,7 @@ export function clausulaCalidadComposicion(texto) {
 
 export function clausulaProhibidos(texto) {
   const bits = [];
-  if (escenaEsInteriorOPersonas(texto) && !escenaPidePaisaje(texto) && !escenaEsVehiculoOCalle(texto)) {
+  if (escenaEsInteriorOPersonas(texto) && !escenaPidePaisaje(texto) && !escenaEsConduccionExterior(texto)) {
     bits.push('FORBIDDEN: outdoor landscape, meadow, river, mountains scenery, lone silhouette in a valley. This is an INDOOR / people scene.');
   }
   if (escenaEsDramatica(texto)) {
@@ -253,13 +299,18 @@ export function clausulaProhibidos(texto) {
   if (escenaTieneDosPersonas(texto)) {
     bits.push('FORBIDDEN: cropping to only one person; omitting the second person, the coffee cup, or the laptop/desk interaction.');
   }
-  if (escenaEsVehiculoOCalle(texto)) {
+  if (escenaEsEspejoORecamara(texto)) {
+    bits.push('FORBIDDEN: outdoor portrait, missing full-length mirror, missing apple, missing bedroom, beauty headshot only.');
+  }
+  if (escenaEsConduccionExterior(texto)) {
+    bits.push('FORBIDDEN: solo beauty portrait, missing sports car, missing mountain road, missing distant city, face-only crop.');
+  } else if (escenaEsVehiculoMirandoAfuera(texto)) {
     bits.push('FORBIDDEN: solo beauty portrait, missing car interior, missing diamond store/street outside the window, recycled face from another scene.');
   }
   if (/\bsiames|siamesa\b/.test(sinAcentos(texto))) {
     bits.push('FORBIDDEN: grey tabby or wrong cat breed; missing astronaut helmet when asked.');
   }
-  bits.push('FORBIDDEN: nude, naked, topless, NSFW, erotic, lingerie, inventing a different place, dropping named subjects, blurry low-res, extra fingers, warped faces, pollinations watermark, any logo.');
+  bits.push('FORBIDDEN: nude, naked, topless, NSFW, erotic, inventing a different place, dropping named subjects, logos, watermarks.');
   return ` ${bits.join(' ')}`;
 }
 
@@ -333,40 +384,73 @@ export function promptClipReforzado(promptEn, original = '') {
     .trim();
 }
 
-/** Prompt corto y sujeto-primero para proveedores que truncuan (p. ej. Pollinations Flux). */
+/** Prompt corto EN-first para Pollinations/Flux (truncan ~850 chars: la ESCENA debe ir primero). */
 export function promptCortoParaFlux(original, promptEn = '') {
   const src = String(original || '').replace(/\s+/g, ' ').trim();
-  const must = clausulaMustInclude(src).replace(/^MUST INCLUDE:\s*/i, '').replace(/\.\s*$/, '');
-  const prohibidos = clausulaProhibidos(src);
-  const calidad = clausulaCalidadComposicion(src);
-  // Sujetos primero + SFW duro (gptimage/flux libres tienden a NSFW si no se ancla).
-  const cabeza = `SFW fully clothed Ultra HD 16:9 photoreal. MUST SHOW: ${must || src}.${calidad}`;
-  const resto = String(promptEn || src).replace(/\s+/g, ' ').trim().slice(0, 260);
-  return `${cabeza} ${resto}${prohibidos} Exact scene only. No text, no logo, no watermark.`
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 850);
+  // Traducir tokens al inglés: Flux entiende poco el español suelto.
+  const mustEn = extraerElementos(src)
+    .map((w) => {
+      const en = GLOSARIO_VISUAL[sinAcentos(w)];
+      return en || w;
+    })
+    .filter(Boolean)
+    .slice(0, 12)
+    .join(', ');
+
+  let anclaEscena = '';
+  if (escenaEsEspejoORecamara(src)) {
+    anclaEscena = `SCENE: African American woman in bedroom standing before a large full-length mirror (reflection clearly visible), holding a red apple to her mouth. MUST be visible together: woman + apple + full-length mirror + bedroom furniture. Not a headshot. Not outdoors.`;
+  } else if (escenaEsConduccionExterior(src)) {
+    anclaEscena = `SCENE: Elegant Ukrainian woman sitting in the driver's seat of a luxury sports car (hands on steering wheel), driving on a mountain road with city skyline far away. MUST be visible together: woman inside car driving + sports car + mountain road + distant city. Wide cinematic shot. Opaque elegant clothes. Not standing outside the car. Not face-only.`;
+  } else if (escenaEsVehiculoMirandoAfuera(src)) {
+    anclaEscena = `SCENE: ${mustEn || src}. Driver inside luxury car looking through window at store/street outside. Woman + car interior + outside view all visible.`;
+  } else {
+    anclaEscena = `SCENE (exact): ${mustEn ? `${mustEn}. ${src}` : src}`;
+  }
+
+  const reglas = [
+    'SFW clothed.',
+    '16:9 photoreal medium-wide (NOT beauty headshot).',
+    mustEn ? `MUST SHOW: ${mustEn}.` : '',
+    escenaEsInteriorOPersonas(src) && !escenaEsConduccionExterior(src)
+      ? 'Indoor setting. No outdoor park portrait.'
+      : '',
+    'No text, no logo, no watermark.',
+  ].filter(Boolean).join(' ');
+
+  // Prioridad: ancla de escena + must; reglas al final; nunca cortar la escena.
+  const cuerpo = `${anclaEscena} ${reglas}`.replace(/\s+/g, ' ').trim();
+  if (cuerpo.length <= 850) return cuerpo;
+  // Si aún pasa, recortar reglas, no la ancla.
+  const maxAncla = Math.min(anclaEscena.length, 520);
+  const resto = 850 - maxAncla - 1;
+  return `${anclaEscena.slice(0, maxAncla)} ${reglas.slice(0, Math.max(40, resto))}`.replace(/\s+/g, ' ').trim().slice(0, 850);
 }
 
 export function negativosParaEscena(original = '') {
   const base = [
     'watermark', 'text', 'logo', 'letters', 'pollinations', 'pollinations.ai',
-    'blurry', 'low quality', 'wrong scene',
-    'cropped head', 'cut off face', 'deformed hands', 'extra fingers', 'bad anatomy', 'ugly',
-    'nude', 'naked', 'nsfw', 'topless', 'lingerie', 'erotic', 'porn', 'sexual',
-    'bare breasts', 'undressed', 'explicit', 'seductive nude pose',
+    'blurry', 'low quality', 'wrong scene', 'beauty headshot only', 'solo portrait',
+    'cropped head', 'cut off face', 'deformed hands', 'extra fingers', 'bad anatomy',
+    'nude', 'naked', 'nsfw', 'topless', 'lingerie', 'erotic', 'porn',
+    'sheer dress', 'see-through clothes', 'transparent outfit',
   ];
-  if (escenaEsInteriorOPersonas(original) && !escenaPidePaisaje(original) && !escenaEsVehiculoOCalle(original)) {
-    base.push('outdoor landscape', 'meadow', 'river valley', 'mountains scenery', 'nature field', 'lone silhouette in grass', 'empty landscape', 'solo portrait missing second person');
+  if (escenaEsEspejoORecamara(original)) {
+    base.push('outdoor foliage background', 'park portrait', 'missing mirror', 'missing apple', 'missing bedroom', 'no reflection', 'headshot only');
+  }
+  if (escenaEsInteriorOPersonas(original) && !escenaPidePaisaje(original) && !escenaEsConduccionExterior(original)) {
+    base.push('outdoor landscape', 'meadow', 'river valley', 'mountains scenery', 'nature field', 'empty landscape');
   }
   if (escenaTieneDosPersonas(original)) {
     base.push('only one person', 'missing boyfriend', 'missing coffee cup', 'close-up crop');
   }
-  if (escenaEsVehiculoOCalle(original)) {
-    base.push('solo portrait', 'beauty headshot', 'missing car', 'missing steering wheel', 'no storefront', 'wrong ethnicity');
+  if (escenaEsConduccionExterior(original)) {
+    base.push('face only', 'missing sports car', 'missing mountain road', 'missing city skyline', 'empty car no driver', 'no woman', 'standing outside car', 'posing next to car');
+  } else if (escenaEsVehiculoMirandoAfuera(original)) {
+    base.push('missing car', 'missing steering wheel', 'no storefront', 'wrong ethnicity');
   }
   if (escenaEsDramatica(original)) {
-    base.push('peaceful lake', 'calm postcard', 'tourist flowers meadow', 'sunny serene mountain', 'no eruption', 'no lightning');
+    base.push('peaceful lake', 'calm postcard', 'tourist flowers meadow', 'no eruption', 'no lightning');
   }
   if (/\bsiames|siamesa\b/.test(sinAcentos(original))) {
     base.push('grey tabby', 'wrong cat breed', 'no helmet', 'missing astronaut helmet');
