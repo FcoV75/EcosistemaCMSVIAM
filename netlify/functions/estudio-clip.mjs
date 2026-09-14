@@ -87,8 +87,8 @@ async function generarClipFal(promptEn, segundos) {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        prompt: `${promptEn}, cinematic camera, photorealistic, 16:9, smooth motion, no text, no watermark`,
-        negative_prompt: 'text, watermark, logo, pollinations, nude, naked, nsfw, distortion, low quality, empty sky, missing subjects, solo portrait wrong scene',
+        negative_prompt: 'text, watermark, logo, pollinations, nude, naked, nsfw, deformed face, asymmetric eyes, melted face, extra fingers, bad anatomy, distortion, low quality, empty sky, missing subjects, solo portrait wrong scene',
+        prompt: `${promptEn}, cinematic camera, photorealistic hyperrealistic 8k, perfect symmetrical faces, correct hands, smooth motion, 16:9, no text, no watermark`,
         num_frames: frames,
         duration: segundos,
       }),

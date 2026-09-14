@@ -22,14 +22,22 @@ const cafe = 'una mujer oriental ofrece un café a su novio en el escritorio con
 const cafeBrief = directorFallback(cafe, 'imagen');
 assert.ok(cafeBrief.inferencias.some((x) => /interacci|ambas personas|café|SFW|vestidas/i.test(x)));
 
-const auto = 'Una mujer ucraniana manejando un carro muy lujoso mientras observa por la ventana una tienda de diamantes';
+const espejo = 'una mujer afroamericana con una manzana en su mano llevándola a su boca mientras se esta observando a si misma en un espejo de cuerpo completo en su recamara';
+const espejoInfer = inferenciasLocales(espejo);
+assert.ok(espejoInfer.some((x) => /espejo|recámara|manzana/i.test(x)));
+assert.doesNotMatch(elegirResumenInferencias(espejoInfer, espejo), /continuidad temporal/i);
+
+const auto = 'Una mujer ucraniana muy elegante manejando un vehículo deportivo muy lujoso por la carretera en un camino entre una montaña, se ve la ciudad a lo lejos';
 const autoInfer = inferenciasLocales(auto);
-assert.ok(autoInfer.some((x) => /auto de lujo|ventan|tienda|diamante/i.test(x)));
+assert.ok(autoInfer.some((x) => /conducci|vehículo|carretera|montaña|ciudad|plano amplio/i.test(x)));
 assert.ok(autoInfer.some((x) => /ucranian/i.test(x)));
 const resumen = elegirResumenInferencias(autoInfer, auto);
-assert.doesNotMatch(resumen, /continuidad temporal/i);
+assert.doesNotMatch(resumen, /continuidad temporal|tienda de diamantes|POR LA VENTANA/i);
 const autoBrief = directorFallback(auto, 'clip');
-assert.doesNotMatch(autoBrief.resumen_es, /continuidad temporal/i);
-assert.match(autoBrief.resumen_es, /auto|ventan|tienda|ucranian|diamante/i);
+assert.doesNotMatch(autoBrief.resumen_es, /continuidad temporal|tienda de diamantes/i);
+assert.match(autoBrief.resumen_es, /conducci|vehículo|carretera|montaña|ciudad|ucranian|plano amplio/i);
+
+const tienda = 'Una mujer ucraniana manejando un carro muy lujoso mientras observa por la ventana una tienda de diamantes';
+assert.ok(inferenciasLocales(tienda).some((x) => /ventan|tienda|diamante|Interior de auto/i.test(x)));
 
 console.log('estudio-director-semantico ok');

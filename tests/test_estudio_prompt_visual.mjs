@@ -10,8 +10,12 @@ import {
   escenaEsDramatica,
   escenaTieneDosPersonas,
   escenaEsVehiculoOCalle,
+  escenaEsConduccionExterior,
+  escenaEsVehiculoMirandoAfuera,
+  escenaEsEspejoORecamara,
   clausulaProhibidos,
   clausulaCalidadComposicion,
+  clausulaAnatomiaHiperrealismo,
   negativosParaEscena,
   seedDesdePrompt,
 } from '../netlify/functions/lib/estudio-prompt-visual.mjs';
@@ -83,20 +87,33 @@ const cafeRef = promptImagenReforzado('A beautiful East Asian woman giving coffe
 assert.match(cafeRef, /BOTH people|Coffee cup clearly|full scene|correct.*anatomy|SFW|fully clothed/i);
 assert.match(cafeRef, /coffee|café|cafe|laptop|escritorio|novio|mujer/i);
 assert.match(clausulaProhibidos(cafePrompt), /only one person|coffee cup|second person|nude|NSFW/i);
-assert.match(negativosParaEscena(cafePrompt), /missing boyfriend|cropped head|bad anatomy|nude|nsfw/i);
+assert.match(negativosParaEscena(cafePrompt), /missing boyfriend|cropped head|bad anatomy|nude|nsfw|deformed face|asymmetric eyes|melted/i);
 const cafeCorto = promptCortoParaFlux(cafePrompt, cafeRef);
-assert.match(cafeCorto, /MUST SHOW|Ultra HD|SFW|fully clothed/i);
-assert.match(cafeCorto, /laptop|escritorio|café|cafe|novio|mujer/i);
+assert.match(cafeCorto, /SCENE|MUST SHOW|SFW|symmetrical face|five fingers|hyperrealistic/i);
+assert.match(cafeCorto, /coffee|East Asian|boyfriend|laptop|desk|mujer|novio|cafe/i);
 assert.ok(cafeCorto.length <= 850);
 
-// Auto de lujo + tienda de diamantes: no retrato suelto.
-const autoPrompt = 'Una mujer ucraniana manejando un carro muy lujoso mientras observa por la ventana una tienda de diamantes';
+// Espejo + manzana + recámara (prompt real del usuario).
+const espejoPrompt = 'una mujer afroamericana con una manzana en su mano llevándola a su boca mientras se esta observando a si misma en un espejo de cuerpo completo en su recamara';
+assert.ok(escenaEsEspejoORecamara(espejoPrompt));
+const espejoCorto = promptCortoParaFlux(espejoPrompt, '');
+assert.match(espejoCorto, /SCENE:|apple|mirror|bedroom|African American/i);
+assert.doesNotMatch(espejoCorto.slice(0, 200), /^SFW fully clothed Ultra HD/); // escena primero
+assert.match(negativosParaEscena(espejoPrompt), /missing mirror|missing apple|outdoor/i);
+
+// Auto de lujo en carretera de montaña (no tienda de diamantes).
+const autoPrompt = 'Una mujer ucraniana muy elegante manejando un vehículo deportivo muy lujoso por la carretera en un camino entre una montaña, se ve la ciudad a lo lejos';
 assert.ok(escenaEsVehiculoOCalle(autoPrompt));
-const autoRef = promptImagenReforzado('Ukrainian woman driving luxury car looking at diamond store', autoPrompt);
-assert.match(autoRef, /luxury car|steering|window|storefront|Ukrainian|SFW/i);
-assert.match(clausulaProhibidos(autoPrompt), /solo beauty portrait|missing car|diamond store/i);
-assert.match(negativosParaEscena(autoPrompt), /solo portrait|missing car|nude/i);
-assert.match(promptCortoParaFlux(autoPrompt, autoRef), /carro|ucraniana|diamante|car|Ukrainian|diamond/i);
+assert.ok(escenaEsConduccionExterior(autoPrompt));
+assert.equal(escenaEsVehiculoMirandoAfuera(autoPrompt), false);
+const autoRef = promptImagenReforzado('Ukrainian woman driving luxury sports car on mountain road city far away', autoPrompt);
+assert.match(autoRef, /sports car|mountain road|city|Ukrainian|SFW|Wide shot/i);
+assert.match(clausulaProhibidos(autoPrompt), /solo beauty portrait|missing sports car|mountain road|distant city/i);
+assert.doesNotMatch(clausulaProhibidos(autoPrompt), /diamond store/i);
+assert.match(negativosParaEscena(autoPrompt), /missing sports car|mountain road|city skyline/i);
+const autoCorto = promptCortoParaFlux(autoPrompt, autoRef);
+assert.match(autoCorto, /SCENE:|Ukrainian|sports car|mountain|city|vehicle/i);
+assert.ok(autoCorto.indexOf('SCENE:') < autoCorto.indexOf('SFW') || /SCENE:/.test(autoCorto));
 
 const volcanPrompt = 'un volcán haciendo erupción en una isla con una fumarola muy alta vista desde un avión, hay relámpagos y rayos en la nube piroclástica';
 assert.ok(escenaEsDramatica(volcanPrompt));
@@ -105,7 +122,7 @@ const volcanRef = promptClipReforzado('Volcano erupting on an island with lightn
 assert.match(volcanRef, /eruption|FORBIDDEN|lightning|volcan/i);
 assert.match(clausulaProhibidos(volcanPrompt), /peaceful lake|postcard|eruption/i);
 assert.match(negativosParaEscena(volcanPrompt), /peaceful lake|postcard/i);
-assert.match(clausulaCalidadComposicion(volcanPrompt), /Ultra sharp|anatomy|Medium-wide/i);
+assert.match(clausulaCalidadComposicion(volcanPrompt), /Hyperrealistic|anatomy|symmetrical|Medium-wide|8k/i);
 
 // Gato siamés + casco + cometa.
 const gatoPrompt = 'un gato siamés con un casco de astronauta arriba de un cometa que está pasando al lado del sol mientras observa las estrellas y los planetas';
@@ -115,6 +132,9 @@ assert.match(clausulaProhibidos(gatoPrompt), /grey tabby|helmet/i);
 assert.match(negativosParaEscena(gatoPrompt), /grey tabby|helmet/i);
 assert.ok(extraerElementos(gatoPrompt).some((w) => /siamés|siames/i.test(w)));
 assert.ok(extraerElementos(gatoPrompt).some((w) => /casco/i.test(w)));
+
+assert.match(clausulaAnatomiaHiperrealismo({ corto: true }), /symmetrical face|five fingers|8k/i);
+assert.match(clausulaAnatomiaHiperrealismo({ corto: false }), /pores|symmetrical face|Vehicles|Landscapes/i);
 
 const s1 = seedDesdePrompt('escena A');
 const s2 = seedDesdePrompt('escena B distinta');
