@@ -15,6 +15,7 @@ import {
   escenaEsEspejoORecamara,
   clausulaProhibidos,
   clausulaCalidadComposicion,
+  clausulaAnatomiaHiperrealismo,
   negativosParaEscena,
   seedDesdePrompt,
 } from '../netlify/functions/lib/estudio-prompt-visual.mjs';
@@ -86,9 +87,9 @@ const cafeRef = promptImagenReforzado('A beautiful East Asian woman giving coffe
 assert.match(cafeRef, /BOTH people|Coffee cup clearly|full scene|correct.*anatomy|SFW|fully clothed/i);
 assert.match(cafeRef, /coffee|café|cafe|laptop|escritorio|novio|mujer/i);
 assert.match(clausulaProhibidos(cafePrompt), /only one person|coffee cup|second person|nude|NSFW/i);
-assert.match(negativosParaEscena(cafePrompt), /missing boyfriend|cropped head|bad anatomy|nude|nsfw/i);
+assert.match(negativosParaEscena(cafePrompt), /missing boyfriend|cropped head|bad anatomy|nude|nsfw|deformed face|asymmetric eyes|melted/i);
 const cafeCorto = promptCortoParaFlux(cafePrompt, cafeRef);
-assert.match(cafeCorto, /SCENE|MUST SHOW|SFW/i);
+assert.match(cafeCorto, /SCENE|MUST SHOW|SFW|symmetrical face|five fingers|hyperrealistic/i);
 assert.match(cafeCorto, /coffee|East Asian|boyfriend|laptop|desk|mujer|novio|cafe/i);
 assert.ok(cafeCorto.length <= 850);
 
@@ -121,7 +122,7 @@ const volcanRef = promptClipReforzado('Volcano erupting on an island with lightn
 assert.match(volcanRef, /eruption|FORBIDDEN|lightning|volcan/i);
 assert.match(clausulaProhibidos(volcanPrompt), /peaceful lake|postcard|eruption/i);
 assert.match(negativosParaEscena(volcanPrompt), /peaceful lake|postcard/i);
-assert.match(clausulaCalidadComposicion(volcanPrompt), /Ultra sharp|anatomy|Medium-wide/i);
+assert.match(clausulaCalidadComposicion(volcanPrompt), /Hyperrealistic|anatomy|symmetrical|Medium-wide|8k/i);
 
 // Gato siamés + casco + cometa.
 const gatoPrompt = 'un gato siamés con un casco de astronauta arriba de un cometa que está pasando al lado del sol mientras observa las estrellas y los planetas';
@@ -131,6 +132,9 @@ assert.match(clausulaProhibidos(gatoPrompt), /grey tabby|helmet/i);
 assert.match(negativosParaEscena(gatoPrompt), /grey tabby|helmet/i);
 assert.ok(extraerElementos(gatoPrompt).some((w) => /siamés|siames/i.test(w)));
 assert.ok(extraerElementos(gatoPrompt).some((w) => /casco/i.test(w)));
+
+assert.match(clausulaAnatomiaHiperrealismo({ corto: true }), /symmetrical face|five fingers|8k/i);
+assert.match(clausulaAnatomiaHiperrealismo({ corto: false }), /pores|symmetrical face|Vehicles|Landscapes/i);
 
 const s1 = seedDesdePrompt('escena A');
 const s2 = seedDesdePrompt('escena B distinta');

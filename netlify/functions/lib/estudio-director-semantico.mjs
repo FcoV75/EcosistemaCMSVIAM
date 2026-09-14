@@ -146,7 +146,7 @@ export function directorFallback(orden, modalidad = 'imagen') {
     `Photorealistic 16:9 scene that OBEYS the full meaning of: "${original}".`,
     `Key elements: ${tokens.join(', ') || original}.`,
     inferencias.length ? `Implied world logic: ${inferencias.join(' ')}` : '',
-    'Show the complete set together with correct anatomy, sharp detail, natural lighting. No text/watermark.',
+    'Show the complete set together with perfect symmetrical anatomy, hyperrealistic detail, natural lighting. No text/watermark.',
   ].filter(Boolean).join(' ');
 
   const briefMotion = [
@@ -259,10 +259,11 @@ Reglas:
 4) Si hay dos personas/objetos de interacción, ambos deben quedar en el cuadro.
 5) SFW obligatorio: personas vestidas, sin desnudos ni contenido erótico salvo que el usuario lo pida explícitamente (casi nunca).
 6) Si hay coche/conducir/tienda: el vehículo y el lugar deben verse; no sustituyas por un retrato close-up.
-7) brief_visual_en y brief_motion_en van en inglés, listos para modelos de imagen/video.
-8) brief_voz_es en español oral, breve, para locución.
-9) brief_musica sugiere mood/tempo/estilo para MIDI o pista.
-10) Responde SOLO JSON válido con esta forma:
+7) Calidad 5 estrellas: anatomía humana/animal correcta y simétrica (rostro, manos, proporciones); objetos y vehículos con geometría limpia; paisajes hiperrealistas con perspectiva coherente. Declara eso en brief_visual_en.
+8) brief_visual_en y brief_motion_en van en inglés, listos para modelos de imagen/video.
+9) brief_voz_es en español oral, breve, para locución.
+10) brief_musica sugiere mood/tempo/estilo para MIDI o pista.
+11) Responde SOLO JSON válido con esta forma:
 {
   "intencion":"...",
   "conjuntos":{"sujetos":[],"objetos":[],"lugares":[],"colores":[],"acciones":[],"movimientos":[],"sonidos":[],"atmosfera":[],"secuencia":[]},
@@ -356,7 +357,7 @@ export function briefAPromptVisual(brief, { motion = false } = {}) {
     ? ` FORBIDDEN: ${brief.prohibidos.join('; ')}.`
     : '';
   const cam = brief.estilo_camara ? ` Camera: ${brief.estilo_camara}.` : '';
-  return `${must}${base}${infer}${cam}${prohib} Exact meaning of the user order. Sharp photoreal, correct anatomy, no text.`
+  return `${must}${base}${infer}${cam}${prohib} Exact meaning of the user order. Hyperrealistic detail, perfect symmetrical anatomy, clean object geometry, no text.`
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 2000);

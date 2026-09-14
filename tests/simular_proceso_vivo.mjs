@@ -1,6 +1,7 @@
 /**
- * Simulación “como usuario” del proceso Imagen/Clip IA con los prompts reales
- * de las capturas — sin corregir nada aún: solo observar.
+ * Simulación “como usuario” del proceso Imagen/Clip IA.
+ * Política VIAM: ante fallas de lógica/calidad en imagen o video del ecosistema,
+ * repetir este flujo (prompt real → director → prompt corto → fetch) antes de parchear.
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import {

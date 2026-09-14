@@ -29,7 +29,8 @@ async function fetchConTimeout(url, opciones, timeoutMs = 45000) {
   }
 }
 
-const SFW_HARD = 'SFW, fully clothed people, tasteful family-friendly, no nudity, no erotic content, no logos, no watermarks.';
+const SFW_HARD = 'SFW, fully clothed opaque clothing, tasteful family-friendly, no nudity, no erotic content, no logos, no watermarks.';
+const ANATOMY_HARD = 'Hyperrealistic 8k detail; perfect symmetrical human face (aligned eyes, natural nose/mouth); correct hands with five fingers; coherent body proportions; no deformed/melted/warped anatomy; vehicles and objects with clean symmetric geometry; landscapes with coherent perspective.';
 
 export async function generarImagenGemini(promptEn) {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
@@ -43,7 +44,7 @@ export async function generarImagenGemini(promptEn) {
   const cuerpo = {
     contents: [{
       parts: [{
-        text: `${promptEn}\n\nHard requirements: ${SFW_HARD} Show EVERY named subject and prop; correct anatomy; full heads in frame; ultra sharp 16:9 photoreal; no text.`,
+        text: `${promptEn}\n\nHard requirements: ${SFW_HARD} ${ANATOMY_HARD} Show EVERY named subject and prop; full heads in frame; ultra sharp 16:9 photoreal; no text.`,
       }],
     }],
     generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
@@ -101,11 +102,13 @@ export async function generarImagenFal(promptEn) {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          prompt: `${String(promptEn || '').slice(0, 2300)}. ${SFW_HARD}`,
+          prompt: `${String(promptEn || '').slice(0, 2100)}. ${SFW_HARD} ${ANATOMY_HARD}`,
           image_size: 'landscape_16_9',
           num_images: 1,
           enable_safety_checker: true,
           output_format: 'jpeg',
+          num_inference_steps: 28,
+          guidance_scale: 3.5,
         }),
       }, 55000);
       const data = await r.json().catch(() => ({}));
@@ -151,10 +154,10 @@ export async function generarImagenReplicate(promptEn) {
         },
         body: JSON.stringify({
           input: {
-            prompt: `${String(promptEn || '').slice(0, 1900)}. ${SFW_HARD}`,
+            prompt: `${String(promptEn || '').slice(0, 1700)}. ${SFW_HARD} ${ANATOMY_HARD}`,
             aspect_ratio: '16:9',
             output_format: 'jpg',
-            output_quality: 90,
+            output_quality: 95,
           },
         }),
       }, 55000);
@@ -187,13 +190,22 @@ export async function generarImagenPollinations(promptEn, { width = 1920, height
   if (!escena) return null;
   const baseSeed = Number.isFinite(Number(seed)) ? Number(seed) : seedDesdePrompt(original || promptEn);
   const negativo = encodeURIComponent(negativosParaEscena(original || promptEn));
-  // Sin gptimage: suele ignorar la escena y generar NSFW. Flux + nologo + private.
-  // enhance=true en el 2º intento: a veces recupera props omitidos (espejo/manzana/conductora).
-  const intentos = [
-    { model: 'flux', enhance: true },
-    { model: 'flux-realism', enhance: true },
-    { model: 'flux', enhance: false },
-  ];
+  // Personas: enhance=true en Pollinations suele derretir caras/manos.
+  // Priorizar flux-realism sin enhance para anatomía más limpia.
+  const conPersonas = /\b(mujer|hombre|woman|man|person|girl|boy|driver|novio|novia)\b/i.test(
+    `${original} ${promptEn} ${escena}`,
+  );
+  const intentos = conPersonas
+    ? [
+        { model: 'flux-realism', enhance: false },
+        { model: 'flux', enhance: false },
+        { model: 'flux-realism', enhance: true },
+      ]
+    : [
+        { model: 'flux-realism', enhance: true },
+        { model: 'flux', enhance: true },
+        { model: 'flux-realism', enhance: false },
+      ];
   for (let i = 0; i < intentos.length; i += 1) {
     const { model, enhance } = intentos[i];
     const n = baseSeed + i * 97;
@@ -222,7 +234,7 @@ export async function generarImagenPollinations(promptEn, { width = 1920, height
 export async function generarImagenImagen4(promptEn) {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) return null;
-  const escena = `${String(promptEn || '').trim()}. ${SFW_HARD}`;
+  const escena = `${String(promptEn || '').trim()}. ${SFW_HARD} ${ANATOMY_HARD}`;
   if (!String(promptEn || '').trim()) return null;
   const modelos = ['imagen-4.0-generate-001', 'imagen-4.0-ultra-generate-001', 'imagen-4.0-fast-generate-001'];
   for (const modelo of modelos) {

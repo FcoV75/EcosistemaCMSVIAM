@@ -252,9 +252,23 @@ export function escenaTieneDosPersonas(texto) {
   return hits >= 2;
 }
 
+/** Anatomía + hiperrealismo (largo: Imagen/Fal/Gemini; corto: Pollinations). */
+export function clausulaAnatomiaHiperrealismo({ corto = false } = {}) {
+  if (corto) {
+    return ' Hyperrealistic 8k detail, perfect symmetrical face, natural eyes/nose/mouth aligned, realistic hands with five fingers, coherent body proportions, sharp clean car/object edges, balanced landscape perspective.';
+  }
+  return [
+    ' Hyperrealistic commercial photography quality (8k, crisp micro-detail, natural skin texture with pores, no plastic skin).',
+    ' Perfect human anatomy: symmetrical face, aligned eyes same size, straight nose, natural mouth, intact ears; five fingers per hand, correct joints; balanced body proportions; no melted/warped features.',
+    ' Animals: correct breed anatomy, natural limbs and eyes, no extra limbs.',
+    ' Vehicles/objects: clean symmetric geometry, sharp edges, realistic materials and reflections.',
+    ' Landscapes: coherent perspective, detailed depth, natural lighting, no warped horizon.',
+  ].join('');
+}
+
 export function clausulaCalidadComposicion(texto) {
   const partes = [
-    ' Ultra sharp photorealistic detail, correct anatomy, natural hands and faces.',
+    clausulaAnatomiaHiperrealismo({ corto: false }),
     ' Medium-wide 16:9 FULL scene (never a solo beauty headshot that drops the setting).',
     ' SFW fully clothed (opaque clothes, no sheer/see-through dress), family-friendly.',
   ];
@@ -310,7 +324,7 @@ export function clausulaProhibidos(texto) {
   if (/\bsiames|siamesa\b/.test(sinAcentos(texto))) {
     bits.push('FORBIDDEN: grey tabby or wrong cat breed; missing astronaut helmet when asked.');
   }
-  bits.push('FORBIDDEN: nude, naked, topless, NSFW, erotic, inventing a different place, dropping named subjects, logos, watermarks.');
+  bits.push('FORBIDDEN: deformed faces, asymmetric eyes, melted features, extra fingers, warped bodies, nude, naked, topless, NSFW, erotic, inventing a different place, dropping named subjects, logos, watermarks.');
   return ` ${bits.join(' ')}`;
 }
 
@@ -399,18 +413,19 @@ export function promptCortoParaFlux(original, promptEn = '') {
 
   let anclaEscena = '';
   if (escenaEsEspejoORecamara(src)) {
-    anclaEscena = `SCENE: African American woman in bedroom standing before a large full-length mirror (reflection clearly visible), holding a red apple to her mouth. MUST be visible together: woman + apple + full-length mirror + bedroom furniture. Not a headshot. Not outdoors.`;
+    anclaEscena = `SCENE: Photoreal award-winning photo of an African American Black woman with natural dark skin in her bedroom, large full-length mirror with clear reflection, red apple raised to her mouth. Visible together: woman + apple + mirror + bedroom. Perfect symmetrical face, sharp eyes, realistic hands. Not a headshot. Not outdoors. Not pale/white skin.`;
   } else if (escenaEsConduccionExterior(src)) {
-    anclaEscena = `SCENE: Elegant Ukrainian woman sitting in the driver's seat of a luxury sports car (hands on steering wheel), driving on a mountain road with city skyline far away. MUST be visible together: woman inside car driving + sports car + mountain road + distant city. Wide cinematic shot. Opaque elegant clothes. Not standing outside the car. Not face-only.`;
+    anclaEscena = `SCENE: Photoreal award-winning photo of an elegant Ukrainian Eastern-European woman with fair Slavic features sitting in the driver's seat of a luxury sports car, both hands on the steering wheel, mountain road and distant city skyline outside. Visible together: woman driving inside car + car + road + mountains + city. Perfect symmetrical face, realistic hands, sharp car geometry. Opaque elegant clothes. Not standing outside. Not East Asian features.`;
   } else if (escenaEsVehiculoMirandoAfuera(src)) {
-    anclaEscena = `SCENE: ${mustEn || src}. Driver inside luxury car looking through window at store/street outside. Woman + car interior + outside view all visible.`;
+    anclaEscena = `SCENE: ${mustEn || src}. Driver inside luxury car looking through window at store/street outside. Woman + car interior + outside view all visible. Perfect symmetrical face, realistic hands.`;
   } else {
-    anclaEscena = `SCENE (exact): ${mustEn ? `${mustEn}. ${src}` : src}`;
+    anclaEscena = `SCENE (exact): ${mustEn ? `${mustEn}. ${src}` : src}. Photoreal award-winning photo, perfect symmetrical face, realistic hands.`;
   }
 
   const reglas = [
-    'SFW clothed.',
-    '16:9 photoreal medium-wide (NOT beauty headshot).',
+    'SFW opaque clothes.',
+    '16:9 hyperrealistic medium-wide (NOT beauty headshot).',
+    'Canon EOS R5 85mm, perfect symmetrical face, natural skin pores, 5 fingers per hand, sharp car/object geometry.',
     mustEn ? `MUST SHOW: ${mustEn}.` : '',
     escenaEsInteriorOPersonas(src) && !escenaEsConduccionExterior(src)
       ? 'Indoor setting. No outdoor park portrait.'
@@ -430,13 +445,20 @@ export function promptCortoParaFlux(original, promptEn = '') {
 export function negativosParaEscena(original = '') {
   const base = [
     'watermark', 'text', 'logo', 'letters', 'pollinations', 'pollinations.ai',
-    'blurry', 'low quality', 'wrong scene', 'beauty headshot only', 'solo portrait',
-    'cropped head', 'cut off face', 'deformed hands', 'extra fingers', 'bad anatomy',
+    'blurry', 'low quality', 'jpeg artifacts', 'noisy', 'soft focus', 'wrong scene',
+    'beauty headshot only', 'solo portrait',
+    'cropped head', 'cut off face',
+    'deformed face', 'melted face', 'distorted face', 'asymmetric eyes', 'uneven eyes',
+    'crossed eyes', 'lazy eye', 'crooked nose', 'warped mouth', 'disfigured',
+    'bad anatomy', 'mutated hands', 'deformed hands', 'extra fingers', 'missing fingers',
+    'fused fingers', 'too many fingers', 'extra limbs', 'missing limbs', 'twisted limbs',
+    'long neck', 'broken proportions', 'plastic skin', 'waxy skin', 'doll-like face',
     'nude', 'naked', 'nsfw', 'topless', 'lingerie', 'erotic', 'porn',
     'sheer dress', 'see-through clothes', 'transparent outfit',
+    'pale skin wrong ethnicity', 'wrong ethnicity', 'east asian features when african american asked',
   ];
   if (escenaEsEspejoORecamara(original)) {
-    base.push('outdoor foliage background', 'park portrait', 'missing mirror', 'missing apple', 'missing bedroom', 'no reflection', 'headshot only');
+    base.push('outdoor foliage background', 'park portrait', 'missing mirror', 'missing apple', 'missing bedroom', 'no reflection', 'headshot only', 'white woman', 'pale skin');
   }
   if (escenaEsInteriorOPersonas(original) && !escenaPidePaisaje(original) && !escenaEsConduccionExterior(original)) {
     base.push('outdoor landscape', 'meadow', 'river valley', 'mountains scenery', 'nature field', 'empty landscape');
@@ -445,7 +467,7 @@ export function negativosParaEscena(original = '') {
     base.push('only one person', 'missing boyfriend', 'missing coffee cup', 'close-up crop');
   }
   if (escenaEsConduccionExterior(original)) {
-    base.push('face only', 'missing sports car', 'missing mountain road', 'missing city skyline', 'empty car no driver', 'no woman', 'standing outside car', 'posing next to car');
+    base.push('face only', 'missing sports car', 'missing mountain road', 'missing city skyline', 'empty car no driver', 'no woman', 'standing outside car', 'posing next to car', 'warped car body', 'melted car', 'east asian woman', 'wrong ethnicity');
   } else if (escenaEsVehiculoMirandoAfuera(original)) {
     base.push('missing car', 'missing steering wheel', 'no storefront', 'wrong ethnicity');
   }
