@@ -57,6 +57,13 @@ function parsearJsonDirector(raw) {
   }
 }
 
+/** Elige un resumen concreto; evita que reglas genéricas (“mientras”) dominen. */
+export function elegirResumenInferencias(inferencias, original = '') {
+  const lista = Array.isArray(inferencias) ? inferencias : [];
+  const concreta = lista.find((x) => !/continuidad temporal/i.test(String(x || '')));
+  return String(concreta || lista[0] || original).slice(0, 220);
+}
+
 /** Inferencias locales rápidas cuando no hay Groq o como refuerzo. */
 export function inferenciasLocales(orden) {
   const n = sinAcentos(orden);
@@ -67,7 +74,16 @@ export function inferenciasLocales(orden) {
   }
   if (/\b(mujer|hombre|novio|novia|persona).{0,80}(cafe|taza|laptop|escritorio)\b/.test(n)
     || /\b(cafe|taza).{0,80}(novio|novia|mujer|hombre)\b/.test(n)) {
-    out.push('Escena de interacción: ambas personas visibles, objeto entregado (café) y reacción (sonrisa) en el mismo plano.');
+    out.push('Escena de interacción SFW: ambas personas vestidas, taza de café entregada y sonrisa en el mismo plano (nunca desnudos ni retrato erótico).');
+  }
+  if (/\b(carro|coche|auto|automovil|conduc|manej|volante|ventanilla)\b/.test(n)) {
+    out.push('Interior de auto de lujo: conductora al volante, tablero/asientos visibles; la tienda o calle se ve POR LA VENTANA (no un retrato suelto sin coche).');
+  }
+  if (/\b(tienda|escaparat|joyeria|diamante)\b/.test(n)) {
+    out.push('Escaparate/tienda de diamantes o joyería reconocible fuera del vehículo o en la calle descrita.');
+  }
+  if (/\bucranian\w*\b/.test(n)) {
+    out.push('Etnia/apariencia ucraniana (europea del este) según lo pedido, sin sustituir por otro origen.');
   }
   if (/\bsiames|siamesa\b/.test(n)) {
     out.push('Raza siamés: cuerpo crema, puntos oscuros en cara/orejas/patas, ojos azules.');
@@ -78,11 +94,13 @@ export function inferenciasLocales(orden) {
   if (/\bvolcan|erupcion|piroclast|relampago|rayo\b/.test(n)) {
     out.push('Ambiente dramático: humo/ceniza, relámpagos y energía de erupción, no postal pacífica.');
   }
-  if (/\b(caminando|camina|recorriendo|secuencia|luego|despues|mientras)\b/.test(n)) {
-    out.push('Hay continuidad temporal: el movimiento y la secuencia deben sentirse lógicos cuadro a cuadro.');
-  }
   if (/\b(amanecer|atardecer|noche|lluvia|nieve|niebla)\b/.test(n)) {
     out.push('La atmósfera y la luz deben coherir con el momento del día o clima nombrado.');
+  }
+  // Continuidad genérica al final y solo si hay acción/secuencia real (no “mientras” solo).
+  if (/\b(caminando|camina|recorriendo|secuencia|luego|despues)\b/.test(n)
+    || (/\bmientras\b/.test(n) && out.length === 0)) {
+    out.push('Hay continuidad temporal: el movimiento y la secuencia deben sentirse lógicos cuadro a cuadro.');
   }
   return out;
 }
@@ -161,7 +179,7 @@ export function directorFallback(orden, modalidad = 'imagen') {
       'recorte que rompa la acción',
     ],
     estilo_camara: modalidad === 'clip' ? 'plano continuo con movimiento natural' : 'plano medio-ancho 16:9',
-    resumen_es: inferencias[0] || original.slice(0, 140),
+    resumen_es: elegirResumenInferencias(inferencias, original),
     via: 'fallback-local',
   }, modalidad);
 }
@@ -209,7 +227,11 @@ function normalizarBrief(data, modalidad = 'imagen') {
     },
     prohibidos: listaUnica(data.prohibidos).slice(0, 10),
     estilo_camara: String(data.estilo_camara || '16:9 medium-wide').slice(0, 120),
-    resumen_es: String(data.resumen_es || data.resumen || '').slice(0, 220),
+    resumen_es: (() => {
+      const r = String(data.resumen_es || data.resumen || '').trim();
+      if (r && !/continuidad temporal/i.test(r)) return r.slice(0, 220);
+      return elegirResumenInferencias(inferencias, original);
+    })(),
     via: String(data.via || 'director'),
   };
 }
@@ -228,10 +250,12 @@ Reglas:
 2) Si faltan detalles implícitos por conocimiento general, INFIÉRELOS y decláralos en "inferencias".
 3) No inventes otra historia: amplía la pedida con lógica, no la sustituyas.
 4) Si hay dos personas/objetos de interacción, ambos deben quedar en el cuadro.
-5) brief_visual_en y brief_motion_en van en inglés, listos para modelos de imagen/video.
-6) brief_voz_es en español oral, breve, para locución.
-7) brief_musica sugiere mood/tempo/estilo para MIDI o pista.
-8) Responde SOLO JSON válido con esta forma:
+5) SFW obligatorio: personas vestidas, sin desnudos ni contenido erótico salvo que el usuario lo pida explícitamente (casi nunca).
+6) Si hay coche/conducir/tienda: el vehículo y el lugar deben verse; no sustituyas por un retrato close-up.
+7) brief_visual_en y brief_motion_en van en inglés, listos para modelos de imagen/video.
+8) brief_voz_es en español oral, breve, para locución.
+9) brief_musica sugiere mood/tempo/estilo para MIDI o pista.
+10) Responde SOLO JSON válido con esta forma:
 {
   "intencion":"...",
   "conjuntos":{"sujetos":[],"objetos":[],"lugares":[],"colores":[],"acciones":[],"movimientos":[],"sonidos":[],"atmosfera":[],"secuencia":[]},

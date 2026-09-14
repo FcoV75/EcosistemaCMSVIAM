@@ -1,6 +1,6 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import { LIMITES_CLIP, clamp, esPremiumPayload } from './lib/estudio-limites.mjs';
-import { expandirPromptVisual } from './lib/estudio-prompt-visual.mjs';
+import { expandirPromptVisual, seedDesdePrompt } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
 async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 50000) {
@@ -88,7 +88,7 @@ async function generarClipFal(promptEn, segundos) {
       headers,
       body: JSON.stringify({
         prompt: `${promptEn}, cinematic camera, photorealistic, 16:9, smooth motion, no text, no watermark`,
-        negative_prompt: 'text, watermark, logo, distortion, low quality, empty sky, missing subjects',
+        negative_prompt: 'text, watermark, logo, pollinations, nude, naked, nsfw, distortion, low quality, empty sky, missing subjects, solo portrait wrong scene',
         num_frames: frames,
         duration: segundos,
       }),
@@ -205,7 +205,7 @@ export default async (req) => {
     const cine = await generarImagenEstudio(promptEn, {
       width: 1920,
       height: 1080,
-      seed: Date.now() % 99999,
+      seed: seedDesdePrompt(`clip:${prompt}`),
       original: prompt,
     });
     if (!cine) {
@@ -221,6 +221,7 @@ export default async (req) => {
       mime: cine.mime,
       duracionSeg: duracion,
       fuente: cine.fuente,
+      marca_agua_pollinations: !!cine.marca_agua_pollinations,
       movimiento: true,
       resumen: expansion.resumen || '',
       prompt_en: promptEn.slice(0, 500),

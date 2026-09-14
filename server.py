@@ -598,11 +598,11 @@ def estudio_generar_imagen():
     if not prompt:
         return jsonify({"error": "Describe la imagen que deseas."}), 400
     prompt_en = (
-        f"MUST INCLUDE every named subject from: {prompt}. "
+        f"SFW fully clothed. MUST INCLUDE every named subject from: {prompt}. "
         f"Photorealistic 16:9 of the EXACT scene. OBEY exactly. "
         f"Do NOT invent landscapes, rivers, meadows or mountains unless asked. "
-        f"FORBIDDEN: replacing people/indoor scenes with outdoor nature. "
-        f"Scene: {prompt}. No text, no watermark."
+        f"FORBIDDEN: nude, naked, NSFW, replacing people/indoor scenes with outdoor nature. "
+        f"Scene: {prompt}. No text, no watermark, no logo."
     )
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key:
@@ -610,7 +610,7 @@ def estudio_generar_imagen():
             resp = http_requests.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key={gemini_key}",
                 json={
-                    "contents": [{"parts": [{"text": f"Generate a professional photograph. Obey the scene exactly: {prompt_en}"}]}],
+                    "contents": [{"parts": [{"text": f"Generate a professional SFW photograph. Obey the scene exactly: {prompt_en}"}]}],
                     "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]},
                 },
                 timeout=120,
@@ -629,12 +629,12 @@ def estudio_generar_imagen():
         except Exception as exc:
             print(f"Gemini imagen falló: {exc}")
     negativo = quote(
-        "watermark, text, logo, outdoor landscape, meadow, river valley, mountains scenery, wrong scene"
+        "watermark, text, logo, pollinations, nude, naked, nsfw, topless, outdoor landscape, meadow, river valley, mountains scenery, wrong scene"
     )
     url = (
         f"https://image.pollinations.ai/prompt/{quote(prompt_en[:780])}"
-        f"?width=1280&height=720&nologo=true&enhance=false&model=gptimage"
-        f"&seed={abs(hash(prompt)) % 99999}&negative={negativo}"
+        f"?width=1280&height=720&nologo=true&private=true&nofeed=true&enhance=false&model=flux"
+        f"&seed={abs(hash(prompt)) % 900000}&negative={negativo}&referrer=video_diamante"
     )
     try:
         img = http_requests.get(url, timeout=90)
@@ -645,6 +645,7 @@ def estudio_generar_imagen():
                 "imagen_base64": base64.b64encode(img.content).decode("ascii"),
                 "mime": img.headers.get("Content-Type", "image/jpeg"),
                 "fuente": "pollinations",
+                "marca_agua_pollinations": True,
             })
     except Exception as exc:
         return jsonify({"error": f"Error generando imagen: {exc}"}), 502
@@ -752,16 +753,19 @@ def estudio_generar_clip():
     duracion = int(body.get("duracionSeg") or body.get("duracion") or 8)
     duracion = max(8, min(12, duracion))
     prompt_en = (
-        f"MUST INCLUDE: {prompt}. Photorealistic cinematic 16:9 film plate of the EXACT user scene. "
+        f"SFW fully clothed. MUST INCLUDE: {prompt}. Photorealistic cinematic 16:9 film plate of the EXACT user scene. "
         "OBEY THIS SCENE EXACTLY. If volcano/eruption/lightning: show ash, lava, lightning and drama — "
         "FORBIDDEN peaceful lake postcard or flowers meadow. "
-        f"Scene: {prompt}. Sharp details, no text, no watermark"
+        "FORBIDDEN: nude, naked, NSFW, solo beauty portrait when a car/store was asked. "
+        f"Scene: {prompt}. Sharp details, no text, no watermark, no logo"
     )
-    negativo = quote("peaceful lake, calm postcard, tourist flowers meadow, watermark, text, logo")
+    negativo = quote(
+        "peaceful lake, calm postcard, tourist flowers meadow, watermark, text, logo, pollinations, nude, naked, nsfw, topless"
+    )
     url = (
         f"https://image.pollinations.ai/prompt/{quote(prompt_en[:780])}"
-        f"?width=1280&height=720&nologo=true&enhance=false&model=gptimage"
-        f"&seed={abs(hash(prompt)) % 99999}&negative={negativo}"
+        f"?width=1280&height=720&nologo=true&private=true&nofeed=true&enhance=false&model=flux"
+        f"&seed={abs(hash('clip:' + prompt)) % 900000}&negative={negativo}&referrer=video_diamante"
     )
     try:
         img = http_requests.get(url, timeout=90)
@@ -774,6 +778,7 @@ def estudio_generar_clip():
                 "duracionSeg": duracion,
                 "movimiento": True,
                 "fuente": "pollinations-cinematico",
+                "marca_agua_pollinations": True,
                 "prompt_en": prompt_en[:400],
                 "aviso": f"Clip de {duracion} s (placa + Ken Burns): no es Imagen IA; el navegador graba el movimiento.",
             })
