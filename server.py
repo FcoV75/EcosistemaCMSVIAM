@@ -237,9 +237,12 @@ def _asignar_archivos_a_config(config_data, files_map, audio_path_default=""):
                         "texto": "",
                         "duracion": 5.0,
                         "tipo": "imagen",
+                        "movimiento": False,
+                        "estilo_movimiento": "zoom_in",
                     })
                 config_data["linea_tiempo"][indice]["ruta"] = ruta
                 config_data["linea_tiempo"][indice]["tipo"] = tipo
+                # No pisar movimiento/estilo si ya venían en la meta del cliente.
             except Exception as exc:
                 print(f"Aviso asignando {campo}: {exc}")
     if not audio_path and config_data.get("ruta_audio_fondo"):

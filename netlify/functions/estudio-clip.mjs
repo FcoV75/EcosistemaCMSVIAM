@@ -3,7 +3,14 @@ import { LIMITES_CLIP, clamp, esPremiumPayload } from './lib/estudio-limites.mjs
 import { expandirPromptVisual, seedDesdePrompt } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
-async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 50000) {
+/** Presupuesto total para no disparar Inactivity Timeout de Safari/Netlify (~60s). */
+const BUDGET_CLIP_MS = 42000;
+
+function tiempoRestante(inicio, budget = BUDGET_CLIP_MS) {
+  return Math.max(0, budget - (Date.now() - inicio));
+}
+
+async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 14000) {
   const inicio = Date.now();
   while (Date.now() - inicio < timeoutMs) {
     const st = await fetch(statusUrl, { headers });
@@ -16,14 +23,14 @@ async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 50000) {
     if (status === 'FAILED' || status === 'CANCELLED' || status === 'ERROR') {
       throw new Error(data.error || 'El proveedor de video IA falló.');
     }
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
   }
   return null;
 }
 
-async function generarClipVidu(promptEn, segundos) {
+async function generarClipVidu(promptEn, segundos, maxWaitMs = 14000) {
   const key = (process.env.VIDU_API_KEY || process.env.VIDU_KEY || '').trim();
-  if (!key) return null;
+  if (!key || maxWaitMs < 4000) return null;
   const model = process.env.VIDU_VIDEO_MODEL || 'viduq3-turbo';
   const dur = Math.max(5, Math.min(16, Math.round(Number(segundos) || 8)));
   const headers = {
@@ -48,7 +55,7 @@ async function generarClipVidu(promptEn, segundos) {
     return null;
   }
   const inicio = Date.now();
-  while (Date.now() - inicio < 50000) {
+  while (Date.now() - inicio < maxWaitMs) {
     const st = await fetch(`https://api.vidu.com/ent/v2/tasks/${taskId}/creations`, { headers: { Authorization: `Token ${key}` } });
     const data = await st.json().catch(() => ({}));
     const status = String(data.state || data.status || '').toLowerCase();
@@ -63,26 +70,26 @@ async function generarClipVidu(promptEn, segundos) {
       console.warn('Vidu tarea:', data);
       return null;
     }
-    await new Promise((ok) => setTimeout(ok, 2000));
+    await new Promise((ok) => setTimeout(ok, 1500));
   }
   return null;
 }
 
-async function generarClipFal(promptEn, segundos) {
+async function generarClipFal(promptEn, segundos, maxWaitMs = 14000) {
   const key = (process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
-  if (!key) return null;
+  if (!key || maxWaitMs < 4000) return null;
   const modelos = [
     process.env.FAL_VIDEO_MODEL,
-    'fal-ai/kling-video/v2.1/standard/text-to-video',
-    'fal-ai/wan-pro',
     'fal-ai/ltx-video',
+    'fal-ai/kling-video/v2.1/standard/text-to-video',
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
   const headers = {
     Authorization: `Key ${key}`,
     'Content-Type': 'application/json',
   };
   const frames = Math.max(97, Math.min(241, Math.round(segundos * 24)));
-  for (const model of modelos) {
+  // Un solo modelo rápido dentro del presupuesto (evitar encadenar 50s×N).
+  for (const model of modelos.slice(0, 1)) {
     const r = await fetch(`https://queue.fal.run/${model}`, {
       method: 'POST',
       headers,
@@ -101,23 +108,24 @@ async function generarClipFal(promptEn, segundos) {
     const statusUrl = queued.status_url;
     const responseUrl = queued.response_url;
     if (!statusUrl || !responseUrl) continue;
-    const result = await esperarFal(statusUrl, responseUrl, headers);
+    const result = await esperarFal(statusUrl, responseUrl, headers, maxWaitMs);
     const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
     if (videoUrl) return { video_url: videoUrl, fuente: `fal:${model}`, mime: 'video/mp4' };
   }
   return null;
 }
 
-async function generarClipReplicate(promptEn, segundos) {
+async function generarClipReplicate(promptEn, segundos, maxWaitMs = 12000) {
   const token = (process.env.REPLICATE_API_TOKEN || '').trim();
-  if (!token) return null;
+  if (!token || maxWaitMs < 4000) return null;
   const model = process.env.REPLICATE_VIDEO_MODEL || 'wavespeedai/wan-2.1-t2v-480p';
+  const waitSec = Math.max(5, Math.min(20, Math.floor(maxWaitMs / 1000)));
   const r = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      Prefer: 'wait=50',
+      Prefer: `wait=${waitSec}`,
     },
     body: JSON.stringify({
       input: {
@@ -146,6 +154,7 @@ export default async (req) => {
   if (!guard.ok) return jsonResponse({ error: guard.error }, guard.status);
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
+  const inicio = Date.now();
   try {
     const body = await req.json();
     const prompt = String(body.prompt || '').trim();
@@ -157,27 +166,6 @@ export default async (req) => {
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
     const promptEn = expansion.promptEn;
     const dir = expansion.director;
-
-    let nativo = null;
-    try {
-      nativo = await generarClipVidu(promptEn, duracion);
-    } catch (err) {
-      console.warn('Vidu clip:', err?.message || err);
-    }
-    if (!nativo) {
-      try {
-        nativo = await generarClipFal(promptEn, duracion);
-      } catch (err) {
-        console.warn('Fal clip:', err?.message || err);
-      }
-    }
-    if (!nativo) {
-      try {
-        nativo = await generarClipReplicate(promptEn, duracion);
-      } catch (err) {
-        console.warn('Replicate clip:', err?.message || err);
-      }
-    }
     const metaDirector = dir
       ? {
           intencion: dir.intencion,
@@ -186,6 +174,30 @@ export default async (req) => {
           via: dir.via,
         }
       : null;
+
+    let nativo = null;
+    // Presupuesto corto por proveedor; si no llega a tiempo → placa + Ken Burns (siempre responde).
+    if (tiempoRestante(inicio) > 8000) {
+      try {
+        nativo = await generarClipVidu(promptEn, duracion, Math.min(14000, tiempoRestante(inicio) - 6000));
+      } catch (err) {
+        console.warn('Vidu clip:', err?.message || err);
+      }
+    }
+    if (!nativo && tiempoRestante(inicio) > 8000) {
+      try {
+        nativo = await generarClipFal(promptEn, duracion, Math.min(14000, tiempoRestante(inicio) - 6000));
+      } catch (err) {
+        console.warn('Fal clip:', err?.message || err);
+      }
+    }
+    if (!nativo && tiempoRestante(inicio) > 8000) {
+      try {
+        nativo = await generarClipReplicate(promptEn, duracion, Math.min(12000, tiempoRestante(inicio) - 5000));
+      } catch (err) {
+        console.warn('Replicate clip:', err?.message || err);
+      }
+    }
     if (nativo?.video_url) {
       return jsonResponse({
         success: true,
@@ -201,7 +213,7 @@ export default async (req) => {
       });
     }
 
-    // Fallback: still + Ken Burns en el navegador (no es "Imagen IA"; es placa de clip).
+    // Fallback rápido: still + Ken Burns en el navegador.
     const cine = await generarImagenEstudio(promptEn, {
       width: 1920,
       height: 1080,
@@ -210,7 +222,7 @@ export default async (req) => {
     });
     if (!cine) {
       return jsonResponse({
-        error: 'No se pudo generar el clip. Intenta de nuevo o usa Imagen IA + Movimiento.',
+        error: 'No se pudo generar el clip a tiempo. Intenta de nuevo; si tarda, usa Imagen IA + Movimiento.',
       }, 502);
     }
 
@@ -230,6 +242,12 @@ export default async (req) => {
       aviso: `Clip de ${duracion} s (placa + Ken Burns): no es una imagen fija de la pestaña Imagen; el navegador graba el movimiento.`,
     });
   } catch (e) {
-    return jsonResponse({ error: String(e?.message || e) }, 500);
+    const msg = String(e?.message || e);
+    if (/abort|timeout|inactivity/i.test(msg)) {
+      return jsonResponse({
+        error: 'El clip tardó demasiado. Intenta de nuevo; suele completar con placa + movimiento.',
+      }, 504);
+    }
+    return jsonResponse({ error: msg }, 500);
   }
 };

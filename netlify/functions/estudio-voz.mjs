@@ -48,30 +48,45 @@ function pcm16ToWav(pcmBuf, sampleRate = 24000, channels = 1) {
 }
 
 function encodeMp3(pcmBuf, sampleRate) {
-  let lamejs;
+  // lamejs en Node/Netlify a veces exige globals MPEGMode / Lame / BitStream.
   try {
-    lamejs = require('lamejs');
-  } catch {
+    if (typeof globalThis.MPEGMode === 'undefined') {
+      globalThis.MPEGMode = {
+        STEREO: 0,
+        JOINT_STEREO: 1,
+        DUAL_CHANNEL: 2,
+        MONO: 3,
+      };
+    }
+    if (typeof globalThis.Lame === 'undefined') {
+      globalThis.Lame = {};
+    }
+    if (typeof globalThis.BitStream === 'undefined') {
+      globalThis.BitStream = function BitStream() {};
+    }
+    const lamejs = require('lamejs');
+    const Encoder = lamejs?.Mp3Encoder;
+    if (!Encoder) return null;
+    const samples = new Int16Array(
+      pcmBuf.buffer,
+      pcmBuf.byteOffset,
+      Math.floor(pcmBuf.length / 2),
+    );
+    const encoder = new Encoder(1, sampleRate, 64);
+    const bloque = 1152;
+    const partes = [];
+    for (let i = 0; i < samples.length; i += bloque) {
+      const slice = samples.subarray(i, Math.min(i + bloque, samples.length));
+      const buf = encoder.encodeBuffer(slice);
+      if (buf?.length) partes.push(Buffer.from(buf));
+    }
+    const fin = encoder.flush();
+    if (fin?.length) partes.push(Buffer.from(fin));
+    return partes.length ? Buffer.concat(partes) : null;
+  } catch (err) {
+    console.warn('encodeMp3/lamejs:', err?.message || err);
     return null;
   }
-  const Encoder = lamejs.Mp3Encoder;
-  if (!Encoder) return null;
-  const samples = new Int16Array(
-    pcmBuf.buffer,
-    pcmBuf.byteOffset,
-    Math.floor(pcmBuf.length / 2),
-  );
-  const encoder = new Encoder(1, sampleRate, 64);
-  const bloque = 1152;
-  const partes = [];
-  for (let i = 0; i < samples.length; i += bloque) {
-    const slice = samples.subarray(i, Math.min(i + bloque, samples.length));
-    const buf = encoder.encodeBuffer(slice);
-    if (buf?.length) partes.push(Buffer.from(buf));
-  }
-  const fin = encoder.flush();
-  if (fin?.length) partes.push(Buffer.from(fin));
-  return partes.length ? Buffer.concat(partes) : null;
 }
 
 function extraerPcmGemini(data) {

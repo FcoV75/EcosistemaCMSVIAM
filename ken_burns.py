@@ -13,7 +13,7 @@ ESTILOS_MOVIMIENTO = (
     "zoom_out_izquierda",
 )
 # Cubrir el cuadro + factor alto: con letterbox el zoom casi no se notaba.
-FACTOR_MOVIMIENTO = 1.62
+FACTOR_MOVIMIENTO = 1.88
 CICLO_KEN_BURNS_SEG = 6.0
 MAX_MOVIMIENTO_GRATUITO = 5
 MAX_MOVIMIENTO_PREMIUM = 30
