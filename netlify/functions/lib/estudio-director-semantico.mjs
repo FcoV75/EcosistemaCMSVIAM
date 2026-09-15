@@ -109,6 +109,18 @@ export function inferenciasLocales(orden) {
   if (/\bcangrejo\b/.test(n) && /\banguila/.test(n)) {
     out.push('Cangrejo nadando entre anguilas eléctricas en río caudaloso de montaña — vida acuática realista, sin humanos.');
   }
+  if (/\b(fogata|hoguera|campfire)\b/.test(n)) {
+    out.push('Fogata alta visible con llamas naranjas, chispas y luz de fuego sobre los sujetos; no un claro vacío sin fuego.');
+  }
+  if (/\b(bail|danz|danc)\w*\b/.test(n)) {
+    out.push('Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta.');
+  }
+  if (/\bluna\b/.test(n) && /\bllena\b/.test(n)) {
+    out.push('Luna llena grande y clara en el cielo nocturno.');
+  }
+  if (/\bestrellad/.test(n) || (/\bcielo\b/.test(n) && /\bestrell/.test(n))) {
+    out.push('Cielo muy estrellado / vía láctea visible, no un cielo vacío.');
+  }
   if (/\b(amanecer|atardecer|noche|lluvia|nieve|niebla)\b/.test(n)) {
     out.push('La atmósfera y la luz deben coherir con el momento del día o clima nombrado.');
   }
