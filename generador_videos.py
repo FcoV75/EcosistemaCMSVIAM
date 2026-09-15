@@ -335,18 +335,29 @@ def estampar_texto_sombra_simple(img_bgr, texto, posicion, tamano=36, color=(255
     return img_bgr
 
 
-def estampar_texto_escena(img_bgr, texto, width, height, tamano=TAM_TEXTO_ESCENA):
-    return _dibujar_texto_fondo_ajustado(img_bgr, texto, 0, height - 200, tamano, (255, 215, 0), centrado=True)
+def estampar_texto_escena(img_bgr, texto, width, height, tamano=None, y=None):
+    # Leer global en runtime (defaults de firma se congelan al importar).
+    if tamano is None:
+        tamano = TAM_TEXTO_ESCENA
+    if y is None:
+        y = max(80, height - max(110, int(tamano * 1.35)))
+    return _dibujar_texto_fondo_ajustado(img_bgr, texto, 0, y, tamano, (255, 215, 0), centrado=True)
 
 
-def estampar_subtitulo_karaoke(img_bgr, palabras, segundo_actual, width, height, tamano=TAM_SUBTITULO):
+def estampar_subtitulo_karaoke(img_bgr, palabras, segundo_actual, width, height, tamano=None, y=None):
+    if tamano is None:
+        tamano = TAM_SUBTITULO
+    if y is None:
+        y = max(50, height - max(70, int(tamano * 1.2)))
     linea, idx = _linea_karaoke_activa(palabras, segundo_actual)
     if not linea:
         return img_bgr
-    return _dibujar_karaoke(img_bgr, linea, idx, height - 140, tamano)
+    return _dibujar_karaoke(img_bgr, linea, idx, y, tamano)
 
 
-def estampar_marca_agua(img_bgr, width, height, tamano=TAM_MARCA_AGUA):
+def estampar_marca_agua(img_bgr, width, height, tamano=None):
+    if tamano is None:
+        tamano = TAM_MARCA_AGUA
     if not PIL_DISPONIBLE:
         return _dibujar_texto_fondo_ajustado(img_bgr, MARCA_AGUA_TEXTO, width - 280, height - 30, tamano, (200, 200, 200))
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
@@ -364,7 +375,9 @@ def estampar_marca_agua(img_bgr, width, height, tamano=TAM_MARCA_AGUA):
     return cv2.cvtColor(np.array(Image.alpha_composite(base, overlay).convert("RGB")), cv2.COLOR_RGB2BGR)
 
 
-def estampar_leyenda_grande(img_bgr, texto, width, height, tamano=TAM_LEYENDA_PORTADA):
+def estampar_leyenda_grande(img_bgr, texto, width, height, tamano=None):
+    if tamano is None:
+        tamano = TAM_LEYENDA_PORTADA
     return _dibujar_texto_fondo_ajustado(
         img_bgr, texto, width // 2, height // 2, tamano, (255, 215, 0),
         multilinea=True, anchor_center=True, color_fondo=(0, 0, 0, 150)
@@ -624,18 +637,25 @@ def aplicar_overlays(frame, segundo_actual, duracion_total, texto_escena, palabr
     f = frame
     texto_escena = _normalizar_texto(texto_escena)
     nombre_pista = _normalizar_texto(nombre_pista)
+    hay_karaoke = bool(subtitulos_on and palabras_sub)
+    y_sub = max(50, HEIGHT - max(70, int(TAM_SUBTITULO * 1.2))) if hay_karaoke else None
     if texto_escena:
         if leyenda_grande:
-            f = estampar_leyenda_grande(f, texto_escena, WIDTH, HEIGHT)
+            f = estampar_leyenda_grande(f, texto_escena, WIDTH, HEIGHT, tamano=TAM_LEYENDA_PORTADA)
         else:
-            f = estampar_texto_escena(f, texto_escena, WIDTH, HEIGHT)
-    if subtitulos_on and palabras_sub:
-        f = estampar_subtitulo_karaoke(f, palabras_sub, segundo_actual, WIDTH, HEIGHT)
+            # Dejar hueco al karaoke cuando ambos están activos.
+            margen_karaoke = (TAM_SUBTITULO + 36) if hay_karaoke else 0
+            y_escena = max(80, HEIGHT - max(110, int(TAM_TEXTO_ESCENA * 1.35)) - margen_karaoke)
+            f = estampar_texto_escena(f, texto_escena, WIDTH, HEIGHT, tamano=TAM_TEXTO_ESCENA, y=y_escena)
+    if hay_karaoke:
+        f = estampar_subtitulo_karaoke(
+            f, palabras_sub, segundo_actual, WIDTH, HEIGHT, tamano=TAM_SUBTITULO, y=y_sub,
+        )
     if debe_mostrar_nombre_pista(segundo_actual, duracion_total):
         etiqueta = f"♪ {nombre_pista}"
         f = _dibujar_texto_fondo_ajustado(f, etiqueta, 0, 36, TAM_NOMBRE_PISTA, (255, 255, 255), centrado=True, color_fondo=(0, 0, 0, 150))
     if mostrar_marca_agua:
-        f = estampar_marca_agua(f, WIDTH, HEIGHT)
+        f = estampar_marca_agua(f, WIDTH, HEIGHT, tamano=TAM_MARCA_AGUA)
     return f
 
 
@@ -764,7 +784,8 @@ def generar_video_cloud():
     subtitulos_activos = config.get("subtitulos_activos", False)
     nombre_pista = _normalizar_texto(config.get("nombre_pista", "") or "Pista VIAM")
     es_premium = bool(config.get("es_premium", False))
-    # Free: siempre "video_diamante". Pro: sin ninguna marca de agua.
+    es_propietario = bool(config.get("es_propietario", False))
+    # Free: siempre "video_diamante". Pro/propietario: sin ninguna marca de agua.
     mostrar_marca_agua = not es_premium
 
     ruta_audio = args.audio
@@ -828,7 +849,7 @@ def generar_video_cloud():
         letra_palabras, letra_cancion, letra_segmentos, duracion_audio, subtitulos_activos
     )
     print(f"Palabras subtítulo: {len(palabras_sub)}")
-    print(f"Movimiento cinematográfico: máx {MAX_MOVIMIENTO_PREMIUM if es_premium else MAX_MOVIMIENTO_GRATUITO} imágenes")
+    print(f"Movimiento cinematográfico: máx {'∞' if es_propietario else (MAX_MOVIMIENTO_PREMIUM if es_premium else MAX_MOVIMIENTO_GRATUITO)} imágenes")
 
     segmentos = []
     if leyenda_portada or ruta_portada:
@@ -857,7 +878,7 @@ def generar_video_cloud():
     ultimo_frame = None
     ultima_fuente_mov = None
     ultimo_estilo_mov = "zoom_in"
-    max_movimiento = MAX_MOVIMIENTO_PREMIUM if es_premium else MAX_MOVIMIENTO_GRATUITO
+    max_movimiento = 10_000 if es_propietario else (MAX_MOVIMIENTO_PREMIUM if es_premium else MAX_MOVIMIENTO_GRATUITO)
     usados_movimiento = 0
 
     def item_quiere_movimiento(item):

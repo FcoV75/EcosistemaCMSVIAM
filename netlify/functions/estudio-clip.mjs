@@ -1,5 +1,5 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
-import { LIMITES_CLIP, clamp, esPremiumPayload } from './lib/estudio-limites.mjs';
+import { clamp, limitesClipPara } from './lib/estudio-limites.mjs';
 import { expandirPromptVisual, seedDesdePrompt } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
@@ -160,8 +160,7 @@ export default async (req) => {
     const prompt = String(body.prompt || '').trim();
     if (!prompt) return jsonResponse({ error: 'Describe el clip que quieres generar.' }, 400);
 
-    const premium = esPremiumPayload(guard.payload);
-    const lim = premium ? LIMITES_CLIP.premium : LIMITES_CLIP.free;
+    const lim = limitesClipPara(guard.payload);
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
     const promptEn = expansion.promptEn;

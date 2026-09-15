@@ -3,28 +3,53 @@
 export const LIMITES_VOZ = {
   free: { maxSeg: 30, maxDia: 3 },
   premium: { maxSeg: 240, maxDia: 20 },
+  /** Solo propietario: sin tope diario práctico; techo de duración por seguridad del pipeline. */
+  propietario: { maxSeg: 3600, maxDia: Number.POSITIVE_INFINITY },
 };
 
 export const LIMITES_CLIP = {
   free: { minSeg: 8, maxSeg: 8, maxDia: 1 },
   premium: { minSeg: 8, maxSeg: 12, maxDia: 5 },
+  propietario: { minSeg: 8, maxSeg: 60, maxDia: Number.POSITIVE_INFINITY },
 };
 
 export const LIMITES_MOVIMIENTO = {
   free: 5,
   premium: 30,
+  propietario: Number.POSITIVE_INFINITY,
 };
 
 export const PALABRAS_POR_SEGUNDO = 2.4;
 
+/** Propietario del ecosistema (código owner / permanent), no Premium de pago. */
+export function esPropietarioPayload(payload) {
+  if (!payload || typeof payload !== 'object') return false;
+  if (payload.permanent === true) return true;
+  if (payload.plan === 'propietario') return true;
+  if (payload.tier === 'owner') return true;
+  return false;
+}
+
 export function esPremiumPayload(payload) {
-  return payload?.tier === 'premium' || payload?.plan === 'premium' || payload?.plan === 'propietario';
+  if (esPropietarioPayload(payload)) return true;
+  return payload?.tier === 'premium' || payload?.plan === 'premium';
+}
+
+export function limitesVozPara(payload) {
+  if (esPropietarioPayload(payload)) return LIMITES_VOZ.propietario;
+  return esPremiumPayload(payload) ? LIMITES_VOZ.premium : LIMITES_VOZ.free;
+}
+
+export function limitesClipPara(payload) {
+  if (esPropietarioPayload(payload)) return LIMITES_CLIP.propietario;
+  return esPremiumPayload(payload) ? LIMITES_CLIP.premium : LIMITES_CLIP.free;
 }
 
 export function clamp(n, min, max) {
   const x = Number(n);
   if (!Number.isFinite(x)) return min;
-  return Math.max(min, Math.min(max, Math.round(x)));
+  const techo = Number.isFinite(max) ? max : x;
+  return Math.max(min, Math.min(techo, Math.round(x)));
 }
 
 export function recortarTextoParaVoz(texto, maxSeg) {

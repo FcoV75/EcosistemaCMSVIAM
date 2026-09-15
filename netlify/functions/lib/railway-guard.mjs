@@ -1,5 +1,6 @@
 import { verifyAccessToken, getSessionSecret } from './ecosistema-auth.mjs';
 import { consumeRateLimit } from './rate-limit.mjs';
+import { esPropietarioPayload } from './estudio-limites.mjs';
 
 const RAILWAY_API =
   process.env.RAILWAY_API_URL ||
@@ -68,6 +69,10 @@ export function requireToken(req, { product } = {}) {
 
 export async function enforceRateLimit(payload, action) {
   try {
+    // Propietario: sin cuota diaria en render / Estudio / voz / clip / transcribe.
+    if (esPropietarioPayload(payload)) {
+      return { ok: true, remaining: Number.POSITIVE_INFINITY, owner: true };
+    }
     const limits = RATE_LIMITS[action];
     if (!limits || payload?.sub === 'legacy-open') return { ok: true };
     const tier = payload.tier === 'premium' ? 'premium' : 'free';
