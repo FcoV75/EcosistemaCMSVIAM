@@ -20,6 +20,12 @@ mkdirSync(OUT, { recursive: true });
 
 const CASOS = [
   {
+    id: 'imagen-fogata-baile',
+    modo: 'imagen',
+    prompt:
+      'una mujer bailando alrededor de una fogata alta en medio del bosque por la noche con la luna llena y el cielo muy estrellado',
+  },
+  {
     id: 'imagen-cangrejo-anguilas',
     modo: 'imagen',
     prompt:

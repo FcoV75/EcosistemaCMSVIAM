@@ -98,6 +98,22 @@ const GLOSARIO_VISUAL = {
   planeta: 'planet',
   planetas: 'planets',
   estrellas: 'stars',
+  estrellado: 'starry',
+  estrellada: 'starry',
+  noche: 'night',
+  fogata: 'campfire',
+  fogatas: 'campfires',
+  hoguera: 'bonfire',
+  hogueras: 'bonfires',
+  bailando: 'dancing',
+  bailar: 'dancing',
+  baile: 'dance',
+  danza: 'dance',
+  danzando: 'dancing',
+  llena: 'full',
+  'luna llena': 'full moon',
+  'cielo estrellado': 'starry sky',
+  'cielo muy estrellado': 'very starry sky',
   carro: 'luxury car',
   coche: 'car',
   auto: 'car',
@@ -188,6 +204,7 @@ export function extraerElementos(prompt) {
     'hermoso', 'esta', 'este', 'recien', 'recibirlo', 'obsequiandole', 'trabajando',
     'haciendo', 'alta', 'alto', 'vista', 'hay', 'muy', 'recien',
     'misma', 'mismo', 'completo', 'completa', 'cuerpo', 'si', 'esta',
+    'alrededor', 'bajo', 'junto', 'cerca', 'medio', 'media',
   ]);
   const palabras = escena.split(' ').map((w) => w.trim()).filter((w) => {
     const n = sinAcentos(w);
@@ -217,13 +234,34 @@ export function clausulaMustInclude(prompt) {
 
 export function escenaPidePaisaje(texto) {
   const n = sinAcentos(texto);
-  return /\b(montana|rio|orilla|bosque|selva|playa|valle|atardecer|amanecer|paisaje|landscape|river|mountain|forest|beach|jungle|sunset|dawn|lake|lago|volcan|isla|erupcion)\b/.test(n);
+  return /\b(montana|rio|orilla|bosque|selva|playa|valle|atardecer|amanecer|paisaje|landscape|river|mountain|forest|beach|jungle|sunset|dawn|lake|lago|volcan|isla|erupcion|noche|luna|fogata|hoguera|estrellad|campfire|cielo)\b/.test(n);
+}
+
+/** Exterior nocturno / fogata / luna / estrellas (no tratar como interior). */
+export function escenaEsExteriorNoche(texto) {
+  const n = sinAcentos(texto);
+  return /\b(fogata|hoguera|campfire|bonfire|luna|estrellad|noche|bosque|selva|montana|playa|campo|claroscuro|fogata)\w*\b/.test(n)
+    || /\b(full moon|starry|night forest|campfire)\b/.test(n);
+}
+
+/** ¿Pide actuación / baile / movimiento del sujeto (no solo cámara)? */
+export function escenaPideActuacion(texto) {
+  const n = sinAcentos(texto);
+  return /\b(bail|danz|danc|actu|gesticul|camin|corr|gira|girando|salta|saltando|abraza|abrazando|pelea|luch|nadand|swimming|dancing|running|walking)\w*\b/.test(n);
+}
+
+/** Interior real (props de cuarto/oficina). Personas al aire libre NO cuentan como interior. */
+export function escenaEsInteriorOPersonas(texto) {
+  const n = sinAcentos(texto);
+  if (escenaEsExteriorNoche(texto) || escenaEsConduccionExterior(texto)) return false;
+  const interior = /\b(escritorio|laptop|ordenador|computadora|oficina|cocina|interior|cuarto|habitacion|salon|estudio|retrato|espejo|recamara|manzana|afroamerican)\w*\b/.test(n);
+  const cafeEscritorio = /\b(cafe|taza)\w*\b/.test(n) && /\b(novio|novia|mujer|hombre|escritorio|laptop)\w*\b/.test(n);
+  return interior || cafeEscritorio;
 }
 
 /** Interior / gente / oficina: nunca sustituir por un paisaje genérico. */
-export function escenaEsInteriorOPersonas(texto) {
-  const n = sinAcentos(texto);
-  return /\b(mujer|hombre|persona|novio|novia|escritorio|laptop|ordenador|computadora|oficina|cocina|cafe|taza|interior|cuarto|habitacion|salon|estudio|retrato|pareja|sonrie|sonrisa|obsequi|espejo|recamara|manzana|afroamerican)\w*\b/.test(n);
+export function escenaEsPersonasEnInterior(texto) {
+  return escenaEsInteriorOPersonas(texto);
 }
 
 /** Acción dramática (volcán, tormenta, erupción): no postcard pacífico. */
@@ -363,6 +401,12 @@ export function clausulaCalidadComposicion(texto) {
   if (/\bcangrejo|crab\b/.test(n)) {
     partes.push(' Clear crab visible swimming; electric eels around it in a fast mountain river — not people in a lake.');
   }
+  if (escenaEsExteriorNoche(texto)) {
+    partes.push(' Outdoor night environmental shot (24–35mm feel): tall campfire with orange firelight and sparks if asked; large full moon and dense starry sky visible; forest/setting fully shown — not a foggy empty clearing without fire/moon.');
+  }
+  if (escenaPideActuacion(texto)) {
+    partes.push(' Subject mid-ACTION (dancing/moving) with dynamic body pose — not a static standing silhouette.');
+  }
   return partes.join('');
 }
 
@@ -374,11 +418,16 @@ export function clausulaProhibidos(texto) {
   if (escenaEsInteriorOPersonas(texto) && !escenaPidePaisaje(texto) && !escenaEsConduccionExterior(texto) && !escenaEsAnimalONaturaleza(texto)) {
     bits.push('FORBIDDEN: outdoor landscape, meadow, river, mountains scenery, lone silhouette in a valley. This is an INDOOR / people scene.');
   }
+  if (escenaEsExteriorNoche(texto)) {
+    bits.push('FORBIDDEN: missing campfire when asked, missing full moon, missing starry sky, indoor studio, empty foggy forest with no fire, static posed mannequin when dancing was asked.');
+  }
   if (escenaEsDramatica(texto)) {
     bits.push('FORBIDDEN: peaceful lake postcard, calm flowers meadow, sunny tourist landscape. SHOW eruption/ash/lightning/drama.');
   }
-  if (escenaTieneDosPersonas(texto)) {
+  if (escenaTieneDosPersonas(texto) && /\b(cafe|taza|escritorio|laptop)\b/.test(sinAcentos(texto))) {
     bits.push('FORBIDDEN: cropping to only one person; omitting the second person, the coffee cup, or the laptop/desk interaction.');
+  } else if (escenaTieneDosPersonas(texto)) {
+    bits.push('FORBIDDEN: cropping to only one person; omitting the second named person.');
   }
   if (escenaEsEspejoORecamara(texto)) {
     bits.push('FORBIDDEN: outdoor portrait, missing full-length mirror, missing apple, missing bedroom, beauty headshot only.');
@@ -457,7 +506,7 @@ export function promptImagenReforzado(promptEn, original = '') {
     .trim();
 }
 
-/** Refuerzo para Clip IA: escena exacta + idea de movimiento, sin sesgo de paisaje. */
+/** Refuerzo para Clip IA: escena exacta + actuación del sujeto (no solo zoom de cámara). */
 export function promptClipReforzado(promptEn, original = '') {
   const p = String(promptEn || '').trim();
   if (!p) return '';
@@ -466,12 +515,44 @@ export function promptClipReforzado(promptEn, original = '') {
   const must = clausulaMustInclude(src);
   const prohibidos = clausulaProhibidos(src);
   const calidad = clausulaCalidadComposicion(src);
+  const actuacion = escenaPideActuacion(src);
   const paisaje = escenaPidePaisaje(src)
-    ? 'Keep the described place fully visible while the camera moves.'
+    ? 'Keep the described place fully visible while the subject moves.'
     : 'OBEY the user scene exactly. Do NOT invent extra places or drop named subjects.';
-  return `${must}Cinematic 16:9 clip / film plate. ${paisaje}${calidad} Natural motion matching the description (zoom, pan or subject motion).${ancla}${prohibidos} ${p}`
+  const motion = actuacion
+    ? 'SUBJECT BODY PERFORMANCE first: dancing/acting limbs and torso in continuous motion; camera mostly locked or gentle orbit — NOT a still plate with only zoom/pan.'
+    : 'Natural motion matching the description (subject motion preferred over empty camera zoom).';
+  return `${must}Cinematic 16:9 VIDEO clip with real subject motion. ${paisaje}${calidad} ${motion}${ancla}${prohibidos} ${p}`
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** Prompt corto de MOTION para I2V / T2V (prioridad actuación del sujeto). */
+export function promptMotionParaVideo(original = '', promptEn = '') {
+  const src = String(original || '').replace(/\s+/g, ' ').trim();
+  const en = String(promptEn || '').replace(/\s+/g, ' ').trim();
+  const actuacion = escenaPideActuacion(src);
+  const mustEn = extraerElementos(src)
+    .map((w) => GLOSARIO_VISUAL[sinAcentos(w)] || w)
+    .filter(Boolean)
+    .slice(0, 10)
+    .join(', ');
+  if (actuacion) {
+    return [
+      `Animate the exact scene with SUBJECT PERFORMANCE: ${mustEn || src}.`,
+      'Woman dancing around a tall campfire if asked; full-body dance motion, spinning/stepping, dress and hair moving.',
+      'Campfire flames flickering, sparks rising, full moon and starry sky stable in background.',
+      'Camera mostly locked wide shot; prioritize body acting over Ken Burns zoom.',
+      'SFW clothed, photoreal, 16:9, no text, no watermark.',
+      en ? `Context: ${en.slice(0, 500)}` : '',
+    ].filter(Boolean).join(' ').slice(0, 1400);
+  }
+  return [
+    `Cinematic motion of: ${mustEn || src}.`,
+    'Subtle natural subject/environment motion; gentle camera only if needed.',
+    'Photoreal 16:9, no text, no watermark.',
+    en ? `Context: ${en.slice(0, 500)}` : '',
+  ].filter(Boolean).join(' ').slice(0, 1200);
 }
 
 /** Prompt corto EN-first para Pollinations/Flux (truncan ~850 chars: la ESCENA debe ir primero). */
@@ -501,12 +582,15 @@ export function promptCortoParaFlux(original, promptEn = '') {
     anclaEscena = esCangrejo
       ? `SCENE: A crab swimming among electric eels in a fast-flowing mountain river — photoreal wildlife close-up. Named animals first and large in frame: ${mustEn || 'crab, electric eels'}. Clear crab body/claws + several electric eels in rushing water between mountains. Animals only; no people, no women, no human bathers, no group of girls.`
       : `SCENE: Photoreal wildlife close-up — named animals LARGE and clear in frame first: ${mustEn || src}. Habitat supports the animals (not an empty landscape). Animals only; no people, no women, no human bathers.`;
+  } else if (escenaEsExteriorNoche(src) || (personas && escenaPideActuacion(src) && escenaPidePaisaje(src))) {
+    anclaEscena = `SCENE: Photoreal night outdoor wide shot — ${mustEn || 'woman, campfire, full moon, starry sky, forest'}. Tall bright campfire with orange flames and sparks; woman DANCING around the fire (dynamic pose, not standing still); large full moon and dense starry sky above the trees. All visible together. SFW opaque clothes.`;
   } else if (!personas) {
     anclaEscena = `SCENE (exact): ${mustEn ? `${mustEn}. ${src}` : src}. Photoreal award-winning photo of the place/objects described — do not invent people.`;
   } else {
     anclaEscena = `SCENE (exact): ${mustEn ? `${mustEn}. ${src}` : src}. Photoreal award-winning photo, perfect symmetrical face, realistic hands.`;
   }
 
+  const exteriorNoche = escenaEsExteriorNoche(src);
   const reglasTxt = (animal
     ? [
         '16:9 hyperrealistic wildlife documentary framing.',
@@ -515,6 +599,15 @@ export function promptCortoParaFlux(original, promptEn = '') {
         'FORBIDDEN: humans, faces, women in water, beauty portrait.',
         'No text, no logo, no watermark.',
       ]
+    : exteriorNoche
+      ? [
+          'SFW opaque clothes.',
+          '16:9 wide environmental night shot (NOT beauty headshot, NOT indoor).',
+          'Firelight + moonlight, full bodies, campfire+moon+stars must be visible.',
+          mustEn ? `MUST SHOW: ${mustEn}.` : '',
+          'FORBIDDEN: missing campfire, missing moon, static mannequin pose when dancing asked.',
+          'No text, no logo, no watermark.',
+        ]
     : [
         personas ? 'SFW opaque clothes.' : 'No invented people unless asked.',
         '16:9 hyperrealistic medium-wide (NOT beauty headshot).',
@@ -559,8 +652,16 @@ export function negativosParaEscena(original = '') {
   if (escenaEsInteriorOPersonas(original) && !escenaPidePaisaje(original) && !escenaEsConduccionExterior(original)) {
     base.push('outdoor landscape', 'meadow', 'river valley', 'mountains scenery', 'nature field', 'empty landscape');
   }
-  if (escenaTieneDosPersonas(original)) {
+  if (escenaEsExteriorNoche(original)) {
+    base.push(
+      'missing campfire', 'no fire', 'no flames', 'missing full moon', 'empty dark sky no stars',
+      'indoor studio', 'static standing pose when dancing', 'mannequin pose', 'foggy empty clearing without fire',
+    );
+  }
+  if (escenaTieneDosPersonas(original) && /\b(cafe|taza|escritorio|laptop)\b/.test(sinAcentos(original))) {
     base.push('only one person', 'missing boyfriend', 'missing coffee cup', 'close-up crop');
+  } else if (escenaTieneDosPersonas(original)) {
+    base.push('only one person', 'close-up crop');
   }
   if (escenaEsConduccionExterior(original)) {
     base.push('face only', 'missing sports car', 'missing mountain road', 'missing city skyline', 'empty car no driver', 'no woman', 'standing outside car', 'posing next to car', 'warped car body', 'melted car', 'east asian woman', 'wrong ethnicity');

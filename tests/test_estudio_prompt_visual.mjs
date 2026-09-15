@@ -4,9 +4,12 @@ import {
   promptImagenReforzado,
   promptClipReforzado,
   promptCortoParaFlux,
+  promptMotionParaVideo,
   reforzarSujetos,
   escenaPidePaisaje,
   escenaEsInteriorOPersonas,
+  escenaEsExteriorNoche,
+  escenaPideActuacion,
   escenaEsDramatica,
   escenaTieneDosPersonas,
   escenaEsVehiculoOCalle,
@@ -158,6 +161,26 @@ assert.match(cangrejoCorto, /SCENE:|wildlife|crab|eel/i);
 assert.match(cangrejoCorto, /crab swimming among electric eels|Animals only/i);
 assert.doesNotMatch(cangrejoCorto, /perfect symmetrical face|SFW opaque clothes|5 fingers per hand/i);
 assert.ok(cangrejoCorto.length <= 850);
+
+// Fogata + baile + luna (caso real del usuario): NO interior; sí actuación y campfire.
+const fogataPrompt = 'una mujer bailando alrededor de una fogata alta en medio del bosque por la noche con la luna llena y el cielo muy estrellado';
+assert.ok(escenaEsExteriorNoche(fogataPrompt));
+assert.ok(escenaPideActuacion(fogataPrompt));
+assert.ok(escenaPidePaisaje(fogataPrompt));
+assert.equal(escenaEsInteriorOPersonas(fogataPrompt), false);
+assert.match(clausulaMustInclude(fogataPrompt), /campfire \(fogata\)|fogata/i);
+assert.match(clausulaMustInclude(fogataPrompt), /dancing \(bailando\)|bailando/i);
+assert.match(clausulaProhibidos(fogataPrompt), /campfire|starry|dancing|static/i);
+assert.doesNotMatch(clausulaProhibidos(fogataPrompt), /INDOOR \/ people scene/i);
+const fogataCorto = promptCortoParaFlux(fogataPrompt, '');
+assert.match(fogataCorto, /campfire|DANCING|full moon|starry/i);
+assert.doesNotMatch(fogataCorto, /Indoor setting/i);
+const fogataClip = promptClipReforzado('woman dancing around campfire', fogataPrompt);
+assert.match(fogataClip, /SUBJECT BODY PERFORMANCE|dancing|campfire/i);
+assert.doesNotMatch(fogataClip, /zoom, pan or subject motion/i);
+const fogataMotion = promptMotionParaVideo(fogataPrompt, '');
+assert.match(fogataMotion, /SUBJECT PERFORMANCE|dancing|campfire|Ken Burns/i);
+assert.match(negativosParaEscena(fogataPrompt), /missing campfire|missing full moon|static standing/i);
 
 const s1 = seedDesdePrompt('escena A');
 const s2 = seedDesdePrompt('escena B distinta');

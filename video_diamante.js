@@ -535,6 +535,8 @@ function estiloMovimientoDesdePrompt(prompt) {
     if (/paneo?.{0,16}(izq|left)/.test(p)) return "pan_izquierda";
     if (/paneo?.{0,16}(der|right)/.test(p)) return "pan_derecha";
     if (/diagonal|ken.?burns/.test(p)) return "ken_burns";
+    // Baile/actuación: en fallback de cámara, órbita suave (no zoom agresivo que “finge” danza).
+    if (/bail|danz|danc|actu|gira|camina|corre/.test(p)) return "ken_burns";
     if (/zoom|acerc|progresivo|acabando en|hacia el /.test(p)) {
         if (/izq|left/.test(p)) return "zoom_in_izquierda";
         if (/der|right/.test(p)) return "zoom_in_derecha";
@@ -893,7 +895,7 @@ async function generarClipIA() {
             const urlStill = URL.createObjectURL(still);
             if (img) { img.src = urlStill; img.style.display = "block"; }
             // No mezclar con la pestaña Movimiento/Imagen: el clip usa su propio preview.
-            if (status) status.textContent = `Placa del clip lista. Grabando movimiento Ken Burns de ${duracionSeg} s…`;
+            if (status) status.textContent = `Placa del clip lista. ${d.sin_actuacion ? "Sin video nativo de actuación — " : ""}Grabando cámara (${duracionSeg} s)…`;
             try {
                 const videoBlob = await grabarClipKenBurns(still, duracionSeg, estiloMovimientoDesdePrompt(prompt));
                 clipEstudioBlob = videoBlob;
@@ -915,8 +917,12 @@ async function generarClipIA() {
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
         if (status && clipEstudioTipo === "video") {
-            const via = d.tipo === "cinematico" || d.aviso ? " (placa+movimiento)" : " (video nativo)";
-            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${textoDirectorStatus(d)}. Añádelo a la pizarra como video.`;
+            let via;
+            if (d.tipo === "video" && d.actuacion) via = " (video nativo con actuación)";
+            else if (d.tipo === "video") via = " (video nativo)";
+            else if (d.sin_actuacion) via = " (solo cámara — sin baile/actuación del sujeto)";
+            else via = " (placa+cámara)";
+            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${textoDirectorStatus(d)}. ${(d.aviso && d.sin_actuacion) ? d.aviso + " " : ""}Añádelo a la pizarra como video.`;
         } else if (status && clipEstudioTipo === "cinematico") {
             status.textContent = (d.aviso || `Clip (placa) listo (${d.fuente || "IA"} · ${d.duracionSeg || duracionSeg} s).`)
                 + textoDirectorStatus(d);
