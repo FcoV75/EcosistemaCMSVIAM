@@ -14,14 +14,26 @@ const PRODUCTO_ETIQUETA = {
   video_diamante_premium: 'Video Diamante Premium',
 };
 
-function tokenPremium(normalized, producto) {
+function tokenPremium(normalized, producto, { permanent = false, plan = null } = {}) {
   const secret = getSessionSecret();
   if (!secret) return null;
-  return createAccessToken({ sub: normalized, tier: 'premium', product: producto }, secret);
+  const claims = {
+    sub: normalized,
+    tier: 'premium',
+    product: producto,
+  };
+  if (permanent) {
+    claims.permanent = true;
+    claims.plan = plan || 'propietario';
+  }
+  return createAccessToken(claims, secret);
 }
 
 function respuestaMembresia(estado, normalized, producto, memberData = null) {
-  const accessToken = tokenPremium(normalized, producto);
+  const accessToken = tokenPremium(normalized, producto, {
+    permanent: !!estado?.permanent,
+    plan: estado?.plan || null,
+  });
   return Response.json({
     ...estado,
     legacy_code: memberData?.legacy_code || (normalized && String(normalized).startsWith('CMS-') ? normalized : null),

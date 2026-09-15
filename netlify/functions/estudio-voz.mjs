@@ -1,8 +1,7 @@
 import { createRequire } from 'module';
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import {
-  LIMITES_VOZ,
-  esPremiumPayload,
+  limitesVozPara,
   partirTexto,
   recortarTextoParaVoz,
 } from './lib/estudio-limites.mjs';
@@ -291,8 +290,7 @@ export default async (req) => {
 
   try {
     const body = await req.json();
-    const premium = esPremiumPayload(guard.payload);
-    const limites = premium ? LIMITES_VOZ.premium : LIMITES_VOZ.free;
+    const limites = limitesVozPara(guard.payload);
     const maxSeg = limites.maxSeg;
     const textoEntrada = String(body.texto || body.text || '').trim();
     if (!textoEntrada) {

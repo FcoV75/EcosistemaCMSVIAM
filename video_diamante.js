@@ -2,7 +2,15 @@
 
 const LIMITES = {
     gratuito: { maxSeg: 240, maxImg: 10, maxVid: 2, maxDia: 3, minSeg: 8, etiqueta: "Gratuito" },
-    premium: { maxSeg: 3600, maxImg: 30, maxVid: 99, maxDia: 10, minSeg: 8, etiqueta: "Premium" }
+    premium: { maxSeg: 3600, maxImg: 30, maxVid: 99, maxDia: 10, minSeg: 8, etiqueta: "Premium" },
+    propietario: {
+        maxSeg: 86400,
+        maxImg: 9999,
+        maxVid: 9999,
+        maxDia: Number.POSITIVE_INFINITY,
+        minSeg: 8,
+        etiqueta: "Propietario"
+    }
 };
 
 let isPremium = false;
@@ -34,15 +42,17 @@ let previewMovPizarraGen = 0;
 let movimientoPendienteRender = 0;
 let accessToken = localStorage.getItem("video_diamante_access_token") || "";
 
-const LIMITES_ESTUDIO = { gratuito: 5, premium: 20 };
+const LIMITES_ESTUDIO = { gratuito: 5, premium: 20, propietario: Number.POSITIVE_INFINITY };
 const LIMITES_VOZ = {
     gratuito: { maxSeg: 30, maxDia: 3 },
-    premium: { maxSeg: 240, maxDia: 20 }
+    premium: { maxSeg: 240, maxDia: 20 },
+    propietario: { maxSeg: 3600, maxDia: Number.POSITIVE_INFINITY }
 };
-const LIMITES_MOVIMIENTO = { gratuito: 5, premium: 30 };
+const LIMITES_MOVIMIENTO = { gratuito: 5, premium: 30, propietario: Number.POSITIVE_INFINITY };
 const LIMITES_CLIP = {
     gratuito: { minSeg: 8, maxSeg: 8, maxDia: 1 },
-    premium: { minSeg: 8, maxSeg: 12, maxDia: 5 }
+    premium: { minSeg: 8, maxSeg: 12, maxDia: 5 },
+    propietario: { minSeg: 8, maxSeg: 60, maxDia: Number.POSITIVE_INFINITY }
 };
 const ESTILOS_MOVIMIENTO_UI = [
     ["zoom_in", "Zoom adentro"],
@@ -131,19 +141,27 @@ function incrementarEstudioGens(tipo = "imagen") {
     actualizarCuotaEstudio();
 }
 
+function esPropietario() {
+    return !!(isPremium && premiumMeta.permanent);
+}
+
 function limiteEstudio() {
+    if (esPropietario()) return LIMITES_ESTUDIO.propietario;
     return isPremium ? LIMITES_ESTUDIO.premium : LIMITES_ESTUDIO.gratuito;
 }
 
 function limitesVoz() {
+    if (esPropietario()) return LIMITES_VOZ.propietario;
     return isPremium ? LIMITES_VOZ.premium : LIMITES_VOZ.gratuito;
 }
 
 function limiteMovimiento() {
+    if (esPropietario()) return LIMITES_MOVIMIENTO.propietario;
     return isPremium ? LIMITES_MOVIMIENTO.premium : LIMITES_MOVIMIENTO.gratuito;
 }
 
 function limitesClip() {
+    if (esPropietario()) return LIMITES_CLIP.propietario;
     return isPremium ? LIMITES_CLIP.premium : LIMITES_CLIP.gratuito;
 }
 
@@ -158,22 +176,36 @@ function actualizarCuotaEstudio() {
     const maxEst = limiteEstudio();
     const restEst = restarCuota(maxEst, estudioGensHoy());
     if (el) {
-        el.textContent = isPremium
-            ? `Estudio IA Premium: ${restEst}/${maxEst} imágenes+discurso hoy`
-            : `Imagen y discurso hoy: ${restEst}/${maxEst}`;
+        if (esPropietario()) {
+            el.textContent = "Estudio IA propietario: sin límite diario de imágenes/discurso";
+        } else {
+            el.textContent = isPremium
+                ? `Estudio IA Premium: ${restEst}/${maxEst} imágenes+discurso hoy`
+                : `Imagen y discurso hoy: ${restEst}/${maxEst}`;
+        }
     }
     if (det) {
         const v = limitesVoz();
         const c = limitesClip();
-        det.innerHTML = `
-            <span>🗣️ Voz ${restarCuota(v.maxDia, uso.voz)}/${v.maxDia}</span>
-            <span>🎥 Movimiento ${restarCuota(limiteMovimiento(), uso.movimiento)}/${limiteMovimiento()}</span>
-            <span>✨ Clip ${restarCuota(c.maxDia, uso.clip)}/${c.maxDia}</span>
-        `;
+        if (esPropietario()) {
+            det.innerHTML = `
+                <span>🗣️ Voz ∞</span>
+                <span>🎥 Movimiento ∞</span>
+                <span>✨ Clip ∞</span>
+            `;
+        } else {
+            det.innerHTML = `
+                <span>🗣️ Voz ${restarCuota(v.maxDia, uso.voz)}/${v.maxDia}</span>
+                <span>🎥 Movimiento ${restarCuota(limiteMovimiento(), uso.movimiento)}/${limiteMovimiento()}</span>
+                <span>✨ Clip ${restarCuota(c.maxDia, uso.clip)}/${c.maxDia}</span>
+            `;
+        }
     }
     const stMov = $("#status-movimiento-estudio");
     if (stMov && !clipEstudioBlob) {
-        stMov.textContent = `Cuota de movimiento al renderizar: ${restarCuota(limiteMovimiento(), uso.movimiento)}/${limiteMovimiento()} imágenes con Ken Burns hoy.`;
+        stMov.textContent = esPropietario()
+            ? "Propietario: movimiento Ken Burns sin cuota diaria."
+            : `Cuota de movimiento al renderizar: ${restarCuota(limiteMovimiento(), uso.movimiento)}/${limiteMovimiento()} imágenes con Ken Burns hoy.`;
     }
 }
 
@@ -197,6 +229,8 @@ function actualizarPreviewTipografia() {
 
     const tamSub = Math.max(13, Math.round(8 + escala * 5.2));
     const tamEsc = Math.max(11, Math.round(7 + escala * 3.6));
+    // Preview a escala relativa (canvas 640×120); el render usa 40×escala / 36×escala en 1280×720.
+    const hintPx = `Render ≈ subtítulo ${Math.round(40 * escala)}px · escena ${Math.round(36 * escala)}px`;
     ctx.textAlign = "center";
     ctx.font = `bold ${tamSub}px Arial, sans-serif`;
     ctx.fillStyle = "#FFD700";
@@ -209,6 +243,9 @@ function actualizarPreviewTipografia() {
     ctx.font = `bold ${Math.max(12, Math.round(38 * escala * 0.15))}px Arial`;
     ctx.fillStyle = "#D4AF37";
     ctx.fillText(`Escala ×${escala}`, w / 2, 28);
+    ctx.font = "11px Arial, sans-serif";
+    ctx.fillStyle = "#AAA";
+    ctx.fillText(hintPx, w / 2, 48);
 }
 
 async function fetchEstudio(endpoint, body, { timeoutMs } = {}) {
@@ -257,6 +294,7 @@ function textoDirectorStatus(d) {
 }
 
 function puedeUsarEstudio() {
+    if (esPropietario()) return true;
     if (estudioGensHoy() >= limiteEstudio()) {
         const msg = isPremium
             ? `Has usado tus ${limiteEstudio()} generaciones IA Premium de hoy. Mañana tendrás más disponibles.`
@@ -269,6 +307,7 @@ function puedeUsarEstudio() {
 }
 
 function puedeUsarVoz() {
+    if (esPropietario()) return true;
     const lim = limitesVoz();
     if ((estudioUsoHoy().voz || 0) >= lim.maxDia) {
         const msg = `Límite de voz IA: ${lim.maxDia} tomas/día.`;
@@ -280,6 +319,7 @@ function puedeUsarVoz() {
 }
 
 function puedeUsarClip() {
+    if (esPropietario()) return true;
     const lim = limitesClip();
     if ((estudioUsoHoy().clip || 0) >= lim.maxDia) {
         const msg = `Límite de clip IA: ${lim.maxDia}/día.`;
@@ -1407,6 +1447,13 @@ function mostrarGraciasCompra() {
 }
 
 function aplicarCuotaMovimientoEnLista(lista) {
+    if (esPropietario()) {
+        let cobrados = 0;
+        for (let i = 0; i < lista.length; i++) {
+            if (lista[i]?.movimiento) cobrados += 1;
+        }
+        return { cobrados, recortados: 0 };
+    }
     const max = limiteMovimiento();
     let remaining = Math.max(0, max - (estudioUsoHoy().movimiento || 0));
     let cobrados = 0;
@@ -1435,6 +1482,7 @@ function registrarMovimientoRender(cantidad) {
 }
 
 function limitesActuales() {
+    if (esPropietario()) return LIMITES.propietario;
     return isPremium ? LIMITES.premium : LIMITES.gratuito;
 }
 
@@ -1488,7 +1536,7 @@ function aplicarModoPremiumUI() {
     if (isPremium) {
         if (welcomeMsg) {
             if (premiumMeta.permanent) {
-                welcomeMsg.textContent = "Acceso de propietario — Premium permanente. Todo desbloqueado para ti.";
+                welcomeMsg.textContent = "Acceso de propietario — sin límites diarios en render ni Estudio VIAM. Todo desbloqueado para ti.";
             } else if (premiumMeta.status === "warning") {
                 welcomeMsg.textContent = `Membresía activa — te quedan ${premiumMeta.daysLeft} días. Considera renovar pronto.`;
             } else if (premiumMeta.status === "last_day") {
@@ -1498,7 +1546,9 @@ function aplicarModoPremiumUI() {
             }
         }
         if (hintEstudio) {
-            hintEstudio.textContent = "Estudio VIAM Premium: voz IA hasta 4 min (20/día) en el riel de locución, MIDI/MP3 en el riel de fondo, movimiento Ken Burns en 30 imágenes, clips 8–12 s (5/día).";
+            hintEstudio.textContent = esPropietario()
+                ? "Estudio VIAM propietario: imagen, voz, clip y movimiento sin cuota diaria."
+                : "Estudio VIAM Premium: voz IA hasta 4 min (20/día) en el riel de locución, MIDI/MP3 en el riel de fondo, movimiento Ken Burns en 30 imágenes, clips 8–12 s (5/día).";
             hintEstudio.style.color = "#E8DDB5";
         }
         if (hintPizarra) {
@@ -1607,12 +1657,14 @@ function actualizarIndicadorPlan() {
     if (avisoGratuito) avisoGratuito.style.display = isPremium ? "none" : "block";
     if (!el) return;
     if (isPremium) {
-        const dias = premiumMeta.permanent
-            ? " · propietario"
-            : premiumMeta.daysLeft > 0
+        if (esPropietario()) {
+            el.textContent = `👑 Propietario — renders/estudio sin límite · audio libre · tipografía a tu escala`;
+        } else {
+            const dias = premiumMeta.daysLeft > 0
                 ? ` · ${premiumMeta.daysLeft} días`
                 : "";
-        el.textContent = `💎 Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia}) · audio 8 s – 1 h · ${lim.maxImg} imgs${dias}`;
+            el.textContent = `💎 Premium activo — ${restantes} renders hoy (máx. ${lim.maxDia}) · audio 8 s – 1 h · ${lim.maxImg} imgs${dias}`;
+        }
         el.style.color = "#FFFD00";
         el.title = "Clic para gestionar tu membresía Premium";
         el.style.cursor = "pointer";
@@ -1687,7 +1739,7 @@ async function activarConCodigoMiembro() {
         localStorage.setItem("video_diamante_premium_code", codigo);
         if (status) {
             const aviso = r.permanent
-                ? "¡Bienvenido, propietario! Acceso Premium permanente."
+                ? "¡Bienvenido, propietario! Sin límites diarios en render ni Estudio VIAM."
                 : r.status === "warning"
                 ? `¡Bienvenido! Te quedan ${r.daysLeft} días de membresía.`
                 : r.status === "last_day"
@@ -2440,6 +2492,7 @@ window.generarVideo = async function () {
             letra_palabras: letraPalabras,
             subtitulos_activos: !!subtitulosOn,
             es_premium: isPremium,
+            es_propietario: esPropietario(),
             sin_marca_agua: !!isPremium,
             escala_texto: obtenerEscalaTexto(),
             nombre_pista: nombrePistaParaVideo(),
