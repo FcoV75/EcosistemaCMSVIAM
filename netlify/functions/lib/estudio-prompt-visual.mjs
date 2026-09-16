@@ -52,6 +52,20 @@ const GLOSARIO_VISUAL = {
   pescando: 'fishing',
   pescador: 'fisherman',
   pescar: 'fishing',
+  cana: 'fishing rod',
+  'cana de pescar': 'fishing rod',
+  bote: 'small boat',
+  megalodon: 'megalodon',
+  megalodones: 'megalodons',
+  tiburon: 'shark',
+  tiburones: 'sharks',
+  presa: 'dam',
+  poblado: 'town',
+  desertico: 'desert',
+  batallando: 'battling',
+  batalla: 'battle',
+  luchando: 'struggling',
+  sacando: 'pulling out',
   acercandose: 'approaching',
   acercando: 'approaching',
   brincar: 'jumping',
@@ -281,7 +295,7 @@ export function clausulaMustInclude(prompt) {
 
 export function escenaPidePaisaje(texto) {
   const n = sinAcentos(texto);
-  return /\b(montana|rio|orilla|bosque|selva|playa|valle|atardecer|amanecer|paisaje|landscape|river|mountain|forest|beach|jungle|sunset|dawn|lake|lago|volcan|isla|erupcion|noche|luna|fogata|hoguera|estrellad|campfire|cielo|parque|arcoiris|yate|barco)\b/.test(n);
+  return /\b(montana|rio|orilla|bosque|selva|playa|valle|atardecer|amanecer|paisaje|landscape|river|mountain|forest|beach|jungle|sunset|dawn|lake|lago|volcan|isla|erupcion|noche|luna|fogata|hoguera|estrellad|campfire|cielo|parque|arcoiris|yate|barco|presa|desierto|poblado|embalse|dique)\b/.test(n);
 }
 
 /** Exterior nocturno / fogata / luna / estrellas (no tratar como interior). */
@@ -294,7 +308,7 @@ export function escenaEsExteriorNoche(texto) {
 /** ¿Pide actuación / baile / movimiento del sujeto (no solo cámara)? */
 export function escenaPideActuacion(texto) {
   const n = sinAcentos(texto);
-  return /\b(bail|danz|danc|actu|gesticul|camin|corr|gira|girando|salta|saltando|brinc|abraza|abrazando|pelea|luch|nadand|swimming|dancing|running|walking|acerc|acech|caz|pesc|jump|approach|stalk|hunt|fish|predator)\w*\b/.test(n);
+  return /\b(bail|danz|danc|actu|gesticul|camin|corr|gira|girando|salta|saltando|brinc|abraza|abrazando|pelea|luch|nadand|swimming|dancing|running|walking|acerc|acech|caz|pesc|jump|approach|stalk|hunt|fish|predator|batall|sacando)\w*\b/.test(n);
 }
 
 /** Interior real (props de cuarto/oficina). Personas al aire libre NO cuentan como interior. */
@@ -311,11 +325,28 @@ export function escenaEsPersonasEnInterior(texto) {
   return escenaEsInteriorOPersonas(texto);
 }
 
-/** Acción dramática (volcán, tormenta, erupción): no postcard pacífico. */
+/** Acción dramática / épica: no postcard pacífico. */
 export function escenaEsDramatica(texto) {
   const n = sinAcentos(texto);
-  return /\b(volcan|erupcion|fumarola|piroclast\w*|relampago|rayo|tormenta|explosion|incendio|lava|humo|avion)\w*\b/.test(n)
-    || /\b(relampagos|rayos)\b/.test(n);
+  if (/\b(volcan|erupcion|fumarola|piroclast\w*|relampago|rayo|tormenta|explosion|incendio|lava|humo|avion)\w*\b/.test(n)) {
+    return true;
+  }
+  if (/\b(relampagos|rayos)\b/.test(n)) return true;
+  // Criatura marina épica / pelea / megalodón
+  if (/\b(megalodon|tiburon|shark|kraken|leviatan|monster)\w*\b/.test(n)) return true;
+  if (/\b(batall|luchand|peleand|struggle|battl)\w*\b/.test(n)) return true;
+  // Presa (dique) + agua/barco/desierto
+  if (/\bpresa\b/.test(n) && /\b(bote|barco|pesc|agua|desiert|poblad|embalse|dique)\b/.test(n)) return true;
+  return false;
+}
+
+/** Pesca épica: hombre vs criatura marina (megalodón/tiburón) en presa/desierto. */
+export function escenaEsPescaEpica(texto) {
+  const n = sinAcentos(texto);
+  const criatura = /\b(megalodon|tiburon|shark|kraken|leviatan)\w*\b/.test(n);
+  const pescaOBote = /\b(pesc|cana|bote|barco|lancha|rod)\w*\b/.test(n);
+  const lucha = /\b(batall|luch|pelea|sacando|struggle|battl|pulling)\w*\b/.test(n);
+  return criatura && (pescaOBote || lucha);
 }
 
 /** Conducir por carretera / paisaje: coche + entorno exterior (no solo interior). */
@@ -494,6 +525,9 @@ export function clausulaProhibidos(texto) {
   }
   if (escenaEsDramatica(texto)) {
     bits.push('FORBIDDEN: peaceful lake postcard, calm flowers meadow, sunny tourist landscape. SHOW eruption/ash/lightning/drama.');
+  }
+  if (escenaEsPescaEpica(texto)) {
+    bits.push('FORBIDDEN: calm peaceful fishing, missing megalodon/shark, missing dam, green forest river instead of desert dam, tiny fish, yacht with rainbow postcard.');
   }
   if (escenaTieneDosPersonas(texto) && /\b(cafe|taza|escritorio|laptop)\b/.test(sinAcentos(texto))) {
     bits.push('FORBIDDEN: cropping to only one person; omitting the second person, the coffee cup, or the laptop/desk interaction.');
@@ -674,6 +708,7 @@ export function promptCortoParaFlux(original, promptEn = '') {
   const src = String(original || '').replace(/\s+/g, ' ').trim();
   const animal = escenaEsAnimalONaturaleza(src) && !escenaPidePersonas(src);
   const personas = escenaPidePersonas(src);
+  const epica = escenaEsPescaEpica(src) || escenaEsDramatica(src);
   // Traducir tokens al inglés: Flux entiende poco el español suelto.
   const mustEn = extraerElementos(src)
     .map((w) => {
@@ -681,7 +716,7 @@ export function promptCortoParaFlux(original, promptEn = '') {
       return en || w;
     })
     .filter(Boolean)
-    .slice(0, animal ? 14 : 12)
+    .slice(0, animal ? 14 : epica ? 16 : 12)
     .join(', ');
 
   let anclaEscena = '';
@@ -704,7 +739,11 @@ export function promptCortoParaFlux(original, promptEn = '') {
       : `SCENE: Photoreal wildlife close-up — named animals LARGE and clear in frame first: ${mustEn || src}. Habitat supports the animals (not an empty landscape). Animals only; no people, no women, no human bathers.`;
   } else if (escenaEsExteriorNoche(src) && (/\b(fogata|hoguera|campfire|bail|danz|noche|luna|estrellad)\b/.test(sinAcentos(src)))) {
     anclaEscena = `SCENE: Photoreal night outdoor wide shot — ${mustEn || 'woman, campfire, full moon, starry sky, forest'}. Tall bright campfire with orange flames and sparks; woman DANCING around the fire (dynamic pose, not standing still); large full moon and dense starry sky above the trees. All visible together. SFW opaque clothes.`;
-  } else if (/\b(yate|arcoiris|parque|amanecer|lago|yacht|rainbow|pesc)/.test(sinAcentos(src))) {
+  } else if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && /\b(pesc|cana|bote)\b/.test(sinAcentos(src)))) {
+    anclaEscena = `SCENE: Epic photoreal ACTION photo — ALL FOUR visible: (1) man braced in a SMALL fishing BOAT wrestling a deeply bent FISHING ROD with both hands, (2) GIANT MEGALODON prehistoric shark erupting from water beside the boat mouth open teeth visible huge splash, (3) tall concrete DAM wall behind, (4) arid DESERT TOWN / dry rocky mountains under bright sky. Man is BATTLING the megalodon — strain, spray, motion. FORBIDDEN: calm peaceful fishing, green forest river, autumn trees, yacht with rainbow, missing megalodon, missing dam.`;
+  } else if (/\b(yate|arcoiris|parque|amanecer|lago|yacht|rainbow)\b/.test(sinAcentos(src))
+    && !escenaEsDramatica(src)
+    && !escenaEsPescaEpica(src)) {
     const pidePesc = /\b(pesc\w*|fisherman|fishing|persona)\b/.test(sinAcentos(src));
     const beat = extraerBeatActuacion(src);
     anclaEscena = pidePesc
@@ -819,6 +858,12 @@ export function negativosParaEscena(original = '') {
   }
   if (escenaEsDramatica(original)) {
     base.push('peaceful lake', 'calm postcard', 'tourist flowers meadow', 'no eruption', 'no lightning');
+  }
+  if (escenaEsPescaEpica(original) || /\bmegalodon\b/.test(sinAcentos(original))) {
+    base.push(
+      'calm fishing', 'peaceful angler', 'missing megalodon', 'tiny fish', 'no shark',
+      'green forest river', 'missing dam', 'yacht with rainbow', 'tranquil fishing postcard',
+    );
   }
   if (escenaEsAnimalONaturaleza(original) && !escenaPidePersonas(original)) {
     base.push(
