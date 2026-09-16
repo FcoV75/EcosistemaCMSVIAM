@@ -38,6 +38,9 @@
 [functions.estudio-imagen]
   timeout = 90
 
+[functions.estudio-gemini-status]
+  timeout = 90
+
 [functions.estudio-director]
   timeout = 60
 
