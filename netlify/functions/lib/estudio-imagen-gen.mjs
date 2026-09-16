@@ -366,30 +366,37 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
 
 export async function generarImagenEstudio(promptEn, opts = {}) {
   const src = String(opts.original || promptEn || '');
-  // Escenas multi-sujeto / épicas: Gemini (probado con el prompt del megalodón) primero.
-  // Imagen 4 segundo. Fal/Flux solo si faltan claves Gemini — Flux obedece peor aquí.
-  if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && escenaPidePersonas(src))) {
+  const tieneGemini = !!(process.env.GEMINI_API_KEY || '').trim();
+
+  // Con GEMINI_API_KEY (Centro / ContacNeed): Gemini e Imagen 4 ANTES que Fal.
+  // En producción Fal ganaba siempre y la key de Gemini (sí funcional en Voz) nunca
+  // llegaba a generarse imagen.
+  const intentarGeminiPrimero = async () => {
+    if (!tieneGemini) return null;
     const gemini = await generarImagenGemini(promptEn, opts);
     if (gemini) return gemini;
     const imagen4 = await generarImagenImagen4(promptEn, opts);
     if (imagen4) return imagen4;
+    return null;
+  };
+
+  // Escenas multi-sujeto / épicas: Gemini primero (obediencia tipo Dola).
+  if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && escenaPidePersonas(src))) {
+    const g = await intentarGeminiPrimero();
+    if (g) return g;
     const fal = await generarImagenFal(promptEn, opts);
     if (fal) return fal;
     const replicate = await generarImagenReplicate(promptEn, opts);
     if (replicate) return replicate;
-    // Pollinations monolítico es último recurso (suele kaiju o postal sin megalodón).
     return generarImagenPollinations(promptEn, opts);
   }
 
-  // Orden general: Imagen 4 → Fal → Gemini → Replicate → Pollinations.
-  const imagen4 = await generarImagenImagen4(promptEn, opts);
-  if (imagen4) return imagen4;
+  // Orden general: Gemini → Imagen 4 → Fal → Replicate → Pollinations.
+  const g = await intentarGeminiPrimero();
+  if (g) return g;
 
   const fal = await generarImagenFal(promptEn, opts);
   if (fal) return fal;
-
-  const gemini = await generarImagenGemini(promptEn, opts);
-  if (gemini) return gemini;
 
   const replicate = await generarImagenReplicate(promptEn, opts);
   if (replicate) return replicate;
