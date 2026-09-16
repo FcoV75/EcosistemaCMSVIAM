@@ -67,10 +67,10 @@ assert.ok(inferenciasLocales(pantera).some((x) => /pantera|mono|brinc/i.test(x))
 
 const mega = 'un hombre arriba de un bote con una caña de pescar sacando del agua un megalodón en una presa en poblado desértico, se ve que el hombre esta batallando con el megalodón';
 const megaInfer = inferenciasLocales(mega);
-assert.ok(megaInfer.some((x) => /Batalla épica|megalod|forceje/i.test(x)));
+assert.ok(megaInfer.some((x) => /forceje|caña flexionada|megalodón|tiburón junto al bote|escala realista/i.test(x)));
 assert.ok(megaInfer.some((x) => /Megalodón|megalodón/i.test(x)));
-assert.ok(megaInfer.some((x) => /Presa|dique|desértico|árido/i.test(x)));
-assert.doesNotMatch(elegirResumenInferencias(megaInfer, mega), /tranquila de pesca/i);
-assert.match(elegirResumenInferencias(megaInfer, mega), /Batalla|épica|megalod|forceje/i);
+assert.ok(megaInfer.some((x) => /Presa|dique|desértico|árido|poblado/i.test(x)));
+assert.doesNotMatch(elegirResumenInferencias(megaInfer, mega), /tranquila de pesca|\bENORME\b/i);
+assert.match(elegirResumenInferencias(megaInfer, mega), /forceje|caña|megalod|realista|bote/i);
 
 console.log('estudio-director-semantico ok');

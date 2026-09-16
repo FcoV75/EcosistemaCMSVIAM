@@ -8,6 +8,8 @@ import sharp from 'sharp';
 import {
   escenaEsAnimalONaturaleza,
   escenaPidePersonas,
+  escenaEsPescaEpica,
+  escenaEsDramatica,
   negativosParaEscena,
   promptCortoParaFlux,
   seedDesdePrompt,
@@ -88,7 +90,12 @@ function textoEscena(promptEn, opts = {}) {
 export async function generarImagenGemini(promptEn, opts = {}) {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) return null;
+  const original = String(opts.original || '').trim();
   const hard = requisitosDurosEscena(textoEscena(promptEn, opts));
+  // Gemini obedece muy bien el español literal del usuario (caso megalodón).
+  const textoPedido = original
+    ? `Orden exacta del usuario (obedecer TODO): "${original}"\n\nClarificación EN: ${String(promptEn || '').slice(0, 900)}\n\nHard requirements: ${hard} Show EVERY named subject; photoreal 16:9; no text/watermark.`
+    : `${promptEn}\n\nHard requirements: ${hard} Show EVERY named subject and prop; ultra sharp 16:9 photoreal; no text.`;
   const modelos = [
     'gemini-2.5-flash-image',
     'gemini-2.5-flash-image-preview',
@@ -98,7 +105,7 @@ export async function generarImagenGemini(promptEn, opts = {}) {
   const cuerpo = {
     contents: [{
       parts: [{
-        text: `${promptEn}\n\nHard requirements: ${hard} Show EVERY named subject and prop; ultra sharp 16:9 photoreal; no text.`,
+        text: textoPedido,
       }],
     }],
     generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
@@ -138,7 +145,12 @@ export async function generarImagenGemini(promptEn, opts = {}) {
 export async function generarImagenFal(promptEn, opts = {}) {
   const key = (process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
   if (!key) return null;
+  const original = String(opts.original || '').trim();
   const hard = requisitosDurosEscena(textoEscena(promptEn, opts));
+  // Escenas épicas: prompt corto y fiel (Flux se pierde con dramatismo tipo kaiju).
+  const promptFal = (original && escenaEsPescaEpica(original))
+    ? `${promptCortoParaFlux(original, promptEn)}. ${hard}`
+    : `${String(promptEn || '').slice(0, 2100)}. ${hard}`;
   const modelos = [
     process.env.FAL_IMAGE_MODEL,
     'fal-ai/flux-pro/v1.1',
@@ -157,13 +169,13 @@ export async function generarImagenFal(promptEn, opts = {}) {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          prompt: `${String(promptEn || '').slice(0, 2100)}. ${hard}`,
+          prompt: promptFal.slice(0, 2500),
           image_size: 'landscape_16_9',
           num_images: 1,
           enable_safety_checker: true,
           output_format: 'jpeg',
           num_inference_steps: 28,
-          guidance_scale: 3.5,
+          guidance_scale: escenaEsPescaEpica(original) ? 4.5 : 3.5,
         }),
       }, 55000);
       const data = await r.json().catch(() => ({}));
@@ -336,7 +348,21 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
 }
 
 export async function generarImagenEstudio(promptEn, opts = {}) {
-  // Modelos fuertes primero: Imagen 4 y Fal dominan detalle/obediencia.
+  const src = String(opts.original || promptEn || '');
+  // Escenas multi-sujeto / épicas: Gemini e Imagen 4 obedecen mejor que Flux.
+  if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && escenaPidePersonas(src))) {
+    const imagen4 = await generarImagenImagen4(promptEn, opts);
+    if (imagen4) return imagen4;
+    const gemini = await generarImagenGemini(promptEn, opts);
+    if (gemini) return gemini;
+    const fal = await generarImagenFal(promptEn, opts);
+    if (fal) return fal;
+    const replicate = await generarImagenReplicate(promptEn, opts);
+    if (replicate) return replicate;
+    return generarImagenPollinations(promptEn, opts);
+  }
+
+  // Orden general: Imagen 4 → Fal → Gemini → Replicate → Pollinations.
   const imagen4 = await generarImagenImagen4(promptEn, opts);
   if (imagen4) return imagen4;
 

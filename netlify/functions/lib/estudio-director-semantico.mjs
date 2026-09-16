@@ -129,7 +129,7 @@ export function inferenciasLocales(orden) {
   }
   if (/\bpesc/.test(n)) {
     if (/\b(megalodon|tiburon|shark|kraken|batall|luch|pelea)\b/.test(n)) {
-      out.push('Batalla épica de pesca: caña flexionada, criatura marina ENORME emergiendo del agua, hombre forcejeando — NUNCA pesca tranquila de postal.');
+      out.push('Hombre en bote forcejeando con caña flexionada contra el megalodón/tiburón junto al bote; escala realista de lucha (no monstruo tamaño montaña).');
     } else if (/\btranquil/.test(n)) {
       out.push('Persona pescando con caña visible, acción tranquila de pesca.');
     } else {
@@ -137,13 +137,13 @@ export function inferenciasLocales(orden) {
     }
   }
   if (/\bmegalodon\b/.test(n)) {
-    out.push('Megalodón (tiburón prehistórico gigante) visible emergiendo / siendo izado: tamaño monstruoso, mandíbula y salpicadura; no omitirlo ni sustituirlo por pez chico.');
+    out.push('Megalodón visible emergiendo del agua junto al bote: más grande que el bote pero NO del tamaño de una montaña ni llenando el cielo; mandíbula y salpicadura claras.');
   }
   if (/\bpresa\b/.test(n) && /\b(bote|barco|pesc|agua|desiert|poblad)\b/.test(n)) {
-    out.push('Presa/dique de concreto visible en el fondo del embalse; no un río de bosque verde genérico.');
+    out.push('Presa/dique de concreto o embalse desértico visible; no un fiordo brumoso ni río de bosque verde.');
   }
   if (/\b(desiert|poblad)\b/.test(n)) {
-    out.push('Poblado desértico / entorno árido seco (montañas rocosas, pueblo seco), no bosque húmedo ni otoño verde.');
+    out.push('Poblado desértico con casas/edificios áridos visibles en la orilla; montañas secas, luz de día clara.');
   }
   if (/\bpantera\b/.test(n) && /\bmono|capuchin/.test(n)) {
     out.push('Pantera acechando/acercándose al mono capuchino en el árbol; el mono a punto de brincar de rama — ambos animales claros y en acción.');

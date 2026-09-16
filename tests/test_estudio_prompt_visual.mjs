@@ -224,9 +224,10 @@ const megaMust = clausulaMustInclude(megaPrompt);
 assert.match(megaMust, /megalodon|megalodón/i);
 assert.match(megaMust, /bote|boat|cana|fishing rod|presa|dam|desiert|desert|batall/i);
 const megaCorto = promptCortoParaFlux(megaPrompt, '');
-assert.match(megaCorto, /MEGALODON|megalodon|shark/i);
-assert.match(megaCorto, /DAM|desert|battl|struggl|ACTION|ALL FOUR|FISHING ROD/i);
-assert.doesNotMatch(megaCorto, /YACHT deck|arched bright rainbow|Dawn lakeside MEDIUM SHOT/i);
+assert.match(megaCorto, /megalodon/i);
+assert.match(megaCorto, /desert|dam|boat|fishing rod|battl/i);
+assert.match(megaCorto, /not mountain-sized|wide|24-35mm/i);
+assert.doesNotMatch(megaCorto, /YACHT deck|arched bright rainbow|Dawn lakeside MEDIUM SHOT|GIANT MEGALODON/i);
 assert.match(clausulaProhibidos(megaPrompt), /megalodon|calm peaceful fishing|yacht with rainbow/i);
 assert.match(negativosParaEscena(megaPrompt), /missing megalodon|calm fishing|yacht with rainbow/i);
 

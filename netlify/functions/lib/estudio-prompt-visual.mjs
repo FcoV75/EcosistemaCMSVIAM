@@ -527,7 +527,7 @@ export function clausulaProhibidos(texto) {
     bits.push('FORBIDDEN: peaceful lake postcard, calm flowers meadow, sunny tourist landscape. SHOW eruption/ash/lightning/drama.');
   }
   if (escenaEsPescaEpica(texto)) {
-    bits.push('FORBIDDEN: calm peaceful fishing, missing megalodon/shark, missing dam, green forest river instead of desert dam, tiny fish, yacht with rainbow postcard.');
+    bits.push('FORBIDDEN: calm peaceful fishing, missing megalodon/shark, missing dam, green forest river instead of desert dam, tiny fish, yacht with rainbow postcard, mountain-sized kaiju shark filling the sky, tiny unreadable fisherman.');
   }
   if (escenaTieneDosPersonas(texto) && /\b(cafe|taza|escritorio|laptop)\b/.test(sinAcentos(texto))) {
     bits.push('FORBIDDEN: cropping to only one person; omitting the second person, the coffee cup, or the laptop/desk interaction.');
@@ -606,7 +606,11 @@ export function promptImagenReforzado(promptEn, original = '') {
   const leadAnimal = animal
     ? 'PRIMARY SUBJECTS ARE THE NAMED ANIMALS (fill most of the frame). '
     : '';
-  return `${leadAnimal}${must}Photorealistic 16:9 still. ${paisaje}${calidad} Do not replace or simplify the scene.${ancla}${prohibidos} ${p}`
+  // Pesca épica: abrir con traducción fiel (Gemini obedece el prompt simple; no sobre-dramatizar).
+  const leadEpica = escenaEsPescaEpica(src)
+    ? 'Photoreal wide shot: a man on a small boat with a fishing rod pulling a megalodon out of the water at a dam in a desert town; the man is battling the megalodon. Realistic fight scale (megalodon bigger than the boat, not mountain-sized). '
+    : '';
+  return `${leadEpica}${leadAnimal}${must}Photorealistic 16:9 still. ${paisaje}${calidad} Do not replace or simplify the scene.${ancla}${prohibidos} ${p}`
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -740,7 +744,8 @@ export function promptCortoParaFlux(original, promptEn = '') {
   } else if (escenaEsExteriorNoche(src) && (/\b(fogata|hoguera|campfire|bail|danz|noche|luna|estrellad)\b/.test(sinAcentos(src)))) {
     anclaEscena = `SCENE: Photoreal night outdoor wide shot — ${mustEn || 'woman, campfire, full moon, starry sky, forest'}. Tall bright campfire with orange flames and sparks; woman DANCING around the fire (dynamic pose, not standing still); large full moon and dense starry sky above the trees. All visible together. SFW opaque clothes.`;
   } else if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && /\b(pesc|cana|bote)\b/.test(sinAcentos(src)))) {
-    anclaEscena = `SCENE: Epic photoreal ACTION photo — ALL FOUR visible: (1) man braced in a SMALL fishing BOAT wrestling a deeply bent FISHING ROD with both hands, (2) GIANT MEGALODON prehistoric shark erupting from water beside the boat mouth open teeth visible huge splash, (3) tall concrete DAM wall behind, (4) arid DESERT TOWN / dry rocky mountains under bright sky. Man is BATTLING the megalodon — strain, spray, motion. FORBIDDEN: calm peaceful fishing, green forest river, autumn trees, yacht with rainbow, missing megalodon, missing dam.`;
+    // Prompt corto y fiel (Gemini obedece esto; Flux se pierde si lo sobre-dramatizamos).
+    anclaEscena = `Photoreal wide shot: a man on a small boat with a fishing rod pulling a megalodon out of the water at a dam in a desert town; the man is battling the megalodon. Man clearly visible leaning back, rod bent, megalodon beside the boat (larger than the boat, not mountain-sized). Desert village and dam shore visible. Bright daylight.`;
   } else if (/\b(yate|arcoiris|parque|amanecer|lago|yacht|rainbow)\b/.test(sinAcentos(src))
     && !escenaEsDramatica(src)
     && !escenaEsPescaEpica(src)) {
@@ -760,6 +765,7 @@ export function promptCortoParaFlux(original, promptEn = '') {
   }
 
   const exteriorNoche = escenaEsExteriorNoche(src);
+  const pescaEpica = escenaEsPescaEpica(src) || (escenaEsDramatica(src) && /\b(pesc|cana|bote)\b/.test(sinAcentos(src)));
   const reglasTxt = (animal
     ? [
         '16:9 hyperrealistic wildlife documentary framing.',
@@ -776,6 +782,12 @@ export function promptCortoParaFlux(original, promptEn = '') {
           mustEn ? `MUST SHOW: ${mustEn}.` : '',
           'FORBIDDEN: missing campfire, missing moon, static mannequin pose when dancing asked.',
           'No text, no logo, no watermark.',
+        ]
+    : pescaEpica
+      ? [
+          'SFW clothes. Wide 24-35mm. Man+boat+rod+megalodon+desert dam town readable.',
+          'No kaiju mountain shark. No text/logo/watermark.',
+          mustEn ? `MUST SHOW: ${mustEn}.` : '',
         ]
     : [
         personas ? 'SFW opaque clothes.' : 'No invented people unless asked.',
@@ -863,6 +875,8 @@ export function negativosParaEscena(original = '') {
     base.push(
       'calm fishing', 'peaceful angler', 'missing megalodon', 'tiny fish', 'no shark',
       'green forest river', 'missing dam', 'yacht with rainbow', 'tranquil fishing postcard',
+      'mountain-sized shark', 'kaiju', 'godzilla shark', 'shark bigger than mountains', 'shark in the clouds',
+      'tiny unreadable fisherman', 'missing fishing rod', 'missing desert town', 'missing village',
     );
   }
   if (escenaEsAnimalONaturaleza(original) && !escenaPidePersonas(original)) {
