@@ -8,8 +8,8 @@ import {
 } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
-/** Usar casi todo el timeout Netlify (60s); dejar margen de respuesta. */
-const BUDGET_CLIP_MS = 52000;
+/** Usar casi todo el timeout Netlify (90s); dejar margen. */
+const BUDGET_CLIP_MS = 78000;
 
 function tiempoRestante(inicio, budget = BUDGET_CLIP_MS) {
   return Math.max(0, budget - (Date.now() - inicio));
@@ -59,7 +59,7 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
   };
   const dur = Math.max(5, Math.min(10, Math.round(Number(segundos) || 8)));
 
-  for (const model of modelos.slice(0, 2)) {
+  for (const model of modelos.slice(0, 1)) {
     try {
       const r = await fetch(`https://queue.fal.run/${model}`, {
         method: 'POST',
@@ -238,6 +238,60 @@ async function generarClipFalT2V(promptEn, segundos, maxWaitMs = 16000) {
   return null;
 }
 
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Ecosistema-Token',
+    'Cache-Control': 'no-cache, no-transform',
+    'X-Content-Type-Options': 'nosniff',
+  };
+}
+
+/** NDJSON con pings: Safari corta si no recibe bytes (~Inactivity Timeout). */
+function ndjsonClipResponse(trabajoAsync) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const write = (obj) => {
+        controller.enqueue(encoder.encode(`${JSON.stringify(obj)}\n`));
+      };
+      const ping = setInterval(() => {
+        try {
+          write({ type: 'ping', t: Date.now() });
+        } catch {
+          /* stream cerrado */
+        }
+      }, 3500);
+      try {
+        write({ type: 'status', msg: 'Director y placa en marcha…' });
+        const result = await trabajoAsync(write);
+        write({ type: 'result', ...result });
+      } catch (err) {
+        write({
+          type: 'result',
+          success: false,
+          error: String(err?.message || err),
+        });
+      } finally {
+        clearInterval(ping);
+        try {
+          controller.close();
+        } catch {
+          /* ignore */
+        }
+      }
+    },
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      ...corsHeaders(),
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
+    },
+  });
+}
+
 export default async (req) => {
   const guard = await guardRailwayRequest(req, {
     product: 'video_diamante_premium',
@@ -248,15 +302,22 @@ export default async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const inicio = Date.now();
+  let body;
   try {
-    const body = await req.json();
+    body = await req.json();
+  } catch {
+    return jsonResponse({ error: 'JSON inválido.' }, 400);
+  }
+
+  return ndjsonClipResponse(async (write) => {
     const prompt = String(body.prompt || '').trim();
-    if (!prompt) return jsonResponse({ error: 'Describe el clip que quieres generar.' }, 400);
+    if (!prompt) return { success: false, error: 'Describe el clip que quieres generar.' };
 
     const lim = limitesClipPara(guard.payload);
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
     const pideActuacion = escenaPideActuacion(prompt);
 
+    write({ type: 'status', msg: `Creando clip de ${duracion} s (actuación del sujeto)…` });
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
     const promptEn = expansion.promptEn;
     const motionPrompt = promptMotionParaVideo(prompt, promptEn);
@@ -270,7 +331,7 @@ export default async (req) => {
         }
       : null;
 
-    // 1) Placa obediente primero (base de I2V y de fallback).
+    write({ type: 'status', msg: 'Generando placa obediente…' });
     const cine = await generarImagenEstudio(promptEn, {
       width: 1920,
       height: 1080,
@@ -278,29 +339,28 @@ export default async (req) => {
       original: prompt,
     });
     if (!cine?.imagen_base64) {
-      return jsonResponse({
-        error: 'No se pudo generar la placa del clip. Intenta de nuevo.',
-      }, 502);
+      return { success: false, error: 'No se pudo generar la placa del clip. Intenta de nuevo.' };
     }
 
     let nativo = null;
     let motivoFallback = '';
 
-    // 2) Prioridad: I2V (anima la placa → actuación real, no solo zoom).
-    const waitI2V = Math.min(24000, tiempoRestante(inicio) - 4000);
-    if (waitI2V >= 8000) {
+    // Un solo intento I2V fuerte (evitar encadenar timeouts).
+    const waitI2V = Math.min(20000, tiempoRestante(inicio) - 8000);
+    if (waitI2V >= 9000) {
+      write({ type: 'status', msg: 'Animando actuación (I2V)…' });
       try {
         nativo = await generarClipFalI2V(cine, motionPrompt, duracion, waitI2V);
       } catch (err) {
         console.warn('Fal I2V clip:', err?.message || err);
       }
-      if (!nativo && tiempoRestante(inicio) > 9000) {
+      if (!nativo && tiempoRestante(inicio) > 12000) {
         try {
           nativo = await generarClipViduI2V(
             cine,
             motionPrompt,
             duracion,
-            Math.min(20000, tiempoRestante(inicio) - 3000),
+            Math.min(16000, tiempoRestante(inicio) - 5000),
           );
         } catch (err) {
           console.warn('Vidu I2V clip:', err?.message || err);
@@ -310,32 +370,22 @@ export default async (req) => {
       motivoFallback = 'presupuesto_corto_i2v';
     }
 
-    // 3) Si no hubo I2V, un intento T2V con el prompt de actuación.
-    if (!nativo && tiempoRestante(inicio) > 10000) {
+    // T2V solo si aún hay margen amplio.
+    if (!nativo && tiempoRestante(inicio) > 16000) {
+      write({ type: 'status', msg: 'Intentando video nativo T2V…' });
       try {
         nativo = await generarClipViduT2V(
           motionPrompt || promptEn,
           duracion,
-          Math.min(18000, tiempoRestante(inicio) - 3000),
+          Math.min(14000, tiempoRestante(inicio) - 5000),
         );
       } catch (err) {
         console.warn('Vidu T2V clip:', err?.message || err);
       }
     }
-    if (!nativo && tiempoRestante(inicio) > 10000) {
-      try {
-        nativo = await generarClipFalT2V(
-          motionPrompt || promptEn,
-          duracion,
-          Math.min(18000, tiempoRestante(inicio) - 3000),
-        );
-      } catch (err) {
-        console.warn('Fal T2V clip:', err?.message || err);
-      }
-    }
 
     if (nativo?.video_url) {
-      return jsonResponse({
+      return {
         success: true,
         tipo: 'video',
         video_url: nativo.video_url,
@@ -350,7 +400,7 @@ export default async (req) => {
         aviso: nativo.actuacion
           ? `Clip nativo con actuación/movimiento del sujeto (${nativo.fuente}).`
           : undefined,
-      });
+      };
     }
 
     if (!motivoFallback) {
@@ -361,10 +411,11 @@ export default async (req) => {
     }
 
     const avisoActuacion = pideActuacion
-      ? ` Solo zoom/paneo de cámara sobre la placa — NO hay baile/actuación del sujeto (fallback ${motivoFallback}). Reintenta; con Fal/Vidu I2V sí debe danzar.`
+      ? ` Solo cámara sobre la placa — aún sin actuación nativa (fallback ${motivoFallback}). Reintenta; con Fal/Vidu I2V el sujeto sí debe moverse.`
       : ` Placa + Ken Burns (fallback ${motivoFallback}).`;
 
-    return jsonResponse({
+    write({ type: 'status', msg: 'Entregando placa (fallback cámara)…' });
+    return {
       success: true,
       tipo: 'cinematico',
       imagen_base64: cine.imagen_base64,
@@ -381,14 +432,6 @@ export default async (req) => {
       via_prompt: expansion.via || '',
       director: metaDirector,
       aviso: `Clip de ${duracion} s (placa+cámara).${avisoActuacion}`,
-    });
-  } catch (e) {
-    const msg = String(e?.message || e);
-    if (/abort|timeout|inactivity/i.test(msg)) {
-      return jsonResponse({
-        error: 'El clip tardó demasiado. Intenta de nuevo; si pide baile/actuación, reintenta para forzar video nativo.',
-      }, 504);
-    }
-    return jsonResponse({ error: msg }, 500);
-  }
+    };
+  });
 };

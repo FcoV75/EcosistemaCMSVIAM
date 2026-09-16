@@ -33,7 +33,7 @@
   timeout = 90
 
 [functions.estudio-clip]
-  timeout = 60
+  timeout = 90
 
 [functions.estudio-imagen]
   timeout = 90

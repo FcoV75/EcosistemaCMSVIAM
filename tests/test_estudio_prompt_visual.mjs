@@ -182,6 +182,26 @@ const fogataMotion = promptMotionParaVideo(fogataPrompt, '');
 assert.match(fogataMotion, /SUBJECT PERFORMANCE|dancing|campfire|Ken Burns/i);
 assert.match(negativosParaEscena(fogataPrompt), /missing campfire|missing full moon|static standing/i);
 
+// Parque + arcoíris + yate + pesca (caso real del usuario).
+const yatePrompt = 'un parque en el amanecer con un arcoiris brillante en un lago en donde esta un yate con una persona pescando tranquilamente';
+assert.ok(escenaPidePaisaje(yatePrompt));
+assert.ok(escenaPideActuacion(yatePrompt));
+const yateMust = clausulaMustInclude(yatePrompt);
+assert.match(yateMust, /yacht \(yate\)|yate/i);
+assert.match(yateMust, /rainbow \(arcoiris\)|arcoiris|arco iris/i);
+assert.match(yateMust, /park|parque|lake|lago|fishing|pescando/i);
+assert.match(clausulaProhibidos(yatePrompt), /yacht|rainbow|arco/i);
+const yateCorto = promptCortoParaFlux(yatePrompt, '');
+assert.match(yateCorto, /yacht|rainbow|fishing|dawn|park|lake/i);
+assert.doesNotMatch(yateCorto, /Indoor setting|campfire|DANCING around the fire/i);
+
+// Pantera + mono: actuación animal.
+const panteraPrompt = 'una pantera arriba de un árbol acercándose lentamente a un mono capuchino que está a punto de brincar a otra rama del mismo árbol';
+assert.ok(escenaPideActuacion(panteraPrompt));
+assert.ok(escenaEsAnimalONaturaleza(panteraPrompt));
+assert.match(clausulaMustInclude(panteraPrompt), /panther|pantera|monkey|mono|capuchin|branch|rama/i);
+assert.match(promptMotionParaVideo(panteraPrompt, ''), /SUBJECT PERFORMANCE|continuous logical action|MOVE for real/i);
+
 const s1 = seedDesdePrompt('escena A');
 const s2 = seedDesdePrompt('escena B distinta');
 assert.ok(Number.isFinite(s1) && Number.isFinite(s2));

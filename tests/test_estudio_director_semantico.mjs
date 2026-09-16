@@ -56,4 +56,13 @@ assert.ok(fogataInfer.some((x) => /BAILA|baila|movimiento|vestido/i.test(x)));
 assert.ok(fogataInfer.some((x) => /luna llena/i.test(x)));
 assert.ok(fogataInfer.some((x) => /estrellad/i.test(x)));
 
+const yate = 'un parque en el amanecer con un arcoiris brillante en un lago en donde esta un yate con una persona pescando tranquilamente';
+const yateInfer = inferenciasLocales(yate);
+assert.ok(yateInfer.some((x) => /arcoíris|Arcoíris|arcoiris/i.test(x)));
+assert.ok(yateInfer.some((x) => /yate|barco/i.test(x)));
+assert.ok(yateInfer.some((x) => /pesc/i.test(x)));
+
+const pantera = 'una pantera arriba de un árbol acercándose lentamente a un mono capuchino que está a punto de brincar a otra rama del mismo árbol';
+assert.ok(inferenciasLocales(pantera).some((x) => /pantera|mono|brinc/i.test(x)));
+
 console.log('estudio-director-semantico ok');

@@ -30,6 +30,36 @@ const GLOSARIO_VISUAL = {
   mar: 'ocean',
   rio: 'river',
   lago: 'lake',
+  parque: 'park',
+  yate: 'yacht',
+  yates: 'yachts',
+  barco: 'boat',
+  lancha: 'motorboat',
+  arcoiris: 'rainbow',
+  'arco iris': 'rainbow',
+  pantera: 'panther',
+  panteras: 'panthers',
+  jaguar: 'jaguar',
+  leopardo: 'leopard',
+  mono: 'monkey',
+  monos: 'monkeys',
+  capuchino: 'capuchin monkey',
+  capuchinos: 'capuchin monkeys',
+  arbol: 'tree',
+  arboles: 'trees',
+  rama: 'branch',
+  ramas: 'branches',
+  pescando: 'fishing',
+  pescador: 'fisherman',
+  pescar: 'fishing',
+  acercandose: 'approaching',
+  acercando: 'approaching',
+  brincar: 'jumping',
+  brincando: 'jumping',
+  saltando: 'jumping',
+  lentamente: 'slowly',
+  tranquilamente: 'peacefully',
+  brillante: 'bright',
   sol: 'sun',
   luna: 'moon',
   cielo: 'sky',
@@ -199,26 +229,43 @@ export function extraerElementos(prompt) {
     'camara', 'lenta', 'lento', 'progresivo', 'acabando', 'saliendo', 'juntos', 'entre', 'sobre',
     'desde', 'hacia', 'como', 'muy', 'mas', 'todo', 'toda', 'todos', 'todas', 'este', 'esta',
     'estos', 'estas', 'ese', 'esa', 'aquel', 'aquella', 'cada', 'otro', 'otra', 'observando',
-    'usando', 'haciendo', 'siendo', 'tienen', 'tiene', 'donde', 'cuando', 'mientras',
+    'usando', 'siendo', 'tienen', 'tiene', 'donde', 'cuando', 'mientras',
     'volando', 'vuela', 'vuelo', 'brillantes', 'variados', 'colores', 'libando', 'hermosa',
-    'hermoso', 'esta', 'este', 'recien', 'recibirlo', 'obsequiandole', 'trabajando',
-    'haciendo', 'alta', 'alto', 'vista', 'hay', 'muy', 'recien',
-    'misma', 'mismo', 'completo', 'completa', 'cuerpo', 'si', 'esta',
+    'hermoso', 'recien', 'recibirlo', 'obsequiandole', 'trabajando', 'haciendo',
+    'alta', 'alto', 'vista', 'hay',
+    'misma', 'mismo', 'si',
     'alrededor', 'bajo', 'junto', 'cerca', 'medio', 'media',
   ]);
-  const palabras = escena.split(' ').map((w) => w.trim()).filter((w) => {
+  // Frases multi-palabra primero (no se pierdan en el split).
+  const frases = [];
+  const nEscena = sinAcentos(escena);
+  const frasesGlosario = Object.keys(GLOSARIO_VISUAL)
+    .filter((k) => k.includes(' '))
+    .sort((a, b) => b.length - a.length);
+  let resto = escena;
+  for (const fr of frasesGlosario) {
+    const nFr = sinAcentos(fr);
+    if (nEscena.includes(nFr)) {
+      frases.push(fr);
+      resto = resto.replace(new RegExp(fr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ');
+      // también quitar versión sin acentos aproximada
+      resto = resto.replace(new RegExp(nFr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ');
+    }
+  }
+  const palabras = resto.split(' ').map((w) => w.trim()).filter((w) => {
     const n = sinAcentos(w);
     return n.length >= 3 && !stop.has(n) && !/^\d+$/.test(n);
   });
   const vistos = new Set();
   const unicas = [];
-  for (const w of palabras) {
+  for (const w of [...frases, ...palabras]) {
     const k = sinAcentos(w);
     if (vistos.has(k)) continue;
     vistos.add(k);
     unicas.push(w);
   }
-  return unicas.slice(0, 14);
+  // Hasta 24: nada importante debe caerse por cupo corto.
+  return unicas.slice(0, 24);
 }
 
 export function traducirElemento(palabra) {
@@ -234,7 +281,7 @@ export function clausulaMustInclude(prompt) {
 
 export function escenaPidePaisaje(texto) {
   const n = sinAcentos(texto);
-  return /\b(montana|rio|orilla|bosque|selva|playa|valle|atardecer|amanecer|paisaje|landscape|river|mountain|forest|beach|jungle|sunset|dawn|lake|lago|volcan|isla|erupcion|noche|luna|fogata|hoguera|estrellad|campfire|cielo)\b/.test(n);
+  return /\b(montana|rio|orilla|bosque|selva|playa|valle|atardecer|amanecer|paisaje|landscape|river|mountain|forest|beach|jungle|sunset|dawn|lake|lago|volcan|isla|erupcion|noche|luna|fogata|hoguera|estrellad|campfire|cielo|parque|arcoiris|yate|barco)\b/.test(n);
 }
 
 /** Exterior nocturno / fogata / luna / estrellas (no tratar como interior). */
@@ -247,7 +294,7 @@ export function escenaEsExteriorNoche(texto) {
 /** ¿Pide actuación / baile / movimiento del sujeto (no solo cámara)? */
 export function escenaPideActuacion(texto) {
   const n = sinAcentos(texto);
-  return /\b(bail|danz|danc|actu|gesticul|camin|corr|gira|girando|salta|saltando|abraza|abrazando|pelea|luch|nadand|swimming|dancing|running|walking)\w*\b/.test(n);
+  return /\b(bail|danz|danc|actu|gesticul|camin|corr|gira|girando|salta|saltando|brinc|abraza|abrazando|pelea|luch|nadand|swimming|dancing|running|walking|acerc|acech|caz|pesc|jump|approach|stalk|hunt|fish|predator)\w*\b/.test(n);
 }
 
 /** Interior real (props de cuarto/oficina). Personas al aire libre NO cuentan como interior. */
@@ -320,8 +367,8 @@ export function escenaTieneDosPersonas(texto) {
 /** Escena de animales / naturaleza sin personas pedidas. */
 export function escenaEsAnimalONaturaleza(texto) {
   const n = sinAcentos(texto);
-  const animal = /\b(cangrejo|anguila|pez|peces|tiburon|delfin|ballena|pulpo|medusa|serpiente|leon|tigre|oso|lobo|mono|elefante|insecto|mariposa|venado|ciervo|cebra|colibri|pajaro|aguila|caballo|perro|gato|camaleon|animal|animals|crab|eel|fish|bird|deer|zebra)\w*\b/.test(n);
-  const persona = /\b(mujer|hombre|persona|novio|novia|chico|chica|afroamerican|ucranian|oriental|pareja|retratro|retrato)\w*\b/.test(n);
+  const animal = /\b(cangrejo|anguila|pez|peces|tiburon|delfin|ballena|pulpo|medusa|serpiente|leon|tigre|oso|lobo|mono|elefante|insecto|mariposa|venado|ciervo|cebra|colibri|pajaro|aguila|caballo|perro|gato|camaleon|pantera|jaguar|leopardo|animal|animals|crab|eel|fish|bird|deer|zebra|panther|monkey|capuchin)\w*\b/.test(n);
+  const persona = /\b(mujer|hombre|persona|novio|novia|chico|chica|afroamerican|ucranian|oriental|pareja|retratro|retrato|pescador)\w*\b/.test(n);
   return animal && !persona;
 }
 
@@ -405,7 +452,16 @@ export function clausulaCalidadComposicion(texto) {
     partes.push(' Outdoor night environmental shot (24–35mm feel): tall campfire with orange firelight and sparks if asked; large full moon and dense starry sky visible; forest/setting fully shown — not a foggy empty clearing without fire/moon.');
   }
   if (escenaPideActuacion(texto)) {
-    partes.push(' Subject mid-ACTION (dancing/moving) with dynamic body pose — not a static standing silhouette.');
+    partes.push(' Subject mid-ACTION (dancing/moving/hunting/jumping/fishing) with dynamic body pose — not a static standing silhouette.');
+  }
+  if (/\b(arcoiris|rainbow)\b/.test(n)) {
+    partes.push(' Bright full rainbow clearly arched in the sky over the scene — unmistakable, colorful, not omitted.');
+  }
+  if (/\b(yate|yacht|barco|boat)\b/.test(n)) {
+    partes.push(' Yacht/boat clearly visible on the water — hull and size readable, not replaced by shore-only fishing.');
+  }
+  if (/\b(pantera|panther|mono|monkey|capuchin)\b/.test(n)) {
+    partes.push(' Named animals fully visible with correct species: panther and/or capuchin monkey on tree branches as asked.');
   }
   return partes.join('');
 }
@@ -420,6 +476,12 @@ export function clausulaProhibidos(texto) {
   }
   if (escenaEsExteriorNoche(texto)) {
     bits.push('FORBIDDEN: missing campfire when asked, missing full moon, missing starry sky, indoor studio, empty foggy forest with no fire, static posed mannequin when dancing was asked.');
+  }
+  if (/\b(arcoiris|rainbow)\b/.test(sinAcentos(texto))) {
+    bits.push('FORBIDDEN: missing rainbow, empty sky without rainbow when rainbow was asked.');
+  }
+  if (/\b(yate|yacht|barco|boat)\b/.test(sinAcentos(texto))) {
+    bits.push('FORBIDDEN: missing yacht/boat, replacing yacht with shore-only fisherman.');
   }
   if (escenaEsDramatica(texto)) {
     bits.push('FORBIDDEN: peaceful lake postcard, calm flowers meadow, sunny tourist landscape. SHOW eruption/ash/lightning/drama.');
@@ -539,11 +601,11 @@ export function promptMotionParaVideo(original = '', promptEn = '') {
     .join(', ');
   if (actuacion) {
     return [
-      `Animate the exact scene with SUBJECT PERFORMANCE: ${mustEn || src}.`,
-      'Woman dancing around a tall campfire if asked; full-body dance motion, spinning/stepping, dress and hair moving.',
-      'Campfire flames flickering, sparks rising, full moon and starry sky stable in background.',
-      'Camera mostly locked wide shot; prioritize body acting over Ken Burns zoom.',
-      'SFW clothed, photoreal, 16:9, no text, no watermark.',
+      `Animate the exact scene with SUBJECT PERFORMANCE and continuous logical action: ${mustEn || src}.`,
+      'Animals/people MOVE for real: limbs, approach, jump, swim, dance, fish — not a frozen still.',
+      'Environment also lives: fire flickers, water ripples, leaves stir, sparks/rain if asked.',
+      'Camera mostly locked wide or gentle orbit; NEVER only Ken Burns zoom/pan on a still plate.',
+      'SFW clothed when humans, photoreal, 16:9, no text, no watermark.',
       en ? `Context: ${en.slice(0, 500)}` : '',
     ].filter(Boolean).join(' ').slice(0, 1400);
   }
@@ -582,8 +644,12 @@ export function promptCortoParaFlux(original, promptEn = '') {
     anclaEscena = esCangrejo
       ? `SCENE: A crab swimming among electric eels in a fast-flowing mountain river — photoreal wildlife close-up. Named animals first and large in frame: ${mustEn || 'crab, electric eels'}. Clear crab body/claws + several electric eels in rushing water between mountains. Animals only; no people, no women, no human bathers, no group of girls.`
       : `SCENE: Photoreal wildlife close-up — named animals LARGE and clear in frame first: ${mustEn || src}. Habitat supports the animals (not an empty landscape). Animals only; no people, no women, no human bathers.`;
-  } else if (escenaEsExteriorNoche(src) || (personas && escenaPideActuacion(src) && escenaPidePaisaje(src))) {
+  } else if (escenaEsExteriorNoche(src) && (/\b(fogata|hoguera|campfire|bail|danz|noche|luna|estrellad)\b/.test(sinAcentos(src)))) {
     anclaEscena = `SCENE: Photoreal night outdoor wide shot — ${mustEn || 'woman, campfire, full moon, starry sky, forest'}. Tall bright campfire with orange flames and sparks; woman DANCING around the fire (dynamic pose, not standing still); large full moon and dense starry sky above the trees. All visible together. SFW opaque clothes.`;
+  } else if (/\b(yate|arcoiris|parque|amanecer|lago|yacht|rainbow|pesc)\b/.test(sinAcentos(src))) {
+    anclaEscena = `SCENE: Photoreal wide landscape at dawn — ${mustEn || src}. MUST show TOGETHER: park lakeside at sunrise, bright colorful rainbow arched in the sky, yacht floating on the lake, person fishing peacefully with a rod. Never drop yacht or rainbow.`;
+  } else if (personas && escenaPideActuacion(src) && escenaPidePaisaje(src) && !/\b(yate|arcoiris|rainbow|yacht)\b/.test(sinAcentos(src))) {
+    anclaEscena = `SCENE: Photoreal outdoor action shot — ${mustEn || src}. Subject mid-action in the described place; full environment visible; SFW clothes.`;
   } else if (!personas) {
     anclaEscena = `SCENE (exact): ${mustEn ? `${mustEn}. ${src}` : src}. Photoreal award-winning photo of the place/objects described — do not invent people.`;
   } else {
@@ -657,6 +723,12 @@ export function negativosParaEscena(original = '') {
       'missing campfire', 'no fire', 'no flames', 'missing full moon', 'empty dark sky no stars',
       'indoor studio', 'static standing pose when dancing', 'mannequin pose', 'foggy empty clearing without fire',
     );
+  }
+  if (/\b(arcoiris|rainbow)\b/.test(sinAcentos(original))) {
+    base.push('missing rainbow', 'no rainbow', 'empty sky without rainbow');
+  }
+  if (/\b(yate|yacht|barco|boat)\b/.test(sinAcentos(original))) {
+    base.push('missing yacht', 'missing boat', 'no yacht on water');
   }
   if (escenaTieneDosPersonas(original) && /\b(cafe|taza|escritorio|laptop)\b/.test(sinAcentos(original))) {
     base.push('only one person', 'missing boyfriend', 'missing coffee cup', 'close-up crop');

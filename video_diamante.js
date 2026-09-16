@@ -248,7 +248,7 @@ function actualizarPreviewTipografia() {
     ctx.fillText(hintPx, w / 2, 48);
 }
 
-async function fetchEstudio(endpoint, body, { timeoutMs } = {}) {
+async function fetchEstudio(endpoint, body, { timeoutMs, onStatus } = {}) {
     await ensureAccessToken();
     let fn = "estudio-imagen";
     if (endpoint.includes("letra")) fn = "estudio-letra";
@@ -264,14 +264,23 @@ async function fetchEstudio(endpoint, body, { timeoutMs } = {}) {
             body: JSON.stringify(body),
             signal: ctrl?.signal
         });
-        const d2 = await parseJsonSeguro(r2);
+        const d2 = await parseEstudioResponse(r2, onStatus);
         return { ok: r2.ok, data: d2 };
     } catch (err) {
+        const msg = String(err?.message || err || "");
         if (err?.name === "AbortError") {
             return {
                 ok: false,
                 data: {
-                    error: "La petición tardó demasiado (timeout). Vuelve a intentar; si el texto es largo, acórtalo un poco."
+                    error: "La petición tardó demasiado (timeout). Vuelve a intentar; el clip puede necesitar un segundo intento."
+                }
+            };
+        }
+        if (/inactivity timeout|too much time has passed/i.test(msg)) {
+            return {
+                ok: false,
+                data: {
+                    error: "Inactivity Timeout: la conexión quedó en silencio. Reintenta el clip; ya enviamos heartbeats para evitarlo."
                 }
             };
         }
@@ -860,8 +869,15 @@ async function generarClipIA() {
     if (status) status.textContent = `Creando clip de ${duracionSeg} s...`;
 
     try {
-        // 55 s: por debajo del límite Netlify (60) y del "Inactivity Timeout" de Safari/iPad.
-        const { ok, data: d } = await fetchEstudio("/estudio/clip", { prompt, duracionSeg }, { timeoutMs: 55000 });
+        // 80 s: Netlify clip=90; heartbeats NDJSON evitan Inactivity Timeout de Safari.
+        const { ok, data: d } = await fetchEstudio("/estudio/clip", { prompt, duracionSeg }, {
+            timeoutMs: 80000,
+            onStatus: (st) => {
+                if (!status || !st) return;
+                if (st.type === "status" && st.msg) status.textContent = st.msg;
+                else if (st.type === "ping") status.textContent = `Creando clip de ${duracionSeg} s… (sigue activo)`;
+            }
+        });
         if (!ok) {
             const raw = String(d.error || "No se pudo generar el clip.");
             if (/inactivity timeout|too much time has passed/i.test(raw)) {
@@ -1417,6 +1433,58 @@ async function parseJsonSeguro(respuesta) {
         const limpio = texto.replace(/<[^>]+>/g, " ").trim();
         throw new Error(limpio.slice(0, 160) || "El servidor respondió con un error interno.");
     }
+}
+
+/** Clip puede responder NDJSON con pings para evitar Inactivity Timeout de Safari. */
+async function parseEstudioResponse(respuesta, onStatus) {
+    const ctype = String(respuesta.headers.get("content-type") || "").toLowerCase();
+    if (ctype.includes("ndjson") || ctype.includes("x-ndjson")) {
+        if (!respuesta.body || !respuesta.body.getReader) {
+            const texto = await respuesta.text();
+            const lineas = texto.split("\n").map((l) => l.trim()).filter(Boolean);
+            let last = null;
+            for (const line of lineas) {
+                try {
+                    const obj = JSON.parse(line);
+                    if (obj.type === "result") last = obj;
+                    else if (typeof onStatus === "function" && obj.type === "status") onStatus(obj);
+                } catch { /* ignore */ }
+            }
+            if (last) {
+                const { type, ...rest } = last;
+                return rest;
+            }
+            return { error: "Respuesta de clip incompleta." };
+        }
+        const reader = respuesta.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let last = null;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const partes = buf.split("\n");
+            buf = partes.pop() || "";
+            for (const line of partes) {
+                const t = line.trim();
+                if (!t) continue;
+                try {
+                    const obj = JSON.parse(t);
+                    if (obj.type === "result") last = obj;
+                    else if (typeof onStatus === "function" && (obj.type === "status" || obj.type === "ping")) {
+                        onStatus(obj);
+                    }
+                } catch { /* ignore partial */ }
+            }
+        }
+        if (last) {
+            const { type, ...rest } = last;
+            return rest;
+        }
+        return { error: "Respuesta de clip incompleta." };
+    }
+    return parseJsonSeguro(respuesta);
 }
 
 async function descargarVideoFinal() {

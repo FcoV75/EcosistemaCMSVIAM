@@ -121,6 +121,18 @@ export function inferenciasLocales(orden) {
   if (/\bestrellad/.test(n) || (/\bcielo\b/.test(n) && /\bestrell/.test(n))) {
     out.push('Cielo muy estrellado / vía láctea visible, no un cielo vacío.');
   }
+  if (/\b(arcoiris|arco iris)\b/.test(n)) {
+    out.push('Arcoíris brillante completo y visible en el cielo; no omitirlo.');
+  }
+  if (/\b(yate|barco|lancha)\b/.test(n)) {
+    out.push('Yate/barco visible en el agua con tamaño claro; no sustituirlo solo por orilla.');
+  }
+  if (/\bpesc/.test(n)) {
+    out.push('Persona pescando con caña visible, acción tranquila de pesca.');
+  }
+  if (/\bpantera\b/.test(n) && /\bmono|capuchin/.test(n)) {
+    out.push('Pantera acechando/acercándose al mono capuchino en el árbol; el mono a punto de brincar de rama — ambos animales claros y en acción.');
+  }
   if (/\b(amanecer|atardecer|noche|lluvia|nieve|niebla)\b/.test(n)) {
     out.push('La atmósfera y la luz deben coherir con el momento del día o clima nombrado.');
   }
@@ -274,25 +286,28 @@ function normalizarBrief(data, modalidad = 'imagen') {
 }
 
 const SYSTEM_DIRECTOR = `Eres el Director Semántico del Ecosistema VIAM (Video Diamante y ContacNeed).
-Tu trabajo NO es traducir palabra por palabra. Debes entender SIGNIFICADOS y CONJUNTOS.
+Tu trabajo es construir el CUADRO COMPLETO sin omitir NADA nombrado.
 
-Dada una orden del usuario (suele estar en español), construyes el CUADRO COMPLETO:
-- sujetos, objetos, lugares, colores, acciones, movimientos, sonidos, atmósfera
-- secuencia temporal si la hay
-- INFERENCIAS LÓGICAS del mundo real (ej. camaleón camina por superficies distintas ⇒ cambia de color en cada una, aunque no lo digan)
-- cámara, ritmo y coherencia narrativa
+Dada una orden del usuario (suele estar en español), DEBES capturar TODO:
+- sujetos (personas, animales) con cantidad y especie
+- objetos (yate, fogata, taza, casco, etc.)
+- lugares y entorno (parque, lago, bosque, cielo)
+- clima/fenómenos (arcoíris, luna llena, amanecer, estrellas)
+- acciones y movimiento (bailar, pescar, acercarse, brincar)
+- colores, sonidos, atmósfera, secuencia temporal
+- INFERENCIAS LÓGICAS del mundo real (ej. camaleón ⇒ cambia de color; pantera acechando ⇒ sigilo; fogata ⇒ luz/chispas)
 
-Reglas:
-1) Obedece el conjunto, no un token suelto.
-2) Si faltan detalles implícitos por conocimiento general, INFIÉRELOS y decláralos en "inferencias".
-3) No inventes otra historia: amplía la pedida con lógica, no la sustituyas.
-4) Si hay dos personas/objetos de interacción, ambos deben quedar en el cuadro.
-5) SFW obligatorio: personas vestidas, sin desnudos ni contenido erótico salvo que el usuario lo pida explícitamente (casi nunca).
-6) Si hay coche/conducir/tienda: el vehículo y el lugar deben verse; no sustituyas por un retrato close-up.
-7) Calidad 5 estrellas: anatomía humana/animal correcta y simétrica (rostro, manos, proporciones); objetos y vehículos con geometría limpia; paisajes hiperrealistas con perspectiva coherente. Declara eso en brief_visual_en.
-8) brief_visual_en y brief_motion_en van en inglés, listos para modelos de imagen/video.
-9) brief_voz_es en español oral, breve, para locución.
-10) brief_musica sugiere mood/tempo/estilo para MIDI o pista.
+Reglas de obediencia TOTAL (nada se pasa por alto):
+1) Cada sustantivo concreto cuenta: si dice yate Y arcoíris Y pescador, los TRES deben quedar en conjuntos + brief.
+2) Número importa: "dos monos" ≠ un mono; "fogata alta" ≠ brasas flojas.
+3) Acción importa: bailando/acercándose/brincando/pescando = pose/movimiento dinámico, nunca estatua.
+4) No inventes otra historia: amplía la pedida con lógica, no la sustituyas ni borres props.
+5) Si hay dos sujetos en interacción (pantera↔mono, mujer↔novio), ambos visibles.
+6) SFW: personas vestidas.
+7) Si hay coche/conducir/tienda: vehículo + lugar visibles; no close-up.
+8) Calidad 5 estrellas: anatomía humana/animal correcta; objetos con geometría limpia; paisaje coherente.
+9) brief_visual_en / brief_motion_en en inglés. En CLIP: brief_motion_en prioriza actuación corporal continua del sujeto (NO solo zoom de cámara).
+10) brief_voz_es en español oral breve.
 11) Responde SOLO JSON válido con esta forma:
 {
   "intencion":"...",
@@ -303,7 +318,7 @@ Reglas:
   "brief_motion_en":"...",
   "brief_voz_es":"...",
   "brief_musica":{"mood":"...","tempo":"...","estilo":"..."},
-  "prohibidos":["..."],
+  "prohibidos":["omitir yate","omitir arcoíris","omitir sujetos nombrados"],
   "estilo_camara":"...",
   "resumen_es":"..."
 }`;
