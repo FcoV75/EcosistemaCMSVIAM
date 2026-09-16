@@ -249,6 +249,8 @@ export function extraerElementos(prompt) {
     'alta', 'alto', 'vista', 'hay',
     'misma', 'mismo', 'si',
     'alrededor', 'bajo', 'junto', 'cerca', 'medio', 'media',
+    // Ruido espacial / relleno que ensucia MUST SHOW (caso "hombre arriba de un bote").
+    'arriba', 'abajo', 'dentro', 'fuera', 'agua', 've', 'viendo', 'verse',
   ]);
   // Frases multi-palabra primero (no se pierdan en el split).
   const frases = [];
@@ -482,16 +484,20 @@ export function clausulaCalidadComposicion(texto) {
   if (escenaEsExteriorNoche(texto)) {
     partes.push(' Outdoor night environmental shot (24–35mm feel): tall campfire with orange firelight and sparks if asked; large full moon and dense starry sky visible; forest/setting fully shown — not a foggy empty clearing without fire/moon.');
   }
-  if (escenaPideActuacion(texto)) {
+  if (escenaEsPescaEpica(texto)) {
+    partes.push(' Eye-level MEDIUM-WIDE action (NOT aerial/drone): fisherman + bent rod + small boat + megalodon LARGE in foreground (~60% of frame); desert dam village small in background. Megalodon ~2-3× boat length beside the boat — never mountain-sized / sky-filling kaiju.');
+  } else if (escenaPideActuacion(texto)) {
     partes.push(' Subject mid-ACTION (dancing/moving/hunting/jumping/fishing) with dynamic body pose — not a static standing silhouette.');
   }
   if (/\b(arcoiris|rainbow)\b/.test(n)) {
     partes.push(' Bright full rainbow clearly arched in the sky over the scene — unmistakable, colorful, not omitted.');
   }
-  if (/\b(yate|yacht|barco|boat)\b/.test(n)) {
+  if (/\b(yate|yacht|barco|boat)\b/.test(n) && !escenaEsPescaEpica(texto)) {
     partes.push(' Yacht/boat clearly visible on the water — hull and size readable, not replaced by shore-only fishing.');
   }
-  if (/\b(pesc\w*|fisherman|fishing)\b/.test(n)) {
+  if (escenaEsPescaEpica(texto)) {
+    partes.push(' Fisherman clearly visible leaning back battling with a bent fishing rod; megalodon emerging beside the boat with splash — never omit man, rod, boat, or megalodon.');
+  } else if (/\b(pesc\w*|fisherman|fishing)\b/.test(n)) {
     partes.push(' Fisherman clearly visible with fishing rod (on the yacht deck or beside it) — never omit the person fishing when asked.');
   }
   if (/\b(pantera|panther|mono|monkey|capuchin)\b/.test(n)) {
@@ -606,9 +612,9 @@ export function promptImagenReforzado(promptEn, original = '') {
   const leadAnimal = animal
     ? 'PRIMARY SUBJECTS ARE THE NAMED ANIMALS (fill most of the frame). '
     : '';
-  // Pesca épica: abrir con traducción fiel (Gemini obedece el prompt simple; no sobre-dramatizar).
+  // Pesca épica: traducción fiel estilo Gemini (plano a nivel de ojos, sujetos grandes; NO kaiju/aéreo).
   const leadEpica = escenaEsPescaEpica(src)
-    ? 'Photoreal wide shot: a man on a small boat with a fishing rod pulling a megalodon out of the water at a dam in a desert town; the man is battling the megalodon. Realistic fight scale (megalodon bigger than the boat, not mountain-sized). '
+    ? 'Eye-level photoreal action: a man on a small wooden boat with a fishing rod pulling a megalodon out of the water at a dam in a desert town; the man is clearly battling the megalodon. Man+rod+boat+megalodon LARGE in foreground; megalodon bigger than the boat (~2-3×) but NOT mountain-sized. Desert village visible behind. '
     : '';
   return `${leadEpica}${leadAnimal}${must}Photorealistic 16:9 still. ${paisaje}${calidad} Do not replace or simplify the scene.${ancla}${prohibidos} ${p}`
     .replace(/\s+/g, ' ')
@@ -688,6 +694,12 @@ export function beatsActuacionParaClip(original = '') {
       'ACTION BEAT 3/3: woman arms raised finishing dance move beside roaring fire.',
     ];
   }
+  if (escenaEsPescaEpica(src)) {
+    return [
+      'ACTION BEAT 1/2 EYE-LEVEL: fisherman on small wooden boat leaning back, fishing rod deeply bent, megalodon jaws emerging beside the boat at a desert dam; village readable behind; NOT kaiju, NOT aerial.',
+      'ACTION BEAT 2/2 EYE-LEVEL: same fight intensifies — bigger splash, rod arched harder, man straining; megalodon still boat-scale beside the boat; desert dam town visible.',
+    ];
+  }
   if (/\b(pesc\w*|fisherman|fishing)\b/.test(n)) {
     return [
       'ACTION BEAT 1/2: fisherman on yacht deck CASTING a long fishing rod over the lake; line in air; NOT driving; no steering wheel.',
@@ -744,8 +756,8 @@ export function promptCortoParaFlux(original, promptEn = '') {
   } else if (escenaEsExteriorNoche(src) && (/\b(fogata|hoguera|campfire|bail|danz|noche|luna|estrellad)\b/.test(sinAcentos(src)))) {
     anclaEscena = `SCENE: Photoreal night outdoor wide shot — ${mustEn || 'woman, campfire, full moon, starry sky, forest'}. Tall bright campfire with orange flames and sparks; woman DANCING around the fire (dynamic pose, not standing still); large full moon and dense starry sky above the trees. All visible together. SFW opaque clothes.`;
   } else if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && /\b(pesc|cana|bote)\b/.test(sinAcentos(src)))) {
-    // Prompt corto y fiel (Gemini obedece esto; Flux se pierde si lo sobre-dramatizamos).
-    anclaEscena = `Photoreal wide shot: a man on a small boat with a fishing rod pulling a megalodon out of the water at a dam in a desert town; the man is battling the megalodon. Man clearly visible leaning back, rod bent, megalodon beside the boat (larger than the boat, not mountain-sized). Desert village and dam shore visible. Bright daylight.`;
+    // Fiel al español + framing Gemini: ojo a nivel, sujetos grandes. "Wide" aéreo = fracaso Flux.
+    anclaEscena = `EYE-LEVEL MEDIUM-WIDE photoreal (NOT aerial/drone/satellite): fisherman LARGE on a small wooden rowboat, both hands on a deeply bent fishing rod, leaning back battling; megalodon head with open jaws emerging BESIDE the boat (~2-3× boat length, NOT mountain-sized, NOT filling the sky); splash and foam; arid desert dam reservoir with small desert village and palms in the background. Bright daylight. All must be readable: man, rod, boat, megalodon, village.`;
   } else if (/\b(yate|arcoiris|parque|amanecer|lago|yacht|rainbow)\b/.test(sinAcentos(src))
     && !escenaEsDramatica(src)
     && !escenaEsPescaEpica(src)) {
@@ -785,8 +797,8 @@ export function promptCortoParaFlux(original, promptEn = '') {
         ]
     : pescaEpica
       ? [
-          'SFW clothes. Wide 24-35mm. Man+boat+rod+megalodon+desert dam town readable.',
-          'No kaiju mountain shark. No text/logo/watermark.',
+          'SFW clothes. Eye-level 24-35mm. Subjects fill foreground — no tiny boat speck.',
+          'No kaiju / no aerial landscape-only. No text/logo/watermark.',
           mustEn ? `MUST SHOW: ${mustEn}.` : '',
         ]
     : [
@@ -877,6 +889,7 @@ export function negativosParaEscena(original = '') {
       'green forest river', 'missing dam', 'yacht with rainbow', 'tranquil fishing postcard',
       'mountain-sized shark', 'kaiju', 'godzilla shark', 'shark bigger than mountains', 'shark in the clouds',
       'tiny unreadable fisherman', 'missing fishing rod', 'missing desert town', 'missing village',
+      'aerial drone view', 'satellite view', 'tiny boat speck on huge lake', 'landscape only no subjects',
     );
   }
   if (escenaEsAnimalONaturaleza(original) && !escenaPidePersonas(original)) {
