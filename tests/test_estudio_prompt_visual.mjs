@@ -4,9 +4,13 @@ import {
   promptImagenReforzado,
   promptClipReforzado,
   promptCortoParaFlux,
+  promptMotionParaVideo,
+  beatsActuacionParaClip,
   reforzarSujetos,
   escenaPidePaisaje,
   escenaEsInteriorOPersonas,
+  escenaEsExteriorNoche,
+  escenaPideActuacion,
   escenaEsDramatica,
   escenaTieneDosPersonas,
   escenaEsVehiculoOCalle,
@@ -158,6 +162,57 @@ assert.match(cangrejoCorto, /SCENE:|wildlife|crab|eel/i);
 assert.match(cangrejoCorto, /crab swimming among electric eels|Animals only/i);
 assert.doesNotMatch(cangrejoCorto, /perfect symmetrical face|SFW opaque clothes|5 fingers per hand/i);
 assert.ok(cangrejoCorto.length <= 850);
+
+// Fogata + baile + luna (caso real del usuario): NO interior; sí actuación y campfire.
+const fogataPrompt = 'una mujer bailando alrededor de una fogata alta en medio del bosque por la noche con la luna llena y el cielo muy estrellado';
+assert.ok(escenaEsExteriorNoche(fogataPrompt));
+assert.ok(escenaPideActuacion(fogataPrompt));
+assert.ok(escenaPidePaisaje(fogataPrompt));
+assert.equal(escenaEsInteriorOPersonas(fogataPrompt), false);
+assert.match(clausulaMustInclude(fogataPrompt), /campfire \(fogata\)|fogata/i);
+assert.match(clausulaMustInclude(fogataPrompt), /dancing \(bailando\)|bailando/i);
+assert.match(clausulaProhibidos(fogataPrompt), /campfire|starry|dancing|static/i);
+assert.doesNotMatch(clausulaProhibidos(fogataPrompt), /INDOOR \/ people scene/i);
+const fogataCorto = promptCortoParaFlux(fogataPrompt, '');
+assert.match(fogataCorto, /campfire|DANCING|full moon|starry/i);
+assert.doesNotMatch(fogataCorto, /Indoor setting/i);
+const fogataClip = promptClipReforzado('woman dancing around campfire', fogataPrompt);
+assert.match(fogataClip, /SUBJECT BODY PERFORMANCE|dancing|campfire/i);
+assert.doesNotMatch(fogataClip, /zoom, pan or subject motion/i);
+const fogataMotion = promptMotionParaVideo(fogataPrompt, '');
+assert.match(fogataMotion, /SUBJECT PERFORMANCE|dancing|campfire|Ken Burns/i);
+assert.match(negativosParaEscena(fogataPrompt), /missing campfire|missing full moon|static standing/i);
+
+// Parque + arcoíris + yate + pesca (caso real del usuario).
+const yatePrompt = 'un parque en el amanecer con un arcoiris brillante en un lago en donde esta un yate con una persona pescando tranquilamente';
+assert.ok(escenaPidePaisaje(yatePrompt));
+assert.ok(escenaPideActuacion(yatePrompt));
+const yateMust = clausulaMustInclude(yatePrompt);
+assert.match(yateMust, /yacht \(yate\)|yate/i);
+assert.match(yateMust, /rainbow \(arcoiris\)|arcoiris|arco iris/i);
+assert.match(yateMust, /park|parque|lake|lago|fishing|pescando/i);
+assert.match(clausulaProhibidos(yatePrompt), /yacht|rainbow|arco/i);
+const yateCorto = promptCortoParaFlux(yatePrompt, '');
+assert.match(yateCorto, /yacht|rainbow|dawn|park|lake/i);
+assert.match(yateCorto, /fisherman|fishing rod|FISHING ROD|casting|reeling/i);
+assert.match(yateCorto, /FORBIDDEN:.*driving|steering|NOT driving|no steering/i);
+assert.match(clausulaProhibidos(yatePrompt), /fisherman|fishing rod|driving|steering/i);
+assert.doesNotMatch(yateCorto, /Indoor setting|campfire|DANCING around the fire/i);
+
+// Pantera + mono: actuación animal.
+const panteraPrompt = 'una pantera arriba de un árbol acercándose lentamente a un mono capuchino que está a punto de brincar a otra rama del mismo árbol';
+assert.ok(escenaPideActuacion(panteraPrompt));
+assert.ok(escenaEsAnimalONaturaleza(panteraPrompt));
+assert.match(clausulaMustInclude(panteraPrompt), /panther|pantera|monkey|mono|capuchin|branch|rama/i);
+assert.match(promptMotionParaVideo(panteraPrompt, ''), /SUBJECT PERFORMANCE|continuous logical action|MOVE for real/i);
+const panteraBeats = beatsActuacionParaClip(panteraPrompt);
+assert.ok(panteraBeats.length >= 3);
+  assert.match(panteraBeats[0], /LOCKED CAMERA|LEFT|JAGUAR|CAPUCHIN|stalk/i);
+assert.match(panteraBeats[panteraBeats.length - 1], /lunges|leap|mid-air|ACTION|escaping/i);
+assert.match(promptCortoParaFlux(panteraPrompt, ''), /panther|jaguar|capuchin|LOCKED|APPROACH|stalk/i);
+const beat1Corto = promptCortoParaFlux(`${panteraPrompt}. ${panteraBeats[0]}`, '');
+assert.match(beat1Corto, /ACTION BEAT 1|LEFT 20%|CAPUCHIN/i);
+assert.match(beat1Corto, /No bear|FORBIDDEN:.*bear|never bear/i);
 
 const s1 = seedDesdePrompt('escena A');
 const s2 = seedDesdePrompt('escena B distinta');

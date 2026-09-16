@@ -1,16 +1,32 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import { clamp, limitesClipPara } from './lib/estudio-limites.mjs';
-import { expandirPromptVisual, seedDesdePrompt } from './lib/estudio-prompt-visual.mjs';
+import {
+  expandirPromptVisual,
+  promptMotionParaVideo,
+  escenaPideActuacion,
+  seedDesdePrompt,
+  beatsActuacionParaClip,
+} from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
+import {
+  esEscenaPanteraMono,
+  generarSecuenciaPanteraMono,
+} from './lib/estudio-secuencia-fauna.mjs';
 
-/** Presupuesto total para no disparar Inactivity Timeout de Safari/Netlify (~60s). */
-const BUDGET_CLIP_MS = 42000;
+/** Usar casi todo el timeout Netlify (90s); dejar margen. */
+const BUDGET_CLIP_MS = 78000;
 
 function tiempoRestante(inicio, budget = BUDGET_CLIP_MS) {
   return Math.max(0, budget - (Date.now() - inicio));
 }
 
-async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 14000) {
+function dataUriDesdeImagen(imagen) {
+  if (!imagen?.imagen_base64) return '';
+  const mime = String(imagen.mime || 'image/jpeg').split(';')[0] || 'image/jpeg';
+  return `data:${mime};base64,${imagen.imagen_base64}`;
+}
+
+async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 20000) {
   const inicio = Date.now();
   while (Date.now() - inicio < timeoutMs) {
     const st = await fetch(statusUrl, { headers });
@@ -28,9 +44,119 @@ async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 14000) {
   return null;
 }
 
-async function generarClipVidu(promptEn, segundos, maxWaitMs = 14000) {
+/** Image-to-video: anima la placa (bailes/actuación). */
+async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 22000) {
+  const key = (process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
+  if (!key || maxWaitMs < 5000) return null;
+  const imageUrl = dataUriDesdeImagen(imagen);
+  if (!imageUrl) return null;
+
+  const modelos = [
+    process.env.FAL_I2V_MODEL,
+    'fal-ai/kling-video/v2.1/standard/image-to-video',
+    'fal-ai/minimax/hailuo-02/standard/image-to-video',
+    'fal-ai/ltx-video/image-to-video',
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
+  const headers = {
+    Authorization: `Key ${key}`,
+    'Content-Type': 'application/json',
+  };
+  const dur = Math.max(5, Math.min(10, Math.round(Number(segundos) || 8)));
+
+  for (const model of modelos.slice(0, 1)) {
+    try {
+      const r = await fetch(`https://queue.fal.run/${model}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          prompt: String(motionPrompt || '').slice(0, 1800),
+          image_url: imageUrl,
+          duration: String(dur),
+          aspect_ratio: '16:9',
+          negative_prompt:
+            'static pose, frozen mannequin, no motion, still photograph only, text, watermark, nude, nsfw, deformed face, extra fingers',
+        }),
+      });
+      const queued = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        console.warn('Fal I2V queue:', model, r.status, JSON.stringify(queued).slice(0, 180));
+        continue;
+      }
+      const statusUrl = queued.status_url;
+      const responseUrl = queued.response_url;
+      if (!statusUrl || !responseUrl) continue;
+      const result = await esperarFal(statusUrl, responseUrl, headers, maxWaitMs);
+      const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
+      if (videoUrl) {
+        return { video_url: videoUrl, fuente: `fal-i2v:${model}`, mime: 'video/mp4', actuacion: true };
+      }
+    } catch (err) {
+      console.warn('Fal I2V:', model, err?.message || err);
+    }
+  }
+  return null;
+}
+
+async function generarClipViduI2V(imagen, motionPrompt, segundos, maxWaitMs = 20000) {
   const key = (process.env.VIDU_API_KEY || process.env.VIDU_KEY || '').trim();
-  if (!key || maxWaitMs < 4000) return null;
+  if (!key || maxWaitMs < 5000) return null;
+  const imageUrl = dataUriDesdeImagen(imagen);
+  if (!imageUrl) return null;
+  const model = process.env.VIDU_I2V_MODEL || 'viduq2-pro';
+  const dur = Math.max(5, Math.min(16, Math.round(Number(segundos) || 8)));
+  const headers = {
+    Authorization: `Token ${key}`,
+    'Content-Type': 'application/json',
+  };
+  try {
+    const r = await fetch('https://api.vidu.com/ent/v2/img2video', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        images: [imageUrl],
+        prompt: String(motionPrompt || '').slice(0, 2000),
+        duration: dur,
+        resolution: '720p',
+        movement_amplitude: 'auto',
+      }),
+    });
+    const queued = await r.json().catch(() => ({}));
+    const taskId = queued.task_id || queued.id;
+    if (!r.ok || !taskId) {
+      console.warn('Vidu I2V:', r.status, queued);
+      return null;
+    }
+    const inicio = Date.now();
+    while (Date.now() - inicio < maxWaitMs) {
+      const st = await fetch(`https://api.vidu.com/ent/v2/tasks/${taskId}/creations`, {
+        headers: { Authorization: `Token ${key}` },
+      });
+      const data = await st.json().catch(() => ({}));
+      const status = String(data.state || data.status || '').toLowerCase();
+      if (status === 'success' || status === 'completed') {
+        const url = data.creations?.[0]?.url
+          || data.creations?.[0]?.video_url
+          || data.video?.url
+          || data.url;
+        if (url) return { video_url: url, fuente: 'vidu-i2v', mime: 'video/mp4', actuacion: true };
+      }
+      if (status === 'failed' || status === 'error') {
+        console.warn('Vidu I2V tarea:', data);
+        return null;
+      }
+      await new Promise((ok) => setTimeout(ok, 1500));
+    }
+  } catch (err) {
+    console.warn('Vidu I2V:', err?.message || err);
+  }
+  return null;
+}
+
+async function generarClipViduT2V(promptEn, segundos, maxWaitMs = 16000) {
+  const key = (process.env.VIDU_API_KEY || process.env.VIDU_KEY || '').trim();
+  if (!key || maxWaitMs < 5000) return null;
   const model = process.env.VIDU_VIDEO_MODEL || 'viduq3-turbo';
   const dur = Math.max(5, Math.min(16, Math.round(Number(segundos) || 8)));
   const headers = {
@@ -46,17 +172,20 @@ async function generarClipVidu(promptEn, segundos, maxWaitMs = 14000) {
       duration: dur,
       resolution: '720p',
       style: 'general',
+      movement_amplitude: 'large',
     }),
   });
   const queued = await r.json().catch(() => ({}));
   const taskId = queued.task_id || queued.id;
   if (!r.ok || !taskId) {
-    console.warn('Vidu:', r.status, queued);
+    console.warn('Vidu T2V:', r.status, queued);
     return null;
   }
   const inicio = Date.now();
   while (Date.now() - inicio < maxWaitMs) {
-    const st = await fetch(`https://api.vidu.com/ent/v2/tasks/${taskId}/creations`, { headers: { Authorization: `Token ${key}` } });
+    const st = await fetch(`https://api.vidu.com/ent/v2/tasks/${taskId}/creations`, {
+      headers: { Authorization: `Token ${key}` },
+    });
     const data = await st.json().catch(() => ({}));
     const status = String(data.state || data.status || '').toLowerCase();
     if (status === 'success' || status === 'completed') {
@@ -64,10 +193,10 @@ async function generarClipVidu(promptEn, segundos, maxWaitMs = 14000) {
         || data.creations?.[0]?.video_url
         || data.video?.url
         || data.url;
-      if (url) return { video_url: url, fuente: 'vidu', mime: 'video/mp4', duracionSeg: dur };
+      if (url) return { video_url: url, fuente: 'vidu', mime: 'video/mp4', actuacion: true };
     }
     if (status === 'failed' || status === 'error') {
-      console.warn('Vidu tarea:', data);
+      console.warn('Vidu T2V tarea:', data);
       return null;
     }
     await new Promise((ok) => setTimeout(ok, 1500));
@@ -75,34 +204,33 @@ async function generarClipVidu(promptEn, segundos, maxWaitMs = 14000) {
   return null;
 }
 
-async function generarClipFal(promptEn, segundos, maxWaitMs = 14000) {
+async function generarClipFalT2V(promptEn, segundos, maxWaitMs = 16000) {
   const key = (process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
-  if (!key || maxWaitMs < 4000) return null;
+  if (!key || maxWaitMs < 5000) return null;
   const modelos = [
     process.env.FAL_VIDEO_MODEL,
-    'fal-ai/ltx-video',
     'fal-ai/kling-video/v2.1/standard/text-to-video',
+    'fal-ai/ltx-video',
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
   const headers = {
     Authorization: `Key ${key}`,
     'Content-Type': 'application/json',
   };
-  const frames = Math.max(97, Math.min(241, Math.round(segundos * 24)));
-  // Un solo modelo rápido dentro del presupuesto (evitar encadenar 50s×N).
   for (const model of modelos.slice(0, 1)) {
     const r = await fetch(`https://queue.fal.run/${model}`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        negative_prompt: 'text, watermark, logo, pollinations, nude, naked, nsfw, deformed face, asymmetric eyes, melted face, extra fingers, bad anatomy, distortion, low quality, empty sky, missing subjects, solo portrait wrong scene',
-        prompt: `${promptEn}, cinematic camera, photorealistic hyperrealistic 8k, perfect symmetrical faces, correct hands, smooth motion, 16:9, no text, no watermark`,
-        num_frames: frames,
+        negative_prompt:
+          'static pose, frozen, still photo, text, watermark, logo, nude, naked, nsfw, deformed face, asymmetric eyes, melted face, extra fingers, bad anatomy, missing subjects',
+        prompt: `${promptEn}, subject body performance and continuous motion, photorealistic hyperrealistic 8k, SFW clothed, smooth dance/acting motion, 16:9, no text, no watermark`,
         duration: segundos,
+        aspect_ratio: '16:9',
       }),
     });
     const queued = await r.json().catch(() => ({}));
     if (!r.ok) {
-      console.warn('Fal queue:', model, r.status, queued);
+      console.warn('Fal T2V queue:', model, r.status, queued);
       continue;
     }
     const statusUrl = queued.status_url;
@@ -110,39 +238,63 @@ async function generarClipFal(promptEn, segundos, maxWaitMs = 14000) {
     if (!statusUrl || !responseUrl) continue;
     const result = await esperarFal(statusUrl, responseUrl, headers, maxWaitMs);
     const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
-    if (videoUrl) return { video_url: videoUrl, fuente: `fal:${model}`, mime: 'video/mp4' };
+    if (videoUrl) return { video_url: videoUrl, fuente: `fal:${model}`, mime: 'video/mp4', actuacion: true };
   }
   return null;
 }
 
-async function generarClipReplicate(promptEn, segundos, maxWaitMs = 12000) {
-  const token = (process.env.REPLICATE_API_TOKEN || '').trim();
-  if (!token || maxWaitMs < 4000) return null;
-  const model = process.env.REPLICATE_VIDEO_MODEL || 'wavespeedai/wan-2.1-t2v-480p';
-  const waitSec = Math.max(5, Math.min(20, Math.floor(maxWaitMs / 1000)));
-  const r = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      Prefer: `wait=${waitSec}`,
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Ecosistema-Token',
+    'Cache-Control': 'no-cache, no-transform',
+    'X-Content-Type-Options': 'nosniff',
+  };
+}
+
+/** NDJSON con pings: Safari corta si no recibe bytes (~Inactivity Timeout). */
+function ndjsonClipResponse(trabajoAsync) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const write = (obj) => {
+        controller.enqueue(encoder.encode(`${JSON.stringify(obj)}\n`));
+      };
+      const ping = setInterval(() => {
+        try {
+          write({ type: 'ping', t: Date.now() });
+        } catch {
+          /* stream cerrado */
+        }
+      }, 3500);
+      try {
+        write({ type: 'status', msg: 'Director y placa en marcha…' });
+        const result = await trabajoAsync(write);
+        write({ type: 'result', ...result });
+      } catch (err) {
+        write({
+          type: 'result',
+          success: false,
+          error: String(err?.message || err),
+        });
+      } finally {
+        clearInterval(ping);
+        try {
+          controller.close();
+        } catch {
+          /* ignore */
+        }
+      }
     },
-    body: JSON.stringify({
-      input: {
-        prompt: `${promptEn}, cinematic, 16:9, no text`,
-        duration: segundos,
-      },
-    }),
   });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    console.warn('Replicate video:', r.status, data);
-    return null;
-  }
-  const out = data.output;
-  const videoUrl = Array.isArray(out) ? out[0] : (out?.url || out);
-  if (!videoUrl || typeof videoUrl !== 'string') return null;
-  return { video_url: videoUrl, fuente: 'replicate', mime: 'video/mp4' };
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      ...corsHeaders(),
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
+    },
+  });
 }
 
 export default async (req) => {
@@ -155,15 +307,25 @@ export default async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const inicio = Date.now();
+  let body;
   try {
-    const body = await req.json();
+    body = await req.json();
+  } catch {
+    return jsonResponse({ error: 'JSON inválido.' }, 400);
+  }
+
+  return ndjsonClipResponse(async (write) => {
     const prompt = String(body.prompt || '').trim();
-    if (!prompt) return jsonResponse({ error: 'Describe el clip que quieres generar.' }, 400);
+    if (!prompt) return { success: false, error: 'Describe el clip que quieres generar.' };
 
     const lim = limitesClipPara(guard.payload);
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
+    const pideActuacion = escenaPideActuacion(prompt);
+
+    write({ type: 'status', msg: `Creando clip de ${duracion} s (actuación del sujeto)…` });
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
     const promptEn = expansion.promptEn;
+    const motionPrompt = promptMotionParaVideo(prompt, promptEn);
     const dir = expansion.director;
     const metaDirector = dir
       ? {
@@ -174,79 +336,169 @@ export default async (req) => {
         }
       : null;
 
-    let nativo = null;
-    // Presupuesto corto por proveedor; si no llega a tiempo → placa + Ken Burns (siempre responde).
-    if (tiempoRestante(inicio) > 8000) {
-      try {
-        nativo = await generarClipVidu(promptEn, duracion, Math.min(14000, tiempoRestante(inicio) - 6000));
-      } catch (err) {
-        console.warn('Vidu clip:', err?.message || err);
-      }
-    }
-    if (!nativo && tiempoRestante(inicio) > 8000) {
-      try {
-        nativo = await generarClipFal(promptEn, duracion, Math.min(14000, tiempoRestante(inicio) - 6000));
-      } catch (err) {
-        console.warn('Fal clip:', err?.message || err);
-      }
-    }
-    if (!nativo && tiempoRestante(inicio) > 8000) {
-      try {
-        nativo = await generarClipReplicate(promptEn, duracion, Math.min(12000, tiempoRestante(inicio) - 5000));
-      } catch (err) {
-        console.warn('Replicate clip:', err?.message || err);
-      }
-    }
-    if (nativo?.video_url) {
-      return jsonResponse({
-        success: true,
-        tipo: 'video',
-        video_url: nativo.video_url,
-        mime: nativo.mime,
-        duracionSeg: duracion,
-        fuente: nativo.fuente,
-        resumen: expansion.resumen || '',
-        prompt_en: promptEn.slice(0, 500),
-        via_prompt: expansion.via || '',
-        director: metaDirector,
-      });
-    }
-
-    // Fallback rápido: still + Ken Burns en el navegador.
+    write({ type: 'status', msg: 'Generando placa obediente…' });
     const cine = await generarImagenEstudio(promptEn, {
       width: 1920,
       height: 1080,
       seed: seedDesdePrompt(`clip:${prompt}`),
       original: prompt,
     });
-    if (!cine) {
-      return jsonResponse({
-        error: 'No se pudo generar el clip a tiempo. Intenta de nuevo; si tarda, usa Imagen IA + Movimiento.',
-      }, 502);
+    if (!cine?.imagen_base64) {
+      return { success: false, error: 'No se pudo generar la placa del clip. Intenta de nuevo.' };
     }
 
-    return jsonResponse({
+    let nativo = null;
+    let motivoFallback = '';
+
+    // Un solo intento I2V fuerte (evitar encadenar timeouts).
+    const waitI2V = Math.min(20000, tiempoRestante(inicio) - 8000);
+    if (waitI2V >= 9000) {
+      write({ type: 'status', msg: 'Animando actuación (I2V)…' });
+      try {
+        nativo = await generarClipFalI2V(cine, motionPrompt, duracion, waitI2V);
+      } catch (err) {
+        console.warn('Fal I2V clip:', err?.message || err);
+      }
+      if (!nativo && tiempoRestante(inicio) > 12000) {
+        try {
+          nativo = await generarClipViduI2V(
+            cine,
+            motionPrompt,
+            duracion,
+            Math.min(16000, tiempoRestante(inicio) - 5000),
+          );
+        } catch (err) {
+          console.warn('Vidu I2V clip:', err?.message || err);
+        }
+      }
+    } else {
+      motivoFallback = 'presupuesto_corto_i2v';
+    }
+
+    // T2V solo si aún hay margen amplio.
+    if (!nativo && tiempoRestante(inicio) > 16000) {
+      write({ type: 'status', msg: 'Intentando video nativo T2V…' });
+      try {
+        nativo = await generarClipViduT2V(
+          motionPrompt || promptEn,
+          duracion,
+          Math.min(14000, tiempoRestante(inicio) - 5000),
+        );
+      } catch (err) {
+        console.warn('Vidu T2V clip:', err?.message || err);
+      }
+    }
+
+    if (nativo?.video_url) {
+      return {
+        success: true,
+        tipo: 'video',
+        video_url: nativo.video_url,
+        mime: nativo.mime,
+        duracionSeg: duracion,
+        fuente: nativo.fuente,
+        actuacion: !!nativo.actuacion,
+        resumen: expansion.resumen || '',
+        prompt_en: promptEn.slice(0, 500),
+        via_prompt: expansion.via || '',
+        director: metaDirector,
+        aviso: nativo.actuacion
+          ? `Clip nativo con actuación/movimiento del sujeto (${nativo.fuente}).`
+          : undefined,
+      };
+    }
+
+    if (!motivoFallback) {
+      const tieneFal = !!(process.env.FAL_KEY || process.env.FAL_API_KEY);
+      const tieneVidu = !!(process.env.VIDU_API_KEY || process.env.VIDU_KEY);
+      if (!tieneFal && !tieneVidu) motivoFallback = 'sin_claves_video';
+      else motivoFallback = 'timeout_proveedor';
+    }
+
+    const avisoActuacion = pideActuacion
+      ? ` Secuencia de actuación por placas (fallback ${motivoFallback}). Con Fal/Vidu I2V el movimiento es nativo.`
+      : ` Placa + Ken Burns (fallback ${motivoFallback}).`;
+
+    // Sin I2V: pantera+mono → composición de aproximación/huida (Flux fusiona especies).
+    // Otros: beats progresivos en prompt.
+    let secuencia = [];
+    if (pideActuacion && tiempoRestante(inicio) > 14000) {
+      if (esEscenaPanteraMono(prompt) && tiempoRestante(inicio) > 25000) {
+        write({ type: 'status', msg: 'Filmando aproximación pantera→mono (composición)…' });
+        try {
+          const comp = await generarSecuenciaPanteraMono(prompt, {
+            timeoutMs: Math.min(70000, tiempoRestante(inicio) - 5000),
+          });
+          if (comp?.secuencia?.length >= 2) {
+            secuencia = comp.secuencia.map((f) => ({
+              ...f,
+              fuente: comp.fuente,
+            }));
+            motivoFallback = motivoFallback || 'composicion_fauna';
+          }
+        } catch (err) {
+          console.warn('secuencia fauna:', err?.message || err);
+        }
+      }
+      if (!secuencia.length) {
+        const beats = beatsActuacionParaClip(prompt).slice(0, 4);
+        write({ type: 'status', msg: `Filmando ${beats.length || 2} tomas de actuación…` });
+        for (let i = 0; i < beats.length; i += 1) {
+          if (tiempoRestante(inicio) < 9000) break;
+          try {
+            const beatPrompt = `${prompt}. ${beats[i]}`;
+            const extra = await generarImagenEstudio(`${promptEn}. ${beats[i]}`, {
+              width: 1280,
+              height: 720,
+              seed: seedDesdePrompt(`clip-beat:${i}:${prompt}`),
+              original: beatPrompt,
+            });
+            if (extra?.imagen_base64) {
+              secuencia.push({
+                imagen_base64: extra.imagen_base64,
+                mime: extra.mime,
+                fuente: extra.fuente,
+                marca_agua_pollinations: !!extra.marca_agua_pollinations,
+              });
+            }
+          } catch (err) {
+            console.warn('beat actuación', i, err?.message || err);
+          }
+        }
+      }
+      if (!secuencia.length && cine?.imagen_base64) {
+        secuencia = [{ imagen_base64: cine.imagen_base64, mime: cine.mime, fuente: cine.fuente }];
+      }
+    }
+
+    const haySecuencia = secuencia.length >= 2;
+    write({ type: 'status', msg: haySecuencia ? 'Entregando secuencia de actuación…' : 'Entregando placa (fallback cámara)…' });
+    return {
       success: true,
       tipo: 'cinematico',
       imagen_base64: cine.imagen_base64,
       mime: cine.mime,
+      secuencia: haySecuencia
+        ? secuencia.map((f) => ({
+            imagen_base64: f.imagen_base64,
+            mime: f.mime || cine.mime,
+            marca_agua_pollinations: !!f.marca_agua_pollinations || !!cine.marca_agua_pollinations,
+          }))
+        : undefined,
       duracionSeg: duracion,
       fuente: cine.fuente,
       marca_agua_pollinations: !!cine.marca_agua_pollinations,
       movimiento: true,
+      actuacion: haySecuencia,
+      sin_actuacion: pideActuacion && !haySecuencia,
+      motivo_fallback: motivoFallback,
       resumen: expansion.resumen || '',
       prompt_en: promptEn.slice(0, 500),
       via_prompt: expansion.via || '',
       director: metaDirector,
-      aviso: `Clip de ${duracion} s (placa + Ken Burns): no es una imagen fija de la pestaña Imagen; el navegador graba el movimiento.`,
-    });
-  } catch (e) {
-    const msg = String(e?.message || e);
-    if (/abort|timeout|inactivity/i.test(msg)) {
-      return jsonResponse({
-        error: 'El clip tardó demasiado. Intenta de nuevo; suele completar con placa + movimiento.',
-      }, 504);
-    }
-    return jsonResponse({ error: msg }, 500);
-  }
+      aviso: haySecuencia
+        ? `Clip de ${duracion} s con secuencia de actuación (${secuencia.length} placas).`
+        : `Clip de ${duracion} s (placa+cámara).${avisoActuacion}`,
+    };
+  });
 };
