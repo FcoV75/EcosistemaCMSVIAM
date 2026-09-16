@@ -128,7 +128,22 @@ export function inferenciasLocales(orden) {
     out.push('Yate/barco visible en el agua con tamaño claro; no sustituirlo solo por orilla.');
   }
   if (/\bpesc/.test(n)) {
-    out.push('Persona pescando con caña visible, acción tranquila de pesca.');
+    if (/\b(megalodon|tiburon|shark|kraken|batall|luch|pelea)\b/.test(n)) {
+      out.push('Batalla épica de pesca: caña flexionada, criatura marina ENORME emergiendo del agua, hombre forcejeando — NUNCA pesca tranquila de postal.');
+    } else if (/\btranquil/.test(n)) {
+      out.push('Persona pescando con caña visible, acción tranquila de pesca.');
+    } else {
+      out.push('Persona pescando con caña claramente visible.');
+    }
+  }
+  if (/\bmegalodon\b/.test(n)) {
+    out.push('Megalodón (tiburón prehistórico gigante) visible emergiendo / siendo izado: tamaño monstruoso, mandíbula y salpicadura; no omitirlo ni sustituirlo por pez chico.');
+  }
+  if (/\bpresa\b/.test(n) && /\b(bote|barco|pesc|agua|desiert|poblad)\b/.test(n)) {
+    out.push('Presa/dique de concreto visible en el fondo del embalse; no un río de bosque verde genérico.');
+  }
+  if (/\b(desiert|poblad)\b/.test(n)) {
+    out.push('Poblado desértico / entorno árido seco (montañas rocosas, pueblo seco), no bosque húmedo ni otoño verde.');
   }
   if (/\bpantera\b/.test(n) && /\bmono|capuchin/.test(n)) {
     out.push('Pantera acechando/acercándose al mono capuchino en el árbol; el mono a punto de brincar de rama — ambos animales claros y en acción.');
@@ -302,13 +317,14 @@ Reglas de obediencia TOTAL (nada se pasa por alto):
 2) Número importa: "dos monos" ≠ un mono; "fogata alta" ≠ brasas flojas.
 3) Acción importa: bailando/acercándose/brincando/pescando = pose/movimiento dinámico, nunca estatua.
 4) No inventes otra historia: amplía la pedida con lógica, no la sustituyas ni borres props.
-5) Si hay dos sujetos en interacción (pantera↔mono, mujer↔novio), ambos visibles.
+5) Si hay dos sujetos en interacción (pantera↔mono, mujer↔novio, hombre↔megalodón), ambos visibles.
 6) SFW: personas vestidas.
 7) Si hay coche/conducir/tienda: vehículo + lugar visibles; no close-up.
 8) Calidad 5 estrellas: anatomía humana/animal correcta; objetos con geometría limpia; paisaje coherente.
 9) brief_visual_en / brief_motion_en en inglés. En CLIP: brief_motion_en prioriza actuación corporal continua del sujeto (NO solo zoom de cámara).
 10) brief_voz_es en español oral breve.
-11) Responde SOLO JSON válido con esta forma:
+11) NUNCA aplanes acción épica: si pide megalodón/tiburón/batalla/presa/desierto, DEBEN quedar en conjuntos + brief + resumen. PROHIBIDO sustituir por "pesca tranquila", yate con arcoíris, o paisaje verde genérico.
+12) Responde SOLO JSON válido con esta forma:
 {
   "intencion":"...",
   "conjuntos":{"sujetos":[],"objetos":[],"lugares":[],"colores":[],"acciones":[],"movimientos":[],"sonidos":[],"atmosfera":[],"secuencia":[]},
