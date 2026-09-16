@@ -100,12 +100,15 @@ export async function generarImagenGemini(promptEn, opts = {}) {
     : original
       ? `Orden exacta del usuario (obedecer TODO): "${original}"\n\nClarificación EN: ${String(promptEn || '').slice(0, 900)}\n\nHard requirements: ${hard} Show EVERY named subject; photoreal 16:9; no text/watermark.`
       : `${promptEn}\n\nHard requirements: ${hard} Show EVERY named subject and prop; ultra sharp 16:9 photoreal; no text.`;
+  // Nombres vivos (ListModels 2026): los *-preview-image-generation / 2.0 ya dan 404.
   const modelos = [
+    process.env.GEMINI_IMAGE_MODEL,
     'gemini-2.5-flash-image',
-    'gemini-2.5-flash-image-preview',
-    'gemini-2.5-flash-preview-image-generation',
-    'gemini-2.0-flash-preview-image-generation',
-  ];
+    'gemini-3.1-flash-image',
+    'gemini-3.1-flash-image-preview',
+    'gemini-3-pro-image',
+    'gemini-3-pro-image-preview',
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
   const cuerpo = {
     contents: [{
       parts: [{
@@ -327,7 +330,13 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
     : `${String(promptEn || '').trim()}. ${hard}`;
   if (!String(promptEn || original || '').trim()) return null;
   const personas = escenaPidePersonas(src) || escenaEsPescaEpica(original || src);
-  const modelos = ['imagen-4.0-generate-001', 'imagen-4.0-ultra-generate-001', 'imagen-4.0-fast-generate-001'];
+  // Imagen predict: muchos projects solo tienen Gemini *-image; Imagen 4 puede 404.
+  const modelos = [
+    process.env.GEMINI_IMAGEN_MODEL,
+    'imagen-4.0-generate-001',
+    'imagen-4.0-fast-generate-001',
+    'imagen-3.0-generate-002',
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
   for (const modelo of modelos) {
     try {
       const r = await fetchConTimeout(
@@ -366,30 +375,37 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
 
 export async function generarImagenEstudio(promptEn, opts = {}) {
   const src = String(opts.original || promptEn || '');
-  // Escenas multi-sujeto / épicas: Gemini (probado con el prompt del megalodón) primero.
-  // Imagen 4 segundo. Fal/Flux solo si faltan claves Gemini — Flux obedece peor aquí.
-  if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && escenaPidePersonas(src))) {
+  const tieneGemini = !!(process.env.GEMINI_API_KEY || '').trim();
+
+  // Con GEMINI_API_KEY (Centro / ContacNeed): Gemini e Imagen 4 ANTES que Fal.
+  // En producción Fal ganaba siempre y la key de Gemini (sí funcional en Voz) nunca
+  // llegaba a generarse imagen.
+  const intentarGeminiPrimero = async () => {
+    if (!tieneGemini) return null;
     const gemini = await generarImagenGemini(promptEn, opts);
     if (gemini) return gemini;
     const imagen4 = await generarImagenImagen4(promptEn, opts);
     if (imagen4) return imagen4;
+    return null;
+  };
+
+  // Escenas multi-sujeto / épicas: Gemini primero (obediencia tipo Dola).
+  if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && escenaPidePersonas(src))) {
+    const g = await intentarGeminiPrimero();
+    if (g) return g;
     const fal = await generarImagenFal(promptEn, opts);
     if (fal) return fal;
     const replicate = await generarImagenReplicate(promptEn, opts);
     if (replicate) return replicate;
-    // Pollinations monolítico es último recurso (suele kaiju o postal sin megalodón).
     return generarImagenPollinations(promptEn, opts);
   }
 
-  // Orden general: Imagen 4 → Fal → Gemini → Replicate → Pollinations.
-  const imagen4 = await generarImagenImagen4(promptEn, opts);
-  if (imagen4) return imagen4;
+  // Orden general: Gemini → Imagen 4 → Fal → Replicate → Pollinations.
+  const g = await intentarGeminiPrimero();
+  if (g) return g;
 
   const fal = await generarImagenFal(promptEn, opts);
   if (fal) return fal;
-
-  const gemini = await generarImagenGemini(promptEn, opts);
-  if (gemini) return gemini;
 
   const replicate = await generarImagenReplicate(promptEn, opts);
   if (replicate) return replicate;

@@ -82,7 +82,7 @@ async function askGemini(apiKey: string, system: string | undefined, user: strin
   try {
     const prompt = system ? `${system}\n\n${user}` : user
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_TEXT_MODEL?.trim() || 'gemini-3.6-flash'}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
