@@ -12,6 +12,7 @@ import {
   escenaEsExteriorNoche,
   escenaPideActuacion,
   escenaEsDramatica,
+  escenaEsPescaEpica,
   escenaTieneDosPersonas,
   escenaEsVehiculoOCalle,
   escenaEsConduccionExterior,
@@ -213,6 +214,29 @@ assert.match(promptCortoParaFlux(panteraPrompt, ''), /panther|jaguar|capuchin|LO
 const beat1Corto = promptCortoParaFlux(`${panteraPrompt}. ${panteraBeats[0]}`, '');
 assert.match(beat1Corto, /ACTION BEAT 1|LEFT 20%|CAPUCHIN/i);
 assert.match(beat1Corto, /No bear|FORBIDDEN:.*bear|never bear/i);
+
+// Megalodón + presa + desierto: NUNCA aplanar a pesca tranquila / yate+arcoíris.
+const megaPrompt = 'un hombre arriba de un bote con una caña de pescar sacando del agua un megalodón en una presa en poblado desértico, se ve que el hombre esta batallando con el megalodón';
+assert.ok(escenaEsPescaEpica(megaPrompt));
+assert.ok(escenaEsDramatica(megaPrompt));
+assert.ok(escenaPideActuacion(megaPrompt));
+const megaMust = clausulaMustInclude(megaPrompt);
+assert.match(megaMust, /megalodon|megalodón/i);
+assert.match(megaMust, /bote|boat|cana|fishing rod|presa|dam|desiert|desert|batall/i);
+assert.doesNotMatch(megaMust, /\barriba\b/i);
+const megaCorto = promptCortoParaFlux(megaPrompt, '');
+assert.match(megaCorto, /megalodon/i);
+assert.match(megaCorto, /desert|dam|boat|fishing rod|battl|leaning|rowboat/i);
+assert.match(megaCorto, /EYE-LEVEL|eye-level|NOT aerial|not mountain-sized|2-3/i);
+assert.doesNotMatch(megaCorto, /YACHT deck|arched bright rainbow|Dawn lakeside MEDIUM SHOT|GIANT MEGALODON|Photoreal wide shot/i);
+assert.match(clausulaProhibidos(megaPrompt), /megalodon|calm peaceful fishing|yacht with rainbow|kaiju/i);
+assert.match(negativosParaEscena(megaPrompt), /missing megalodon|calm fishing|yacht with rainbow|aerial drone|kaiju/i);
+const megaBeats = beatsActuacionParaClip(megaPrompt);
+assert.ok(megaBeats.length >= 2);
+assert.match(megaBeats[0], /megalodon|EYE-LEVEL|bent fishing rod|desert dam/i);
+assert.doesNotMatch(megaBeats.join(' '), /yacht deck|rainbow and park|CASTING a long fishing rod over the lake/i);
+assert.match(clausulaCalidadComposicion(megaPrompt), /EYE-LEVEL|MEDIUM-WIDE|kaiju|2-3/i);
+assert.doesNotMatch(clausulaCalidadComposicion(megaPrompt), /yacht deck/i);
 
 const s1 = seedDesdePrompt('escena A');
 const s2 = seedDesdePrompt('escena B distinta');
