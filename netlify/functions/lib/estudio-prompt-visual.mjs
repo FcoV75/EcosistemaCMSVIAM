@@ -487,7 +487,10 @@ export function clausulaProhibidos(texto) {
     bits.push('FORBIDDEN: missing yacht/boat, replacing yacht with shore-only fishing spot.');
   }
   if (/\b(pesc\w*|fisherman|fishing)\b/.test(sinAcentos(texto))) {
-    bits.push('FORBIDDEN: missing fisherman, missing fishing rod, empty yacht with nobody fishing.');
+    bits.push('FORBIDDEN: missing fisherman, missing fishing rod, empty yacht with nobody fishing, driving/steering the boat instead of fishing.');
+  }
+  if (/\b(pantera|panther)\b/.test(sinAcentos(texto)) && /\b(mono|monkey|capuchin)\b/.test(sinAcentos(texto))) {
+    bits.push('FORBIDDEN: bear, gorilla, hybrid fused creature, missing capuchin monkey, missing black panther, single animal only.');
   }
   if (escenaEsDramatica(texto)) {
     bits.push('FORBIDDEN: peaceful lake postcard, calm flowers meadow, sunny tourist landscape. SHOW eruption/ash/lightning/drama.');
@@ -626,6 +629,7 @@ export function promptMotionParaVideo(original = '', promptEn = '') {
 /**
  * Beats de actuación para secuencia de placas (fallback sin I2V).
  * Cada beat se añade al prompt corto para forzar progreso de la acción.
+ * Debe ir AL INICIO del SCENE (promptCortoParaFlux lo prioriza).
  */
 export function beatsActuacionParaClip(original = '') {
   const src = String(original || '').replace(/\s+/g, ' ').trim();
@@ -633,10 +637,10 @@ export function beatsActuacionParaClip(original = '') {
   const n = sinAcentos(src);
   if (/\b(pantera|panther)\b/.test(n) && /\b(mono|monkey|capuchin)\b/.test(n)) {
     return [
-      'ACTION BEAT 1/4 FAR: large black panther (big feline) on LEFT of a long branch; small brown-cream capuchin monkey on FAR RIGHT of SAME branch; wide gap; panther starts walking toward monkey.',
-      'ACTION BEAT 2/4 MID: same tree/camera; black panther now MID-branch closer to the brown capuchin on the right; medium gap; continuous approach.',
-      'ACTION BEAT 3/4 NEAR: black panther crouching VERY CLOSE to the brown capuchin; tiny gap; monkey coiled to jump to another branch.',
-      'ACTION BEAT 4/4 ACTION: black panther lunges forward; brown capuchin mid-leap to another branch of the same tree; clear subject motion.',
+      'ACTION BEAT 1/4 LOCKED CAMERA wide canopy: melanistic BLACK JAGUAR PANTHER (big cat, feline skull, whiskers, long cat tail, four paws) stands on LEFT 20% of a long horizontal branch. SMALL brown-cream CAPUCHIN MONKEY (Cebus, pale face, monkey hands) sits on RIGHT 80% of SAME branch. Huge gap. Panther takes first stalking step RIGHT toward monkey. No bear. No gorilla. No hybrid.',
+      'ACTION BEAT 2/4 LOCKED CAMERA same tree: BLACK JAGUAR PANTHER now at 45% along the branch walking RIGHT, body low in stalk. Brown-cream CAPUCHIN still at RIGHT 80%, turns head, braces to flee. Medium gap. Two separate species. No bear.',
+      'ACTION BEAT 3/4 LOCKED CAMERA: BLACK JAGUAR PANTHER crouches at 65% ready to pounce. Brown-cream CAPUCHIN at branch fork coils legs to leap UP to a higher branch. Tiny gap. Clear feline vs primate. No bear. No hybrid.',
+      'ACTION BEAT 4/4 LOCKED CAMERA live action: BLACK JAGUAR PANTHER lunges RIGHT along the branch. Brown-cream CAPUCHIN mid-air leaping UP to another branch of the SAME tree, escaping. Motion blur on limbs OK. Documentary wildlife film. No bear. No zoom-only still.',
     ];
   }
   if (/\b(fogata|hoguera|campfire|bail|danz)\b/.test(n)) {
@@ -648,8 +652,8 @@ export function beatsActuacionParaClip(original = '') {
   }
   if (/\b(pesc\w*|fisherman|fishing)\b/.test(n)) {
     return [
-      'ACTION BEAT 1/2: fisherman casting line from yacht deck; rod extended.',
-      'ACTION BEAT 2/2: fisherman reeling calmly on yacht; line taut over water.',
+      'ACTION BEAT 1/2: fisherman on yacht deck CASTING a long fishing rod over the lake; line in air; NOT driving; no steering wheel.',
+      'ACTION BEAT 2/2: fisherman on yacht REELING the fishing rod calmly; rod tip over water; rainbow and park visible; NOT piloting the boat.',
     ];
   }
   return [
@@ -657,6 +661,12 @@ export function beatsActuacionParaClip(original = '') {
     'ACTION BEAT 2/3: subject mid-action progressing the same continuous movement.',
     'ACTION BEAT 3/3: subject near completion of the named action; motion readable.',
   ];
+}
+
+/** Extrae el beat de actuación si el original ya lo trae (para anclar SCENE). */
+export function extraerBeatActuacion(texto = '') {
+  const m = String(texto || '').match(/ACTION BEAT[\s\S]{10,520}?(?=\s+SFW|\s+MUST|\s+FORBIDDEN|\s+16:9|$)/i);
+  return m ? m[0].replace(/\s+/g, ' ').trim().slice(0, 520) : '';
 }
 
 /** Prompt corto EN-first para Pollinations/Flux (truncan ~850 chars: la ESCENA debe ir primero). */
@@ -684,17 +694,23 @@ export function promptCortoParaFlux(original, promptEn = '') {
   } else if (animal) {
     const esCangrejo = /\bcangrejo|crab\b/.test(sinAcentos(src));
     const esPanteraMono = /\b(pantera|panther)\b/.test(sinAcentos(src)) && /\b(mono|monkey|capuchin)\b/.test(sinAcentos(src));
+    const beat = extraerBeatActuacion(src);
     anclaEscena = esCangrejo
       ? `SCENE: A crab swimming among electric eels in a fast-flowing mountain river — photoreal wildlife close-up. Named animals first and large in frame: ${mustEn || 'crab, electric eels'}. Clear crab body/claws + several electric eels in rushing water between mountains. Animals only; no people, no women, no human bathers, no group of girls.`
       : esPanteraMono
-        ? `SCENE: Photoreal wildlife — TWO species: (1) large adult BLACK PANTHER / jaguar feline with whiskers and long cat tail on a tree branch, (2) small BROWN-CREAM CAPUCHIN MONKEY with pale face on another branch of the SAME tree. Panther APPROACHING the monkey; monkey about to jump. Both LARGE and clearly separate animals — never fuse into one creature. Forest canopy. Animals only.`
+        ? (beat
+          ? `SCENE: ${beat}`
+          : `SCENE: Photoreal wildlife documentary LOCKED CAMERA — TWO species only: (1) large adult melanistic BLACK JAGUAR / BLACK PANTHER (feline skull, whiskers, long cat tail, four paws) stalking RIGHT along a thick tree branch, (2) small BROWN-CREAM CAPUCHIN MONKEY (Cebus, pale face mask, monkey hands, long monkey tail) about to leap to another branch of the SAME tree. Panther approaches; monkey flees by changing branches. Never bear, never gorilla, never hybrid fused creature. Forest canopy. Animals only.`)
       : `SCENE: Photoreal wildlife close-up — named animals LARGE and clear in frame first: ${mustEn || src}. Habitat supports the animals (not an empty landscape). Animals only; no people, no women, no human bathers.`;
   } else if (escenaEsExteriorNoche(src) && (/\b(fogata|hoguera|campfire|bail|danz|noche|luna|estrellad)\b/.test(sinAcentos(src)))) {
     anclaEscena = `SCENE: Photoreal night outdoor wide shot — ${mustEn || 'woman, campfire, full moon, starry sky, forest'}. Tall bright campfire with orange flames and sparks; woman DANCING around the fire (dynamic pose, not standing still); large full moon and dense starry sky above the trees. All visible together. SFW opaque clothes.`;
   } else if (/\b(yate|arcoiris|parque|amanecer|lago|yacht|rainbow|pesc)/.test(sinAcentos(src))) {
     const pidePesc = /\b(pesc\w*|fisherman|fishing|persona)\b/.test(sinAcentos(src));
+    const beat = extraerBeatActuacion(src);
     anclaEscena = pidePesc
-      ? `SCENE: MEDIUM SHOT at dawn — adult fisherman standing on white yacht deck holding a long fishing rod over the lake (person clearly readable, fills ~20% of frame). Behind him: arched bright rainbow in sky + park lakeside sunrise. Required together: fisherman with rod + yacht + rainbow + park lake. Not an empty boat.`
+      ? (beat
+        ? `SCENE: ${beat} ALSO visible: white yacht on lake, arched bright rainbow in sky, park lakeside at dawn.`
+        : `SCENE: Dawn lakeside MEDIUM SHOT — adult FISHERMAN standing on white YACHT deck HOLDING a long FISHING ROD with line toward the water (casting or reeling). Rod must be clearly visible in his hands. ALSO in frame: arched bright rainbow in sky + park shoreline sunrise + yacht hull. FORBIDDEN: driving, steering wheel, piloting, captain at helm, empty hands, no rod.`)
       : `SCENE: Photoreal wide landscape at dawn — ${mustEn || src}. MUST show ALL together in one frame: (1) park lakeside at sunrise, (2) bright colorful rainbow arched in the sky, (3) yacht floating on the lake. Never drop yacht or rainbow.`;
   } else if (personas && escenaPideActuacion(src) && escenaPidePaisaje(src) && !/\b(yate|arcoiris|rainbow|yacht)\b/.test(sinAcentos(src))) {
     anclaEscena = `SCENE: Photoreal outdoor action shot — ${mustEn || src}. Subject mid-action in the described place; full environment visible; SFW clothes.`;
@@ -779,7 +795,17 @@ export function negativosParaEscena(original = '') {
     base.push('missing yacht', 'missing boat', 'no yacht on water', 'empty boat no fisherman');
   }
   if (/\b(pesc\w*|fisherman|fishing)\b/.test(sinAcentos(original))) {
-    base.push('missing fisherman', 'missing fishing rod', 'nobody fishing', 'empty yacht');
+    base.push(
+      'missing fisherman', 'missing fishing rod', 'nobody fishing', 'empty yacht',
+      'driving the boat', 'steering wheel', 'piloting', 'captain at helm', 'hands on wheel', 'no fishing rod',
+    );
+  }
+  if (/\b(pantera|panther)\b/.test(sinAcentos(original)) && /\b(mono|monkey|capuchin)\b/.test(sinAcentos(original))) {
+    base.push(
+      'bear', 'grizzly', 'gorilla', 'ape', 'hybrid chimera', 'fused animal', 'anthropomorphic',
+      'single animal only', 'missing monkey', 'missing panther', 'two panthers', 'two monkeys only',
+      'ken burns still', 'frozen statue animals',
+    );
   }
   if (escenaTieneDosPersonas(original) && /\b(cafe|taza|escritorio|laptop)\b/.test(sinAcentos(original))) {
     base.push('only one person', 'missing boyfriend', 'missing coffee cup', 'close-up crop');

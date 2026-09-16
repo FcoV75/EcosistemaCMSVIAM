@@ -8,6 +8,10 @@ import {
   beatsActuacionParaClip,
 } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
+import {
+  esEscenaPanteraMono,
+  generarSecuenciaPanteraMono,
+} from './lib/estudio-secuencia-fauna.mjs';
 
 /** Usar casi todo el timeout Netlify (90s); dejar margen. */
 const BUDGET_CLIP_MS = 78000;
@@ -415,33 +419,55 @@ export default async (req) => {
       ? ` Secuencia de actuación por placas (fallback ${motivoFallback}). Con Fal/Vidu I2V el movimiento es nativo.`
       : ` Placa + Ken Burns (fallback ${motivoFallback}).`;
 
-    // Sin I2V: generar beats de actuación para que el cliente morfee movimiento real del sujeto.
+    // Sin I2V: pantera+mono → composición de aproximación/huida (Flux fusiona especies).
+    // Otros: beats progresivos en prompt.
     let secuencia = [];
     if (pideActuacion && tiempoRestante(inicio) > 14000) {
-      const beats = beatsActuacionParaClip(prompt).slice(0, 3);
-      write({ type: 'status', msg: `Generando ${beats.length || 2} beats de actuación…` });
-      secuencia = [{ imagen_base64: cine.imagen_base64, mime: cine.mime, fuente: cine.fuente }];
-      for (let i = 0; i < beats.length; i += 1) {
-        if (tiempoRestante(inicio) < 10000) break;
+      if (esEscenaPanteraMono(prompt) && tiempoRestante(inicio) > 25000) {
+        write({ type: 'status', msg: 'Filmando aproximación pantera→mono (composición)…' });
         try {
-          const beatPrompt = `${prompt}. ${beats[i]}`;
-          const extra = await generarImagenEstudio(promptEn, {
-            width: 1280,
-            height: 720,
-            seed: seedDesdePrompt(`clip-beat:${i}:${prompt}`),
-            original: beatPrompt,
+          const comp = await generarSecuenciaPanteraMono(prompt, {
+            timeoutMs: Math.min(70000, tiempoRestante(inicio) - 5000),
           });
-          if (extra?.imagen_base64) {
-            secuencia.push({
-              imagen_base64: extra.imagen_base64,
-              mime: extra.mime,
-              fuente: extra.fuente,
-              marca_agua_pollinations: !!extra.marca_agua_pollinations,
-            });
+          if (comp?.secuencia?.length >= 2) {
+            secuencia = comp.secuencia.map((f) => ({
+              ...f,
+              fuente: comp.fuente,
+            }));
+            motivoFallback = motivoFallback || 'composicion_fauna';
           }
         } catch (err) {
-          console.warn('beat actuación', i, err?.message || err);
+          console.warn('secuencia fauna:', err?.message || err);
         }
+      }
+      if (!secuencia.length) {
+        const beats = beatsActuacionParaClip(prompt).slice(0, 4);
+        write({ type: 'status', msg: `Filmando ${beats.length || 2} tomas de actuación…` });
+        for (let i = 0; i < beats.length; i += 1) {
+          if (tiempoRestante(inicio) < 9000) break;
+          try {
+            const beatPrompt = `${prompt}. ${beats[i]}`;
+            const extra = await generarImagenEstudio(`${promptEn}. ${beats[i]}`, {
+              width: 1280,
+              height: 720,
+              seed: seedDesdePrompt(`clip-beat:${i}:${prompt}`),
+              original: beatPrompt,
+            });
+            if (extra?.imagen_base64) {
+              secuencia.push({
+                imagen_base64: extra.imagen_base64,
+                mime: extra.mime,
+                fuente: extra.fuente,
+                marca_agua_pollinations: !!extra.marca_agua_pollinations,
+              });
+            }
+          } catch (err) {
+            console.warn('beat actuación', i, err?.message || err);
+          }
+        }
+      }
+      if (!secuencia.length && cine?.imagen_base64) {
+        secuencia = [{ imagen_base64: cine.imagen_base64, mime: cine.mime, fuente: cine.fuente }];
       }
     }
 

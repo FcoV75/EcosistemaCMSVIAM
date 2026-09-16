@@ -534,7 +534,7 @@ async function grabarClipKenBurns(imageBlob, duracionSeg, estilo) {
     return blob;
 }
 
-/** Morph entre placas de actuación (pantera acercándose, baile, etc.) — no solo zoom. */
+/** Morph entre placas de actuación — sin zoom Ken Burns (el sujeto cambia de pose/posición). */
 async function grabarClipSecuencia(blobs, duracionSeg) {
     const mime = mimeRecorderPreferido();
     if (!mime || typeof document.createElement("canvas").captureStream !== "function") {
@@ -573,6 +573,7 @@ async function grabarClipSecuencia(blobs, duracionSeg) {
             const i0 = Math.min(nSeg - 1, Math.floor(f));
             const i1 = Math.min(bitmaps.length - 1, i0 + 1);
             const local = f - i0;
+            // ease-in-out: morph de posición del sujeto, cámara fija (sin zoom).
             const ease = local * local * (3 - 2 * local);
             const a = bitmaps[i0];
             const b = bitmaps[i1];

@@ -194,8 +194,9 @@ assert.match(yateMust, /park|parque|lake|lago|fishing|pescando/i);
 assert.match(clausulaProhibidos(yatePrompt), /yacht|rainbow|arco/i);
 const yateCorto = promptCortoParaFlux(yatePrompt, '');
 assert.match(yateCorto, /yacht|rainbow|dawn|park|lake/i);
-assert.match(yateCorto, /fisherman|fishing rod|persona pescando|fishing peacefully/i);
-assert.match(clausulaProhibidos(yatePrompt), /fisherman|fishing rod|nobody fishing|empty yacht/i);
+assert.match(yateCorto, /fisherman|fishing rod|FISHING ROD|casting|reeling/i);
+assert.match(yateCorto, /FORBIDDEN:.*driving|steering|NOT driving|no steering/i);
+assert.match(clausulaProhibidos(yatePrompt), /fisherman|fishing rod|driving|steering/i);
 assert.doesNotMatch(yateCorto, /Indoor setting|campfire|DANCING around the fire/i);
 
 // Pantera + mono: actuación animal.
@@ -206,9 +207,12 @@ assert.match(clausulaMustInclude(panteraPrompt), /panther|pantera|monkey|mono|ca
 assert.match(promptMotionParaVideo(panteraPrompt, ''), /SUBJECT PERFORMANCE|continuous logical action|MOVE for real/i);
 const panteraBeats = beatsActuacionParaClip(panteraPrompt);
 assert.ok(panteraBeats.length >= 3);
-assert.match(panteraBeats[0], /FAR|LEFT|gap|approach/i);
-assert.match(panteraBeats[panteraBeats.length - 1], /lunges|leap|ACTION|mid-leap/i);
-assert.match(promptCortoParaFlux(panteraPrompt, ''), /panther|capuchin|APPROACH|TWO species/i);
+  assert.match(panteraBeats[0], /LOCKED CAMERA|LEFT|JAGUAR|CAPUCHIN|stalk/i);
+assert.match(panteraBeats[panteraBeats.length - 1], /lunges|leap|mid-air|ACTION|escaping/i);
+assert.match(promptCortoParaFlux(panteraPrompt, ''), /panther|jaguar|capuchin|LOCKED|APPROACH|stalk/i);
+const beat1Corto = promptCortoParaFlux(`${panteraPrompt}. ${panteraBeats[0]}`, '');
+assert.match(beat1Corto, /ACTION BEAT 1|LEFT 20%|CAPUCHIN/i);
+assert.match(beat1Corto, /No bear|FORBIDDEN:.*bear|never bear/i);
 
 const s1 = seedDesdePrompt('escena A');
 const s2 = seedDesdePrompt('escena B distinta');
