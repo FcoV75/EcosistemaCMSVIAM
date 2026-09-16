@@ -460,6 +460,9 @@ export function clausulaCalidadComposicion(texto) {
   if (/\b(yate|yacht|barco|boat)\b/.test(n)) {
     partes.push(' Yacht/boat clearly visible on the water — hull and size readable, not replaced by shore-only fishing.');
   }
+  if (/\b(pesc\w*|fisherman|fishing)\b/.test(n)) {
+    partes.push(' Fisherman clearly visible with fishing rod (on the yacht deck or beside it) — never omit the person fishing when asked.');
+  }
   if (/\b(pantera|panther|mono|monkey|capuchin)\b/.test(n)) {
     partes.push(' Named animals fully visible with correct species: panther and/or capuchin monkey on tree branches as asked.');
   }
@@ -481,7 +484,10 @@ export function clausulaProhibidos(texto) {
     bits.push('FORBIDDEN: missing rainbow, empty sky without rainbow when rainbow was asked.');
   }
   if (/\b(yate|yacht|barco|boat)\b/.test(sinAcentos(texto))) {
-    bits.push('FORBIDDEN: missing yacht/boat, replacing yacht with shore-only fisherman.');
+    bits.push('FORBIDDEN: missing yacht/boat, replacing yacht with shore-only fishing spot.');
+  }
+  if (/\b(pesc\w*|fisherman|fishing)\b/.test(sinAcentos(texto))) {
+    bits.push('FORBIDDEN: missing fisherman, missing fishing rod, empty yacht with nobody fishing.');
   }
   if (escenaEsDramatica(texto)) {
     bits.push('FORBIDDEN: peaceful lake postcard, calm flowers meadow, sunny tourist landscape. SHOW eruption/ash/lightning/drama.');
@@ -617,6 +623,42 @@ export function promptMotionParaVideo(original = '', promptEn = '') {
   ].filter(Boolean).join(' ').slice(0, 1200);
 }
 
+/**
+ * Beats de actuación para secuencia de placas (fallback sin I2V).
+ * Cada beat se añade al prompt corto para forzar progreso de la acción.
+ */
+export function beatsActuacionParaClip(original = '') {
+  const src = String(original || '').replace(/\s+/g, ' ').trim();
+  if (!escenaPideActuacion(src)) return [];
+  const n = sinAcentos(src);
+  if (/\b(pantera|panther)\b/.test(n) && /\b(mono|monkey|capuchin)\b/.test(n)) {
+    return [
+      'ACTION BEAT 1/4 FAR: large black panther (big feline) on LEFT of a long branch; small brown-cream capuchin monkey on FAR RIGHT of SAME branch; wide gap; panther starts walking toward monkey.',
+      'ACTION BEAT 2/4 MID: same tree/camera; black panther now MID-branch closer to the brown capuchin on the right; medium gap; continuous approach.',
+      'ACTION BEAT 3/4 NEAR: black panther crouching VERY CLOSE to the brown capuchin; tiny gap; monkey coiled to jump to another branch.',
+      'ACTION BEAT 4/4 ACTION: black panther lunges forward; brown capuchin mid-leap to another branch of the same tree; clear subject motion.',
+    ];
+  }
+  if (/\b(fogata|hoguera|campfire|bail|danz)\b/.test(n)) {
+    return [
+      'ACTION BEAT 1/3: woman starting to dance beside tall campfire; one foot lifted.',
+      'ACTION BEAT 2/3: woman mid-spin around bright campfire; sparks rising.',
+      'ACTION BEAT 3/3: woman arms raised finishing dance move beside roaring fire.',
+    ];
+  }
+  if (/\b(pesc\w*|fisherman|fishing)\b/.test(n)) {
+    return [
+      'ACTION BEAT 1/2: fisherman casting line from yacht deck; rod extended.',
+      'ACTION BEAT 2/2: fisherman reeling calmly on yacht; line taut over water.',
+    ];
+  }
+  return [
+    'ACTION BEAT 1/3: subject at start of the named action; clear pose.',
+    'ACTION BEAT 2/3: subject mid-action progressing the same continuous movement.',
+    'ACTION BEAT 3/3: subject near completion of the named action; motion readable.',
+  ];
+}
+
 /** Prompt corto EN-first para Pollinations/Flux (truncan ~850 chars: la ESCENA debe ir primero). */
 export function promptCortoParaFlux(original, promptEn = '') {
   const src = String(original || '').replace(/\s+/g, ' ').trim();
@@ -641,13 +683,19 @@ export function promptCortoParaFlux(original, promptEn = '') {
     anclaEscena = `SCENE: ${mustEn || src}. Driver inside luxury car looking through window at store/street outside. Woman + car interior + outside view all visible. Perfect symmetrical face, realistic hands.`;
   } else if (animal) {
     const esCangrejo = /\bcangrejo|crab\b/.test(sinAcentos(src));
+    const esPanteraMono = /\b(pantera|panther)\b/.test(sinAcentos(src)) && /\b(mono|monkey|capuchin)\b/.test(sinAcentos(src));
     anclaEscena = esCangrejo
       ? `SCENE: A crab swimming among electric eels in a fast-flowing mountain river — photoreal wildlife close-up. Named animals first and large in frame: ${mustEn || 'crab, electric eels'}. Clear crab body/claws + several electric eels in rushing water between mountains. Animals only; no people, no women, no human bathers, no group of girls.`
+      : esPanteraMono
+        ? `SCENE: Photoreal wildlife — TWO species: (1) large adult BLACK PANTHER / jaguar feline with whiskers and long cat tail on a tree branch, (2) small BROWN-CREAM CAPUCHIN MONKEY with pale face on another branch of the SAME tree. Panther APPROACHING the monkey; monkey about to jump. Both LARGE and clearly separate animals — never fuse into one creature. Forest canopy. Animals only.`
       : `SCENE: Photoreal wildlife close-up — named animals LARGE and clear in frame first: ${mustEn || src}. Habitat supports the animals (not an empty landscape). Animals only; no people, no women, no human bathers.`;
   } else if (escenaEsExteriorNoche(src) && (/\b(fogata|hoguera|campfire|bail|danz|noche|luna|estrellad)\b/.test(sinAcentos(src)))) {
     anclaEscena = `SCENE: Photoreal night outdoor wide shot — ${mustEn || 'woman, campfire, full moon, starry sky, forest'}. Tall bright campfire with orange flames and sparks; woman DANCING around the fire (dynamic pose, not standing still); large full moon and dense starry sky above the trees. All visible together. SFW opaque clothes.`;
-  } else if (/\b(yate|arcoiris|parque|amanecer|lago|yacht|rainbow|pesc)\b/.test(sinAcentos(src))) {
-    anclaEscena = `SCENE: Photoreal wide landscape at dawn — ${mustEn || src}. MUST show TOGETHER: park lakeside at sunrise, bright colorful rainbow arched in the sky, yacht floating on the lake, person fishing peacefully with a rod. Never drop yacht or rainbow.`;
+  } else if (/\b(yate|arcoiris|parque|amanecer|lago|yacht|rainbow|pesc)/.test(sinAcentos(src))) {
+    const pidePesc = /\b(pesc\w*|fisherman|fishing|persona)\b/.test(sinAcentos(src));
+    anclaEscena = pidePesc
+      ? `SCENE: MEDIUM SHOT at dawn — adult fisherman standing on white yacht deck holding a long fishing rod over the lake (person clearly readable, fills ~20% of frame). Behind him: arched bright rainbow in sky + park lakeside sunrise. Required together: fisherman with rod + yacht + rainbow + park lake. Not an empty boat.`
+      : `SCENE: Photoreal wide landscape at dawn — ${mustEn || src}. MUST show ALL together in one frame: (1) park lakeside at sunrise, (2) bright colorful rainbow arched in the sky, (3) yacht floating on the lake. Never drop yacht or rainbow.`;
   } else if (personas && escenaPideActuacion(src) && escenaPidePaisaje(src) && !/\b(yate|arcoiris|rainbow|yacht)\b/.test(sinAcentos(src))) {
     anclaEscena = `SCENE: Photoreal outdoor action shot — ${mustEn || src}. Subject mid-action in the described place; full environment visible; SFW clothes.`;
   } else if (!personas) {
@@ -728,7 +776,10 @@ export function negativosParaEscena(original = '') {
     base.push('missing rainbow', 'no rainbow', 'empty sky without rainbow');
   }
   if (/\b(yate|yacht|barco|boat)\b/.test(sinAcentos(original))) {
-    base.push('missing yacht', 'missing boat', 'no yacht on water');
+    base.push('missing yacht', 'missing boat', 'no yacht on water', 'empty boat no fisherman');
+  }
+  if (/\b(pesc\w*|fisherman|fishing)\b/.test(sinAcentos(original))) {
+    base.push('missing fisherman', 'missing fishing rod', 'nobody fishing', 'empty yacht');
   }
   if (escenaTieneDosPersonas(original) && /\b(cafe|taza|escritorio|laptop)\b/.test(sinAcentos(original))) {
     base.push('only one person', 'missing boyfriend', 'missing coffee cup', 'close-up crop');

@@ -5,6 +5,7 @@ import {
   promptMotionParaVideo,
   escenaPideActuacion,
   seedDesdePrompt,
+  beatsActuacionParaClip,
 } from './lib/estudio-prompt-visual.mjs';
 import { generarImagenEstudio } from './lib/estudio-imagen-gen.mjs';
 
@@ -411,27 +412,67 @@ export default async (req) => {
     }
 
     const avisoActuacion = pideActuacion
-      ? ` Solo cámara sobre la placa — aún sin actuación nativa (fallback ${motivoFallback}). Reintenta; con Fal/Vidu I2V el sujeto sí debe moverse.`
+      ? ` Secuencia de actuación por placas (fallback ${motivoFallback}). Con Fal/Vidu I2V el movimiento es nativo.`
       : ` Placa + Ken Burns (fallback ${motivoFallback}).`;
 
-    write({ type: 'status', msg: 'Entregando placa (fallback cámara)…' });
+    // Sin I2V: generar beats de actuación para que el cliente morfee movimiento real del sujeto.
+    let secuencia = [];
+    if (pideActuacion && tiempoRestante(inicio) > 14000) {
+      const beats = beatsActuacionParaClip(prompt).slice(0, 3);
+      write({ type: 'status', msg: `Generando ${beats.length || 2} beats de actuación…` });
+      secuencia = [{ imagen_base64: cine.imagen_base64, mime: cine.mime, fuente: cine.fuente }];
+      for (let i = 0; i < beats.length; i += 1) {
+        if (tiempoRestante(inicio) < 10000) break;
+        try {
+          const beatPrompt = `${prompt}. ${beats[i]}`;
+          const extra = await generarImagenEstudio(promptEn, {
+            width: 1280,
+            height: 720,
+            seed: seedDesdePrompt(`clip-beat:${i}:${prompt}`),
+            original: beatPrompt,
+          });
+          if (extra?.imagen_base64) {
+            secuencia.push({
+              imagen_base64: extra.imagen_base64,
+              mime: extra.mime,
+              fuente: extra.fuente,
+              marca_agua_pollinations: !!extra.marca_agua_pollinations,
+            });
+          }
+        } catch (err) {
+          console.warn('beat actuación', i, err?.message || err);
+        }
+      }
+    }
+
+    const haySecuencia = secuencia.length >= 2;
+    write({ type: 'status', msg: haySecuencia ? 'Entregando secuencia de actuación…' : 'Entregando placa (fallback cámara)…' });
     return {
       success: true,
       tipo: 'cinematico',
       imagen_base64: cine.imagen_base64,
       mime: cine.mime,
+      secuencia: haySecuencia
+        ? secuencia.map((f) => ({
+            imagen_base64: f.imagen_base64,
+            mime: f.mime || cine.mime,
+            marca_agua_pollinations: !!f.marca_agua_pollinations || !!cine.marca_agua_pollinations,
+          }))
+        : undefined,
       duracionSeg: duracion,
       fuente: cine.fuente,
       marca_agua_pollinations: !!cine.marca_agua_pollinations,
       movimiento: true,
-      actuacion: false,
-      sin_actuacion: pideActuacion,
+      actuacion: haySecuencia,
+      sin_actuacion: pideActuacion && !haySecuencia,
       motivo_fallback: motivoFallback,
       resumen: expansion.resumen || '',
       prompt_en: promptEn.slice(0, 500),
       via_prompt: expansion.via || '',
       director: metaDirector,
-      aviso: `Clip de ${duracion} s (placa+cámara).${avisoActuacion}`,
+      aviso: haySecuencia
+        ? `Clip de ${duracion} s con secuencia de actuación (${secuencia.length} placas).`
+        : `Clip de ${duracion} s (placa+cámara).${avisoActuacion}`,
     };
   });
 };

@@ -534,6 +534,71 @@ async function grabarClipKenBurns(imageBlob, duracionSeg, estilo) {
     return blob;
 }
 
+/** Morph entre placas de actuación (pantera acercándose, baile, etc.) — no solo zoom. */
+async function grabarClipSecuencia(blobs, duracionSeg) {
+    const mime = mimeRecorderPreferido();
+    if (!mime || typeof document.createElement("canvas").captureStream !== "function") {
+        throw new Error("Este navegador no puede grabar el clip en video.");
+    }
+    if (!Array.isArray(blobs) || blobs.length < 2) {
+        throw new Error("Secuencia insuficiente.");
+    }
+    const bitmaps = [];
+    for (const b of blobs) bitmaps.push(await createImageBitmap(b));
+    const w = 1280;
+    const h = 720;
+    const fps = 24;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const stream = canvas.captureStream(fps);
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_800_000 });
+    const chunks = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    const terminado = new Promise((resolve, reject) => {
+        rec.onstop = () => resolve(new Blob(chunks, { type: mime.split(";")[0] }));
+        rec.onerror = () => reject(new Error("No se pudo grabar la secuencia del clip."));
+    });
+    const msPedido = Math.max(2000, Number(duracionSeg) * 1000);
+    const msGrabacion = msPedido + 900;
+    const nSeg = bitmaps.length - 1;
+    rec.start(200);
+    const inicio = performance.now();
+    await new Promise((resolve) => {
+        const tick = () => {
+            const elapsed = performance.now() - inicio;
+            const t = Math.min(0.999, elapsed / msPedido);
+            const f = t * nSeg;
+            const i0 = Math.min(nSeg - 1, Math.floor(f));
+            const i1 = Math.min(bitmaps.length - 1, i0 + 1);
+            const local = f - i0;
+            const ease = local * local * (3 - 2 * local);
+            const a = bitmaps[i0];
+            const b = bitmaps[i1];
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, w, h);
+            ctx.globalAlpha = 1;
+            ctx.drawImage(a, 0, 0, w, h);
+            ctx.globalAlpha = ease;
+            ctx.drawImage(b, 0, 0, w, h);
+            ctx.globalAlpha = 1;
+            if (elapsed >= msGrabacion) {
+                try { rec.requestData(); } catch { /* ignore */ }
+                rec.stop();
+                resolve();
+                return;
+            }
+            setTimeout(tick, 1000 / fps);
+        };
+        tick();
+    });
+    for (const bm of bitmaps) bm.close?.();
+    const blob = await terminado;
+    if (!blob || blob.size < 8000) throw new Error("El clip de secuencia quedó vacío.");
+    return blob;
+}
+
 function estiloMovimientoDesdePrompt(prompt) {
     const p = String(prompt || "").toLowerCase();
     if (/zoom.{0,24}(afuera|out|atrás|atras|alej)/.test(p) || /alej(ando|amiento)/.test(p)) {
@@ -571,12 +636,17 @@ async function agregarImagenDesdeBase64(b64, mime) {
  * Cubre el logo residual de pollinations.ai (esquina inferior derecha)
  * y, en plan gratuito, estampa "video_diamante". Premium: sin marca.
  * Usa recorte/zoom (no un rectángulo de color sólido).
+ * Crop agresivo: el logo+texto suele ocupar más del 5%.
  */
 async function aplicarMarcaEstudioImagen(blob, opts = {}) {
     const fuente = String(opts.fuente || "");
-    const forzarLimpieza = !!opts.marca_agua_pollinations || /pollinations/i.test(fuente);
+    const forzarLimpieza = opts.marca_agua_pollinations !== false && (
+        !!opts.marca_agua_pollinations || /pollinations/i.test(fuente)
+    );
+    // Si el caller fuerza scrub explícito (clips/placas), siempre limpiar.
+    const scrub = forzarLimpieza || !!opts.scrubPollinations;
     const stampFree = !isPremium;
-    if (!forzarLimpieza && !stampFree) return blob;
+    if (!scrub && !stampFree) return blob;
     try {
         const bmp = await createImageBitmap(blob);
         const w = bmp.width;
@@ -585,12 +655,12 @@ async function aplicarMarcaEstudioImagen(blob, opts = {}) {
         canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext("2d");
-        if (forzarLimpieza) {
-            // Recorta ~5% inferior y ~12% derecho (zona del logo) y reescala a 16:9.
-            const cropR = Math.round(w * 0.12);
-            const cropB = Math.round(h * 0.055);
-            const sw = w - cropR;
-            const sh = h - cropB;
+        if (scrub) {
+            // ~16% derecho + ~9% inferior cubre logo+texto pollinations.ai
+            const cropR = Math.round(w * 0.16);
+            const cropB = Math.round(h * 0.09);
+            const sw = Math.max(8, w - cropR);
+            const sh = Math.max(8, h - cropB);
             ctx.drawImage(bmp, 0, 0, sw, sh, 0, 0, w, h);
         } else {
             ctx.drawImage(bmp, 0, 0, w, h);
@@ -639,6 +709,7 @@ async function generarImagenIA() {
         blob = await aplicarMarcaEstudioImagen(blob, {
             fuente: d.fuente,
             marca_agua_pollinations: d.marca_agua_pollinations,
+            scrubPollinations: /pollinations/i.test(String(d.fuente || "")) || !!d.marca_agua_pollinations,
         });
         imagenEstudioBlob = blob;
 
@@ -907,13 +978,33 @@ async function generarClipIA() {
             still = await aplicarMarcaEstudioImagen(still, {
                 fuente: d.fuente,
                 marca_agua_pollinations: d.marca_agua_pollinations,
+                scrubPollinations: true,
             });
             const urlStill = URL.createObjectURL(still);
             if (img) { img.src = urlStill; img.style.display = "block"; }
-            // No mezclar con la pestaña Movimiento/Imagen: el clip usa su propio preview.
-            if (status) status.textContent = `Placa del clip lista. ${d.sin_actuacion ? "Sin video nativo de actuación — " : ""}Grabando cámara (${duracionSeg} s)…`;
+            const framesSecuencia = Array.isArray(d.secuencia) ? d.secuencia.filter((f) => f?.imagen_base64) : [];
+            if (status) {
+                status.textContent = framesSecuencia.length >= 2
+                    ? `Secuencia de actuación (${framesSecuencia.length} placas). Grabando morph (${duracionSeg} s)…`
+                    : `Placa del clip lista. ${d.sin_actuacion ? "Sin video nativo de actuación — " : ""}Grabando cámara (${duracionSeg} s)…`;
+            }
             try {
-                const videoBlob = await grabarClipKenBurns(still, duracionSeg, estiloMovimientoDesdePrompt(prompt));
+                let videoBlob;
+                if (framesSecuencia.length >= 2) {
+                    const blobs = [];
+                    for (const fr of framesSecuencia) {
+                        let b = blobDesdeBase64(fr.imagen_base64, fr.mime || "image/jpeg");
+                        b = await aplicarMarcaEstudioImagen(b, {
+                            fuente: d.fuente,
+                            marca_agua_pollinations: fr.marca_agua_pollinations ?? d.marca_agua_pollinations,
+                            scrubPollinations: true,
+                        });
+                        blobs.push(b);
+                    }
+                    videoBlob = await grabarClipSecuencia(blobs, duracionSeg);
+                } else {
+                    videoBlob = await grabarClipKenBurns(still, duracionSeg, estiloMovimientoDesdePrompt(prompt));
+                }
                 clipEstudioBlob = videoBlob;
                 clipEstudioTipo = "video";
                 const urlVid = URL.createObjectURL(videoBlob);
@@ -936,6 +1027,9 @@ async function generarClipIA() {
             let via;
             if (d.tipo === "video" && d.actuacion) via = " (video nativo con actuación)";
             else if (d.tipo === "video") via = " (video nativo)";
+            else if (Array.isArray(d.secuencia) && d.secuencia.length >= 2 && d.actuacion) {
+                via = ` (secuencia de actuación · ${d.secuencia.length} placas)`;
+            }
             else if (d.sin_actuacion) via = " (solo cámara — sin baile/actuación del sujeto)";
             else via = " (placa+cámara)";
             status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${textoDirectorStatus(d)}. ${(d.aviso && d.sin_actuacion) ? d.aviso + " " : ""}Añádelo a la pizarra como video.`;

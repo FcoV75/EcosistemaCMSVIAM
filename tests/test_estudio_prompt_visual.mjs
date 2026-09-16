@@ -5,6 +5,7 @@ import {
   promptClipReforzado,
   promptCortoParaFlux,
   promptMotionParaVideo,
+  beatsActuacionParaClip,
   reforzarSujetos,
   escenaPidePaisaje,
   escenaEsInteriorOPersonas,
@@ -192,7 +193,9 @@ assert.match(yateMust, /rainbow \(arcoiris\)|arcoiris|arco iris/i);
 assert.match(yateMust, /park|parque|lake|lago|fishing|pescando/i);
 assert.match(clausulaProhibidos(yatePrompt), /yacht|rainbow|arco/i);
 const yateCorto = promptCortoParaFlux(yatePrompt, '');
-assert.match(yateCorto, /yacht|rainbow|fishing|dawn|park|lake/i);
+assert.match(yateCorto, /yacht|rainbow|dawn|park|lake/i);
+assert.match(yateCorto, /fisherman|fishing rod|persona pescando|fishing peacefully/i);
+assert.match(clausulaProhibidos(yatePrompt), /fisherman|fishing rod|nobody fishing|empty yacht/i);
 assert.doesNotMatch(yateCorto, /Indoor setting|campfire|DANCING around the fire/i);
 
 // Pantera + mono: actuación animal.
@@ -201,6 +204,11 @@ assert.ok(escenaPideActuacion(panteraPrompt));
 assert.ok(escenaEsAnimalONaturaleza(panteraPrompt));
 assert.match(clausulaMustInclude(panteraPrompt), /panther|pantera|monkey|mono|capuchin|branch|rama/i);
 assert.match(promptMotionParaVideo(panteraPrompt, ''), /SUBJECT PERFORMANCE|continuous logical action|MOVE for real/i);
+const panteraBeats = beatsActuacionParaClip(panteraPrompt);
+assert.ok(panteraBeats.length >= 3);
+assert.match(panteraBeats[0], /FAR|LEFT|gap|approach/i);
+assert.match(panteraBeats[panteraBeats.length - 1], /lunges|leap|ACTION|mid-leap/i);
+assert.match(promptCortoParaFlux(panteraPrompt, ''), /panther|capuchin|APPROACH|TWO species/i);
 
 const s1 = seedDesdePrompt('escena A');
 const s2 = seedDesdePrompt('escena B distinta');

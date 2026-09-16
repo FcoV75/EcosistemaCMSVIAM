@@ -1,8 +1,10 @@
 /** Generadores de imagen HD para Estudio VIAM.
  * Orden: Imagen 4 → Fal Flux → Gemini → Replicate → Pollinations (último recurso).
  * Pollinations: sin gptimage (propenso a NSFW); flux + SFW + nologo.
+ * El logo residual de pollinations.ai se recorta aquí (servidor) antes de devolver.
  */
 
+import sharp from 'sharp';
 import {
   escenaEsAnimalONaturaleza,
   escenaPidePersonas,
@@ -10,6 +12,30 @@ import {
   promptCortoParaFlux,
   seedDesdePrompt,
 } from './estudio-prompt-visual.mjs';
+
+/** Recorta esquina inferior-derecha donde Pollinations estampa logo+texto. */
+export async function scrubPollinationsWatermark(buffer, mime = 'image/jpeg') {
+  try {
+    const img = sharp(Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer));
+    const meta = await img.metadata();
+    const w = meta.width || 0;
+    const h = meta.height || 0;
+    if (w < 64 || h < 64) return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+    const cropR = Math.max(8, Math.round(w * 0.16));
+    const cropB = Math.max(8, Math.round(h * 0.09));
+    const sw = Math.max(8, w - cropR);
+    const sh = Math.max(8, h - cropB);
+    const out = await img
+      .extract({ left: 0, top: 0, width: sw, height: sh })
+      .resize(w, h, { fit: 'fill' })
+      .jpeg({ quality: 92 })
+      .toBuffer();
+    return out;
+  } catch (err) {
+    console.warn('scrubPollinationsWatermark:', err?.message || err);
+    return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  }
+}
 
 async function extraerImagenGemini(data) {
   const parts = data?.candidates?.[0]?.content?.parts || [];
@@ -246,13 +272,15 @@ export async function generarImagenPollinations(promptEn, { width = 1920, height
         headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
       }, 40000);
       if (!img.ok) continue;
-      const buf = Buffer.from(await img.arrayBuffer());
+      let buf = Buffer.from(await img.arrayBuffer());
       if (buf.length < 12000) continue;
+      // Nunca devolver el logo pollinations.ai: scrub en servidor.
+      buf = await scrubPollinationsWatermark(buf, img.headers.get('content-type') || 'image/jpeg');
       return {
         imagen_base64: buf.toString('base64'),
-        mime: img.headers.get('content-type') || 'image/jpeg',
+        mime: 'image/jpeg',
         fuente: `pollinations-${model}`,
-        // El cliente cubre el logo residual de Pollinations y estampa video_diamante en Free.
+        // Cliente también limpia por si acaso; ya viene limpia del servidor.
         marca_agua_pollinations: true,
       };
     } catch (err) {
