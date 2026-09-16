@@ -103,10 +103,10 @@ export async function generarImagenGemini(promptEn, opts = {}) {
   // Nombres vivos (ListModels 2026): los *-preview-image-generation / 2.0 ya dan 404.
   const modelos = [
     process.env.GEMINI_IMAGE_MODEL,
-    'gemini-3.1-flash-image',
     'gemini-2.5-flash-image',
-    'gemini-3-pro-image',
+    'gemini-3.1-flash-image',
     'gemini-3.1-flash-image-preview',
+    'gemini-3-pro-image',
     'gemini-3-pro-image-preview',
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
   const cuerpo = {
@@ -330,7 +330,13 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
     : `${String(promptEn || '').trim()}. ${hard}`;
   if (!String(promptEn || original || '').trim()) return null;
   const personas = escenaPidePersonas(src) || escenaEsPescaEpica(original || src);
-  const modelos = ['imagen-4.0-generate-001', 'imagen-4.0-ultra-generate-001', 'imagen-4.0-fast-generate-001'];
+  // Imagen predict: muchos projects solo tienen Gemini *-image; Imagen 4 puede 404.
+  const modelos = [
+    process.env.GEMINI_IMAGEN_MODEL,
+    'imagen-4.0-generate-001',
+    'imagen-4.0-fast-generate-001',
+    'imagen-3.0-generate-002',
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
   for (const modelo of modelos) {
     try {
       const r = await fetchConTimeout(

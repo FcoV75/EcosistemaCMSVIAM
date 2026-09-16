@@ -54,8 +54,8 @@ export default async (req) => {
   const candidatosTexto = out.modelos_utiles.filter((n) =>
     /flash/i.test(n) && !/image|tts|imagen|embed/i.test(n),
   );
-  const textoModelo = candidatosTexto.find((n) => /gemini-3\.6-flash|gemini-3-flash|gemini-2\.5-flash(?!-image)/i.test(n))
-    || candidatosTexto[0]
+  const textoModelo = candidatosTexto.find((n) => /gemini-3\.8-flash|gemini-3\.7-flash|gemini-3\.6-flash|gemini-flash-latest/i.test(n))
+    || candidatosTexto.find((n) => /gemini-3/i.test(n))
     || 'gemini-3.6-flash';
 
   try {
