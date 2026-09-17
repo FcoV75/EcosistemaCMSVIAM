@@ -159,13 +159,15 @@ export default async (req) => {
 
   const ttsModelo = out.modelos_utiles.find((n) => /tts/i.test(n)) || 'gemini-2.5-flash-preview-tts';
   try {
+    // Sin wrap, Gemini TTS a menudo responde 400 ("tried to generate text").
+    const promptTts = 'Lee en voz alta el siguiente texto en español, con naturalidad y claridad. No añadas comentarios ni explicaciones:\n\nHola, prueba de voz.';
     const r = await fetchJson(
       `https://generativelanguage.googleapis.com/v1beta/models/${ttsModelo}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: 'Hola' }] }],
+          contents: [{ parts: [{ text: promptTts }] }],
           generationConfig: {
             responseModalities: ['AUDIO'],
             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },

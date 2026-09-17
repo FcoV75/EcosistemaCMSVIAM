@@ -1,0 +1,158 @@
+{
+  "started_at": "2026-09-17T21:16:14.150Z",
+  "keys": {
+    "GROQ_API_KEY": 56,
+    "FAL_KEY": 69,
+    "GEMINI_API_KEY": 53
+  },
+  "environment_note": "Keys presentes en runtime local.",
+  "chunk_plan": {
+    "30s": {
+      "palabras": 72,
+      "chars": 446,
+      "chunks": 3,
+      "max_chunk_chars": 149
+    },
+    "60s": {
+      "palabras": 144,
+      "chars": 890,
+      "chunks": 6,
+      "max_chunk_chars": 149
+    },
+    "120s": {
+      "palabras": 288,
+      "chars": 1781,
+      "chunks": 12,
+      "max_chunk_chars": 149
+    },
+    "300s": {
+      "palabras": 720,
+      "chars": 4454,
+      "chunks": 30,
+      "max_chunk_chars": 149
+    }
+  },
+  "local_voz": [
+    {
+      "ok": true,
+      "seg": 30,
+      "chunks": 3,
+      "bytes": 1751060,
+      "fuentes": [
+        "groq"
+      ],
+      "modelos": [
+        "canopylabs/orpheus-v1-english"
+      ],
+      "mimes": [
+        "audio/wav"
+      ],
+      "file": "/workspace/artifacts/live-voz-clip/voz-30s.wav",
+      "ms": 19130
+    },
+    {
+      "ok": true,
+      "seg": 60,
+      "chunks": 6,
+      "bytes": 3490556,
+      "fuentes": [
+        "groq"
+      ],
+      "modelos": [
+        "canopylabs/orpheus-v1-english"
+      ],
+      "mimes": [
+        "audio/wav"
+      ],
+      "file": "/workspace/artifacts/live-voz-clip/voz-60s.wav",
+      "ms": 44476
+    },
+    {
+      "ok": false,
+      "seg": 120,
+      "chunks": 12,
+      "failed_chunk": 6,
+      "status": 502,
+      "error": "No se pudo generar la voz completa. Revisa el detalle del proveedor o reintenta el chunk.",
+      "detalle_proveedor": "groq: HTTP 429: {\"error\":{\"message\":\"Rate limit reached for model `canopylabs/orpheus-v1-english` in organization `org_01knzsvs4yfdkb6877780afaa9` service tier `on_demand` on tokens per day (TPD): Limit 3600, Used 3498, Requested 146. Please try again in 17m36s. Need more tokens? Upgrade to Dev  · gemini: gemini/gemini-2.5-flash-preview-tts: HTTP 429: {\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quot | gemini/gemini-2.5-flas · fal: HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+      "ms": 51672
+    }
+  ],
+  "local_clip": [
+    {
+      "prompt": "Una bailarina mexicana en un estudio con luces neón mueve brazos, torso y pasos laterales con energía real. Cámara fija a nivel de ojos, movimiento continuo del sujeto, no Ken Burns, no zoom de foto.",
+      "requested_provider": "fal-i2v",
+      "duracionSeg": 8,
+      "ok": false,
+      "status": 200,
+      "tipo": "cinematico",
+      "fuente": "pollinations-flux-realism",
+      "actuacion": false,
+      "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas.",
+      "error": null,
+      "motivo_fallback": "fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+      "events": [
+        {
+          "type": "status",
+          "msg": "Director y placa en marcha…"
+        },
+        {
+          "type": "status",
+          "msg": "Creando clip de 8 s (actuación del sujeto)…"
+        },
+        {
+          "type": "status",
+          "msg": "Generando placa rápida…"
+        },
+        {
+          "type": "ping",
+          "t": 1789679892981
+        },
+        {
+          "type": "status",
+          "msg": "Filmando actuación (I2V nativo)…"
+        },
+        {
+          "type": "status",
+          "msg": "Filmando video nativo T2V…"
+        },
+        {
+          "type": "status",
+          "msg": "Entregando placa (reintenta por microfilme nativo)…"
+        },
+        {
+          "type": "result",
+          "success": true,
+          "tipo": "cinematico",
+          "imagen_base64": "[base64:71896]",
+          "mime": "image/jpeg",
+          "fuente": "pollinations-flux-realism",
+          "marca_agua_pollinations": true,
+          "movimiento": false,
+          "actuacion": false,
+          "sin_actuacion": true,
+          "motivo_fallback": "fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+          "resumen": "Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta.",
+          "prompt_en": "MUST INCLUDE: bailarina, mexicana, estudio, luces, neón, mueve, brazos, torso, pasos, laterales, energía, real, fija, nivel, ojos, movimiento, continuo, sujeto, Ken, Burns, zoom. Cinematic 16:9 VIDEO clip with real subject motion. OBEY the user scene exactly. Do NOT invent extra places or drop named subjects. Hyperrealistic commercial photography quality (8k, crisp micro-detail). Animals/wildlife: correct species anatomy, natural limbs and eyes, no extra limbs; do NOT replace animals with people",
+          "via_prompt": "fallback-local",
+          "director": {
+            "intencion": "Una bailarina mexicana en un estudio con luces neón mueve brazos, torso y pasos laterales con energía real. Cámara fija a nivel de ojos, movimiento continuo del",
+            "inferencias": [
+              "Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta."
+            ],
+            "resumen_es": "Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta.",
+            "via": "fallback-local"
+          },
+          "duracionSeg": 8,
+          "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas."
+        }
+      ],
+      "ms": 6854
+    }
+  ],
+  "provider_blockers": [
+    "Gemini devolvió 429 por cuota agotada.",
+    "Fal devolvió saldo agotado / usuario bloqueado."
+  ],
+  "finished_at": "2026-09-17T21:18:16.333Z"
+}
