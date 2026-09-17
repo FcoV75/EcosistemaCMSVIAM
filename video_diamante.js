@@ -951,15 +951,18 @@ async function generarClipIA() {
     try {
         // 80 s: Netlify clip=90; heartbeats NDJSON evitan Inactivity Timeout de Safari.
         const { ok, data: d } = await fetchEstudio("/estudio/clip", { prompt, duracionSeg }, {
-            timeoutMs: 80000,
+            timeoutMs: 88000,
             onStatus: (st) => {
                 if (!status || !st) return;
                 if (st.type === "status" && st.msg) status.textContent = st.msg;
                 else if (st.type === "ping") status.textContent = `Creando clip de ${duracionSeg} s… (sigue activo)`;
             }
         });
-        if (!ok) {
-            const raw = String(d.error || "No se pudo generar el clip.");
+        if (!ok || d?.error) {
+            const raw = String(d?.error || "No se pudo generar el clip.");
+            if (/incompleta/i.test(raw)) {
+                throw new Error("El clip se cortó a mitad (timeout). Pulsa Generar clip otra vez; suele completar al segundo intento.");
+            }
             if (/inactivity timeout|too much time has passed/i.test(raw)) {
                 throw new Error("El servidor tardó demasiado. Intenta de nuevo; suele completar en el segundo intento.");
             }

@@ -14,11 +14,17 @@ import {
   generarSecuenciaPanteraMono,
 } from './lib/estudio-secuencia-fauna.mjs';
 
-/** Usar casi todo el timeout Netlify (90s); dejar margen. */
+/** Usar casi todo el timeout Netlify (90s); dejar margen para escribir result. */
 const BUDGET_CLIP_MS = 78000;
+/** Soft deadline: devolver lo que haya (nunca dejar NDJSON sin result). */
+const SOFT_DEADLINE_MS = 70000;
 
 function tiempoRestante(inicio, budget = BUDGET_CLIP_MS) {
   return Math.max(0, budget - (Date.now() - inicio));
+}
+
+function pasadoSoftDeadline(inicio) {
+  return Date.now() - inicio >= SOFT_DEADLINE_MS;
 }
 
 function dataUriDesdeImagen(imagen) {
@@ -54,8 +60,8 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
 
   const modelos = [
     process.env.FAL_I2V_MODEL,
-    'fal-ai/kling-video/v2.1/standard/image-to-video',
     'fal-ai/minimax/hailuo-02/standard/image-to-video',
+    'fal-ai/kling-video/v2.1/standard/image-to-video',
     'fal-ai/ltx-video/image-to-video',
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
@@ -339,38 +345,68 @@ export default async (req) => {
       : null;
 
     write({ type: 'status', msg: 'Generando placa obediente…' });
+    // Placa RÁPIDA (Fal primero): Gemini imagen con 429 tumba el clip → "respuesta incompleta".
     const cine = await generarImagenEstudio(promptEn, {
       width: 1920,
       height: 1080,
       seed: seedDesdePrompt(`clip:${prompt}`),
       original: prompt,
+      prioridad: 'rapido',
     });
     if (!cine?.imagen_base64) {
       return { success: false, error: 'No se pudo generar la placa del clip. Intenta de nuevo.' };
     }
 
+    const metaBase = {
+      resumen: expansion.resumen || '',
+      prompt_en: promptEn.slice(0, 500),
+      via_prompt: expansion.via || '',
+      director: metaDirector,
+      duracionSeg: duracion,
+    };
+
+    const respuestaPlaca = (motivo, avisoExtra = '') => ({
+      success: true,
+      tipo: 'cinematico',
+      imagen_base64: cine.imagen_base64,
+      mime: cine.mime,
+      fuente: cine.fuente,
+      marca_agua_pollinations: !!cine.marca_agua_pollinations,
+      movimiento: true,
+      actuacion: false,
+      sin_actuacion: !!pideActuacion,
+      motivo_fallback: motivo,
+      ...metaBase,
+      aviso: `Clip de ${duracion} s: se entregó placa (sin video nativo: ${motivo}).${avisoExtra}`,
+    });
+
+    if (pasadoSoftDeadline(inicio) || tiempoRestante(inicio) < 12000) {
+      write({ type: 'status', msg: 'Entregando placa (presupuesto corto)…' });
+      return respuestaPlaca('presupuesto_corto', ' Reintenta: el microfilme nativo necesita margen I2V.');
+    }
+
     let nativo = null;
     let motivoFallback = '';
 
-    // Pesca épica: más presupuesto I2V (el clip "verdadero" es lucha del sujeto, no Ken Burns).
+    // Microfilme: casi TODO el presupuesto restante a I2V/T2V (no a diapositivas).
     const waitI2V = Math.min(
-      pescaEpica ? 32000 : 20000,
-      tiempoRestante(inicio) - (pescaEpica ? 6000 : 8000),
+      pescaEpica ? 36000 : 28000,
+      tiempoRestante(inicio) - 8000,
     );
     if (waitI2V >= 9000) {
-      write({ type: 'status', msg: pescaEpica ? 'Animando la lucha (I2V)…' : 'Animando actuación (I2V)…' });
+      write({ type: 'status', msg: pescaEpica ? 'Filmando la lucha (I2V nativo)…' : 'Filmando actuación (I2V nativo)…' });
       try {
         nativo = await generarClipFalI2V(cine, motionPrompt, duracion, waitI2V);
       } catch (err) {
         console.warn('Fal I2V clip:', err?.message || err);
       }
-      if (!nativo && tiempoRestante(inicio) > 12000) {
+      if (!nativo && !pasadoSoftDeadline(inicio) && tiempoRestante(inicio) > 14000) {
         try {
           nativo = await generarClipViduI2V(
             cine,
             motionPrompt,
             duracion,
-            Math.min(pescaEpica ? 22000 : 16000, tiempoRestante(inicio) - 5000),
+            Math.min(20000, tiempoRestante(inicio) - 6000),
           );
         } catch (err) {
           console.warn('Vidu I2V clip:', err?.message || err);
@@ -380,36 +416,43 @@ export default async (req) => {
       motivoFallback = 'presupuesto_corto_i2v';
     }
 
-    // T2V solo si aún hay margen amplio.
-    if (!nativo && tiempoRestante(inicio) > 16000) {
-      write({ type: 'status', msg: 'Intentando video nativo T2V…' });
+    // T2V nativo si I2V falló y aún hay margen (antes de cualquier slideshow).
+    if (!nativo && !pasadoSoftDeadline(inicio) && tiempoRestante(inicio) > 16000) {
+      write({ type: 'status', msg: 'Filmando video nativo T2V…' });
       try {
-        nativo = await generarClipViduT2V(
+        nativo = await generarClipFalT2V(
           motionPrompt || promptEn,
           duracion,
-          Math.min(14000, tiempoRestante(inicio) - 5000),
+          Math.min(18000, tiempoRestante(inicio) - 6000),
         );
       } catch (err) {
-        console.warn('Vidu T2V clip:', err?.message || err);
+        console.warn('Fal T2V clip:', err?.message || err);
+      }
+      if (!nativo && tiempoRestante(inicio) > 14000) {
+        try {
+          nativo = await generarClipViduT2V(
+            motionPrompt || promptEn,
+            duracion,
+            Math.min(14000, tiempoRestante(inicio) - 5000),
+          );
+        } catch (err) {
+          console.warn('Vidu T2V clip:', err?.message || err);
+        }
       }
     }
 
     if (nativo?.video_url) {
+      write({ type: 'status', msg: 'Entregando microfilme nativo…' });
       return {
         success: true,
         tipo: 'video',
         video_url: nativo.video_url,
         mime: nativo.mime,
-        duracionSeg: duracion,
         fuente: nativo.fuente,
-        actuacion: !!nativo.actuacion,
-        resumen: expansion.resumen || '',
-        prompt_en: promptEn.slice(0, 500),
-        via_prompt: expansion.via || '',
-        director: metaDirector,
-        aviso: nativo.actuacion
-          ? `Clip nativo con actuación/movimiento del sujeto (${nativo.fuente}).`
-          : undefined,
+        actuacion: true,
+        sin_actuacion: false,
+        ...metaBase,
+        aviso: `Clip nativo con movimiento continuo del sujeto (${nativo.fuente}).`,
       };
     }
 
@@ -417,54 +460,43 @@ export default async (req) => {
       const tieneFal = !!(process.env.FAL_KEY || process.env.FAL_API_KEY);
       const tieneVidu = !!(process.env.VIDU_API_KEY || process.env.VIDU_KEY);
       if (!tieneFal && !tieneVidu) motivoFallback = 'sin_claves_video';
-      else motivoFallback = 'timeout_proveedor';
+      else motivoFallback = 'timeout_proveedor_i2v';
     }
 
-    const avisoActuacion = pideActuacion
-      ? ` Secuencia de actuación por placas (fallback ${motivoFallback}). Con Fal/Vidu I2V el movimiento es nativo.`
-      : ` Placa + Ken Burns (fallback ${motivoFallback}).`;
-
-    // Sin I2V: pantera+mono → composición; pesca épica → 4 beats de lucha (placa inicial + progresión).
+    // Diapositivas SOLO para pantera/pesca cuando queda mucho margen.
+    // Escenas normales (cóctel, etc.): placa limpia — el morph parece slideshow, no película.
     let secuencia = [];
-    if (pideActuacion && tiempoRestante(inicio) > 14000) {
-      if (esEscenaPanteraMono(prompt) && tiempoRestante(inicio) > 25000) {
+    const puedeSlideshowEspecial = (esEscenaPanteraMono(prompt) || pescaEpica)
+      && !pasadoSoftDeadline(inicio)
+      && tiempoRestante(inicio) > 28000;
+
+    if (puedeSlideshowEspecial) {
+      if (esEscenaPanteraMono(prompt)) {
         write({ type: 'status', msg: 'Filmando aproximación pantera→mono (composición)…' });
         try {
           const comp = await generarSecuenciaPanteraMono(prompt, {
-            timeoutMs: Math.min(70000, tiempoRestante(inicio) - 5000),
+            timeoutMs: Math.min(45000, tiempoRestante(inicio) - 8000),
           });
           if (comp?.secuencia?.length >= 2) {
-            secuencia = comp.secuencia.map((f) => ({
-              ...f,
-              fuente: comp.fuente,
-            }));
+            secuencia = comp.secuencia.map((f) => ({ ...f, fuente: comp.fuente }));
             motivoFallback = motivoFallback || 'composicion_fauna';
           }
         } catch (err) {
           console.warn('secuencia fauna:', err?.message || err);
         }
       }
-      if (!secuencia.length) {
-        const beats = beatsActuacionParaClip(prompt).slice(0, pescaEpica ? 4 : 4);
-        // Anclar continuidad: la placa cine es el beat 0 (misma pelea, no otra escena).
-        if (pescaEpica && cine?.imagen_base64) {
-          secuencia.push({
-            imagen_base64: cine.imagen_base64,
-            mime: cine.mime,
-            fuente: cine.fuente,
-            marca_agua_pollinations: !!cine.marca_agua_pollinations,
-          });
-        }
-        write({
-          type: 'status',
-          msg: pescaEpica
-            ? `Filmando pelea cuadro a cuadro (${beats.length} beats)…`
-            : `Filmando ${beats.length || 2} tomas de actuación…`,
+      if (!secuencia.length && pescaEpica) {
+        const beats = beatsActuacionParaClip(prompt).slice(0, 3);
+        secuencia.push({
+          imagen_base64: cine.imagen_base64,
+          mime: cine.mime,
+          fuente: cine.fuente,
+          marca_agua_pollinations: !!cine.marca_agua_pollinations,
         });
+        write({ type: 'status', msg: `Continuidad de pelea (${beats.length} beats)…` });
         for (let i = 0; i < beats.length; i += 1) {
-          if (tiempoRestante(inicio) < 9000) break;
-          // Con placa inicial ya contamos 1; generar beats 2..N (o todos si no hay placa).
-          if (pescaEpica && secuencia.length >= 4) break;
+          if (pasadoSoftDeadline(inicio) || tiempoRestante(inicio) < 10000) break;
+          if (secuencia.length >= 4) break;
           try {
             const beatPrompt = `${prompt}. ${beats[i]}`;
             const extra = await generarImagenEstudio(`${promptEn}. ${beats[i]}`, {
@@ -472,6 +504,7 @@ export default async (req) => {
               height: 720,
               seed: seedDesdePrompt(`clip-beat:${i}:${prompt}`),
               original: beatPrompt,
+              prioridad: 'rapido',
             });
             if (extra?.imagen_base64) {
               secuencia.push({
@@ -486,39 +519,37 @@ export default async (req) => {
           }
         }
       }
-      if (!secuencia.length && cine?.imagen_base64) {
-        secuencia = [{ imagen_base64: cine.imagen_base64, mime: cine.mime, fuente: cine.fuente }];
-      }
     }
 
     const haySecuencia = secuencia.length >= 2;
-    write({ type: 'status', msg: haySecuencia ? 'Entregando secuencia de actuación…' : 'Entregando placa (fallback cámara)…' });
-    return {
-      success: true,
-      tipo: 'cinematico',
-      imagen_base64: cine.imagen_base64,
-      mime: cine.mime,
-      secuencia: haySecuencia
-        ? secuencia.map((f) => ({
-            imagen_base64: f.imagen_base64,
-            mime: f.mime || cine.mime,
-            marca_agua_pollinations: !!f.marca_agua_pollinations || !!cine.marca_agua_pollinations,
-          }))
-        : undefined,
-      duracionSeg: duracion,
-      fuente: cine.fuente,
-      marca_agua_pollinations: !!cine.marca_agua_pollinations,
-      movimiento: true,
-      actuacion: haySecuencia,
-      sin_actuacion: pideActuacion && !haySecuencia,
-      motivo_fallback: motivoFallback,
-      resumen: expansion.resumen || '',
-      prompt_en: promptEn.slice(0, 500),
-      via_prompt: expansion.via || '',
-      director: metaDirector,
-      aviso: haySecuencia
-        ? `Clip de ${duracion} s con secuencia de actuación (${secuencia.length} placas).`
-        : `Clip de ${duracion} s (placa+cámara).${avisoActuacion}`,
-    };
+    write({
+      type: 'status',
+      msg: haySecuencia ? 'Entregando secuencia de continuidad…' : 'Entregando placa (reintenta por microfilme nativo)…',
+    });
+    if (haySecuencia) {
+      return {
+        success: true,
+        tipo: 'cinematico',
+        imagen_base64: cine.imagen_base64,
+        mime: cine.mime,
+        secuencia: secuencia.map((f) => ({
+          imagen_base64: f.imagen_base64,
+          mime: f.mime || cine.mime,
+          marca_agua_pollinations: !!f.marca_agua_pollinations || !!cine.marca_agua_pollinations,
+        })),
+        fuente: cine.fuente,
+        marca_agua_pollinations: !!cine.marca_agua_pollinations,
+        movimiento: true,
+        actuacion: true,
+        sin_actuacion: false,
+        motivo_fallback: motivoFallback,
+        ...metaBase,
+        aviso: `Clip de ${duracion} s con continuidad (${secuencia.length} placas; I2V no respondió: ${motivoFallback}).`,
+      };
+    }
+    return respuestaPlaca(
+      motivoFallback,
+      ' El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas.',
+    );
   });
 };

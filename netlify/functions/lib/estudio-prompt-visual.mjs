@@ -310,7 +310,7 @@ export function escenaEsExteriorNoche(texto) {
 /** ¿Pide actuación / baile / movimiento del sujeto (no solo cámara)? */
 export function escenaPideActuacion(texto) {
   const n = sinAcentos(texto);
-  return /\b(bail|danz|danc|actu|gesticul|camin|corr|gira|girando|salta|saltando|brinc|abraza|abrazando|pelea|luch|nadand|swimming|dancing|running|walking|acerc|acech|caz|pesc|jump|approach|stalk|hunt|fish|predator|batall|sacando)\w*\b/.test(n);
+  return /\b(bail|danz|danc|actu|gesticul|camin|corr|gira|girando|salta|saltando|brinc|abraza|abrazando|pelea|luch|nadand|swimming|dancing|running|walking|acerc|acech|caz|pesc|jump|approach|stalk|hunt|fish|predator|batall|sacando|prepar|mezcl|coctel|cocktail|barman|bartender|sirv|serving)\w*\b/.test(n);
 }
 
 /** Interior real (props de cuarto/oficina). Personas al aire libre NO cuentan como interior. */
@@ -669,12 +669,13 @@ export function promptMotionParaVideo(original = '', promptEn = '') {
 
   if (actuacion) {
     return [
-      `Animate the exact scene with SUBJECT PERFORMANCE and continuous logical action: ${mustEn || src}.`,
-      'Animals/people MOVE for real: limbs, approach, jump, swim, dance, fish — not a frozen still.',
-      'Environment also lives: fire flickers, water ripples, leaves stir, sparks/rain if asked.',
-      'Camera mostly locked wide or gentle orbit; NEVER only Ken Burns zoom/pan on a still plate.',
-      'SFW clothed when humans, photoreal, 16:9, no text, no watermark.',
-      en ? `Context: ${en.slice(0, 500)}` : '',
+      `LOCKED CAMERA or gentle handheld 16:9 photoreal MICROFILM (continuous motion, NOT a slideshow of stills).`,
+      `SUBJECT PERFORMANCE first: ${mustEn || src}.`,
+      'Hands, arms, torso and face MOVE continuously as if filmed live — pouring, mixing, dancing, walking, struggling — never a frozen mannequin.',
+      'Environment lives: neon flicker, liquid pour, steam, crowd blur if asked.',
+      'FORBIDDEN: Ken Burns zoom-only on a still photo, crossfade between static slides, no subject motion.',
+      'SFW clothed when humans, photoreal, no text, no watermark.',
+      en ? `Context: ${en.slice(0, 450)}` : '',
     ].filter(Boolean).join(' ').slice(0, 1400);
   }
   return [
