@@ -36,6 +36,9 @@ let midiEstudioAudioFile = null;
 let vozEstudioAudioFile = null;
 let clipEstudioBlob = null;
 let clipEstudioTipo = "imagen";
+/** Cancela una generación de clip anterior si el usuario pulsa otra vez. */
+let clipEstudioAbort = null;
+let clipEstudioGen = 0;
 let previewMovImg = null;
 let previewMovRaf = 0;
 let previewMovPizarraGen = 0;
@@ -248,15 +251,20 @@ function actualizarPreviewTipografia() {
     ctx.fillText(hintPx, w / 2, 48);
 }
 
-async function fetchEstudio(endpoint, body, { timeoutMs, onStatus } = {}) {
+async function fetchEstudio(endpoint, body, { timeoutMs, onStatus, signal, abortErrorMsg } = {}) {
     await ensureAccessToken();
     let fn = "estudio-imagen";
     if (endpoint.includes("letra")) fn = "estudio-letra";
     else if (endpoint.includes("voz")) fn = "estudio-voz";
     else if (endpoint.includes("clip")) fn = "estudio-clip";
     else if (endpoint.includes("director")) fn = "estudio-director";
-    const ctrl = timeoutMs ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+    const ctrl = timeoutMs || signal ? new AbortController() : null;
+    const timer = ctrl && timeoutMs ? setTimeout(() => ctrl.abort("timeout"), timeoutMs) : null;
+    const onExternalAbort = () => ctrl?.abort("cancel");
+    if (ctrl && signal) {
+        if (signal.aborted) ctrl.abort("cancel");
+        else signal.addEventListener("abort", onExternalAbort, { once: true });
+    }
     try {
         const r2 = await fetch(`/.netlify/functions/${fn}`, {
             method: "POST",
@@ -268,11 +276,14 @@ async function fetchEstudio(endpoint, body, { timeoutMs, onStatus } = {}) {
         return { ok: r2.ok, data: d2 };
     } catch (err) {
         const msg = String(err?.message || err || "");
-        if (err?.name === "AbortError") {
+        if (err?.name === "AbortError" || /abort/i.test(msg)) {
+            const cancelado = signal?.aborted || ctrl?.signal?.reason === "cancel";
             return {
                 ok: false,
                 data: {
-                    error: "La petición tardó demasiado (timeout). Vuelve a intentar; el clip puede necesitar un segundo intento."
+                    error: cancelado
+                        ? (abortErrorMsg || "Generación cancelada.")
+                        : "La petición tardó demasiado (timeout). Vuelve a intentar; el clip puede necesitar un segundo intento."
                 }
             };
         }
@@ -287,6 +298,7 @@ async function fetchEstudio(endpoint, body, { timeoutMs, onStatus } = {}) {
         throw err;
     } finally {
         if (timer) clearTimeout(timer);
+        if (signal && onExternalAbort) signal.removeEventListener("abort", onExternalAbort);
     }
 }
 
@@ -341,6 +353,30 @@ function puedeUsarClip() {
 
 function estiloMovimientoActual() {
     return $("#estudio-estilo-movimiento")?.value || "zoom_in";
+}
+
+/**
+ * Estilos del panel Movimiento (Imagen + pizarra).
+ * NUNCA llamar desde Clip IA: cruzaba zoom_in del menú Movimiento sobre fotos quietas
+ * y fingía un “clip” que solo era Ken Burns.
+ */
+function estiloMovimientoDesdePrompt(prompt) {
+    const p = String(prompt || "").toLowerCase();
+    if (/zoom.{0,24}(afuera|out|atrás|atras|alej)/.test(p) || /alej(ando|amiento)/.test(p)) {
+        return /izq|left/.test(p) ? "zoom_out_izquierda" : "zoom_out";
+    }
+    if (/paneo?.{0,16}(arriba|up|cielo)/.test(p)) return "pan_arriba";
+    if (/paneo?.{0,16}(abajo|down|suelo)/.test(p)) return "pan_abajo";
+    if (/paneo?.{0,16}(izq|left)/.test(p)) return "pan_izquierda";
+    if (/paneo?.{0,16}(der|right)/.test(p)) return "pan_derecha";
+    if (/diagonal|ken.?burns/.test(p)) return "ken_burns";
+    if (/bail|danz|danc|actu|gira|camina|corre/.test(p)) return "ken_burns";
+    if (/zoom|acerc|progresivo|acabando en|hacia el /.test(p)) {
+        if (/izq|left/.test(p)) return "zoom_in_izquierda";
+        if (/der|right/.test(p)) return "zoom_in_derecha";
+        return "zoom_in";
+    }
+    return estiloMovimientoActual();
 }
 
 function movimientoPorDefecto() {
@@ -606,26 +642,6 @@ async function grabarClipSecuencia(blobs, duracionSeg) {
     const blob = await terminado;
     if (!blob || blob.size < 8000) throw new Error("El clip de secuencia quedó vacío.");
     return blob;
-}
-
-function estiloMovimientoDesdePrompt(prompt) {
-    const p = String(prompt || "").toLowerCase();
-    if (/zoom.{0,24}(afuera|out|atrás|atras|alej)/.test(p) || /alej(ando|amiento)/.test(p)) {
-        return /izq|left/.test(p) ? "zoom_out_izquierda" : "zoom_out";
-    }
-    if (/paneo?.{0,16}(arriba|up|cielo)/.test(p)) return "pan_arriba";
-    if (/paneo?.{0,16}(abajo|down|suelo)/.test(p)) return "pan_abajo";
-    if (/paneo?.{0,16}(izq|left)/.test(p)) return "pan_izquierda";
-    if (/paneo?.{0,16}(der|right)/.test(p)) return "pan_derecha";
-    if (/diagonal|ken.?burns/.test(p)) return "ken_burns";
-    // Baile/actuación: en fallback de cámara, órbita suave (no zoom agresivo que “finge” danza).
-    if (/bail|danz|danc|actu|gira|camina|corre/.test(p)) return "ken_burns";
-    if (/zoom|acerc|progresivo|acabando en|hacia el /.test(p)) {
-        if (/izq|left/.test(p)) return "zoom_in_izquierda";
-        if (/der|right/.test(p)) return "zoom_in_derecha";
-        return "zoom_in";
-    }
-    return estiloMovimientoActual();
 }
 
 function agregarMedioDesdeBlob(blob, nombre, tipoForzado, extra = {}) {
@@ -939,6 +955,14 @@ async function generarClipIA() {
     let duracionSeg = Number($("#estudio-duracion-clip")?.value) || lim.minSeg;
     duracionSeg = Math.max(lim.minSeg, Math.min(lim.maxSeg, duracionSeg));
 
+    // Abortar petición anterior: evita solapar estados y no mezclar con Movimiento.
+    if (clipEstudioAbort) {
+        try { clipEstudioAbort.abort("cancel"); } catch { /* ignore */ }
+    }
+    const gen = ++clipEstudioGen;
+    const abortLocal = new AbortController();
+    clipEstudioAbort = abortLocal;
+
     const btn = $("#btn-generar-clip");
     const status = $("#status-clip-estudio");
     const preview = $("#preview-clip-estudio");
@@ -947,19 +971,29 @@ async function generarClipIA() {
     const btnAdd = $("#btn-anadir-clip-pizarra");
     if (btn) { btn.disabled = true; btn.textContent = "Generando clip..."; }
     if (status) status.textContent = `Creando clip de ${duracionSeg} s...`;
+    // Limpiar preview anterior (p. ej. zoom Ken Burns viejo) al empezar.
+    clipEstudioBlob = null;
+    clipEstudioTipo = "imagen";
+    if (img) { img.style.display = "none"; img.removeAttribute("src"); }
+    if (vid) { vid.style.display = "none"; vid.removeAttribute("src"); }
+    if (btnAdd) btnAdd.style.display = "none";
 
     try {
         // 80 s: Netlify clip=90; heartbeats NDJSON evitan Inactivity Timeout de Safari.
         const { ok, data: d } = await fetchEstudio("/estudio/clip", { prompt, duracionSeg }, {
             timeoutMs: 88000,
+            signal: abortLocal.signal,
+            abortErrorMsg: "Generación de clip cancelada (nueva solicitud).",
             onStatus: (st) => {
-                if (!status || !st) return;
+                if (gen !== clipEstudioGen || !status || !st) return;
                 if (st.type === "status" && st.msg) status.textContent = st.msg;
                 else if (st.type === "ping") status.textContent = `Creando clip de ${duracionSeg} s… (sigue activo)`;
             }
         });
+        if (gen !== clipEstudioGen) return;
         if (!ok || d?.error) {
             const raw = String(d?.error || "No se pudo generar el clip.");
+            if (/cancelad/i.test(raw)) return;
             if (/incompleta/i.test(raw)) {
                 throw new Error("El clip se cortó a mitad (timeout). Pulsa Generar clip otra vez; suele completar al segundo intento.");
             }
@@ -969,9 +1003,6 @@ async function generarClipIA() {
             throw new Error(raw);
         }
         incrementarEstudioGens("clip");
-        clipEstudioBlob = null;
-        if (img) img.style.display = "none";
-        if (vid) { vid.style.display = "none"; vid.removeAttribute("src"); }
 
         if (d.video_url || d.video_base64) {
             let blob;
@@ -981,10 +1012,12 @@ async function generarClipIA() {
                 if (!vr.ok) throw new Error("No se pudo descargar el clip de video.");
                 blob = await vr.blob();
             }
+            if (gen !== clipEstudioGen) return;
             clipEstudioBlob = blob;
             clipEstudioTipo = "video";
             const url = URL.createObjectURL(blob);
             if (vid) { vid.src = url; vid.style.display = "block"; }
+            if (img) img.style.display = "none";
         } else if (d.imagen_base64) {
             let still = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
             still = await aplicarMarcaEstudioImagen(still, {
@@ -992,17 +1025,14 @@ async function generarClipIA() {
                 marca_agua_pollinations: d.marca_agua_pollinations,
                 scrubPollinations: true,
             });
-            const urlStill = URL.createObjectURL(still);
-            if (img) { img.src = urlStill; img.style.display = "block"; }
+            if (gen !== clipEstudioGen) return;
             const framesSecuencia = Array.isArray(d.secuencia) ? d.secuencia.filter((f) => f?.imagen_base64) : [];
-            if (status) {
-                status.textContent = framesSecuencia.length >= 2
-                    ? `Secuencia de actuación (${framesSecuencia.length} placas). Grabando morph (${duracionSeg} s)…`
-                    : `Placa del clip lista. ${d.sin_actuacion ? "Sin video nativo de actuación — " : ""}Grabando cámara (${duracionSeg} s)…`;
-            }
-            try {
-                let videoBlob;
-                if (framesSecuencia.length >= 2) {
+            // Secuencia de actuación (poses distintas): morph OK. NUNCA Ken Burns / menú Movimiento.
+            if (framesSecuencia.length >= 2) {
+                if (status) {
+                    status.textContent = `Secuencia de actuación (${framesSecuencia.length} placas). Grabando morph (${duracionSeg} s)…`;
+                }
+                try {
                     const blobs = [];
                     for (const fr of framesSecuencia) {
                         let b = blobDesdeBase64(fr.imagen_base64, fr.mime || "image/jpeg");
@@ -1013,26 +1043,36 @@ async function generarClipIA() {
                         });
                         blobs.push(b);
                     }
-                    videoBlob = await grabarClipSecuencia(blobs, duracionSeg);
-                } else {
-                    videoBlob = await grabarClipKenBurns(still, duracionSeg, estiloMovimientoDesdePrompt(prompt));
+                    const videoBlob = await grabarClipSecuencia(blobs, duracionSeg);
+                    if (gen !== clipEstudioGen) return;
+                    clipEstudioBlob = videoBlob;
+                    clipEstudioTipo = "video";
+                    const urlVid = URL.createObjectURL(videoBlob);
+                    if (vid) { vid.src = urlVid; vid.style.display = "block"; }
+                    if (img) img.style.display = "none";
+                } catch (grabErr) {
+                    console.warn("Clip secuencia:", grabErr);
+                    clipEstudioBlob = still;
+                    clipEstudioTipo = "cinematico";
+                    const urlStill = URL.createObjectURL(still);
+                    if (img) { img.src = urlStill; img.style.display = "block"; }
+                    if (vid) vid.style.display = "none";
+                    if (status) {
+                        status.textContent = `Placa lista (sin morph). Reintenta para microfilme nativo. ${grabErr.message}`;
+                    }
                 }
-                clipEstudioBlob = videoBlob;
-                clipEstudioTipo = "video";
-                const urlVid = URL.createObjectURL(videoBlob);
-                if (vid) { vid.src = urlVid; vid.style.display = "block"; }
-                if (img) img.style.display = "none";
-            } catch (grabErr) {
+            } else {
+                // Placa sola: NO inventar zoom_in (cruzaba con panel Movimiento).
                 clipEstudioBlob = still;
                 clipEstudioTipo = "cinematico";
-                console.warn("Clip Ken Burns:", grabErr);
-                if (status) {
-                    status.textContent = `Placa del clip lista; este navegador no grabó el video. Al añadirla irá como imagen con movimiento (${grabErr.message}).`;
-                }
+                const urlStill = URL.createObjectURL(still);
+                if (img) { img.src = urlStill; img.style.display = "block"; }
+                if (vid) vid.style.display = "none";
             }
         } else {
             throw new Error("Respuesta de clip incompleta.");
         }
+        if (gen !== clipEstudioGen) return;
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
         if (status && clipEstudioTipo === "video") {
@@ -1043,13 +1083,15 @@ async function generarClipIA() {
                 via = ` (secuencia de actuación · ${d.secuencia.length} placas)`;
             }
             else if (d.sin_actuacion) via = " (solo cámara — sin baile/actuación del sujeto)";
-            else via = " (placa+cámara)";
+            else via = " (secuencia)";
             status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${textoDirectorStatus(d)}. ${(d.aviso && d.sin_actuacion) ? d.aviso + " " : ""}Añádelo a la pizarra como video.`;
         } else if (status && clipEstudioTipo === "cinematico") {
-            status.textContent = (d.aviso || `Clip (placa) listo (${d.fuente || "IA"} · ${d.duracionSeg || duracionSeg} s).`)
-                + textoDirectorStatus(d);
+            const aviso = d.aviso
+                || "Sin video nativo esta vez (I2V/T2V no respondió a tiempo).";
+            status.textContent = `Placa del clip lista — no es un video con actuación. ${aviso} Pulsa Generar clip otra vez para el microfilme.${textoDirectorStatus(d)}`;
         }
     } catch (e) {
+        if (gen !== clipEstudioGen) return;
         const msg = String(e?.message || e);
         if (status) {
             status.textContent = /inactivity timeout|too much time|tardó demasiado/i.test(msg)
@@ -1058,7 +1100,10 @@ async function generarClipIA() {
         }
         alert("Error generando clip: " + msg);
     } finally {
-        if (btn) { btn.disabled = false; btn.textContent = "✨ Generar clip"; }
+        if (gen === clipEstudioGen) {
+            if (btn) { btn.disabled = false; btn.textContent = "✨ Generar clip"; }
+            if (clipEstudioAbort === abortLocal) clipEstudioAbort = null;
+        }
     }
 }
 
@@ -1072,14 +1117,14 @@ function anadirClipAPizarra() {
         $("#status-clip-estudio").textContent = "Clip de video añadido a la pizarra (no es imagen fija).";
         return;
     }
+    // Placa de Clip: NUNCA heredar el menú Movimiento (zoom_in) — eso fingía un clip.
     const file = new File([clipEstudioBlob], `estudio-clip-${Date.now()}.jpg`, { type: clipEstudioBlob.type || "image/jpeg" });
     agregarMedios([file], "imagen", {
-        movimiento: true,
-        movimientoIncluido: true,
-        estilo_movimiento: estiloMovimientoDesdePrompt($("#estudio-prompt-clip")?.value),
-        origen: "clip_cinematico"
+        movimiento: false,
+        movimientoIncluido: false,
+        origen: "clip_placa"
     });
-    $("#status-clip-estudio").textContent = "Placa del clip añadida como imagen con Ken Burns (fallback, no video nativo).";
+    $("#status-clip-estudio").textContent = "Placa del clip añadida como foto fija (sin Ken Burns). Genera de nuevo para video nativo.";
 }
 
 function midiU16(n) { return [(n >> 8) & 255, n & 255]; }
@@ -2048,7 +2093,7 @@ function renderizarPizarras() {
 
         let badge = item.tipo === "video" ? "🎬 Video" : "🖼️ Imagen";
         if (item.origen === "clip_video") badge = "✨ Clip video";
-        else if (item.origen === "clip_cinematico") badge = "✨ Clip (Ken Burns)";
+        else if (item.origen === "clip_placa" || item.origen === "clip_cinematico") badge = "✨ Clip (placa)";
         else if (item.origen === "imagen_ia") badge = "🖼️ Imagen IA";
 
         const muteHtml = item.tipo === "video"
