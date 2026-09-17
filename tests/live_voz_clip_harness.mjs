@@ -26,6 +26,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const GROQ = process.env.GROQ_API_KEY || '';
 const GEMINI = process.env.GEMINI_API_KEY || '';
 const FAL = process.env.FAL_KEY || process.env.FAL_API_KEY || '';
+const PAUSA_GROQ_TTS_CHUNK_MS = Number(process.env.LIVE_GROQ_TTS_CHUNK_PAUSE_MS || 6500);
 const TEST_SECRET = 'cursor-live-voz-clip-harness-secret';
 if (!process.env.ECOSISTEMA_SESSION_SECRET && !process.env.RAILWAY_INTERNAL_SECRET) {
   process.env.ECOSISTEMA_SESSION_SECRET = TEST_SECRET;
@@ -183,6 +184,10 @@ function stitchAudio(buffers, mimes) {
   );
 }
 
+function esperar(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
 function registrarBlockers(texto = '') {
   const s = String(texto);
   if (/model_terms_required/i.test(s)) {
@@ -233,6 +238,9 @@ async function probarVoz(handler, seg) {
     fuentes.push(data.fuente || 'desconocida');
     modelos.push(data.modelo || 'desconocido');
     mimes.push(data.mime || 'application/octet-stream');
+    if ((data.fuente === 'groq' || /orpheus/i.test(String(data.modelo || ''))) && i < chunks.length - 1) {
+      await esperar(PAUSA_GROQ_TTS_CHUNK_MS);
+    }
   }
 
   const stitched = stitchAudio(buffers, mimes);

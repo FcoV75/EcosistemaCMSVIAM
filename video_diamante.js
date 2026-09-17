@@ -1058,9 +1058,14 @@ async function unirPartesAudio(partes, mimeFinal) {
     }
 }
 
-/** Alineado con partirTexto de estudio-limites (~60–80 palabras / chunk). */
-const CHUNK_CHARS_VOZ_CLIENTE = 420;
-const TIMEOUT_VOZ_CHUNK_MS = 52000;
+/** Alineado con Orpheus TTS: ~200 chars máx. por request Groq. */
+const CHUNK_CHARS_VOZ_CLIENTE = 190;
+const TIMEOUT_VOZ_CHUNK_MS = 90000;
+const PAUSA_GROQ_TTS_CHUNK_MS = 6500;
+
+function esperar(ms) {
+    return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
 
 function partirTextoVozCliente(texto, maxChars = CHUNK_CHARS_VOZ_CLIENTE) {
     const t = String(texto || "").trim();
@@ -1189,6 +1194,10 @@ async function generarVozIA() {
                 partes.push(blobDesdeBase64(d.audio_base64, mime));
                 if (d.fuente || d.modelo) fuentes.push(d.fuente || d.modelo);
                 if (d.sin_limite_duracion) metaExtra.sin_limite_duracion = true;
+                if ((d.fuente === "groq" || /orpheus/i.test(String(d.modelo || ""))) && i < chunks.length - 1) {
+                    if (status) status.textContent = `Pausa breve por límite IA (${i + 1}/${chunks.length})…`;
+                    await esperar(PAUSA_GROQ_TTS_CHUNK_MS);
+                }
             }
             mimeFinal = partes.every((b) => (b.type || "").includes("wav"))
                 ? "audio/wav"

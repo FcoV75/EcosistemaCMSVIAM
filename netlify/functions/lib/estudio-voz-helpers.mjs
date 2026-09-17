@@ -2,8 +2,8 @@
 
 import { partirTexto, PALABRAS_POR_SEGUNDO } from './estudio-limites.mjs';
 
-/** Chars por chunk en cliente / solo_tts (~60–80 palabras). */
-export const CHUNK_CHARS_VOZ = 420;
+/** Chars por chunk en cliente / solo_tts. Orpheus TTS acepta ~200 chars por request. */
+export const CHUNK_CHARS_VOZ = 190;
 
 /** Tope duro por request solo_tts (evita abusos y timeouts). */
 export const MAX_CHARS_SOLO_TTS = 1200;
