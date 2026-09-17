@@ -4,6 +4,7 @@ import {
   expandirPromptVisual,
   promptMotionParaVideo,
   escenaPideActuacion,
+  escenaEsPescaEpica,
   seedDesdePrompt,
   beatsActuacionParaClip,
 } from './lib/estudio-prompt-visual.mjs';
@@ -64,7 +65,7 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
   };
   const dur = Math.max(5, Math.min(10, Math.round(Number(segundos) || 8)));
 
-  for (const model of modelos.slice(0, 1)) {
+  for (const model of modelos.slice(0, 2)) {
     try {
       const r = await fetch(`https://queue.fal.run/${model}`, {
         method: 'POST',
@@ -75,7 +76,7 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
           duration: String(dur),
           aspect_ratio: '16:9',
           negative_prompt:
-            'static pose, frozen mannequin, no motion, still photograph only, text, watermark, nude, nsfw, deformed face, extra fingers',
+            'static pose, frozen mannequin, no motion, still photograph only, Ken Burns zoom only, camera zoom without subject motion, aerial drone, mountain-sized kaiju shark, missing fishing rod, missing fisherman, text, watermark, nude, nsfw, deformed face, extra fingers',
         }),
       });
       const queued = await r.json().catch(() => ({}));
@@ -321,6 +322,7 @@ export default async (req) => {
     const lim = limitesClipPara(guard.payload);
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
     const pideActuacion = escenaPideActuacion(prompt);
+    const pescaEpica = escenaEsPescaEpica(prompt);
 
     write({ type: 'status', msg: `Creando clip de ${duracion} s (actuación del sujeto)…` });
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
@@ -350,10 +352,13 @@ export default async (req) => {
     let nativo = null;
     let motivoFallback = '';
 
-    // Un solo intento I2V fuerte (evitar encadenar timeouts).
-    const waitI2V = Math.min(20000, tiempoRestante(inicio) - 8000);
+    // Pesca épica: más presupuesto I2V (el clip "verdadero" es lucha del sujeto, no Ken Burns).
+    const waitI2V = Math.min(
+      pescaEpica ? 32000 : 20000,
+      tiempoRestante(inicio) - (pescaEpica ? 6000 : 8000),
+    );
     if (waitI2V >= 9000) {
-      write({ type: 'status', msg: 'Animando actuación (I2V)…' });
+      write({ type: 'status', msg: pescaEpica ? 'Animando la lucha (I2V)…' : 'Animando actuación (I2V)…' });
       try {
         nativo = await generarClipFalI2V(cine, motionPrompt, duracion, waitI2V);
       } catch (err) {
@@ -365,7 +370,7 @@ export default async (req) => {
             cine,
             motionPrompt,
             duracion,
-            Math.min(16000, tiempoRestante(inicio) - 5000),
+            Math.min(pescaEpica ? 22000 : 16000, tiempoRestante(inicio) - 5000),
           );
         } catch (err) {
           console.warn('Vidu I2V clip:', err?.message || err);
@@ -419,8 +424,7 @@ export default async (req) => {
       ? ` Secuencia de actuación por placas (fallback ${motivoFallback}). Con Fal/Vidu I2V el movimiento es nativo.`
       : ` Placa + Ken Burns (fallback ${motivoFallback}).`;
 
-    // Sin I2V: pantera+mono → composición de aproximación/huida (Flux fusiona especies).
-    // Otros: beats progresivos en prompt.
+    // Sin I2V: pantera+mono → composición; pesca épica → 4 beats de lucha (placa inicial + progresión).
     let secuencia = [];
     if (pideActuacion && tiempoRestante(inicio) > 14000) {
       if (esEscenaPanteraMono(prompt) && tiempoRestante(inicio) > 25000) {
@@ -441,10 +445,26 @@ export default async (req) => {
         }
       }
       if (!secuencia.length) {
-        const beats = beatsActuacionParaClip(prompt).slice(0, 4);
-        write({ type: 'status', msg: `Filmando ${beats.length || 2} tomas de actuación…` });
+        const beats = beatsActuacionParaClip(prompt).slice(0, pescaEpica ? 4 : 4);
+        // Anclar continuidad: la placa cine es el beat 0 (misma pelea, no otra escena).
+        if (pescaEpica && cine?.imagen_base64) {
+          secuencia.push({
+            imagen_base64: cine.imagen_base64,
+            mime: cine.mime,
+            fuente: cine.fuente,
+            marca_agua_pollinations: !!cine.marca_agua_pollinations,
+          });
+        }
+        write({
+          type: 'status',
+          msg: pescaEpica
+            ? `Filmando pelea cuadro a cuadro (${beats.length} beats)…`
+            : `Filmando ${beats.length || 2} tomas de actuación…`,
+        });
         for (let i = 0; i < beats.length; i += 1) {
           if (tiempoRestante(inicio) < 9000) break;
+          // Con placa inicial ya contamos 1; generar beats 2..N (o todos si no hay placa).
+          if (pescaEpica && secuencia.length >= 4) break;
           try {
             const beatPrompt = `${prompt}. ${beats[i]}`;
             const extra = await generarImagenEstudio(`${promptEn}. ${beats[i]}`, {

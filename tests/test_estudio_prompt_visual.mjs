@@ -232,9 +232,13 @@ assert.doesNotMatch(megaCorto, /YACHT deck|arched bright rainbow|Dawn lakeside M
 assert.match(clausulaProhibidos(megaPrompt), /megalodon|calm peaceful fishing|yacht with rainbow|kaiju/i);
 assert.match(negativosParaEscena(megaPrompt), /missing megalodon|calm fishing|yacht with rainbow|aerial drone|kaiju/i);
 const megaBeats = beatsActuacionParaClip(megaPrompt);
-assert.ok(megaBeats.length >= 2);
-assert.match(megaBeats[0], /megalodon|EYE-LEVEL|bent fishing rod|desert dam/i);
+assert.ok(megaBeats.length >= 4);
+assert.match(megaBeats[0], /megalodon|EYE-LEVEL|LOCKED CAMERA|desert dam/i);
+assert.match(megaBeats[3], /climax|peak breach|capsizing|ACTION BEAT 4/i);
 assert.doesNotMatch(megaBeats.join(' '), /yacht deck|rainbow and park|CASTING a long fishing rod over the lake/i);
+const megaMotion = promptMotionParaVideo(megaPrompt, '');
+assert.match(megaMotion, /LOCKED CAMERA|LEAN|thrash|rod|NOT.*Ken Burns|FORBIDDEN.*Ken Burns|subject performance/i);
+assert.doesNotMatch(megaMotion, /Ken Burns zoom\/pan on a still plate$/i);
 assert.match(clausulaCalidadComposicion(megaPrompt), /EYE-LEVEL|MEDIUM-WIDE|kaiju|2-3/i);
 assert.doesNotMatch(clausulaCalidadComposicion(megaPrompt), /yacht deck/i);
 

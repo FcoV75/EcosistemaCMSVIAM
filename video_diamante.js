@@ -534,7 +534,8 @@ async function grabarClipKenBurns(imageBlob, duracionSeg, estilo) {
     return blob;
 }
 
-/** Morph entre placas de actuación — sin zoom Ken Burns (el sujeto cambia de pose/posición). */
+/** Morph entre placas de actuación — sin zoom Ken Burns (el sujeto cambia de pose/posición).
+ * Hold corto en cada placa + crossfade breve = se lee la acción (pesca/lucha), no solo un dissolve. */
 async function grabarClipSecuencia(blobs, duracionSeg) {
     const mime = mimeRecorderPreferido();
     if (!mime || typeof document.createElement("canvas").captureStream !== "function") {
@@ -553,7 +554,7 @@ async function grabarClipSecuencia(blobs, duracionSeg) {
     canvas.height = h;
     const ctx = canvas.getContext("2d", { alpha: false });
     const stream = canvas.captureStream(fps);
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_800_000 });
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 3_200_000 });
     const chunks = [];
     rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
     const terminado = new Promise((resolve, reject) => {
@@ -563,6 +564,8 @@ async function grabarClipSecuencia(blobs, duracionSeg) {
     const msPedido = Math.max(2000, Number(duracionSeg) * 1000);
     const msGrabacion = msPedido + 900;
     const nSeg = bitmaps.length - 1;
+    // 65% hold / 35% morph por segmento → acción legible cuadro a cuadro.
+    const holdFrac = 0.65;
     rec.start(200);
     const inicio = performance.now();
     await new Promise((resolve) => {
@@ -573,17 +576,22 @@ async function grabarClipSecuencia(blobs, duracionSeg) {
             const i0 = Math.min(nSeg - 1, Math.floor(f));
             const i1 = Math.min(bitmaps.length - 1, i0 + 1);
             const local = f - i0;
-            // ease-in-out: morph de posición del sujeto, cámara fija (sin zoom).
-            const ease = local * local * (3 - 2 * local);
+            let ease = 0;
+            if (local > holdFrac) {
+                const m = (local - holdFrac) / (1 - holdFrac);
+                ease = m * m * (3 - 2 * m);
+            }
             const a = bitmaps[i0];
             const b = bitmaps[i1];
             ctx.fillStyle = "#000";
             ctx.fillRect(0, 0, w, h);
             ctx.globalAlpha = 1;
             ctx.drawImage(a, 0, 0, w, h);
-            ctx.globalAlpha = ease;
-            ctx.drawImage(b, 0, 0, w, h);
-            ctx.globalAlpha = 1;
+            if (ease > 0.01) {
+                ctx.globalAlpha = ease;
+                ctx.drawImage(b, 0, 0, w, h);
+                ctx.globalAlpha = 1;
+            }
             if (elapsed >= msGrabacion) {
                 try { rec.requestData(); } catch { /* ignore */ }
                 rec.stop();
