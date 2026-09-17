@@ -1,5 +1,5 @@
 {
-  "started_at": "2026-09-17T20:59:28.192Z",
+  "started_at": "2026-09-17T21:16:14.150Z",
   "keys": {
     "GROQ_API_KEY": 56,
     "FAL_KEY": 69,
@@ -10,34 +10,34 @@
     "30s": {
       "palabras": 72,
       "chars": 446,
-      "chunks": 2,
-      "max_chunk_chars": 370
+      "chunks": 3,
+      "max_chunk_chars": 149
     },
     "60s": {
       "palabras": 144,
       "chars": 890,
-      "chunks": 3,
-      "max_chunk_chars": 370
+      "chunks": 6,
+      "max_chunk_chars": 149
     },
     "120s": {
       "palabras": 288,
       "chars": 1781,
-      "chunks": 5,
-      "max_chunk_chars": 374
+      "chunks": 12,
+      "max_chunk_chars": 149
     },
     "300s": {
       "palabras": 720,
       "chars": 4454,
-      "chunks": 12,
-      "max_chunk_chars": 374
+      "chunks": 30,
+      "max_chunk_chars": 149
     }
   },
   "local_voz": [
     {
       "ok": true,
       "seg": 30,
-      "chunks": 2,
-      "bytes": 1747212,
+      "chunks": 3,
+      "bytes": 1751060,
       "fuentes": [
         "groq"
       ],
@@ -48,36 +48,34 @@
         "audio/wav"
       ],
       "file": "/workspace/artifacts/live-voz-clip/voz-30s.wav",
-      "ms": 6182
+      "ms": 19130
     },
     {
       "ok": true,
       "seg": 60,
-      "chunks": 3,
-      "bytes": 3446922,
+      "chunks": 6,
+      "bytes": 3490556,
       "fuentes": [
-        "groq",
-        "gemini"
+        "groq"
       ],
       "modelos": [
-        "canopylabs/orpheus-v1-english",
-        "gemini-2.5-flash-preview-tts"
+        "canopylabs/orpheus-v1-english"
       ],
       "mimes": [
         "audio/wav"
       ],
       "file": "/workspace/artifacts/live-voz-clip/voz-60s.wav",
-      "ms": 17116
+      "ms": 44476
     },
     {
       "ok": false,
       "seg": 120,
-      "chunks": 5,
-      "failed_chunk": 0,
+      "chunks": 12,
+      "failed_chunk": 6,
       "status": 502,
       "error": "No se pudo generar la voz completa. Revisa el detalle del proveedor o reintenta el chunk.",
-      "detalle_proveedor": "groq: HTTP 429: {\"error\":{\"message\":\"Rate limit reached for model `canopylabs/orpheus-v1-english` in organization `org_01knzsvs4yfdkb6877780afaa9` service tier `on_demand` on requests per minute (RPM): Limit 10, Used 10, Requested 1. Please try again in 6s. Need more tokens? Upgrade to Dev Tier  · gemini: gemini/gemini-2.5-flash-preview-tts: HTTP 429: {\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quot | gemini/gemini-2.5-flas · fal: HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
-      "ms": 2293
+      "detalle_proveedor": "groq: HTTP 429: {\"error\":{\"message\":\"Rate limit reached for model `canopylabs/orpheus-v1-english` in organization `org_01knzsvs4yfdkb6877780afaa9` service tier `on_demand` on tokens per day (TPD): Limit 3600, Used 3498, Requested 146. Please try again in 17m36s. Need more tokens? Upgrade to Dev  · gemini: gemini/gemini-2.5-flash-preview-tts: HTTP 429: {\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quot | gemini/gemini-2.5-flas · fal: HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+      "ms": 51672
     }
   ],
   "local_clip": [
@@ -88,7 +86,7 @@
       "ok": false,
       "status": 200,
       "tipo": "cinematico",
-      "fuente": "fal:fal-ai/flux-pro/v1.1",
+      "fuente": "pollinations-flux-realism",
       "actuacion": false,
       "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas.",
       "error": null,
@@ -108,7 +106,7 @@
         },
         {
           "type": "ping",
-          "t": 1789678797330
+          "t": 1789679892981
         },
         {
           "type": "status",
@@ -126,10 +124,10 @@
           "type": "result",
           "success": true,
           "tipo": "cinematico",
-          "imagen_base64": "[base64:240480]",
+          "imagen_base64": "[base64:71896]",
           "mime": "image/jpeg",
-          "fuente": "fal:fal-ai/flux-pro/v1.1",
-          "marca_agua_pollinations": false,
+          "fuente": "pollinations-flux-realism",
+          "marca_agua_pollinations": true,
           "movimiento": false,
           "actuacion": false,
           "sin_actuacion": true,
@@ -149,12 +147,12 @@
           "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas."
         }
       ],
-      "ms": 6497
+      "ms": 6854
     }
   ],
   "provider_blockers": [
     "Gemini devolvió 429 por cuota agotada.",
     "Fal devolvió saldo agotado / usuario bloqueado."
   ],
-  "finished_at": "2026-09-17T21:00:00.327Z"
+  "finished_at": "2026-09-17T21:18:16.333Z"
 }
