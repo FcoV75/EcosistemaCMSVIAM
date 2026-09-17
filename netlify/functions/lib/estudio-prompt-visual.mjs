@@ -310,7 +310,7 @@ export function escenaEsExteriorNoche(texto) {
 /** ¿Pide actuación / baile / movimiento del sujeto (no solo cámara)? */
 export function escenaPideActuacion(texto) {
   const n = sinAcentos(texto);
-  return /\b(bail|danz|danc|actu|gesticul|camin|corr|gira|girando|salta|saltando|brinc|abraza|abrazando|pelea|luch|nadand|swimming|dancing|running|walking|acerc|acech|caz|pesc|jump|approach|stalk|hunt|fish|predator|batall|sacando)\w*\b/.test(n);
+  return /\b(bail|danz|danc|actu|gesticul|camin|corr|gira|girando|salta|saltando|brinc|abraza|abrazando|pelea|luch|nadand|swimming|dancing|running|walking|acerc|acech|caz|pesc|jump|approach|stalk|hunt|fish|predator|batall|sacando|prepar|mezcl|coctel|cocktail|barman|bartender|sirv|serving)\w*\b/.test(n);
 }
 
 /** Interior real (props de cuarto/oficina). Personas al aire libre NO cuentan como interior. */
@@ -652,14 +652,30 @@ export function promptMotionParaVideo(original = '', promptEn = '') {
     .filter(Boolean)
     .slice(0, 10)
     .join(', ');
+
+  // Pesca épica: clip "verdadero" = lucha continua del sujeto, no zoom sobre foto.
+  if (escenaEsPescaEpica(src)) {
+    return [
+      'EYE-LEVEL LOCKED CAMERA 16:9 photoreal ACTION CLIP (not a still, not Ken Burns zoom).',
+      'Continuous subject performance: fisherman LEANS BACK harder, arms strain, fishing rod FLEXES deeper and vibrates under tension;',
+      'megalodon THRASHES beside the boat — jaws snap, head rises higher, white water splash grows frame by frame;',
+      'boat ROCKS and tips toward the shark; water spray and foam animate; desert dam village stays readable in background.',
+      'Scale: megalodon ~2-3× the boat, NEVER mountain-sized kaiju. Keep man+rod+boat+shark ALL visible.',
+      'FORBIDDEN: frozen still photograph, camera-only zoom/pan, aerial drone pullback, missing rod, missing fisherman.',
+      mustEn ? `MUST KEEP: ${mustEn}.` : '',
+      en ? `Plate context: ${en.slice(0, 400)}` : '',
+    ].filter(Boolean).join(' ').slice(0, 1600);
+  }
+
   if (actuacion) {
     return [
-      `Animate the exact scene with SUBJECT PERFORMANCE and continuous logical action: ${mustEn || src}.`,
-      'Animals/people MOVE for real: limbs, approach, jump, swim, dance, fish — not a frozen still.',
-      'Environment also lives: fire flickers, water ripples, leaves stir, sparks/rain if asked.',
-      'Camera mostly locked wide or gentle orbit; NEVER only Ken Burns zoom/pan on a still plate.',
-      'SFW clothed when humans, photoreal, 16:9, no text, no watermark.',
-      en ? `Context: ${en.slice(0, 500)}` : '',
+      `LOCKED CAMERA or gentle handheld 16:9 photoreal MICROFILM (continuous motion, NOT a slideshow of stills).`,
+      `SUBJECT PERFORMANCE first: ${mustEn || src}.`,
+      'Hands, arms, torso and face MOVE continuously as if filmed live — pouring, mixing, dancing, walking, struggling — never a frozen mannequin.',
+      'Environment lives: neon flicker, liquid pour, steam, crowd blur if asked.',
+      'FORBIDDEN: Ken Burns zoom-only on a still photo, crossfade between static slides, no subject motion.',
+      'SFW clothed when humans, photoreal, no text, no watermark.',
+      en ? `Context: ${en.slice(0, 450)}` : '',
     ].filter(Boolean).join(' ').slice(0, 1400);
   }
   return [
@@ -696,8 +712,10 @@ export function beatsActuacionParaClip(original = '') {
   }
   if (escenaEsPescaEpica(src)) {
     return [
-      'ACTION BEAT 1/2 EYE-LEVEL: fisherman on small wooden boat leaning back, fishing rod deeply bent, megalodon jaws emerging beside the boat at a desert dam; village readable behind; NOT kaiju, NOT aerial.',
-      'ACTION BEAT 2/2 EYE-LEVEL: same fight intensifies — bigger splash, rod arched harder, man straining; megalodon still boat-scale beside the boat; desert dam town visible.',
+      'ACTION BEAT 1/4 EYE-LEVEL LOCKED CAMERA: fisherman on small wooden rowboat just hooks the megalodon — rod tips toward water, first splash beside boat, desert dam village behind. Man+rod+boat+shark readable. NOT kaiju. NOT aerial. NOT Ken Burns still.',
+      'ACTION BEAT 2/4 EYE-LEVEL LOCKED CAMERA SAME ANGLE: man leans back harder, rod deeply arched, megalodon head breaches higher with open jaws ~2-3× boat length beside the boat; bigger white splash; boat tips toward shark. Desert town still visible.',
+      'ACTION BEAT 3/4 EYE-LEVEL LOCKED CAMERA SAME ANGLE: violent thrash — megalodon shakes head, spray fills mid-frame, fisherman arms strain reeling, life vest clear, rod vibrating. Continuous fight, not a new scene.',
+      'ACTION BEAT 4/4 EYE-LEVEL LOCKED CAMERA SAME ANGLE climax: megalodon peak breach with rows of teeth, maximum splash foam, boat nearly capsizing, man still gripping bent rod. Photoreal action clip frame. No mountain-sized shark. No zoom-only still.',
     ];
   }
   if (/\b(pesc\w*|fisherman|fishing)\b/.test(n)) {

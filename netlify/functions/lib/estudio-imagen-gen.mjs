@@ -92,6 +92,7 @@ export async function generarImagenGemini(promptEn, opts = {}) {
   if (!apiKey) return null;
   const original = String(opts.original || '').trim();
   const hard = requisitosDurosEscena(textoEscena(promptEn, opts));
+  const timeoutMs = Number(opts.timeoutMs) > 5000 ? Number(opts.timeoutMs) : 50000;
   // Gemini obedece muy bien el español literal del usuario (caso megalodón).
   // Escenas épicas: casi solo el pedido del usuario + escala realista (como Dola).
   const pescaEpica = original && escenaEsPescaEpica(original);
@@ -117,7 +118,9 @@ export async function generarImagenGemini(promptEn, opts = {}) {
     }],
     generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
   };
-  for (const modelo of modelos) {
+  // Clip/rápido: 1–2 modelos máx. para no tumbar el NDJSON por 429 en cadena.
+  const lista = timeoutMs < 25000 ? modelos.slice(0, 2) : modelos;
+  for (const modelo of lista) {
     try {
       const r = await fetchConTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
@@ -126,7 +129,7 @@ export async function generarImagenGemini(promptEn, opts = {}) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(cuerpo),
         },
-        50000,
+        timeoutMs,
       );
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -376,10 +379,9 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
 export async function generarImagenEstudio(promptEn, opts = {}) {
   const src = String(opts.original || promptEn || '');
   const tieneGemini = !!(process.env.GEMINI_API_KEY || '').trim();
+  // Clip IA: placa rápida (Fal). Gemini imagen suele 429/lento y deja el NDJSON sin result.
+  const rapido = opts.prioridad === 'rapido' || opts.rapido === true;
 
-  // Con GEMINI_API_KEY (Centro / ContacNeed): Gemini e Imagen 4 ANTES que Fal.
-  // En producción Fal ganaba siempre y la key de Gemini (sí funcional en Voz) nunca
-  // llegaba a generarse imagen.
   const intentarGeminiPrimero = async () => {
     if (!tieneGemini) return null;
     const gemini = await generarImagenGemini(promptEn, opts);
@@ -388,6 +390,19 @@ export async function generarImagenEstudio(promptEn, opts = {}) {
     if (imagen4) return imagen4;
     return null;
   };
+
+  if (rapido) {
+    const fal = await generarImagenFal(promptEn, opts);
+    if (fal) return fal;
+    const replicate = await generarImagenReplicate(promptEn, opts);
+    if (replicate) return replicate;
+    // Un solo intento Gemini corto solo si aún no hay placa.
+    if (tieneGemini) {
+      const gemini = await generarImagenGemini(promptEn, { ...opts, timeoutMs: 18000 });
+      if (gemini) return gemini;
+    }
+    return generarImagenPollinations(promptEn, opts);
+  }
 
   // Escenas multi-sujeto / épicas: Gemini primero (obediencia tipo Dola).
   if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && escenaPidePersonas(src))) {
@@ -400,7 +415,7 @@ export async function generarImagenEstudio(promptEn, opts = {}) {
     return generarImagenPollinations(promptEn, opts);
   }
 
-  // Orden general: Gemini → Imagen 4 → Fal → Replicate → Pollinations.
+  // Orden general Imagen IA: Gemini → Imagen 4 → Fal → Replicate → Pollinations.
   const g = await intentarGeminiPrimero();
   if (g) return g;
 
