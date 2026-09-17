@@ -27,6 +27,11 @@ function pasadoSoftDeadline(inicio) {
   return Date.now() - inicio >= SOFT_DEADLINE_MS;
 }
 
+function resumenProveedor(status, body) {
+  const raw = typeof body === 'string' ? body : JSON.stringify(body || {});
+  return `HTTP ${status || '?'}: ${raw.replace(/\s+/g, ' ').slice(0, 220)}`;
+}
+
 function dataUriDesdeImagen(imagen) {
   if (!imagen?.imagen_base64) return '';
   const mime = String(imagen.mime || 'image/jpeg').split(';')[0] || 'image/jpeg';
@@ -107,11 +112,11 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
     const queued = await r.json().catch(() => ({}));
     if (!r.ok) {
       console.warn('Fal I2V queue:', model, r.status, JSON.stringify(queued).slice(0, 180));
-      return null;
+      return { error: `fal-i2v:${model} ${resumenProveedor(r.status, queued)}` };
     }
     const statusUrl = queued.status_url;
     const responseUrl = queued.response_url;
-    if (!statusUrl || !responseUrl) return null;
+    if (!statusUrl || !responseUrl) return { error: `fal-i2v:${model} sin status_url/response_url` };
     const waitLeft = Math.max(5000, maxWaitMs - (Date.now() - tStart));
     if (waitLeft < 5000) return null;
     const result = await esperarFal(statusUrl, responseUrl, headers, waitLeft);
@@ -121,6 +126,7 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
     }
   } catch (err) {
     console.warn('Fal I2V:', model, err?.name || err?.message || err);
+    return { error: `fal-i2v:${model} ${err?.message || err?.name || err}` };
   }
   return null;
 }
@@ -155,7 +161,7 @@ async function generarClipViduI2V(imagen, motionPrompt, segundos, maxWaitMs = 20
     const taskId = queued.task_id || queued.id;
     if (!r.ok || !taskId) {
       console.warn('Vidu I2V:', r.status, queued);
-      return null;
+      return { error: `vidu-i2v ${resumenProveedor(r.status, queued)}` };
     }
     while (Date.now() - tStart < maxWaitMs) {
       const left = maxWaitMs - (Date.now() - tStart);
@@ -175,12 +181,13 @@ async function generarClipViduI2V(imagen, motionPrompt, segundos, maxWaitMs = 20
       }
       if (status === 'failed' || status === 'error') {
         console.warn('Vidu I2V tarea:', data);
-        return null;
+        return { error: `vidu-i2v tarea ${JSON.stringify(data).slice(0, 220)}` };
       }
       await new Promise((ok) => setTimeout(ok, 1500));
     }
   } catch (err) {
     console.warn('Vidu I2V:', err?.name || err?.message || err);
+    return { error: `vidu-i2v ${err?.message || err?.name || err}` };
   }
   return null;
 }
@@ -218,7 +225,7 @@ async function generarClipViduT2V(promptEn, segundos, maxWaitMs = 16000) {
   const taskId = queued.task_id || queued.id;
   if (!r.ok || !taskId) {
     console.warn('Vidu T2V:', r.status, queued);
-    return null;
+    return { error: `vidu-t2v ${resumenProveedor(r.status, queued)}` };
   }
   while (Date.now() - tStart < maxWaitMs) {
     const left = maxWaitMs - (Date.now() - tStart);
@@ -239,11 +246,11 @@ async function generarClipViduT2V(promptEn, segundos, maxWaitMs = 16000) {
       }
       if (status === 'failed' || status === 'error') {
         console.warn('Vidu T2V tarea:', data);
-        return null;
+        return { error: `vidu-t2v tarea ${JSON.stringify(data).slice(0, 220)}` };
       }
     } catch (err) {
       console.warn('Vidu T2V poll:', err?.name || err?.message || err);
-      return null;
+      return { error: `vidu-t2v poll ${err?.message || err?.name || err}` };
     }
     await new Promise((ok) => setTimeout(ok, 1500));
   }
@@ -280,11 +287,11 @@ async function generarClipFalT2V(promptEn, segundos, maxWaitMs = 16000) {
       const queued = await r.json().catch(() => ({}));
       if (!r.ok) {
         console.warn('Fal T2V queue:', model, r.status, queued);
-        continue;
+        return { error: `fal-t2v:${model} ${resumenProveedor(r.status, queued)}` };
       }
       const statusUrl = queued.status_url;
       const responseUrl = queued.response_url;
-      if (!statusUrl || !responseUrl) continue;
+      if (!statusUrl || !responseUrl) return { error: `fal-t2v:${model} sin status_url/response_url` };
       const waitLeft = Math.max(5000, maxWaitMs - (Date.now() - tStart));
       if (waitLeft < 5000) break;
       const result = await esperarFal(statusUrl, responseUrl, headers, waitLeft);
@@ -292,6 +299,7 @@ async function generarClipFalT2V(promptEn, segundos, maxWaitMs = 16000) {
       if (videoUrl) return { video_url: videoUrl, fuente: `fal:${model}`, mime: 'video/mp4', actuacion: true };
     } catch (err) {
       console.warn('Fal T2V:', model, err?.name || err?.message || err);
+      return { error: `fal-t2v:${model} ${err?.message || err?.name || err}` };
     }
   }
   return null;
@@ -449,6 +457,7 @@ export default async (req) => {
 
     let nativo = null;
     let motivoFallback = '';
+    const erroresProveedor = [];
 
     // Microfilme: casi TODO el presupuesto restante a I2V (carrera Fal ∥ Vidu).
     const waitI2V = Math.min(
@@ -468,8 +477,12 @@ export default async (req) => {
             nativo = c.value;
             break;
           }
+          if (c.status === 'fulfilled' && c.value?.error) {
+            erroresProveedor.push(c.value.error);
+          }
           if (c.status === 'rejected') {
             console.warn('I2V race:', c.reason?.message || c.reason);
+            erroresProveedor.push(`i2v ${c.reason?.message || c.reason}`);
           }
         }
       } catch (err) {
@@ -483,23 +496,29 @@ export default async (req) => {
     if (!nativo && !pasadoSoftDeadline(inicio) && tiempoRestante(inicio) > 16000) {
       write({ type: 'status', msg: 'Filmando video nativo T2V…' });
       try {
-        nativo = await generarClipFalT2V(
+        const falT2V = await generarClipFalT2V(
           motionPrompt || promptEn,
           duracion,
           Math.min(18000, tiempoRestante(inicio) - 6000),
         );
+        if (falT2V?.video_url) nativo = falT2V;
+        else if (falT2V?.error) erroresProveedor.push(falT2V.error);
       } catch (err) {
         console.warn('Fal T2V clip:', err?.message || err);
+        erroresProveedor.push(`fal-t2v ${err?.message || err}`);
       }
       if (!nativo && tiempoRestante(inicio) > 14000) {
         try {
-          nativo = await generarClipViduT2V(
+          const viduT2V = await generarClipViduT2V(
             motionPrompt || promptEn,
             duracion,
             Math.min(14000, tiempoRestante(inicio) - 5000),
           );
+          if (viduT2V?.video_url) nativo = viduT2V;
+          else if (viduT2V?.error) erroresProveedor.push(viduT2V.error);
         } catch (err) {
           console.warn('Vidu T2V clip:', err?.message || err);
+          erroresProveedor.push(`vidu-t2v ${err?.message || err}`);
         }
       }
     }
@@ -523,7 +542,9 @@ export default async (req) => {
       const tieneFal = !!(process.env.FAL_KEY || process.env.FAL_API_KEY);
       const tieneVidu = !!(process.env.VIDU_API_KEY || process.env.VIDU_KEY);
       if (!tieneFal && !tieneVidu) motivoFallback = 'sin_claves_video';
-      else motivoFallback = 'timeout_proveedor_i2v';
+      else motivoFallback = erroresProveedor.length
+        ? erroresProveedor.join(' | ').slice(0, 500)
+        : 'timeout_proveedor_i2v';
     }
 
     // Diapositivas SOLO para pantera/pesca cuando queda mucho margen.

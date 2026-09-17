@@ -8,6 +8,8 @@ import shutil
 import re
 import time
 import hmac
+import io
+import wave
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB
@@ -260,21 +262,21 @@ def hilo_renderizador(config_path, audio_path, output_path):
     try:
         ESTADO_RENDER["status"] = "procesando"
         ESTADO_RENDER["detalle"] = "Compilando transiciones fluidas y subtítulos en español estricto..."
-        
+
         resultado = subprocess.run(
             ["python", "generador_videos.py", "--config", config_path, "--audio", audio_path, "--output", output_path],
             capture_output=True,
             text=True,
             check=True
         )
-        
+
         if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
             ESTADO_RENDER["status"] = "listo"
             ESTADO_RENDER["detalle"] = "¡Video Diamante renderizado con éxito!"
         else:
             ESTADO_RENDER["status"] = "error"
             ESTADO_RENDER["detalle"] = "El motor terminó pero el archivo de video final está vacío."
-            
+
     except subprocess.CalledProcessError as e:
         ESTADO_RENDER["status"] = "error"
         detalle = (e.stderr or e.stdout or str(e)).strip()
@@ -737,10 +739,10 @@ def estudio_generar_voz():
 
     voz = str(body.get("voz") or "femenina").lower()
     voces_groq = {
-        "femenina": "Celeste-PlayAI",
-        "masculina": "Fritz-PlayAI",
-        "calida": "Deedee-PlayAI",
-        "firme": "Thunder-PlayAI",
+        "femenina": "diana",
+        "masculina": "daniel",
+        "calida": "hannah",
+        "firme": "austin",
     }
     groq_key = os.environ.get("GROQ_API_KEY")
     gemini_key = os.environ.get("GEMINI_API_KEY")
@@ -751,23 +753,59 @@ def estudio_generar_voz():
     # Groq primero (rápido); Gemini como respaldo con prompt TTS envuelto.
     if groq_key:
         try:
-            resp = http_requests.post(
-                "https://api.groq.com/openai/v1/audio/speech",
-                headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
-                json={
-                    "model": "playai-tts",
-                    "voice": voces_groq.get(voz, "Celeste-PlayAI"),
-                    "input": texto[:4000],
-                    "response_format": "mp3",
-                },
-                timeout=timeout_groq,
-            )
-            if resp.ok and resp.content and len(resp.content) > 400:
+            groq_model = os.environ.get("GROQ_TTS_MODEL", "canopylabs/orpheus-v1-english").strip()
+            groq_format = os.environ.get(
+                "GROQ_TTS_RESPONSE_FORMAT",
+                "wav" if "orpheus" in groq_model else "mp3",
+            ).strip()
+            groq_max_chars = max(80, min(900, int(os.environ.get("GROQ_TTS_MAX_CHARS", "190"))))
+            partes_texto = [texto[i:i + groq_max_chars].strip() for i in range(0, len(texto), groq_max_chars)]
+            partes_audio = []
+            for parte in [p for p in partes_texto if p]:
+                resp = http_requests.post(
+                    "https://api.groq.com/openai/v1/audio/speech",
+                    headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": groq_model,
+                        "voice": os.environ.get("GROQ_TTS_VOICE") or voces_groq.get(voz, "diana"),
+                        "input": parte,
+                        "response_format": groq_format,
+                    },
+                    timeout=timeout_groq,
+                )
+                if resp.ok and resp.content and len(resp.content) > 400:
+                    partes_audio.append(resp.content)
+                    continue
+                detalles.append(f"groq HTTP {resp.status_code}: {(resp.text or '')[:220]}")
+                partes_audio = []
+                break
+            if partes_audio:
+                audio_bytes = b"".join(partes_audio)
+                mime = "audio/wav" if groq_format == "wav" else "audio/mpeg"
+                if groq_format == "wav" and len(partes_audio) > 1:
+                    try:
+                        params = None
+                        frames = []
+                        for raw in partes_audio:
+                            with wave.open(io.BytesIO(raw), "rb") as wav_in:
+                                if params is None:
+                                    params = wav_in.getparams()
+                                elif wav_in.getparams()[:3] != params[:3]:
+                                    raise ValueError("WAV chunks incompatibles")
+                                frames.append(wav_in.readframes(wav_in.getnframes()))
+                        out = io.BytesIO()
+                        with wave.open(out, "wb") as wav_out:
+                            wav_out.setparams(params)
+                            wav_out.writeframes(b"".join(frames))
+                        audio_bytes = out.getvalue()
+                    except Exception as exc:
+                        detalles.append(f"groq wav stitch: {exc}")
                 return jsonify({
                     "success": True,
-                    "audio_base64": base64.b64encode(resp.content).decode("ascii"),
-                    "mime": "audio/mpeg",
-                    "modelo": "playai-tts",
+                    "audio_base64": base64.b64encode(audio_bytes).decode("ascii"),
+                    "mime": mime,
+                    "modelo": groq_model,
+                    "formato": groq_format,
                     "recortado": recortado,
                     "adaptado": adaptado,
                     "fuente": "groq",
@@ -776,7 +814,6 @@ def estudio_generar_voz():
                     "sin_limite_duracion": es_owner,
                     "maxSeg": max_seg,
                 })
-            detalles.append(f"groq HTTP {resp.status_code}: {(resp.text or '')[:220]}")
         except Exception as exc:
             detalles.append(f"groq: {exc}")
             print(f"Groq voz falló: {exc}")
@@ -831,7 +868,7 @@ def estudio_generar_voz():
 
     return jsonify({
         "error": "No se pudo generar la voz. Revisa el detalle del proveedor o intenta de nuevo.",
-        "detalle_proveedor": " · ".join(detalles)[:600],
+        "detalle_proveedor": " · ".join(str(d)[:360] for d in detalles)[:1200],
         "solo_tts": solo_tts,
         "chunkIndex": chunk_index,
     }), 502

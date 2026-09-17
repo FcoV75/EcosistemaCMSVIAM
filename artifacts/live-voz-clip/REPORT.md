@@ -1,27 +1,16 @@
-# Live voz/clip — bloqueado por Environment
+# LIVE voz/clip
 
-## Keys en esta VM
-- GROQ_API_KEY length: 0
-- FAL_KEY length: 0
-- GEMINI_API_KEY length: 0
-- Environment Cursor vinculado: **NO** (`environment: null` en run bc-e32b7ec9)
+- Started: 2026-09-17T20:43:56.386Z
+- Finished: 2026-09-17T20:44:05.191Z
+- Keys lengths: GROQ=56, FAL=69, GEMINI=53
 
-Las keys **sí existen** en el Environment del repo y en Netlify producción.
-Hay que **vincular ese Environment a este agente** (o reiniciarlo con el Environment correcto).
+## Voz
+- 30s: FAIL chunk 0: groq: HTTP 400: {"error":{"message":"The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com/playground?model=canopylabs%2Forpheus-v1-english","type":"invalid_request_error","code":"model_terms_required"}} · gemini: gemini/gemini-2.5-flash-preview-tts: HTTP 429: {"error":{"code":429,"message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quot | gemini/gemini-2.5-flas · fal: HTTP 403: {"detail":"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing."}
 
-## Producción (centromultidisciplinarioags.com) — diagnóstico ahora
-- `estudio-gemini-status`: GEMINI_API_KEY presente (len 53)
-- Gemini TTS: **429 quota** (hoy es límite de plan; el wrap TTS de este PR sigue siendo necesario para el 400 de formato)
-- Gemini imagen: 429 quota
-- `estudio-voz` con token guest: 502 genérico del código **aún no desplegado** (sin `detalle_proveedor`); Groq probablemente falla y Gemini cae por 429
-- Código de este PR: wrap TTS + `detalle_proveedor` + chunking cliente + `solo_tts` sin quemar cuota en chunks >0
+## Clip I2V FAL
+- FAIL: fuente=fal:fal-ai/flux/dev tipo=cinematico fallback=fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {"detail":"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing."} error=n/a
 
-## Unit tests
-- `test_estudio_limites.mjs` OK
-- `test_estudio_voz_chunking.mjs` OK
-  - 30s→2 chunks, 60s→3, 120s→5, 300s→12 (@420 chars)
-
-## Qué falta para cerrar LIVE
-1. Vincular Environment con GROQ/FAL/(GEMINI)
-2. Redeploy Netlify con este branch
-3. Re-correr `node tests/live_voz_clip_harness.mjs` y clip I2V con FAL_KEY
+## Blockers proveedor
+- Groq Orpheus requiere aceptar términos del modelo en la consola Groq.
+- Gemini devolvió 429 por cuota agotada.
+- Fal devolvió saldo agotado / usuario bloqueado.

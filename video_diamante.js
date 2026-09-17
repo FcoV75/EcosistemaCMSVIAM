@@ -977,6 +977,87 @@ function blobDesdeBase64(b64, mime) {
     return new Blob([arr], { type: mime || "application/octet-stream" });
 }
 
+function leerWavCliente(bytes) {
+    if (!bytes || bytes.byteLength < 44) return null;
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const ascii = (from, len) => String.fromCharCode(...bytes.slice(from, from + len));
+    if (ascii(0, 4) !== "RIFF" || ascii(8, 4) !== "WAVE") return null;
+    const channels = view.getUint16(22, true);
+    const sampleRate = view.getUint32(24, true);
+    const bitsPerSample = view.getUint16(34, true);
+    let off = 12;
+    while (off + 8 <= bytes.byteLength) {
+        const id = ascii(off, 4);
+        const size = view.getUint32(off + 4, true);
+        const start = off + 8;
+        const end = Math.min(start + size, bytes.byteLength);
+        if (id === "data" && end > start) {
+            return { channels, sampleRate, bitsPerSample, data: bytes.slice(start, end) };
+        }
+        off = end + (size % 2);
+    }
+    return null;
+}
+
+function wavDesdePcmCliente(pcm, sampleRate, channels, bitsPerSample) {
+    const bytesPorMuestra = Math.max(1, Math.round(bitsPerSample / 8));
+    const header = new ArrayBuffer(44);
+    const view = new DataView(header);
+    const writeAscii = (off, text) => {
+        for (let i = 0; i < text.length; i++) view.setUint8(off + i, text.charCodeAt(i));
+    };
+    writeAscii(0, "RIFF");
+    view.setUint32(4, 36 + pcm.byteLength, true);
+    writeAscii(8, "WAVE");
+    writeAscii(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * channels * bytesPorMuestra, true);
+    view.setUint16(32, channels * bytesPorMuestra, true);
+    view.setUint16(34, bitsPerSample, true);
+    writeAscii(36, "data");
+    view.setUint32(40, pcm.byteLength, true);
+    const out = new Uint8Array(44 + pcm.byteLength);
+    out.set(new Uint8Array(header), 0);
+    out.set(pcm, 44);
+    return out;
+}
+
+async function unirPartesAudio(partes, mimeFinal) {
+    if (!partes?.length) return null;
+    const todosWav = partes.every((b) => (b.type || "").includes("wav"));
+    if (!todosWav) return new Blob(partes, { type: mimeFinal || "audio/mpeg" });
+    try {
+        const wavs = [];
+        for (const blob of partes) {
+            const bytes = new Uint8Array(await blob.arrayBuffer());
+            const parsed = leerWavCliente(bytes);
+            if (!parsed) throw new Error("chunk WAV inválido");
+            wavs.push(parsed);
+        }
+        const first = wavs[0];
+        const compatibles = wavs.every((w) => (
+            w.channels === first.channels &&
+            w.sampleRate === first.sampleRate &&
+            w.bitsPerSample === first.bitsPerSample
+        ));
+        if (!compatibles) throw new Error("chunks WAV incompatibles");
+        const total = wavs.reduce((sum, w) => sum + w.data.byteLength, 0);
+        const pcm = new Uint8Array(total);
+        let off = 0;
+        for (const w of wavs) {
+            pcm.set(w.data, off);
+            off += w.data.byteLength;
+        }
+        return new Blob([wavDesdePcmCliente(pcm, first.sampleRate, first.channels, first.bitsPerSample)], { type: "audio/wav" });
+    } catch (err) {
+        console.warn("No se pudo unir WAV; usando unión binaria:", err);
+        return new Blob(partes, { type: mimeFinal || "audio/wav" });
+    }
+}
+
 /** Alineado con partirTexto de estudio-limites (~60–80 palabras / chunk). */
 const CHUNK_CHARS_VOZ_CLIENTE = 420;
 const TIMEOUT_VOZ_CHUNK_MS = 52000;
@@ -1112,7 +1193,8 @@ async function generarVozIA() {
             mimeFinal = partes.every((b) => (b.type || "").includes("wav"))
                 ? "audio/wav"
                 : "audio/mpeg";
-            blobFinal = new Blob(partes, { type: mimeFinal });
+            blobFinal = await unirPartesAudio(partes, mimeFinal);
+            mimeFinal = blobFinal?.type || mimeFinal;
             fuente = [...new Set(fuentes)].join("+") || "IA";
         }
 

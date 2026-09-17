@@ -1,11 +1,11 @@
 {
-  "started_at": "2026-09-17T20:22:17.851Z",
+  "started_at": "2026-09-17T20:43:56.386Z",
   "keys": {
-    "GROQ_API_KEY": 0,
-    "GEMINI_API_KEY": 0,
-    "FAL_KEY": 0
+    "GROQ_API_KEY": 56,
+    "FAL_KEY": 69,
+    "GEMINI_API_KEY": 53
   },
-  "environment_note": "Keys ausentes en esta VM: el Environment Cursor no está vinculado a este agente.",
+  "environment_note": "Keys presentes en runtime local.",
   "chunk_plan": {
     "30s": {
       "palabras": 72,
@@ -32,102 +32,98 @@
       "max_chunk_chars": 374
     }
   },
-  "local_tts": [
+  "local_voz": [
     {
       "ok": false,
-      "skipped": true,
-      "reason": "Sin GROQ_API_KEY ni GEMINI_API_KEY en esta VM (Environment no vinculado)."
-    }
-  ],
-  "remote_voz": [
-    {
       "seg": 30,
+      "chunks": 2,
+      "failed_chunk": 0,
       "status": 502,
-      "ok": false,
-      "fuente": null,
-      "modelo": null,
-      "ms": 4405,
-      "error": "No se pudo generar la voz a tiempo. Intenta de nuevo en unos segundos (texto un poco más corto ayuda).",
-      "detalle_proveedor": null
-    },
-    {
-      "seg": 60,
-      "status": 502,
-      "ok": false,
-      "fuente": null,
-      "modelo": null,
-      "ms": 3906,
-      "error": "No se pudo generar la voz a tiempo. Intenta de nuevo en unos segundos (texto un poco más corto ayuda).",
-      "detalle_proveedor": null
+      "error": "No se pudo generar la voz completa. Revisa el detalle del proveedor o reintenta el chunk.",
+      "detalle_proveedor": "groq: HTTP 400: {\"error\":{\"message\":\"The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com/playground?model=canopylabs%2Forpheus-v1-english\",\"type\":\"invalid_request_error\",\"code\":\"model_terms_required\"}} · gemini: gemini/gemini-2.5-flash-preview-tts: HTTP 429: {\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quot | gemini/gemini-2.5-flas · fal: HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+      "ms": 682
     }
   ],
-  "remote_clip": null,
-  "gemini_status": {
-    "sitio": "estudio-gemini-status",
-    "gemini_key_presente": true,
-    "gemini_key_longitud": 53,
-    "modelos_utiles": [
-      "gemini-2.5-flash",
-      "gemini-2.5-pro",
-      "gemini-2.5-flash-preview-tts",
-      "gemini-2.5-pro-preview-tts",
-      "gemini-flash-latest",
-      "gemini-flash-lite-latest",
-      "gemini-pro-latest",
-      "gemini-2.5-flash-lite",
-      "gemini-2.5-flash-image",
-      "gemini-3-flash-preview",
-      "gemini-3.1-pro-preview",
-      "gemini-3.1-pro-preview-customtools",
-      "gemini-3.1-flash-lite-preview",
-      "gemini-3.1-flash-lite",
-      "gemini-3-pro-image-preview",
-      "gemini-3-pro-image",
-      "nano-banana-pro-preview",
-      "gemini-3.1-flash-image-preview",
-      "gemini-3.1-flash-image",
-      "gemini-3.1-flash-lite-image",
-      "gemini-3.5-flash",
-      "gemini-3.5-flash-lite",
-      "gemini-omni-flash-preview",
-      "gemini-omni-1.1-flash",
-      "gemini-3.6-flash",
-      "gemini-3.7-flash",
-      "gemini-3.8-flash",
-      "lyria-3-pro-preview",
-      "gemini-3.1-flash-tts-preview",
-      "deep-research-pro-preview-12-2025",
-      "gemini-2.5-flash-native-audio-latest",
-      "gemini-2.5-flash-native-audio-preview-09-2025",
-      "gemini-2.5-flash-native-audio-preview-12-2025",
-      "gemini-3.1-flash-live-preview"
-    ],
-    "texto": {
+  "local_clip": [
+    {
+      "prompt": "Una bailarina mexicana en un estudio con luces neón mueve brazos, torso y pasos laterales con energía real. Cámara fija a nivel de ojos, movimiento continuo del sujeto, no Ken Burns, no zoom de foto.",
+      "requested_provider": "fal-i2v",
+      "duracionSeg": 8,
       "ok": false,
-      "status": 503,
-      "modelo": "gemini-flash-latest",
-      "muestra": "",
-      "error": "{\"error\":{\"code\":503,\"message\":\"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\",\"status\":\"UNA"
-    },
-    "imagen": {
-      "ok": false,
-      "status": 429,
-      "modelo": "gemini-3.1-flash-lite-image",
-      "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your"
-    },
-    "imagen4": {
-      "ok": false,
-      "status": 404,
-      "modelo": "imagen-3.0-generate-002",
-      "error": "{\"error\":{\"code\":404,\"message\":\"models/imagen-3.0-generate-002 is not found for API version v1beta, or is not supported for predict. Call ModelService.ListModels to see the list of available models and their supported me"
-    },
-    "tts": {
-      "ok": false,
-      "status": 429,
-      "modelo": "gemini-2.5-flash-preview-tts",
-      "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https:"
-    },
-    "modelos_total": 58,
-    "ok": false
-  }
+      "status": 200,
+      "tipo": "cinematico",
+      "fuente": "fal:fal-ai/flux/dev",
+      "actuacion": false,
+      "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas.",
+      "error": null,
+      "motivo_fallback": "fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+      "events": [
+        {
+          "type": "status",
+          "msg": "Director y placa en marcha…"
+        },
+        {
+          "type": "status",
+          "msg": "Creando clip de 8 s (actuación del sujeto)…"
+        },
+        {
+          "type": "status",
+          "msg": "Generando placa rápida…"
+        },
+        {
+          "type": "ping",
+          "t": 1789677840615
+        },
+        {
+          "type": "ping",
+          "t": 1789677844115
+        },
+        {
+          "type": "status",
+          "msg": "Filmando actuación (I2V nativo)…"
+        },
+        {
+          "type": "status",
+          "msg": "Filmando video nativo T2V…"
+        },
+        {
+          "type": "status",
+          "msg": "Entregando placa (reintenta por microfilme nativo)…"
+        },
+        {
+          "type": "result",
+          "success": true,
+          "tipo": "cinematico",
+          "imagen_base64": "[base64:417668]",
+          "mime": "image/jpeg",
+          "fuente": "fal:fal-ai/flux/dev",
+          "marca_agua_pollinations": false,
+          "movimiento": false,
+          "actuacion": false,
+          "sin_actuacion": true,
+          "motivo_fallback": "fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+          "resumen": "Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta.",
+          "prompt_en": "MUST INCLUDE: bailarina, mexicana, estudio, luces, neón, mueve, brazos, torso, pasos, laterales, energía, real, fija, nivel, ojos, movimiento, continuo, sujeto, Ken, Burns, zoom. Cinematic 16:9 VIDEO clip with real subject motion. OBEY the user scene exactly. Do NOT invent extra places or drop named subjects. Hyperrealistic commercial photography quality (8k, crisp micro-detail). Animals/wildlife: correct species anatomy, natural limbs and eyes, no extra limbs; do NOT replace animals with people",
+          "via_prompt": "fallback-local",
+          "director": {
+            "intencion": "Una bailarina mexicana en un estudio con luces neón mueve brazos, torso y pasos laterales con energía real. Cámara fija a nivel de ojos, movimiento continuo del",
+            "inferencias": [
+              "Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta."
+            ],
+            "resumen_es": "Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta.",
+            "via": "fallback-local"
+          },
+          "duracionSeg": 8,
+          "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas."
+        }
+      ],
+      "ms": 8077
+    }
+  ],
+  "provider_blockers": [
+    "Groq Orpheus requiere aceptar términos del modelo en la consola Groq.",
+    "Gemini devolvió 429 por cuota agotada.",
+    "Fal devolvió saldo agotado / usuario bloqueado."
+  ],
+  "finished_at": "2026-09-17T20:44:05.191Z"
 }

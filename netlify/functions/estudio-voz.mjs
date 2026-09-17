@@ -30,11 +30,22 @@ const VOCES_GEMINI = {
 };
 
 const VOCES_GROQ = {
-  femenina: 'Celeste-PlayAI',
-  masculina: 'Fritz-PlayAI',
-  calida: 'Deedee-PlayAI',
-  firme: 'Thunder-PlayAI',
+  femenina: 'diana',
+  masculina: 'daniel',
+  calida: 'hannah',
+  firme: 'austin',
 };
+
+const VOCES_FAL = {
+  femenina: 'Rachel',
+  masculina: 'Antoni',
+  calida: 'Bella',
+  firme: 'Josh',
+};
+
+const GROQ_TTS_MODEL_DEFAULT = 'canopylabs/orpheus-v1-english';
+const GROQ_TTS_MAX_CHARS_DEFAULT = 190;
+const FAL_TTS_MODEL_DEFAULT = 'fal-ai/elevenlabs/tts/multilingual-v2';
 
 /** Tiempo máximo por intento a un proveedor (evita colgar Safari/Netlify). */
 const TIMEOUT_GEMINI_MS = 12000;
@@ -45,8 +56,9 @@ const TIMEOUT_GEMINI_CHUNK_MS = 18000;
 const TIMEOUT_GROQ_CHUNK_MS = 28000;
 const TIMEOUT_CONDENSAR_MS = 8000;
 
-function pcm16ToWav(pcmBuf, sampleRate = 24000, channels = 1) {
+function pcm16ToWav(pcmBuf, sampleRate = 24000, channels = 1, bitsPerSample = 16) {
   const header = Buffer.alloc(44);
+  const bytesPorMuestra = Math.max(1, Math.round(bitsPerSample / 8));
   header.write('RIFF', 0);
   header.writeUInt32LE(36 + pcmBuf.length, 4);
   header.write('WAVE', 8);
@@ -55,12 +67,74 @@ function pcm16ToWav(pcmBuf, sampleRate = 24000, channels = 1) {
   header.writeUInt16LE(1, 20);
   header.writeUInt16LE(channels, 22);
   header.writeUInt32LE(sampleRate, 24);
-  header.writeUInt32LE(sampleRate * channels * 2, 28);
-  header.writeUInt16LE(channels * 2, 32);
-  header.writeUInt16LE(16, 34);
+  header.writeUInt32LE(sampleRate * channels * bytesPorMuestra, 28);
+  header.writeUInt16LE(channels * bytesPorMuestra, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
   header.write('data', 36);
   header.writeUInt32LE(pcmBuf.length, 40);
   return Buffer.concat([header, pcmBuf]);
+}
+
+function groqTtsModel() {
+  return (process.env.GROQ_TTS_MODEL || GROQ_TTS_MODEL_DEFAULT).trim();
+}
+
+function groqTtsResponseFormat(model = groqTtsModel()) {
+  return (
+    process.env.GROQ_TTS_RESPONSE_FORMAT ||
+    (String(model).includes('orpheus') ? 'wav' : 'mp3')
+  ).trim();
+}
+
+function groqTtsMaxChars() {
+  const n = Number(process.env.GROQ_TTS_MAX_CHARS);
+  return Number.isFinite(n) && n >= 80 ? Math.min(900, Math.round(n)) : GROQ_TTS_MAX_CHARS_DEFAULT;
+}
+
+function leerWavPcm(buf) {
+  if (!Buffer.isBuffer(buf) || buf.length < 44) return null;
+  if (buf.subarray(0, 4).toString('ascii') !== 'RIFF' || buf.subarray(8, 12).toString('ascii') !== 'WAVE') {
+    return null;
+  }
+  const channels = buf.readUInt16LE(22);
+  const sampleRate = buf.readUInt32LE(24);
+  const bitsPerSample = buf.readUInt16LE(34);
+  let off = 12;
+  while (off + 8 <= buf.length) {
+    const id = buf.subarray(off, off + 4).toString('ascii');
+    const size = buf.readUInt32LE(off + 4);
+    const dataStart = off + 8;
+    const dataEnd = Math.min(dataStart + size, buf.length);
+    if (id === 'data' && dataEnd > dataStart) {
+      return {
+        channels,
+        sampleRate,
+        bitsPerSample,
+        data: buf.subarray(dataStart, dataEnd),
+      };
+    }
+    off = dataEnd + (size % 2);
+  }
+  return null;
+}
+
+function unirWavs(buffers) {
+  const wavs = buffers.map(leerWavPcm);
+  if (wavs.some((w) => !w)) return null;
+  const [first] = wavs;
+  if (!wavs.every((w) => (
+    w.channels === first.channels &&
+    w.sampleRate === first.sampleRate &&
+    w.bitsPerSample === first.bitsPerSample
+  ))) {
+    return null;
+  }
+  return pcm16ToWav(
+    Buffer.concat(wavs.map((w) => w.data)),
+    first.sampleRate,
+    first.channels,
+    first.bitsPerSample,
+  );
 }
 
 function encodeMp3(pcmBuf, sampleRate) {
@@ -233,6 +307,8 @@ async function ttsGemini(apiKey, texto, voz, opts = {}) {
 }
 
 async function ttsGroqUnBloque(apiKey, texto, voz, timeoutMs = TIMEOUT_GROQ_MS) {
+  const model = groqTtsModel();
+  const responseFormat = groqTtsResponseFormat(model);
   const r = await fetchConTimeout(
     'https://api.groq.com/openai/v1/audio/speech',
     {
@@ -242,10 +318,10 @@ async function ttsGroqUnBloque(apiKey, texto, voz, timeoutMs = TIMEOUT_GROQ_MS) 
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'playai-tts',
-        voice: voz,
+        model,
+        voice: process.env.GROQ_TTS_VOICE || voz,
         input: texto,
-        response_format: 'mp3',
+        response_format: responseFormat,
       }),
     },
     timeoutMs,
@@ -259,16 +335,23 @@ async function ttsGroqUnBloque(apiKey, texto, voz, timeoutMs = TIMEOUT_GROQ_MS) 
   if (buf.length < 400) {
     return { buffer: null, detalle: 'Groq devolvió audio vacío o demasiado corto' };
   }
-  return { buffer: buf, detalle: null };
+  return {
+    buffer: buf,
+    detalle: null,
+    mime: responseFormat === 'wav' ? 'audio/wav' : 'audio/mpeg',
+    formato: responseFormat,
+    modelo: model,
+  };
 }
 
 async function ttsGroq(apiKey, texto, voz, opts = {}) {
-  const maxPart = opts.soloTts ? MAX_CHARS_SOLO_TTS : 900;
+  const maxPart = groqTtsMaxChars();
   const chunks = partirTexto(texto, maxPart);
   const partes = [];
   const timeoutMs = opts.timeoutMs || TIMEOUT_GROQ_MS;
   const completo = !!opts.completo;
   const errores = [];
+  let ultimo = null;
   for (const chunk of chunks) {
     try {
       const res = await ttsGroqUnBloque(apiKey, chunk, voz, timeoutMs);
@@ -279,6 +362,7 @@ async function ttsGroq(apiKey, texto, voz, opts = {}) {
         return { audio: null, detalle: errores.slice(-3).join(' | ') || 'Groq TTS falló' };
       }
       partes.push(res.buffer);
+      ultimo = res;
     } catch (err) {
       const msg = err?.name || err?.message || String(err);
       errores.push(`groq: ${msg}`);
@@ -291,11 +375,117 @@ async function ttsGroq(apiKey, texto, voz, opts = {}) {
   if (!partes.length) {
     return { audio: null, detalle: errores.slice(-3).join(' | ') || 'Groq TTS sin audio' };
   }
+  const formato = ultimo?.formato || groqTtsResponseFormat();
+  const buffer = formato === 'wav' && partes.length > 1
+    ? (unirWavs(partes) || Buffer.concat(partes))
+    : (partes.length === 1 ? partes[0] : Buffer.concat(partes));
+  return {
+    audio: {
+      buffer,
+      mime: ultimo?.mime || (formato === 'wav' ? 'audio/wav' : 'audio/mpeg'),
+      modelo: ultimo?.modelo || groqTtsModel(),
+      formato,
+    },
+    detalle: null,
+  };
+}
+
+async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 30000) {
+  const inicio = Date.now();
+  while (Date.now() - inicio < timeoutMs) {
+    const st = await fetch(statusUrl, {
+      headers,
+      signal: AbortSignal.timeout(Math.min(8000, timeoutMs)),
+    });
+    const data = await st.json().catch(() => ({}));
+    const status = String(data.status || '').toUpperCase();
+    if (status === 'COMPLETED') {
+      const done = await fetch(responseUrl, {
+        headers,
+        signal: AbortSignal.timeout(15000),
+      });
+      return done.json();
+    }
+    if (status === 'FAILED' || status === 'CANCELLED' || status === 'ERROR') {
+      throw new Error(data.error || data.detail || 'Fal TTS falló.');
+    }
+    await new Promise((r) => setTimeout(r, 1200));
+  }
+  return null;
+}
+
+async function ttsFal(apiKey, texto, voz, opts = {}) {
+  const model = (process.env.FAL_TTS_MODEL || FAL_TTS_MODEL_DEFAULT).trim();
+  const maxChars = Number(process.env.FAL_TTS_MAX_CHARS) || 900;
+  const chunks = partirTexto(texto, Math.max(200, Math.min(1800, maxChars)));
+  const headers = {
+    Authorization: `Key ${apiKey}`,
+    'Content-Type': 'application/json',
+  };
+  const timeoutMs = opts.timeoutMs || 45000;
+  const partes = [];
+  const errores = [];
+
+  for (const chunk of chunks) {
+    try {
+      const r = await fetchConTimeout(
+        `https://queue.fal.run/${model}`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            text: chunk,
+            voice: process.env.FAL_TTS_VOICE || voz,
+            language_code: process.env.FAL_TTS_LANGUAGE || 'es',
+            output_format: process.env.FAL_TTS_OUTPUT_FORMAT || 'mp3_44100_128',
+          }),
+        },
+        Math.min(15000, timeoutMs),
+      );
+      const queued = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const det = resumenErrorProveedor(r.status, JSON.stringify(queued));
+        errores.push(det);
+        if (opts.completo) return { audio: null, detalle: errores.slice(-3).join(' | ') };
+        continue;
+      }
+      const statusUrl = queued.status_url;
+      const responseUrl = queued.response_url;
+      if (!statusUrl || !responseUrl) {
+        errores.push('Fal TTS sin status_url/response_url');
+        continue;
+      }
+      const result = await esperarFal(statusUrl, responseUrl, headers, timeoutMs);
+      const audioUrl = result?.audio?.url || result?.audio_url || result?.url;
+      if (!audioUrl) {
+        errores.push('Fal TTS sin audio en respuesta');
+        continue;
+      }
+      const audioRes = await fetchConTimeout(audioUrl, {}, 30000);
+      if (!audioRes.ok) {
+        errores.push(`Fal audio HTTP ${audioRes.status}`);
+        continue;
+      }
+      const buf = Buffer.from(await audioRes.arrayBuffer());
+      if (buf.length < 400) {
+        errores.push('Fal devolvió audio vacío o demasiado corto');
+        continue;
+      }
+      partes.push(buf);
+    } catch (err) {
+      errores.push(err?.name || err?.message || String(err));
+      if (opts.completo) return { audio: null, detalle: errores.slice(-3).join(' | ') };
+    }
+  }
+
+  if (!partes.length) {
+    return { audio: null, detalle: errores.slice(-3).join(' | ') || 'Fal TTS sin audio' };
+  }
   return {
     audio: {
       buffer: partes.length === 1 ? partes[0] : Buffer.concat(partes),
       mime: 'audio/mpeg',
-      modelo: 'playai-tts',
+      modelo: model,
       formato: 'mp3',
     },
     detalle: null,
@@ -424,8 +614,10 @@ export default async (req) => {
     const estilo = String(body.voz || body.estilo || 'femenina').toLowerCase();
     const geminiKey = process.env.GEMINI_API_KEY || '';
     const groqKey = process.env.GROQ_API_KEY || '';
+    const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY || '';
     const vozGemini = VOCES_GEMINI[estilo] || VOCES_GEMINI.femenina;
     const vozGroq = VOCES_GROQ[estilo] || VOCES_GROQ.femenina;
+    const vozFal = VOCES_FAL[estilo] || VOCES_FAL.femenina;
 
     let ttsOpts;
     let geminiOpts;
@@ -456,14 +648,24 @@ export default async (req) => {
     } else if (!audio && !geminiKey) {
       detalles.push('gemini: GEMINI_API_KEY ausente en este runtime');
     }
+    if (!audio && falKey) {
+      const falRes = await ttsFal(falKey, recorte.texto, vozFal, ttsOpts);
+      if (falRes.audio) audio = falRes.audio;
+      else if (falRes.detalle) detalles.push(`fal: ${falRes.detalle}`);
+    } else if (!audio && !falKey) {
+      detalles.push('fal: FAL_KEY ausente en este runtime');
+    }
 
     if (!audio) {
-      const detalleProveedor = detalles.filter(Boolean).join(' · ') || 'sin detalle';
+      const detalleProveedor = detalles
+        .filter(Boolean)
+        .map((d) => String(d).slice(0, 360))
+        .join(' · ') || 'sin detalle';
       return jsonResponse({
         error: esOwner
           ? 'No se pudo generar la voz completa. Revisa el detalle del proveedor o reintenta el chunk.'
           : 'No se pudo generar la voz. Revisa el detalle del proveedor o intenta de nuevo.',
-        detalle_proveedor: detalleProveedor.slice(0, 600),
+        detalle_proveedor: detalleProveedor.slice(0, 1200),
         solo_tts: soloTts,
         chunkIndex,
       }, 502);
@@ -480,7 +682,9 @@ export default async (req) => {
       maxSeg: Number.isFinite(maxSeg) ? maxSeg : null,
       sin_limite_duracion: esOwner,
       palabras: recorte.palabras,
-      fuente: String(audio.modelo || '').includes('gemini') ? 'gemini' : 'groq',
+      fuente: String(audio.modelo || '').includes('gemini')
+        ? 'gemini'
+        : (String(audio.modelo || '').startsWith('fal-ai/') ? 'fal' : 'groq'),
       solo_tts: soloTts,
       chunkIndex,
       chunkTotal: chunkTotal || undefined,
