@@ -1,5 +1,5 @@
 {
-  "started_at": "2026-09-17T20:43:56.386Z",
+  "started_at": "2026-09-17T20:59:28.192Z",
   "keys": {
     "GROQ_API_KEY": 56,
     "FAL_KEY": 69,
@@ -34,14 +34,50 @@
   },
   "local_voz": [
     {
-      "ok": false,
+      "ok": true,
       "seg": 30,
       "chunks": 2,
+      "bytes": 1747212,
+      "fuentes": [
+        "groq"
+      ],
+      "modelos": [
+        "canopylabs/orpheus-v1-english"
+      ],
+      "mimes": [
+        "audio/wav"
+      ],
+      "file": "/workspace/artifacts/live-voz-clip/voz-30s.wav",
+      "ms": 6182
+    },
+    {
+      "ok": true,
+      "seg": 60,
+      "chunks": 3,
+      "bytes": 3446922,
+      "fuentes": [
+        "groq",
+        "gemini"
+      ],
+      "modelos": [
+        "canopylabs/orpheus-v1-english",
+        "gemini-2.5-flash-preview-tts"
+      ],
+      "mimes": [
+        "audio/wav"
+      ],
+      "file": "/workspace/artifacts/live-voz-clip/voz-60s.wav",
+      "ms": 17116
+    },
+    {
+      "ok": false,
+      "seg": 120,
+      "chunks": 5,
       "failed_chunk": 0,
       "status": 502,
       "error": "No se pudo generar la voz completa. Revisa el detalle del proveedor o reintenta el chunk.",
-      "detalle_proveedor": "groq: HTTP 400: {\"error\":{\"message\":\"The model `canopylabs/orpheus-v1-english` requires terms acceptance. Please have the org admin accept the terms at https://console.groq.com/playground?model=canopylabs%2Forpheus-v1-english\",\"type\":\"invalid_request_error\",\"code\":\"model_terms_required\"}} · gemini: gemini/gemini-2.5-flash-preview-tts: HTTP 429: {\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quot | gemini/gemini-2.5-flas · fal: HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
-      "ms": 682
+      "detalle_proveedor": "groq: HTTP 429: {\"error\":{\"message\":\"Rate limit reached for model `canopylabs/orpheus-v1-english` in organization `org_01knzsvs4yfdkb6877780afaa9` service tier `on_demand` on requests per minute (RPM): Limit 10, Used 10, Requested 1. Please try again in 6s. Need more tokens? Upgrade to Dev Tier  · gemini: gemini/gemini-2.5-flash-preview-tts: HTTP 429: {\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quot | gemini/gemini-2.5-flas · fal: HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+      "ms": 2293
     }
   ],
   "local_clip": [
@@ -52,11 +88,11 @@
       "ok": false,
       "status": 200,
       "tipo": "cinematico",
-      "fuente": "fal:fal-ai/flux/dev",
+      "fuente": "fal:fal-ai/flux-pro/v1.1",
       "actuacion": false,
-      "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas.",
+      "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas.",
       "error": null,
-      "motivo_fallback": "fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+      "motivo_fallback": "fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
       "events": [
         {
           "type": "status",
@@ -72,11 +108,7 @@
         },
         {
           "type": "ping",
-          "t": 1789677840615
-        },
-        {
-          "type": "ping",
-          "t": 1789677844115
+          "t": 1789678797330
         },
         {
           "type": "status",
@@ -94,14 +126,14 @@
           "type": "result",
           "success": true,
           "tipo": "cinematico",
-          "imagen_base64": "[base64:417668]",
+          "imagen_base64": "[base64:240480]",
           "mime": "image/jpeg",
-          "fuente": "fal:fal-ai/flux/dev",
+          "fuente": "fal:fal-ai/flux-pro/v1.1",
           "marca_agua_pollinations": false,
           "movimiento": false,
           "actuacion": false,
           "sin_actuacion": true,
-          "motivo_fallback": "fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+          "motivo_fallback": "fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
           "resumen": "Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta.",
           "prompt_en": "MUST INCLUDE: bailarina, mexicana, estudio, luces, neón, mueve, brazos, torso, pasos, laterales, energía, real, fija, nivel, ojos, movimiento, continuo, sujeto, Ken, Burns, zoom. Cinematic 16:9 VIDEO clip with real subject motion. OBEY the user scene exactly. Do NOT invent extra places or drop named subjects. Hyperrealistic commercial photography quality (8k, crisp micro-detail). Animals/wildlife: correct species anatomy, natural limbs and eyes, no extra limbs; do NOT replace animals with people",
           "via_prompt": "fallback-local",
@@ -114,16 +146,15 @@
             "via": "fallback-local"
           },
           "duracionSeg": 8,
-          "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas."
+          "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas."
         }
       ],
-      "ms": 8077
+      "ms": 6497
     }
   ],
   "provider_blockers": [
-    "Groq Orpheus requiere aceptar términos del modelo en la consola Groq.",
     "Gemini devolvió 429 por cuota agotada.",
     "Fal devolvió saldo agotado / usuario bloqueado."
   ],
-  "finished_at": "2026-09-17T20:44:05.191Z"
+  "finished_at": "2026-09-17T21:00:00.327Z"
 }
