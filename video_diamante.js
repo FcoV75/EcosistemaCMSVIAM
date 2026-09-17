@@ -736,6 +736,7 @@ async function generarImagenIA() {
     const status = $("#status-imagen-estudio");
     const preview = $("#preview-imagen-estudio");
     const btnAdd = $("#btn-anadir-imagen-pizarra");
+    const btnDl = $("#btn-descargar-imagen-estudio");
     if (btn) { btn.disabled = true; btn.textContent = "Generando imagen..."; }
     if (status) status.textContent = "La IA está creando tu escena visual...";
 
@@ -758,9 +759,10 @@ async function generarImagenIA() {
         if (img) img.src = url;
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
+        if (btnDl) btnDl.style.display = "inline-block";
         mostrarPreviewMovimiento(url);
         if (status) {
-            status.textContent = `Imagen fija lista (${d.fuente || "IA"})${textoDirectorStatus(d)} — no es un clip; el movimiento solo aplica si lo activas.`;
+            status.textContent = `Imagen fija lista (${d.fuente || "IA"})${textoDirectorStatus(d)} — descárgala a tu equipo o añádela a la pizarra.`;
         }
     } catch (e) {
         if (status) status.textContent = "Error: " + e.message;
@@ -909,6 +911,7 @@ async function generarVozIA() {
     const preview = $("#preview-voz-estudio");
     const audioEl = $("#audio-preview-voz");
     const btnUsar = $("#btn-usar-voz-audio");
+    const btnDl = $("#btn-descargar-voz-estudio");
     const lim = limitesVoz();
     const maxSeg = lim.maxSeg;
     const voz = $("#estudio-voz-estilo")?.value || "femenina";
@@ -949,12 +952,13 @@ async function generarVozIA() {
         if (audioEl) audioEl.src = url;
         if (preview) preview.style.display = "block";
         if (btnUsar) btnUsar.style.display = "inline-block";
+        if (btnDl) btnDl.style.display = "inline-block";
         let extra = "";
         if (d.sin_limite_duracion) extra = " Speech completo (sin límite de duración para propietario).";
         else if (d.adaptado) extra = " La IA condensó el texto para que cupiera en la toma.";
         else if (d.recortado) extra = " Se ajustó al tope de tu plan.";
         if (status) {
-            status.textContent = `Voz lista (${d.fuente || d.modelo || "IA"}).${extra} Ponla en el riel de locución; el MP3 o MIDI se queda en el riel de fondo.`;
+            status.textContent = `Voz lista (${d.fuente || d.modelo || "IA"}).${extra} Descárgala o ponla en el riel de locución.`;
         }
     } catch (e) {
         const msg = String(e?.message || e);
@@ -999,6 +1003,7 @@ async function generarClipIA() {
     const img = $("#img-preview-clip");
     const vid = $("#video-preview-clip");
     const btnAdd = $("#btn-anadir-clip-pizarra");
+    const btnDl = $("#btn-descargar-clip-estudio");
     if (btn) { btn.disabled = true; btn.textContent = "Generando clip..."; }
     if (status) status.textContent = `Creando clip de ${duracionSeg} s...`;
     // Limpiar preview anterior (p. ej. zoom Ken Burns viejo) al empezar.
@@ -1007,6 +1012,7 @@ async function generarClipIA() {
     if (img) { img.style.display = "none"; img.removeAttribute("src"); }
     if (vid) { vid.style.display = "none"; vid.removeAttribute("src"); }
     if (btnAdd) btnAdd.style.display = "none";
+    if (btnDl) btnDl.style.display = "none";
 
     try {
         // Reintento: reutilizar placa previa para gastar el presupuesto en I2V (no regenerar foto).
@@ -1115,6 +1121,7 @@ async function generarClipIA() {
         if (gen !== clipEstudioGen) return;
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
+        if (btnDl) btnDl.style.display = "inline-block";
         if (status && clipEstudioTipo === "video") {
             let via;
             if (d.tipo === "video" && d.actuacion) via = " (video nativo con actuación)";
@@ -1124,11 +1131,11 @@ async function generarClipIA() {
             }
             else if (d.sin_actuacion) via = " (solo cámara — sin baile/actuación del sujeto)";
             else via = " (secuencia)";
-            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${textoDirectorStatus(d)}. ${(d.aviso && d.sin_actuacion) ? d.aviso + " " : ""}Añádelo a la pizarra como video.`;
+            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${textoDirectorStatus(d)}. ${(d.aviso && d.sin_actuacion) ? d.aviso + " " : ""}Descárgalo o añádelo a la pizarra.`;
         } else if (status && clipEstudioTipo === "cinematico") {
             const aviso = d.aviso
                 || "Sin video nativo esta vez (I2V/T2V no respondió a tiempo).";
-            status.textContent = `Placa del clip lista — no es un video con actuación. ${aviso} Pulsa Generar clip otra vez para el microfilme.${textoDirectorStatus(d)}`;
+            status.textContent = `Placa del clip lista — no es un video con actuación. ${aviso} Puedes descargarla o pulsar Generar clip otra vez.${textoDirectorStatus(d)}`;
         }
     } catch (e) {
         if (gen !== clipEstudioGen) return;
@@ -1336,6 +1343,64 @@ function descargarMidiEstudio() {
     a.download = `estudio-viam-${Date.now()}.mid`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/** Descarga al dispositivo un blob del Estudio (foto, clip, voz). */
+function descargarBlobEstudio(blob, nombreBase) {
+    if (!blob) return false;
+    const tipo = String(blob.type || "");
+    let ext = "bin";
+    if (tipo.includes("mp4")) ext = "mp4";
+    else if (tipo.includes("webm")) ext = "webm";
+    else if (tipo.includes("mpeg") || tipo.includes("mp3")) ext = "mp3";
+    else if (tipo.includes("wav")) ext = "wav";
+    else if (tipo.includes("png")) ext = "png";
+    else if (tipo.includes("jpeg") || tipo.includes("jpg") || tipo.startsWith("image/")) ext = "jpg";
+    else if (tipo.includes("midi")) ext = "mid";
+    const nombre = String(nombreBase || "estudio-viam").replace(/\.[^.]+$/, "");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${nombre}-${Date.now()}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return true;
+}
+
+function descargarImagenEstudio() {
+    if (!imagenEstudioBlob) {
+        alert("Primero genera una imagen.");
+        return;
+    }
+    descargarBlobEstudio(imagenEstudioBlob, "estudio-viam-foto");
+    const st = $("#status-imagen-estudio");
+    if (st) st.textContent = "Foto descargada a tu dispositivo. También puedes añadirla a la pizarra.";
+}
+
+function descargarClipEstudio() {
+    if (!clipEstudioBlob) {
+        alert("Primero genera un clip.");
+        return;
+    }
+    const base = clipEstudioTipo === "video" ? "estudio-viam-clip" : "estudio-viam-placa";
+    descargarBlobEstudio(clipEstudioBlob, base);
+    const st = $("#status-clip-estudio");
+    if (st) {
+        st.textContent = clipEstudioTipo === "video"
+            ? "Clip de video descargado a tu dispositivo."
+            : "Placa del clip descargada a tu dispositivo (foto). Reintenta Generar clip para video nativo.";
+    }
+}
+
+function descargarVozEstudio() {
+    if (!vozEstudioAudioFile) {
+        alert("Primero genera la voz.");
+        return;
+    }
+    descargarBlobEstudio(vozEstudioAudioFile, "estudio-viam-voz");
+    const st = $("#status-voz-estudio");
+    if (st) st.textContent = "Audio de voz descargado a tu dispositivo. También puedes ponerlo en el riel de locución.";
 }
 
 async function usarMidiComoAudio() {
@@ -3074,6 +3139,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#btn-generar-midi")?.addEventListener("click", generarMidiEstudio);
     $("#btn-descargar-midi")?.addEventListener("click", descargarMidiEstudio);
     $("#btn-usar-midi-audio")?.addEventListener("click", usarMidiComoAudio);
+    $("#btn-descargar-imagen-estudio")?.addEventListener("click", descargarImagenEstudio);
     $("#btn-anadir-imagen-pizarra")?.addEventListener("click", () => {
         if (!imagenEstudioBlob) return;
         agregarMedioDesdeBlob(imagenEstudioBlob, `estudio-${Date.now()}.jpg`, "imagen", {
@@ -3087,8 +3153,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#btn-usar-letra-subtitulos")?.addEventListener("click", usarLetraEnSubtitulos);
     $("#btn-pasar-discurso-a-voz")?.addEventListener("click", pasarDiscursoAVoz);
     $("#btn-generar-voz")?.addEventListener("click", generarVozIA);
+    $("#btn-descargar-voz-estudio")?.addEventListener("click", descargarVozEstudio);
     $("#btn-usar-voz-audio")?.addEventListener("click", usarVozComoAudio);
     $("#btn-generar-clip")?.addEventListener("click", generarClipIA);
+    $("#btn-descargar-clip-estudio")?.addEventListener("click", descargarClipEstudio);
     $("#btn-anadir-clip-pizarra")?.addEventListener("click", anadirClipAPizarra);
     $("#estudio-estilo-movimiento")?.addEventListener("change", () => {
         if (previewMovImg) {
