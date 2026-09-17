@@ -1084,7 +1084,7 @@ async function generarClipIA() {
     const btnDl = $("#btn-descargar-clip-estudio");
     if (btn) { btn.disabled = true; btn.textContent = "Generando clip..."; }
     if (status) status.textContent = `Creando clip de ${duracionSeg} s...`;
-    // Limpiar preview anterior (p. ej. zoom Ken Burns viejo) al empezar.
+    // Limpiar preview anterior al empezar (salvo placa guardada para reintento I2V).
     clipEstudioBlob = null;
     clipEstudioTipo = "imagen";
     if (img) { img.style.display = "none"; img.removeAttribute("src"); }
@@ -1092,39 +1092,7 @@ async function generarClipIA() {
     if (btnAdd) btnAdd.style.display = "none";
     if (btnDl) btnDl.style.display = "none";
 
-    try {
-        // Reintento: reutilizar placa previa para gastar el presupuesto en I2V (no regenerar foto).
-        const bodyClip = { prompt, duracionSeg };
-        if (clipEstudioPlacaB64) {
-            bodyClip.imagen_base64 = clipEstudioPlacaB64;
-            bodyClip.mime = clipEstudioPlacaMime;
-            if (status) status.textContent = `Reintentando microfilme con la placa anterior (${duracionSeg} s)…`;
-        }
-        // 80 s: Netlify clip=90; heartbeats NDJSON evitan Inactivity Timeout de Safari.
-        const { ok, data: d } = await fetchEstudio("/estudio/clip", bodyClip, {
-            timeoutMs: 88000,
-            signal: abortLocal.signal,
-            abortErrorMsg: "Generación de clip cancelada (nueva solicitud).",
-            onStatus: (st) => {
-                if (gen !== clipEstudioGen || !status || !st) return;
-                if (st.type === "status" && st.msg) status.textContent = st.msg;
-                else if (st.type === "ping") status.textContent = `Creando clip de ${duracionSeg} s… (sigue activo)`;
-            }
-        });
-        if (gen !== clipEstudioGen) return;
-        if (!ok || d?.error) {
-            const raw = String(d?.error || "No se pudo generar el clip.");
-            if (/cancelad/i.test(raw)) return;
-            if (/incompleta/i.test(raw)) {
-                throw new Error("El clip se cortó a mitad (timeout). Pulsa Generar clip otra vez; suele completar al segundo intento.");
-            }
-            if (/inactivity timeout|too much time has passed/i.test(raw)) {
-                throw new Error("El servidor tardó demasiado. Intenta de nuevo; suele completar en el segundo intento.");
-            }
-            throw new Error(raw);
-        }
-        incrementarEstudioGens("clip");
-
+    const aplicarResultadoClip = async (d) => {
         if (d.video_url || d.video_base64) {
             let blob;
             if (d.video_base64) blob = blobDesdeBase64(d.video_base64, d.mime || "video/mp4");
@@ -1140,80 +1108,130 @@ async function generarClipIA() {
             const url = URL.createObjectURL(blob);
             if (vid) { vid.src = url; vid.style.display = "block"; }
             if (img) img.style.display = "none";
-        } else if (d.imagen_base64) {
-            clipEstudioPlacaB64 = d.imagen_base64;
-            clipEstudioPlacaMime = d.mime || "image/jpeg";
-            let still = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
-            still = await aplicarMarcaEstudioImagen(still, {
-                fuente: d.fuente,
-                marca_agua_pollinations: d.marca_agua_pollinations,
-                scrubPollinations: true,
-            });
-            if (gen !== clipEstudioGen) return;
-            const framesSecuencia = Array.isArray(d.secuencia) ? d.secuencia.filter((f) => f?.imagen_base64) : [];
-            // Secuencia de actuación (poses distintas): morph OK. NUNCA Ken Burns / menú Movimiento.
-            if (framesSecuencia.length >= 2) {
-                if (status) {
-                    status.textContent = `Secuencia de actuación (${framesSecuencia.length} placas). Grabando morph (${duracionSeg} s)…`;
+            return;
+        }
+        if (!d.imagen_base64) throw new Error("Respuesta de clip incompleta.");
+        clipEstudioPlacaB64 = d.imagen_base64;
+        clipEstudioPlacaMime = d.mime || "image/jpeg";
+        let still = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
+        still = await aplicarMarcaEstudioImagen(still, {
+            fuente: d.fuente,
+            marca_agua_pollinations: d.marca_agua_pollinations,
+            scrubPollinations: true,
+        });
+        if (gen !== clipEstudioGen) return;
+        const framesSecuencia = Array.isArray(d.secuencia) ? d.secuencia.filter((f) => f?.imagen_base64) : [];
+        if (framesSecuencia.length >= 2) {
+            if (status) {
+                status.textContent = `Secuencia de actuación (${framesSecuencia.length} placas). Grabando morph (${duracionSeg} s)…`;
+            }
+            try {
+                const blobs = [];
+                for (const fr of framesSecuencia) {
+                    let b = blobDesdeBase64(fr.imagen_base64, fr.mime || "image/jpeg");
+                    b = await aplicarMarcaEstudioImagen(b, {
+                        fuente: d.fuente,
+                        marca_agua_pollinations: fr.marca_agua_pollinations ?? d.marca_agua_pollinations,
+                        scrubPollinations: true,
+                    });
+                    blobs.push(b);
                 }
-                try {
-                    const blobs = [];
-                    for (const fr of framesSecuencia) {
-                        let b = blobDesdeBase64(fr.imagen_base64, fr.mime || "image/jpeg");
-                        b = await aplicarMarcaEstudioImagen(b, {
-                            fuente: d.fuente,
-                            marca_agua_pollinations: fr.marca_agua_pollinations ?? d.marca_agua_pollinations,
-                            scrubPollinations: true,
-                        });
-                        blobs.push(b);
-                    }
-                    const videoBlob = await grabarClipSecuencia(blobs, duracionSeg);
-                    if (gen !== clipEstudioGen) return;
-                    clipEstudioBlob = videoBlob;
-                    clipEstudioTipo = "video";
-                    const urlVid = URL.createObjectURL(videoBlob);
-                    if (vid) { vid.src = urlVid; vid.style.display = "block"; }
-                    if (img) img.style.display = "none";
-                } catch (grabErr) {
-                    console.warn("Clip secuencia:", grabErr);
-                    clipEstudioBlob = still;
-                    clipEstudioTipo = "cinematico";
-                    const urlStill = URL.createObjectURL(still);
-                    if (img) { img.src = urlStill; img.style.display = "block"; }
-                    if (vid) vid.style.display = "none";
-                    if (status) {
-                        status.textContent = `Placa lista (sin morph). Reintenta para microfilme nativo. ${grabErr.message}`;
-                    }
-                }
-            } else {
-                // Placa sola: NO inventar zoom_in (cruzaba con panel Movimiento).
+                const videoBlob = await grabarClipSecuencia(blobs, duracionSeg);
+                if (gen !== clipEstudioGen) return;
+                clipEstudioBlob = videoBlob;
+                clipEstudioTipo = "video";
+                const urlVid = URL.createObjectURL(videoBlob);
+                if (vid) { vid.src = urlVid; vid.style.display = "block"; }
+                if (img) img.style.display = "none";
+            } catch (grabErr) {
+                console.warn("Clip secuencia:", grabErr);
                 clipEstudioBlob = still;
                 clipEstudioTipo = "cinematico";
                 const urlStill = URL.createObjectURL(still);
                 if (img) { img.src = urlStill; img.style.display = "block"; }
                 if (vid) vid.style.display = "none";
             }
-        } else {
-            throw new Error("Respuesta de clip incompleta.");
+            return;
+        }
+        clipEstudioBlob = still;
+        clipEstudioTipo = "cinematico";
+        const urlStill = URL.createObjectURL(still);
+        if (img) { img.src = urlStill; img.style.display = "block"; }
+        if (vid) vid.style.display = "none";
+    };
+
+    try {
+        let d = null;
+        let usoPlacaPrevia = !!clipEstudioPlacaB64;
+        // Hasta 2 intentos: 1º genera placa+I2V; si solo placa por timeout, 2º gasta todo en I2V.
+        for (let intento = 0; intento < 2; intento += 1) {
+            if (gen !== clipEstudioGen) return;
+            const bodyClip = { prompt, duracionSeg };
+            if (clipEstudioPlacaB64) {
+                bodyClip.imagen_base64 = clipEstudioPlacaB64;
+                bodyClip.mime = clipEstudioPlacaMime;
+                if (d?.prompt_en) bodyClip.prompt_en = d.prompt_en;
+                usoPlacaPrevia = true;
+                if (status) {
+                    status.textContent = intento === 0
+                        ? `Reintentando microfilme con la placa anterior (${duracionSeg} s)…`
+                        : `Filmando microfilme nativo (2º intento I2V, ${duracionSeg} s)…`;
+                }
+            } else if (status) {
+                status.textContent = `Creando clip de ${duracionSeg} s…`;
+            }
+            const resp = await fetchEstudio("/estudio/clip", bodyClip, {
+                timeoutMs: 88000,
+                signal: abortLocal.signal,
+                abortErrorMsg: "Generación de clip cancelada (nueva solicitud).",
+                onStatus: (st) => {
+                    if (gen !== clipEstudioGen || !status || !st) return;
+                    if (st.type === "status" && st.msg) status.textContent = st.msg;
+                    else if (st.type === "ping") status.textContent = `Creando clip de ${duracionSeg} s… (sigue activo)`;
+                }
+            });
+            if (gen !== clipEstudioGen) return;
+            if (!resp.ok || resp.data?.error) {
+                const raw = String(resp.data?.error || "No se pudo generar el clip.");
+                if (/cancelad/i.test(raw)) return;
+                if (/incompleta/i.test(raw)) {
+                    throw new Error("El clip se cortó a mitad (timeout). Pulsa Generar clip otra vez; suele completar al segundo intento.");
+                }
+                if (/inactivity timeout|too much time has passed/i.test(raw)) {
+                    throw new Error("El servidor tardó demasiado. Intenta de nuevo; suele completar en el segundo intento.");
+                }
+                throw new Error(raw);
+            }
+            d = resp.data;
+            await aplicarResultadoClip(d);
+            if (gen !== clipEstudioGen) return;
+            if (clipEstudioTipo === "video") break;
+            const motivo = String(d?.motivo_fallback || "");
+            const puedeAuto = /timeout|presupuesto/i.test(motivo) && clipEstudioPlacaB64 && intento === 0;
+            if (!puedeAuto) break;
+            if (status) {
+                status.textContent = "Placa lista. Filmando el microfilme automáticamente (sin inventar zoom)…";
+            }
         }
         if (gen !== clipEstudioGen) return;
+        incrementarEstudioGens("clip");
         if (preview) preview.style.display = "block";
         if (btnAdd) btnAdd.style.display = "inline-block";
         if (btnDl) btnDl.style.display = "inline-block";
         if (status && clipEstudioTipo === "video") {
             let via;
-            if (d.tipo === "video" && d.actuacion) via = " (video nativo con actuación)";
-            else if (d.tipo === "video") via = " (video nativo)";
-            else if (Array.isArray(d.secuencia) && d.secuencia.length >= 2 && d.actuacion) {
+            if (d?.tipo === "video" && d.actuacion) via = " (video nativo con actuación)";
+            else if (d?.tipo === "video") via = " (video nativo)";
+            else if (Array.isArray(d?.secuencia) && d.secuencia.length >= 2 && d.actuacion) {
                 via = ` (secuencia de actuación · ${d.secuencia.length} placas)`;
             }
-            else if (d.sin_actuacion) via = " (solo cámara — sin baile/actuación del sujeto)";
+            else if (d?.sin_actuacion) via = " (solo cámara — sin baile/actuación del sujeto)";
             else via = " (secuencia)";
-            status.textContent = `Clip de ${d.duracionSeg || duracionSeg} s listo${via}${textoDirectorStatus(d)}. ${(d.aviso && d.sin_actuacion) ? d.aviso + " " : ""}Descárgalo o añádelo a la pizarra.`;
+            status.textContent = `Clip de ${d?.duracionSeg || duracionSeg} s listo${via}${textoDirectorStatus(d)}. ${(d?.aviso && d?.sin_actuacion) ? d.aviso + " " : ""}Descárgalo o añádelo a la pizarra.`;
         } else if (status && clipEstudioTipo === "cinematico") {
-            const aviso = d.aviso
+            const aviso = d?.aviso
                 || "Sin video nativo esta vez (I2V/T2V no respondió a tiempo).";
-            status.textContent = `Placa del clip lista — no es un video con actuación. ${aviso} Puedes descargarla o pulsar Generar clip otra vez.${textoDirectorStatus(d)}`;
+            status.textContent = `Placa del clip lista — aún no es un filme con actuación. ${aviso} Pulsa Generar clip otra vez: el 2º intento gasta todo en I2V.${textoDirectorStatus(d)}`;
         }
     } catch (e) {
         if (gen !== clipEstudioGen) return;
@@ -1231,6 +1249,7 @@ async function generarClipIA() {
         }
     }
 }
+
 
 function anadirClipAPizarra() {
     if (!clipEstudioBlob) return;
