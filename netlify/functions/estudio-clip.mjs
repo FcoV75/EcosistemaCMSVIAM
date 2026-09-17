@@ -16,8 +16,8 @@ import {
 
 /** Usar casi todo el timeout Netlify (90s); dejar margen para escribir result. */
 const BUDGET_CLIP_MS = 78000;
-/** Soft deadline: devolver lo que haya (nunca dejar NDJSON sin result). */
-const SOFT_DEADLINE_MS = 70000;
+/** Soft deadline más corto: siempre devolver result antes del corte del cliente (~88s). */
+const SOFT_DEADLINE_MS = 62000;
 
 function tiempoRestante(inicio, budget = BUDGET_CLIP_MS) {
   return Math.max(0, budget - (Date.now() - inicio));
@@ -36,11 +36,17 @@ function dataUriDesdeImagen(imagen) {
 async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 20000) {
   const inicio = Date.now();
   while (Date.now() - inicio < timeoutMs) {
-    const st = await fetch(statusUrl, { headers });
+    const st = await fetch(statusUrl, {
+      headers,
+      signal: AbortSignal.timeout(Math.min(8000, timeoutMs)),
+    });
     const data = await st.json().catch(() => ({}));
     const status = String(data.status || '').toUpperCase();
     if (status === 'COMPLETED') {
-      const done = await fetch(responseUrl, { headers });
+      const done = await fetch(responseUrl, {
+        headers,
+        signal: AbortSignal.timeout(15000),
+      });
       return done.json();
     }
     if (status === 'FAILED' || status === 'CANCELLED' || status === 'ERROR') {
@@ -70,6 +76,8 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
     'Content-Type': 'application/json',
   };
   const dur = Math.max(5, Math.min(10, Math.round(Number(segundos) || 8)));
+  const tStart = Date.now();
+  const porModelo = Math.max(8000, Math.floor(maxWaitMs / 2));
 
   for (const model of modelos.slice(0, 2)) {
     try {
@@ -84,6 +92,7 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
           negative_prompt:
             'static pose, frozen mannequin, no motion, still photograph only, Ken Burns zoom only, camera zoom without subject motion, aerial drone, mountain-sized kaiju shark, missing fishing rod, missing fisherman, text, watermark, nude, nsfw, deformed face, extra fingers',
         }),
+        signal: AbortSignal.timeout(12000),
       });
       const queued = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -93,13 +102,15 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
       const statusUrl = queued.status_url;
       const responseUrl = queued.response_url;
       if (!statusUrl || !responseUrl) continue;
-      const result = await esperarFal(statusUrl, responseUrl, headers, maxWaitMs);
+      const waitLeft = Math.max(5000, Math.min(porModelo, maxWaitMs - (Date.now() - tStart)));
+      if (waitLeft < 5000) break;
+      const result = await esperarFal(statusUrl, responseUrl, headers, waitLeft);
       const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
       if (videoUrl) {
         return { video_url: videoUrl, fuente: `fal-i2v:${model}`, mime: 'video/mp4', actuacion: true };
       }
     } catch (err) {
-      console.warn('Fal I2V:', model, err?.message || err);
+      console.warn('Fal I2V:', model, err?.name || err?.message || err);
     }
   }
   return null;
@@ -116,6 +127,7 @@ async function generarClipViduI2V(imagen, motionPrompt, segundos, maxWaitMs = 20
     Authorization: `Token ${key}`,
     'Content-Type': 'application/json',
   };
+  const tStart = Date.now();
   try {
     const r = await fetch('https://api.vidu.com/ent/v2/img2video', {
       method: 'POST',
@@ -128,6 +140,7 @@ async function generarClipViduI2V(imagen, motionPrompt, segundos, maxWaitMs = 20
         resolution: '720p',
         movement_amplitude: 'auto',
       }),
+      signal: AbortSignal.timeout(Math.min(12000, maxWaitMs)),
     });
     const queued = await r.json().catch(() => ({}));
     const taskId = queued.task_id || queued.id;
@@ -135,10 +148,12 @@ async function generarClipViduI2V(imagen, motionPrompt, segundos, maxWaitMs = 20
       console.warn('Vidu I2V:', r.status, queued);
       return null;
     }
-    const inicio = Date.now();
-    while (Date.now() - inicio < maxWaitMs) {
+    while (Date.now() - tStart < maxWaitMs) {
+      const left = maxWaitMs - (Date.now() - tStart);
+      if (left < 2000) break;
       const st = await fetch(`https://api.vidu.com/ent/v2/tasks/${taskId}/creations`, {
         headers: { Authorization: `Token ${key}` },
+        signal: AbortSignal.timeout(Math.min(8000, left)),
       });
       const data = await st.json().catch(() => ({}));
       const status = String(data.state || data.status || '').toLowerCase();
@@ -156,7 +171,7 @@ async function generarClipViduI2V(imagen, motionPrompt, segundos, maxWaitMs = 20
       await new Promise((ok) => setTimeout(ok, 1500));
     }
   } catch (err) {
-    console.warn('Vidu I2V:', err?.message || err);
+    console.warn('Vidu I2V:', err?.name || err?.message || err);
   }
   return null;
 }
@@ -170,40 +185,55 @@ async function generarClipViduT2V(promptEn, segundos, maxWaitMs = 16000) {
     Authorization: `Token ${key}`,
     'Content-Type': 'application/json',
   };
-  const r = await fetch('https://api.vidu.com/ent/v2/text2video', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model,
-      prompt: String(promptEn || '').slice(0, 2000),
-      duration: dur,
-      resolution: '720p',
-      style: 'general',
-      movement_amplitude: 'large',
-    }),
-  });
+  const tStart = Date.now();
+  let r;
+  try {
+    r = await fetch('https://api.vidu.com/ent/v2/text2video', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        prompt: String(promptEn || '').slice(0, 2000),
+        duration: dur,
+        resolution: '720p',
+        style: 'general',
+        movement_amplitude: 'large',
+      }),
+      signal: AbortSignal.timeout(Math.min(12000, maxWaitMs)),
+    });
+  } catch (err) {
+    console.warn('Vidu T2V queue:', err?.name || err?.message || err);
+    return null;
+  }
   const queued = await r.json().catch(() => ({}));
   const taskId = queued.task_id || queued.id;
   if (!r.ok || !taskId) {
     console.warn('Vidu T2V:', r.status, queued);
     return null;
   }
-  const inicio = Date.now();
-  while (Date.now() - inicio < maxWaitMs) {
-    const st = await fetch(`https://api.vidu.com/ent/v2/tasks/${taskId}/creations`, {
-      headers: { Authorization: `Token ${key}` },
-    });
-    const data = await st.json().catch(() => ({}));
-    const status = String(data.state || data.status || '').toLowerCase();
-    if (status === 'success' || status === 'completed') {
-      const url = data.creations?.[0]?.url
-        || data.creations?.[0]?.video_url
-        || data.video?.url
-        || data.url;
-      if (url) return { video_url: url, fuente: 'vidu', mime: 'video/mp4', actuacion: true };
-    }
-    if (status === 'failed' || status === 'error') {
-      console.warn('Vidu T2V tarea:', data);
+  while (Date.now() - tStart < maxWaitMs) {
+    const left = maxWaitMs - (Date.now() - tStart);
+    if (left < 2000) break;
+    try {
+      const st = await fetch(`https://api.vidu.com/ent/v2/tasks/${taskId}/creations`, {
+        headers: { Authorization: `Token ${key}` },
+        signal: AbortSignal.timeout(Math.min(8000, left)),
+      });
+      const data = await st.json().catch(() => ({}));
+      const status = String(data.state || data.status || '').toLowerCase();
+      if (status === 'success' || status === 'completed') {
+        const url = data.creations?.[0]?.url
+          || data.creations?.[0]?.video_url
+          || data.video?.url
+          || data.url;
+        if (url) return { video_url: url, fuente: 'vidu', mime: 'video/mp4', actuacion: true };
+      }
+      if (status === 'failed' || status === 'error') {
+        console.warn('Vidu T2V tarea:', data);
+        return null;
+      }
+    } catch (err) {
+      console.warn('Vidu T2V poll:', err?.name || err?.message || err);
       return null;
     }
     await new Promise((ok) => setTimeout(ok, 1500));
@@ -223,29 +253,37 @@ async function generarClipFalT2V(promptEn, segundos, maxWaitMs = 16000) {
     Authorization: `Key ${key}`,
     'Content-Type': 'application/json',
   };
+  const tStart = Date.now();
   for (const model of modelos.slice(0, 1)) {
-    const r = await fetch(`https://queue.fal.run/${model}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        negative_prompt:
-          'static pose, frozen, still photo, text, watermark, logo, nude, naked, nsfw, deformed face, asymmetric eyes, melted face, extra fingers, bad anatomy, missing subjects',
-        prompt: `${promptEn}, subject body performance and continuous motion, photorealistic hyperrealistic 8k, SFW clothed, smooth dance/acting motion, 16:9, no text, no watermark`,
-        duration: segundos,
-        aspect_ratio: '16:9',
-      }),
-    });
-    const queued = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      console.warn('Fal T2V queue:', model, r.status, queued);
-      continue;
+    try {
+      const r = await fetch(`https://queue.fal.run/${model}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          negative_prompt:
+            'static pose, frozen, still photo, text, watermark, logo, nude, naked, nsfw, deformed face, asymmetric eyes, melted face, extra fingers, bad anatomy, missing subjects',
+          prompt: `${promptEn}, subject body performance and continuous motion, photorealistic hyperrealistic 8k, SFW clothed, smooth dance/acting motion, 16:9, no text, no watermark`,
+          duration: segundos,
+          aspect_ratio: '16:9',
+        }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const queued = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        console.warn('Fal T2V queue:', model, r.status, queued);
+        continue;
+      }
+      const statusUrl = queued.status_url;
+      const responseUrl = queued.response_url;
+      if (!statusUrl || !responseUrl) continue;
+      const waitLeft = Math.max(5000, maxWaitMs - (Date.now() - tStart));
+      if (waitLeft < 5000) break;
+      const result = await esperarFal(statusUrl, responseUrl, headers, waitLeft);
+      const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
+      if (videoUrl) return { video_url: videoUrl, fuente: `fal:${model}`, mime: 'video/mp4', actuacion: true };
+    } catch (err) {
+      console.warn('Fal T2V:', model, err?.name || err?.message || err);
     }
-    const statusUrl = queued.status_url;
-    const responseUrl = queued.response_url;
-    if (!statusUrl || !responseUrl) continue;
-    const result = await esperarFal(statusUrl, responseUrl, headers, maxWaitMs);
-    const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
-    if (videoUrl) return { video_url: videoUrl, fuente: `fal:${model}`, mime: 'video/mp4', actuacion: true };
   }
   return null;
 }
@@ -372,7 +410,8 @@ export default async (req) => {
       mime: cine.mime,
       fuente: cine.fuente,
       marca_agua_pollinations: !!cine.marca_agua_pollinations,
-      movimiento: true,
+      // Cliente NO debe aplicar Ken Burns / menú Movimiento sobre esta placa.
+      movimiento: false,
       actuacion: false,
       sin_actuacion: !!pideActuacion,
       motivo_fallback: motivo,
