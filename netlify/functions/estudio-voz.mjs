@@ -1,6 +1,7 @@
 import { createRequire } from 'module';
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 import {
+  esPropietarioPayload,
   limitesVozPara,
   partirTexto,
   recortarTextoParaVoz,
@@ -26,6 +27,8 @@ const VOCES_GROQ = {
 /** Tiempo máximo por intento a un proveedor (evita colgar Safari/Netlify). */
 const TIMEOUT_GEMINI_MS = 12000;
 const TIMEOUT_GROQ_MS = 20000;
+const TIMEOUT_GEMINI_OWNER_MS = 45000;
+const TIMEOUT_GROQ_OWNER_MS = 55000;
 const TIMEOUT_CONDENSAR_MS = 8000;
 
 function pcm16ToWav(pcmBuf, sampleRate = 24000, channels = 1) {
@@ -113,7 +116,7 @@ async function fetchConTimeout(url, opciones, timeoutMs) {
   }
 }
 
-async function ttsGemini(apiKey, texto, voz) {
+async function ttsGemini(apiKey, texto, voz, opts = {}) {
   // Un solo modelo TTS estable: reintentar 3 modelos lentos colgaba Netlify/Safari.
   const modelos = [
     'gemini-2.5-flash-preview-tts',
@@ -123,6 +126,8 @@ async function ttsGemini(apiKey, texto, voz) {
   let sampleRate = 24000;
   const pcmParts = [];
   let modeloUsado = '';
+  const timeoutMs = opts.timeoutMs || TIMEOUT_GEMINI_MS;
+  const completo = !!opts.completo;
 
   for (const chunk of chunks) {
     let okChunk = false;
@@ -143,7 +148,7 @@ async function ttsGemini(apiKey, texto, voz) {
               },
             }),
           },
-          TIMEOUT_GEMINI_MS,
+          timeoutMs,
         );
         const data = await r.json().catch(() => ({}));
         if (!r.ok) {
@@ -162,6 +167,8 @@ async function ttsGemini(apiKey, texto, voz) {
       }
     }
     if (!okChunk) {
+      // Propietario: no devolver audio a medias (eso recortaba speeches largos a ~15 s).
+      if (completo) return null;
       if (pcmParts.length) break;
       return null;
     }
@@ -178,7 +185,7 @@ async function ttsGemini(apiKey, texto, voz) {
   return { buffer: wav, mime: 'audio/wav', modelo: modeloUsado, formato: 'wav' };
 }
 
-async function ttsGroqUnBloque(apiKey, texto, voz) {
+async function ttsGroqUnBloque(apiKey, texto, voz, timeoutMs = TIMEOUT_GROQ_MS) {
   const r = await fetchConTimeout(
     'https://api.groq.com/openai/v1/audio/speech',
     {
@@ -194,7 +201,7 @@ async function ttsGroqUnBloque(apiKey, texto, voz) {
         response_format: 'mp3',
       }),
     },
-    TIMEOUT_GROQ_MS,
+    timeoutMs,
   );
   if (!r.ok) {
     const err = await r.text().catch(() => '');
@@ -206,20 +213,24 @@ async function ttsGroqUnBloque(apiKey, texto, voz) {
   return buf;
 }
 
-async function ttsGroq(apiKey, texto, voz) {
+async function ttsGroq(apiKey, texto, voz, opts = {}) {
   // PlayAI acepta bloques cortos; partimos para no fallar en tomas largas.
   const chunks = partirTexto(texto, 900);
   const partes = [];
+  const timeoutMs = opts.timeoutMs || TIMEOUT_GROQ_MS;
+  const completo = !!opts.completo;
   for (const chunk of chunks) {
     try {
-      const buf = await ttsGroqUnBloque(apiKey, chunk, voz);
+      const buf = await ttsGroqUnBloque(apiKey, chunk, voz, timeoutMs);
       if (!buf) {
+        if (completo) return null;
         if (partes.length) break;
         return null;
       }
       partes.push(buf);
     } catch (err) {
       console.warn('Groq TTS timeout/error:', err?.name || err?.message || err);
+      if (completo) return null;
       if (partes.length) break;
       return null;
     }
@@ -236,6 +247,9 @@ async function ttsGroq(apiKey, texto, voz) {
 async function condensarTextoParaToma(texto, maxSeg, groqKey) {
   const recorte = recortarTextoParaVoz(texto, maxSeg);
   if (!recorte.texto) return recorte;
+  if (!Number.isFinite(Number(maxSeg)) || Number(maxSeg) <= 0) {
+    return { ...recorte, adaptado: false };
+  }
   if (!recorte.recortado || !groqKey) {
     return { ...recorte, adaptado: false };
   }
@@ -290,6 +304,7 @@ export default async (req) => {
 
   try {
     const body = await req.json();
+    const esOwner = esPropietarioPayload(guard.payload);
     const limites = limitesVozPara(guard.payload);
     const maxSeg = limites.maxSeg;
     const textoEntrada = String(body.texto || body.text || '').trim();
@@ -298,18 +313,29 @@ export default async (req) => {
     }
 
     // Director: entiende el sentido del texto (no solo recorta palabras).
+    // En textos largos del propietario no reescribimos ni alargamos el speech.
     let director = null;
-    try {
-      director = await dirigirEscena(textoEntrada.slice(0, 900), { modalidad: 'voz' });
-    } catch (err) {
-      console.warn('director voz:', err?.message || err);
+    if (!esOwner || textoEntrada.length < 400) {
+      try {
+        director = await dirigirEscena(textoEntrada.slice(0, 900), { modalidad: 'voz' });
+      } catch (err) {
+        console.warn('director voz:', err?.message || err);
+      }
     }
     const guia = briefAGuiaOral(director);
-    const textoParaVoz = guia && guia.length > 40 && textoEntrada.length < 120
+    const textoParaVoz = !esOwner && guia && guia.length > 40 && textoEntrada.length < 120
       ? `${textoEntrada}\n\n(Contexto semántico: ${director?.resumen_es || ''})`.trim()
       : textoEntrada;
 
-    const adaptado = await condensarTextoParaToma(textoParaVoz, maxSeg, process.env.GROQ_API_KEY || '');
+    // Propietario: el speech completo, sin condensar ni recortar.
+    const adaptado = esOwner
+      ? {
+          texto: textoParaVoz,
+          recortado: false,
+          palabras: textoParaVoz.split(/\s+/).filter(Boolean).length,
+          adaptado: false,
+        }
+      : await condensarTextoParaToma(textoParaVoz, maxSeg, process.env.GROQ_API_KEY || '');
     if (!adaptado.texto) {
       return jsonResponse({ error: 'Escribe el texto que quieres convertir a voz.' }, 400);
     }
@@ -320,19 +346,27 @@ export default async (req) => {
     const groqKey = process.env.GROQ_API_KEY || '';
     const vozGemini = VOCES_GEMINI[estilo] || VOCES_GEMINI.femenina;
     const vozGroq = VOCES_GROQ[estilo] || VOCES_GROQ.femenina;
+    const ttsOpts = esOwner
+      ? { completo: true, timeoutMs: TIMEOUT_GROQ_OWNER_MS }
+      : {};
+    const geminiOpts = esOwner
+      ? { completo: true, timeoutMs: TIMEOUT_GEMINI_OWNER_MS }
+      : {};
 
     // Groq primero (rápido): evita el "Inactivity Timeout" de Safari cuando Gemini se cuelga.
     // Gemini después para español más natural si Groq falla.
     let audio = null;
     if (groqKey) {
-      audio = await ttsGroq(groqKey, recorte.texto, vozGroq);
+      audio = await ttsGroq(groqKey, recorte.texto, vozGroq, ttsOpts);
     }
     if (!audio && geminiKey) {
-      audio = await ttsGemini(geminiKey, recorte.texto, vozGemini);
+      audio = await ttsGemini(geminiKey, recorte.texto, vozGemini, geminiOpts);
     }
     if (!audio) {
       return jsonResponse({
-        error: 'No se pudo generar la voz a tiempo. Intenta de nuevo en unos segundos (texto un poco más corto ayuda).',
+        error: esOwner
+          ? 'No se pudo generar la voz completa a tiempo. Vuelve a intentar; con speech largo a veces hace falta un segundo intento.'
+          : 'No se pudo generar la voz a tiempo. Intenta de nuevo en unos segundos (texto un poco más corto ayuda).',
       }, 502);
     }
 
@@ -344,7 +378,8 @@ export default async (req) => {
       formato: audio.formato,
       recortado: recorte.recortado,
       adaptado: !!recorte.adaptado,
-      maxSeg,
+      maxSeg: Number.isFinite(maxSeg) ? maxSeg : null,
+      sin_limite_duracion: esOwner,
       palabras: recorte.palabras,
       fuente: String(audio.modelo || '').includes('gemini') ? 'gemini' : 'groq',
       director: director

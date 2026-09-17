@@ -37,8 +37,13 @@ assert.equal(esPremiumPayload({ tier: 'premium' }), true);
 assert.equal(esPremiumPayload({ tier: 'free' }), false);
 
 assert.equal(limitesVozPara({ permanent: true }).maxSeg, LIMITES_VOZ.propietario.maxSeg);
+assert.ok(!Number.isFinite(limitesVozPara({ permanent: true }).maxSeg));
 assert.equal(limitesVozPara({ tier: 'premium' }).maxSeg, LIMITES_VOZ.premium.maxSeg);
 assert.equal(limitesVozPara({ tier: 'free' }).maxSeg, LIMITES_VOZ.free.maxSeg);
+
+const ownerSpeech = recortarTextoParaVoz(Array.from({ length: 400 }, (_, i) => `p${i}`).join(' '), Number.POSITIVE_INFINITY);
+assert.equal(ownerSpeech.recortado, false);
+assert.equal(ownerSpeech.palabras, 400);
 
 assert.equal(limitesClipPara({ plan: 'propietario' }).maxSeg, LIMITES_CLIP.propietario.maxSeg);
 assert.equal(limitesClipPara({ tier: 'premium' }).maxSeg, LIMITES_CLIP.premium.maxSeg);

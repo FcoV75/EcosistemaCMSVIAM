@@ -30,7 +30,7 @@
   timeout = 300
 
 [functions.estudio-voz]
-  timeout = 90
+  timeout = 120
 
 [functions.estudio-clip]
   timeout = 90

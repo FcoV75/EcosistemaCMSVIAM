@@ -36,6 +36,9 @@ let midiEstudioAudioFile = null;
 let vozEstudioAudioFile = null;
 let clipEstudioBlob = null;
 let clipEstudioTipo = "imagen";
+/** Última placa del clip (base64) para reintento I2V sin regenerar imagen. */
+let clipEstudioPlacaB64 = null;
+let clipEstudioPlacaMime = "image/jpeg";
 /** Cancela una generación de clip anterior si el usuario pulsa otra vez. */
 let clipEstudioAbort = null;
 let clipEstudioGen = 0;
@@ -49,7 +52,7 @@ const LIMITES_ESTUDIO = { gratuito: 5, premium: 20, propietario: Number.POSITIVE
 const LIMITES_VOZ = {
     gratuito: { maxSeg: 30, maxDia: 3 },
     premium: { maxSeg: 240, maxDia: 20 },
-    propietario: { maxSeg: 3600, maxDia: Number.POSITIVE_INFINITY }
+    propietario: { maxSeg: Number.POSITIVE_INFINITY, maxDia: Number.POSITIVE_INFINITY }
 };
 const LIMITES_MOVIMIENTO = { gratuito: 5, premium: 30, propietario: Number.POSITIVE_INFINITY };
 const LIMITES_CLIP = {
@@ -101,6 +104,18 @@ function tokenPareceVigente(token) {
 
 async function ensureAccessToken() {
     if (tokenPareceVigente(accessToken)) return;
+    // Si hay código Premium/owner, renovar membresía — NUNCA bajar a guest free
+    // (eso cortaba la voz a ~15–30 s aunque la UI dijera propietario).
+    const codigo = localStorage.getItem("video_diamante_premium_code");
+    if (codigo || isPremium || premiumMeta.permanent) {
+        try {
+            const r = await verificarMembresiaDetalle(codigo || null);
+            if (r.ok && tokenPareceVigente(accessToken)) return;
+        } catch (e) {
+            console.warn("Renovación de membresía:", e?.message || e);
+        }
+        if (tokenPareceVigente(accessToken)) return;
+    }
     try {
         const r = await fetch("/.netlify/functions/access-token", {
             method: "POST",
@@ -897,13 +912,27 @@ async function generarVozIA() {
     const lim = limitesVoz();
     const maxSeg = lim.maxSeg;
     const voz = $("#estudio-voz-estilo")?.value || "femenina";
+    const owner = esPropietario();
+    const palabras = texto.split(/\s+/).filter(Boolean).length;
+    // Cliente: owner no aborta a los 55 s (eso mataba speeches de 120 s).
+    const timeoutMs = owner
+        ? Math.min(280000, Math.max(120000, Math.round(palabras * 350) + 60000))
+        : isPremium ? 90000 : 55000;
 
     if (btn) { btn.disabled = true; btn.textContent = "Generando locución..."; }
-    if (status) status.textContent = `Creando la voz (hasta ${maxSeg} s). Suele tardar unos segundos…`;
+    if (status) {
+        status.textContent = owner
+            ? `Creando la voz completa (~${palabras} palabras, sin tope de duración)…`
+            : `Creando la voz (hasta ${maxSeg} s). Suele tardar unos segundos…`;
+    }
 
     try {
-        // 55 s: por debajo del límite Netlify (60) y del "Inactivity Timeout" de Safari/iPad.
-        const { ok, data: d } = await fetchEstudio("/estudio/voz", { texto, voz, maxSeg, adaptar: true }, { timeoutMs: 55000 });
+        const { ok, data: d } = await fetchEstudio("/estudio/voz", {
+            texto,
+            voz,
+            maxSeg: Number.isFinite(maxSeg) ? maxSeg : null,
+            adaptar: !owner,
+        }, { timeoutMs });
         if (!ok || !d.audio_base64) {
             const raw = String(d.error || "No se pudo generar la voz.");
             if (/inactivity timeout|too much time has passed/i.test(raw)) {
@@ -921,7 +950,8 @@ async function generarVozIA() {
         if (preview) preview.style.display = "block";
         if (btnUsar) btnUsar.style.display = "inline-block";
         let extra = "";
-        if (d.adaptado) extra = " La IA condensó el texto para que cupiera en la toma.";
+        if (d.sin_limite_duracion) extra = " Speech completo (sin límite de duración para propietario).";
+        else if (d.adaptado) extra = " La IA condensó el texto para que cupiera en la toma.";
         else if (d.recortado) extra = " Se ajustó al tope de tu plan.";
         if (status) {
             status.textContent = `Voz lista (${d.fuente || d.modelo || "IA"}).${extra} Ponla en el riel de locución; el MP3 o MIDI se queda en el riel de fondo.`;
@@ -979,8 +1009,15 @@ async function generarClipIA() {
     if (btnAdd) btnAdd.style.display = "none";
 
     try {
+        // Reintento: reutilizar placa previa para gastar el presupuesto en I2V (no regenerar foto).
+        const bodyClip = { prompt, duracionSeg };
+        if (clipEstudioPlacaB64) {
+            bodyClip.imagen_base64 = clipEstudioPlacaB64;
+            bodyClip.mime = clipEstudioPlacaMime;
+            if (status) status.textContent = `Reintentando microfilme con la placa anterior (${duracionSeg} s)…`;
+        }
         // 80 s: Netlify clip=90; heartbeats NDJSON evitan Inactivity Timeout de Safari.
-        const { ok, data: d } = await fetchEstudio("/estudio/clip", { prompt, duracionSeg }, {
+        const { ok, data: d } = await fetchEstudio("/estudio/clip", bodyClip, {
             timeoutMs: 88000,
             signal: abortLocal.signal,
             abortErrorMsg: "Generación de clip cancelada (nueva solicitud).",
@@ -1015,10 +1052,13 @@ async function generarClipIA() {
             if (gen !== clipEstudioGen) return;
             clipEstudioBlob = blob;
             clipEstudioTipo = "video";
+            clipEstudioPlacaB64 = null;
             const url = URL.createObjectURL(blob);
             if (vid) { vid.src = url; vid.style.display = "block"; }
             if (img) img.style.display = "none";
         } else if (d.imagen_base64) {
+            clipEstudioPlacaB64 = d.imagen_base64;
+            clipEstudioPlacaMime = d.mime || "image/jpeg";
             let still = blobDesdeBase64(d.imagen_base64, d.mime || "image/jpeg");
             still = await aplicarMarcaEstudioImagen(still, {
                 fuente: d.fuente,
@@ -1330,9 +1370,13 @@ function actualizarCamposDuracionEstudio() {
     if (vozEl) vozEl.value = String(voz.maxSeg);
     const hintVoz = $("#hint-duracion-voz");
     if (hintVoz) {
-        hintVoz.textContent = isPremium
-            ? "Automático (Premium): la IA usa el tiempo que necesita, hasta 4 min por toma."
-            : "Automático: la IA usa el tiempo que necesita, hasta 30 s. Premium sube a 4 min.";
+        if (esPropietario()) {
+            hintVoz.textContent = "Propietario: sin tope de duración. El speech completo se respeta (120 s o más).";
+        } else if (isPremium) {
+            hintVoz.textContent = "Automático (Premium): la IA usa el tiempo que necesita, hasta 4 min por toma.";
+        } else {
+            hintVoz.textContent = "Automático: la IA usa el tiempo que necesita, hasta 30 s. Premium sube a 4 min.";
+        }
     }
     const clipSel = $("#estudio-duracion-clip");
     if (clipSel) {

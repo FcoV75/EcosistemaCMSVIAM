@@ -15,9 +15,9 @@ import {
 } from './lib/estudio-secuencia-fauna.mjs';
 
 /** Usar casi todo el timeout Netlify (90s); dejar margen para escribir result. */
-const BUDGET_CLIP_MS = 78000;
-/** Soft deadline más corto: siempre devolver result antes del corte del cliente (~88s). */
-const SOFT_DEADLINE_MS = 62000;
+const BUDGET_CLIP_MS = 86000;
+/** Soft deadline alto: más segundos reales para I2V (antes 62s dejaba solo placa). */
+const SOFT_DEADLINE_MS = 80000;
 
 function tiempoRestante(inicio, budget = BUDGET_CLIP_MS) {
   return Math.max(0, budget - (Date.now() - inicio));
@@ -64,54 +64,63 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
   const imageUrl = dataUriDesdeImagen(imagen);
   if (!imageUrl) return null;
 
-  const modelos = [
+  // Con presupuesto corto: LTX primero (más rápido). Con margen: Hailuo/Kling.
+  const modelosRapidos = [
+    process.env.FAL_I2V_MODEL,
+    'fal-ai/ltx-video/image-to-video',
+    'fal-ai/minimax/hailuo-02/standard/image-to-video',
+  ];
+  const modelosLargos = [
     process.env.FAL_I2V_MODEL,
     'fal-ai/minimax/hailuo-02/standard/image-to-video',
     'fal-ai/kling-video/v2.1/standard/image-to-video',
     'fal-ai/ltx-video/image-to-video',
-  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+  ];
+  const modelos = (maxWaitMs < 28000 ? modelosRapidos : modelosLargos)
+    .filter((m, i, arr) => m && arr.indexOf(m) === i);
 
   const headers = {
     Authorization: `Key ${key}`,
     'Content-Type': 'application/json',
   };
-  const dur = Math.max(5, Math.min(10, Math.round(Number(segundos) || 8)));
+  // Duración más corta = más probabilidad de completar a tiempo.
+  const dur = maxWaitMs < 25000
+    ? 5
+    : Math.max(5, Math.min(10, Math.round(Number(segundos) || 8)));
   const tStart = Date.now();
-  const porModelo = Math.max(8000, Math.floor(maxWaitMs / 2));
-
-  for (const model of modelos.slice(0, 2)) {
-    try {
-      const r = await fetch(`https://queue.fal.run/${model}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          prompt: String(motionPrompt || '').slice(0, 1800),
-          image_url: imageUrl,
-          duration: String(dur),
-          aspect_ratio: '16:9',
-          negative_prompt:
-            'static pose, frozen mannequin, no motion, still photograph only, Ken Burns zoom only, camera zoom without subject motion, aerial drone, mountain-sized kaiju shark, missing fishing rod, missing fisherman, text, watermark, nude, nsfw, deformed face, extra fingers',
-        }),
-        signal: AbortSignal.timeout(12000),
-      });
-      const queued = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        console.warn('Fal I2V queue:', model, r.status, JSON.stringify(queued).slice(0, 180));
-        continue;
-      }
-      const statusUrl = queued.status_url;
-      const responseUrl = queued.response_url;
-      if (!statusUrl || !responseUrl) continue;
-      const waitLeft = Math.max(5000, Math.min(porModelo, maxWaitMs - (Date.now() - tStart)));
-      if (waitLeft < 5000) break;
-      const result = await esperarFal(statusUrl, responseUrl, headers, waitLeft);
-      const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
-      if (videoUrl) {
-        return { video_url: videoUrl, fuente: `fal-i2v:${model}`, mime: 'video/mp4', actuacion: true };
-      }
-    } catch (err) {
-      console.warn('Fal I2V:', model, err?.name || err?.message || err);
+  // Un solo modelo con TODO el presupuesto (partir a la mitad mataba I2V).
+  const model = modelos[0];
+  try {
+    const r = await fetch(`https://queue.fal.run/${model}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        prompt: String(motionPrompt || '').slice(0, 1800),
+        image_url: imageUrl,
+        duration: String(dur),
+        aspect_ratio: '16:9',
+        negative_prompt:
+          'static pose, frozen mannequin, no motion, still photograph only, Ken Burns zoom only, camera zoom without subject motion, aerial drone, mountain-sized kaiju shark, missing fishing rod, missing fisherman, text, watermark, nude, nsfw, deformed face, extra fingers',
+      }),
+      signal: AbortSignal.timeout(12000),
+    });
+    const queued = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      console.warn('Fal I2V queue:', model, r.status, JSON.stringify(queued).slice(0, 180));
+      return null;
     }
+    const statusUrl = queued.status_url;
+    const responseUrl = queued.response_url;
+    if (!statusUrl || !responseUrl) return null;
+    const waitLeft = Math.max(5000, maxWaitMs - (Date.now() - tStart));
+    if (waitLeft < 5000) return null;
+    const result = await esperarFal(statusUrl, responseUrl, headers, waitLeft);
+    const videoUrl = result?.video?.url || result?.video_url || result?.output?.url;
+    if (videoUrl) {
+      return { video_url: videoUrl, fuente: `fal-i2v:${model}`, mime: 'video/mp4', actuacion: true };
+    }
+  } catch (err) {
+    console.warn('Fal I2V:', model, err?.name || err?.message || err);
   }
   return null;
 }
@@ -382,15 +391,29 @@ export default async (req) => {
         }
       : null;
 
-    write({ type: 'status', msg: 'Generando placa obediente…' });
-    // Placa RÁPIDA (Fal primero): Gemini imagen con 429 tumba el clip → "respuesta incompleta".
-    const cine = await generarImagenEstudio(promptEn, {
-      width: 1920,
-      height: 1080,
-      seed: seedDesdePrompt(`clip:${prompt}`),
-      original: prompt,
-      prioridad: 'rapido',
-    });
+    // Reintento: placa del cliente → todo el presupuesto a I2V.
+    let cine = null;
+    const placaIn = String(body.imagen_base64 || body.placa_base64 || '').trim();
+    if (placaIn.length > 80) {
+      write({ type: 'status', msg: 'Usando placa anterior; filmando I2V…' });
+      cine = {
+        imagen_base64: placaIn.replace(/^data:[^;]+;base64,/, ''),
+        mime: String(body.mime || 'image/jpeg').split(';')[0] || 'image/jpeg',
+        fuente: 'placa_reintento',
+        marca_agua_pollinations: false,
+      };
+    } else {
+      write({ type: 'status', msg: 'Generando placa rápida…' });
+      // Placa RÁPIDA (Fal primero): Gemini imagen con 429 tumba el clip → "respuesta incompleta".
+      cine = await generarImagenEstudio(promptEn, {
+        width: 1280,
+        height: 720,
+        seed: seedDesdePrompt(`clip:${prompt}`),
+        original: prompt,
+        prioridad: 'rapido',
+        timeoutMs: 18000,
+      });
+    }
     if (!cine?.imagen_base64) {
       return { success: false, error: 'No se pudo generar la placa del clip. Intenta de nuevo.' };
     }
@@ -427,29 +450,30 @@ export default async (req) => {
     let nativo = null;
     let motivoFallback = '';
 
-    // Microfilme: casi TODO el presupuesto restante a I2V/T2V (no a diapositivas).
+    // Microfilme: casi TODO el presupuesto restante a I2V (carrera Fal ∥ Vidu).
     const waitI2V = Math.min(
-      pescaEpica ? 36000 : 28000,
-      tiempoRestante(inicio) - 8000,
+      pescaEpica ? 52000 : 48000,
+      Math.max(0, tiempoRestante(inicio) - 6000),
     );
     if (waitI2V >= 9000) {
       write({ type: 'status', msg: pescaEpica ? 'Filmando la lucha (I2V nativo)…' : 'Filmando actuación (I2V nativo)…' });
+      const waitVidu = Math.min(waitI2V, Math.max(9000, tiempoRestante(inicio) - 6000));
       try {
-        nativo = await generarClipFalI2V(cine, motionPrompt, duracion, waitI2V);
-      } catch (err) {
-        console.warn('Fal I2V clip:', err?.message || err);
-      }
-      if (!nativo && !pasadoSoftDeadline(inicio) && tiempoRestante(inicio) > 14000) {
-        try {
-          nativo = await generarClipViduI2V(
-            cine,
-            motionPrompt,
-            duracion,
-            Math.min(20000, tiempoRestante(inicio) - 6000),
-          );
-        } catch (err) {
-          console.warn('Vidu I2V clip:', err?.message || err);
+        const candidatos = await Promise.allSettled([
+          generarClipFalI2V(cine, motionPrompt, duracion, waitI2V),
+          generarClipViduI2V(cine, motionPrompt, duracion, waitVidu),
+        ]);
+        for (const c of candidatos) {
+          if (c.status === 'fulfilled' && c.value?.video_url) {
+            nativo = c.value;
+            break;
+          }
+          if (c.status === 'rejected') {
+            console.warn('I2V race:', c.reason?.message || c.reason);
+          }
         }
+      } catch (err) {
+        console.warn('I2V race clip:', err?.message || err);
       }
     } else {
       motivoFallback = 'presupuesto_corto_i2v';

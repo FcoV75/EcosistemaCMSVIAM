@@ -3,8 +3,8 @@
 export const LIMITES_VOZ = {
   free: { maxSeg: 30, maxDia: 3 },
   premium: { maxSeg: 240, maxDia: 20 },
-  /** Solo propietario: sin tope diario práctico; techo de duración por seguridad del pipeline. */
-  propietario: { maxSeg: 3600, maxDia: Number.POSITIVE_INFINITY },
+  /** Solo propietario: sin tope de duración ni diario (el speech completo se respeta). */
+  propietario: { maxSeg: Number.POSITIVE_INFINITY, maxDia: Number.POSITIVE_INFINITY },
 };
 
 export const LIMITES_CLIP = {
@@ -55,7 +55,11 @@ export function clamp(n, min, max) {
 export function recortarTextoParaVoz(texto, maxSeg) {
   const limpio = String(texto || '').replace(/\s+/g, ' ').trim();
   const palabras = limpio ? limpio.split(' ') : [];
-  const maxPalabras = Math.max(18, Math.round(maxSeg * PALABRAS_POR_SEGUNDO));
+  // Propietario / sin tope: no recortar ni condensar.
+  if (!Number.isFinite(Number(maxSeg)) || Number(maxSeg) <= 0) {
+    return { texto: limpio, recortado: false, palabras: palabras.length };
+  }
+  const maxPalabras = Math.max(18, Math.round(Number(maxSeg) * PALABRAS_POR_SEGUNDO));
   if (palabras.length <= maxPalabras) {
     return { texto: limpio, recortado: false, palabras: palabras.length };
   }
