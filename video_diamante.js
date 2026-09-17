@@ -29,6 +29,13 @@ let objectUrls = [];
 let letraGuardada = "";
 let letraSegmentos = [];
 let letraPalabras = [];
+/** Subtítulos separados: riel 1 locución vs riel 2 canción. */
+let letraLocucion = "";
+let letraLocucionSegmentos = [];
+let letraLocucionPalabras = [];
+let letraFondo = "";
+let letraFondoSegmentos = [];
+let letraFondoPalabras = [];
 let imagenEstudioBlob = null;
 let letraEstudioGenerada = "";
 let midiEstudioBlob = null;
@@ -832,51 +839,122 @@ function textosLetraEquivalentes(a, b) {
     return Math.abs(na.length - nb.length) <= Math.max(12, Math.floor(na.length * 0.18));
 }
 
-/** Guarda la letra editada; si cambió vs la transcripción, descarta el sync viejo. */
-function sincronizarLetraEditada({ anunciar = false } = {}) {
-    const area = $("#letra-cancion");
+function mostrarSeccionesSubtitulos() {
+    const secLoc = $("#seccion-subtitulos-locucion");
+    const secFon = $("#seccion-subtitulos-fondo");
+    if (secLoc) secLoc.style.display = (rielVozFile || letraLocucion || letraEstudioGenerada) ? "block" : "none";
+    if (secFon) secFon.style.display = rielFondoFile || letraFondo ? "block" : "none";
+}
+
+/** Guarda la letra editada de un riel; si cambió vs la transcripción, descarta el sync viejo. */
+function sincronizarLetraRiel(riel, { anunciar = false } = {}) {
+    const esLoc = riel === "voz" || riel === "locucion";
+    const area = $(esLoc ? "#letra-locucion" : "#letra-fondo");
+    const st = $(esLoc ? "#status-transcripcion-locucion" : "#status-transcripcion-fondo");
     const actual = area?.value || "";
-    letraGuardada = actual;
-    if (letraPalabras.length) {
-        const textoPalabras = letraPalabras
+    let palabras = esLoc ? letraLocucionPalabras : letraFondoPalabras;
+    let segmentos = esLoc ? letraLocucionSegmentos : letraFondoSegmentos;
+    if (esLoc) letraLocucion = actual;
+    else letraFondo = actual;
+
+    if (palabras.length) {
+        const textoPalabras = palabras
             .map((p) => (p && (p.word || p.text || p.texto)) || "")
             .join(" ");
         if (!textosLetraEquivalentes(actual, textoPalabras)) {
-            letraPalabras = [];
-            letraSegmentos = [];
-            if (anunciar) {
-                const st = $("#status-transcripcion");
-                if (st) {
-                    st.textContent = "Letra corregida guardada — se usará tu texto editado en el video (sync por renglones).";
-                }
+            if (esLoc) {
+                letraLocucionPalabras = [];
+                letraLocucionSegmentos = [];
+            } else {
+                letraFondoPalabras = [];
+                letraFondoSegmentos = [];
+            }
+            if (anunciar && st) {
+                st.textContent = esLoc
+                    ? "Locución corregida — se usará tu texto editado (sync por renglones)."
+                    : "Letra corregida — se usará tu texto editado (sync por renglones).";
             }
             return { guardada: true, syncInvalidado: true };
         }
     }
-    if (anunciar) {
-        const st = $("#status-transcripcion");
-        if (st) {
-            st.textContent = letraPalabras.length
-                ? "Letra guardada — se conserva el sync de la transcripción."
-                : "Letra guardada — se sincronizará por renglones con la pista.";
-        }
+    if (anunciar && st) {
+        st.textContent = palabras.length
+            ? (esLoc ? "Locución guardada — se conserva el sync." : "Letra guardada — se conserva el sync.")
+            : (esLoc ? "Locución guardada — sync por renglones." : "Letra guardada — sync por renglones.");
     }
     return { guardada: true, syncInvalidado: false };
 }
 
+/** Compat: guarda ambos paneles antes de renderizar. */
+function sincronizarLetraEditada({ anunciar = false } = {}) {
+    sincronizarLetraRiel("voz", { anunciar: false });
+    sincronizarLetraRiel("fondo", { anunciar: false });
+    return { guardada: true };
+}
+
+/** Une locución + canción para el karaoke del render (si ambos están activos). */
+function construirKaraokeParaRender() {
+    sincronizarLetraEditada();
+    const useLoc = !!$("#chk-subtitulos-locucion")?.checked && !!(letraLocucion || "").trim();
+    const useFon = !!$("#chk-subtitulos-fondo")?.checked && !!(letraFondo || "").trim();
+    if (!useLoc && !useFon) {
+        return { activo: false, letra: "", segmentos: [], palabras: [] };
+    }
+    if (useLoc && !useFon) {
+        return {
+            activo: true,
+            letra: letraLocucion,
+            segmentos: letraLocucionSegmentos,
+            palabras: letraLocucionPalabras,
+        };
+    }
+    if (!useLoc && useFon) {
+        return {
+            activo: true,
+            letra: letraFondo,
+            segmentos: letraFondoSegmentos,
+            palabras: letraFondoPalabras,
+        };
+    }
+    // Ambos: fusionar por tiempos de palabra; si no hay sync, concatenar textos.
+    const palLoc = Array.isArray(letraLocucionPalabras) ? letraLocucionPalabras : [];
+    const palFon = Array.isArray(letraFondoPalabras) ? letraFondoPalabras : [];
+    if (palLoc.length && palFon.length) {
+        const merged = [...palLoc, ...palFon].sort((a, b) => {
+            const sa = Number(a?.start ?? a?.inicio ?? 0);
+            const sb = Number(b?.start ?? b?.inicio ?? 0);
+            return sa - sb;
+        });
+        return {
+            activo: true,
+            letra: `${letraLocucion.trim()}\n\n${letraFondo.trim()}`.trim(),
+            segmentos: [...(letraLocucionSegmentos || []), ...(letraFondoSegmentos || [])],
+            palabras: merged,
+        };
+    }
+    return {
+        activo: true,
+        letra: `${letraLocucion.trim()}\n\n${letraFondo.trim()}`.trim(),
+        segmentos: [],
+        palabras: palLoc.length ? palLoc : palFon,
+    };
+}
+
 function usarLetraEnSubtitulos() {
     if (!letraEstudioGenerada) return;
-    const area = $("#letra-cancion");
-    const sec = $("#seccion-subtitulos");
+    const area = $("#letra-locucion");
+    const sec = $("#seccion-subtitulos-locucion");
     if (area) area.value = letraEstudioGenerada;
-    letraGuardada = letraEstudioGenerada;
-    letraSegmentos = [];
-    letraPalabras = [];
+    letraLocucion = letraEstudioGenerada;
+    letraLocucionSegmentos = [];
+    letraLocucionPalabras = [];
     if (sec) sec.style.display = "block";
-    const chk = $("#chk-subtitulos");
+    const chk = $("#chk-subtitulos-locucion");
     if (chk) chk.checked = true;
-    $("#status-transcripcion").textContent = "Discurso del Estudio VIAM cargado — se sincronizará por renglones al renderizar.";
-    $("#status-letra-estudio").textContent = "Discurso aplicado a subtítulos.";
+    const st = $("#status-transcripcion-locucion");
+    if (st) st.textContent = "Discurso del Estudio VIAM cargado en subtítulos de locución — edítalo y se grabará al renderizar.";
+    $("#status-letra-estudio").textContent = "Discurso aplicado a subtítulos del riel 1 (locución).";
+    mostrarSeccionesSubtitulos();
 }
 
 function pasarDiscursoAVoz() {
@@ -2606,13 +2684,15 @@ async function comprimirAudioParaIA(file) {
     return new File([blob], "transcribe_16k.mp3", { type: "audio/mpeg" });
 }
 
-async function transcribirConGroq(audioFile) {
+async function transcribirConGroq(audioFile, opts = {}) {
     await ensureAccessToken();
     const audio = await comprimirAudioParaIA(audioFile);
+    const modo = opts.modo === "cancion" ? "cancion" : "locucion";
 
     const crearFormData = () => {
         const fd = new FormData();
         fd.append("audio", audio, audio.name || "transcribe_16k.mp3");
+        fd.append("modo", modo);
         return fd;
     };
 
@@ -2653,36 +2733,66 @@ async function transcribirConGroq(audioFile) {
     throw new Error(humanizarErrorTranscripcion(ultimoError));
 }
 
-async function transcribirAudio() {
-    if (!audioFile) { alert("Pon una locución o un MP3 en los rieles de audio."); return; }
-    const btn = $("#btn-transcribir");
-    const area = $("#letra-cancion");
-    const status = $("#status-transcripcion");
+async function transcribirAudioRiel(riel) {
+    const esLoc = riel === "voz" || riel === "locucion";
+    const file = esLoc ? rielVozFile : rielFondoFile;
+    const etiqueta = esLoc ? "locución (riel 1)" : "canción de fondo (riel 2)";
+    if (!file) {
+        alert(esLoc
+            ? "Pon una locución en el riel 1 (o genera Voz IA y úsala ahí)."
+            : "Pon un MP3 con voz cantada en el riel 2. El MIDI instrumental no tiene letra.");
+        return;
+    }
+    const btn = $(esLoc ? "#btn-transcribir-locucion" : "#btn-transcribir-fondo");
+    const area = $(esLoc ? "#letra-locucion" : "#letra-fondo");
+    const status = $(esLoc ? "#status-transcripcion-locucion" : "#status-transcripcion-fondo");
+    const txtOrig = btn?.textContent || "";
     if (btn) { btn.disabled = true; btn.textContent = "IA escuchando..."; }
-    if (status) status.textContent = "Preparando audio (optimizando WAV/MP3)...";
+    if (status) status.textContent = `Preparando ${etiqueta}…`;
     try {
-        if (status) status.textContent = "Transcribiendo con IA (español estricto)...";
-        const d = await transcribirConGroq(audioFile);
+        if (status) status.textContent = esLoc
+            ? "Transcribiendo locución (español)…"
+            : "Transcribiendo letra de la canción (español, sin inventar si es instrumental)…";
+        const d = await transcribirConGroq(file, { modo: esLoc ? "locucion" : "cancion" });
         const letraFmt = formatearLetraDesdeSegmentos(d.segmentos, d.texto);
         if (area) area.value = letraFmt;
-        letraGuardada = letraFmt;
-        letraSegmentos = Array.isArray(d.segmentos) ? d.segmentos : [];
-        letraPalabras = Array.isArray(d.palabras) ? d.palabras : [];
+        const segs = Array.isArray(d.segmentos) ? d.segmentos : [];
+        const pals = Array.isArray(d.palabras) ? d.palabras : [];
+        if (esLoc) {
+            letraLocucion = letraFmt;
+            letraLocucionSegmentos = segs;
+            letraLocucionPalabras = pals;
+        } else {
+            letraFondo = letraFmt;
+            letraFondoSegmentos = segs;
+            letraFondoPalabras = pals;
+        }
+        const chk = $(esLoc ? "#chk-subtitulos-locucion" : "#chk-subtitulos-fondo");
+        if (chk && letraFmt.trim()) chk.checked = true;
         if (status) {
+            const n = pals.length;
             const syncMsg = d.sync_real
-                ? `Letra lista (${letraPalabras.length} palabras con sync real de la voz) — edítala y pulsa Guardar.`
-                : letraPalabras.length
-                    ? `Letra lista (${letraPalabras.length} palabras, sync aproximado) — vuelve a transcribir si el karaoke se desfasa.`
-                    : "Letra lista — edítala y pulsa Guardar.";
+                ? `${esLoc ? "Locución" : "Letra"} lista (${n} palabras con sync real) — edítala y pulsa Guardar.`
+                : n
+                    ? `${esLoc ? "Locución" : "Letra"} lista (${n} palabras, sync aproximado) — vuelve a transcribir si se desfasa.`
+                    : `${esLoc ? "Locución" : "Letra"} lista — edítala y pulsa Guardar.`;
             status.textContent = syncMsg;
         }
+        mostrarSeccionesSubtitulos();
     } catch (e) {
         const msg = humanizarErrorTranscripcion(e.message);
         if (status) status.textContent = "Error: " + msg;
-        alert("No se pudo transcribir: " + msg);
+        alert(`No se pudo transcribir la ${etiqueta}: ` + msg);
     } finally {
-        if (btn) { btn.disabled = false; btn.textContent = "🎙️ Transcribir con IA"; }
+        if (btn) { btn.disabled = false; btn.textContent = txtOrig; }
     }
+}
+
+async function transcribirAudio() {
+    // Compat: si hay locución, prioriza riel 1; si no, riel 2.
+    if (rielVozFile) return transcribirAudioRiel("voz");
+    if (rielFondoFile) return transcribirAudioRiel("fondo");
+    alert("Pon una locución en el riel 1 o un MP3 en el riel 2.");
 }
 
 function validarProyecto() {
@@ -2796,9 +2906,12 @@ window.generarVideo = async function () {
             alert(`La cuota de movimiento de hoy es ${limiteMovimiento()} imágenes. ${cuotaMov.recortados} se renderizarán fijas. Mañana se reinicia, o activa Premium (30/día).`);
         }
 
-        const subtitulosOn = $("#chk-subtitulos")?.checked;
-        sincronizarLetraEditada();
-        const letra = $("#letra-cancion")?.value || letraGuardada || "";
+        const karaoke = construirKaraokeParaRender();
+        const subtitulosOn = karaoke.activo;
+        const letra = karaoke.letra || "";
+        letraGuardada = letra;
+        letraSegmentos = karaoke.segmentos || [];
+        letraPalabras = karaoke.palabras || [];
         const volVoz = volumenRielVoz();
         const volFondo = volumenRielFondo();
         let audio = audioFile || rielVozFile || rielFondoFile;
@@ -3093,8 +3206,7 @@ async function cargarAudio(file, riel = "fondo") {
     );
     actualizarAvisoAudio(notaConversion, riel);
     rellenarNombrePistaSiVacio(sugerirNombrePista(finalFile, riel));
-    const sec = $("#seccion-subtitulos");
-    if (sec) sec.style.display = "block";
+    mostrarSeccionesSubtitulos();
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -3224,13 +3336,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     configurarDragZone($("#pizarra-secuencia"), (f) => agregarMedios(f, null));
     renderizarPizarras();
 
-    $("#btn-transcribir")?.addEventListener("click", transcribirAudio);
-    $("#btn-guardar-letra")?.addEventListener("click", () => {
-        sincronizarLetraEditada({ anunciar: true });
+    $("#btn-transcribir-locucion")?.addEventListener("click", () => transcribirAudioRiel("voz"));
+    $("#btn-transcribir-fondo")?.addEventListener("click", () => transcribirAudioRiel("fondo"));
+    $("#btn-guardar-letra-locucion")?.addEventListener("click", () => {
+        sincronizarLetraRiel("voz", { anunciar: true });
     });
-    $("#letra-cancion")?.addEventListener("input", () => {
-        // Autosave suave: al editar, invalidar sync viejo si el texto ya no coincide.
-        sincronizarLetraEditada({ anunciar: false });
+    $("#btn-guardar-letra-fondo")?.addEventListener("click", () => {
+        sincronizarLetraRiel("fondo", { anunciar: true });
+    });
+    $("#letra-locucion")?.addEventListener("input", () => {
+        sincronizarLetraRiel("voz", { anunciar: false });
+    });
+    $("#letra-fondo")?.addEventListener("input", () => {
+        sincronizarLetraRiel("fondo", { anunciar: false });
     });
 
     $("#btn-plan-mensual")?.addEventListener("click", () => iniciarStripe("mensual"));
