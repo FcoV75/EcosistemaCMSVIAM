@@ -18,6 +18,7 @@ import {
   PROMPT_PRIMERA_MIEMBRO,
   PROMPT_SEGUIMIENTO_MIEMBRO,
   consultarGroqNexus,
+  errorPublicoNexus,
   groqKey,
 } from './lib/nexus-groq.mjs';
 
@@ -95,21 +96,28 @@ export default async (req) => {
 
 async function procesarChat(claveSesion, message, esPermanente) {
   if (!groqKey()) {
-    return Response.json({ error: 'El Santuario no está configurado (GROQ_API_KEY).' }, { status: 503 });
+    return Response.json(
+      { error: 'El Santuario no está configurado (GROQ_API_KEY).', codigo: 'ia_no_configurada' },
+      { status: 503 },
+    );
   }
 
   const turno = await abrirTurnoChat(claveSesion, { plan: PLAN_MIEMBRO, permanente: esPermanente });
   if (!turno.ok) {
-    return Response.json({ error: turno.error, sesion: { restanteMs: 0, plan: 'miembro' } }, { status: 429 });
+    return Response.json(
+      { error: turno.error, codigo: 'sesion_agotada', sesion: { restanteMs: 0, plan: 'miembro' } },
+      { status: 429 },
+    );
   }
 
-  const { raw } = await consultarGroqNexus({
+  const { raw, error } = await consultarGroqNexus({
     system: turno.esPrimera ? PROMPT_PRIMERA_MIEMBRO : PROMPT_SEGUIMIENTO_MIEMBRO,
     historia: turno.sesion.historia,
     message: message.trim(),
   });
   if (!raw) {
-    return Response.json({ error: 'Sincronía Nexus no pudo sintonizar en este momento. Intenta de nuevo.' }, { status: 502 });
+    const publico = errorPublicoNexus(error);
+    return Response.json({ error: publico.error, codigo: publico.codigo }, { status: publico.status });
   }
 
   const parsed = parsearRespuestaIA(raw);

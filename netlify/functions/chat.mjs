@@ -12,6 +12,7 @@ import {
   PROMPT_PRIMERA_PUBLICA,
   PROMPT_SEGUIMIENTO_PUBLICA,
   consultarGroqNexus,
+  errorPublicoNexus,
   groqKey,
 } from './lib/nexus-groq.mjs';
 
@@ -47,24 +48,28 @@ export default async (req) => {
     }
 
     if (!groqKey()) {
-      return Response.json({ error: 'IA no configurada (GROQ_API_KEY).' }, { status: 503 });
+      return Response.json({ error: 'IA no configurada (GROQ_API_KEY).', codigo: 'ia_no_configurada' }, { status: 503 });
     }
 
     const clave = clavePublica(req);
     const turno = await abrirTurnoChat(clave, { plan: PLAN_PUBLICO, permanente: false });
     if (!turno.ok) {
-      return Response.json({ error: turno.error, sesion: { restanteMs: 0, plan: 'publico' } }, { status: 429 });
+      return Response.json(
+        { error: turno.error, codigo: 'sesion_agotada', sesion: { restanteMs: 0, plan: 'publico' } },
+        { status: 429 },
+      );
     }
 
-    const { raw } = await consultarGroqNexus({
+    const { raw, error } = await consultarGroqNexus({
       system: turno.esPrimera ? PROMPT_PRIMERA_PUBLICA : PROMPT_SEGUIMIENTO_PUBLICA,
       historia: turno.sesion.historia,
       message: message.trim(),
     });
     if (!raw) {
+      const publico = errorPublicoNexus(error);
       return Response.json(
-        { error: 'Sincronía Nexus no pudo responder en este momento. Intenta de nuevo en unos minutos.' },
-        { status: 502 },
+        { error: publico.error, codigo: publico.codigo },
+        { status: publico.status },
       );
     }
 

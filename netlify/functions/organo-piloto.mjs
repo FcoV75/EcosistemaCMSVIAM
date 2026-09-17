@@ -16,7 +16,7 @@ import {
 } from './lib/nexus-frequencies.mjs';
 import { PLAN_MIEMBRO, PLAN_PUBLICO, payloadMusica, restanteMsDe } from './lib/nexus-sesion.mjs';
 import { abrirTurnoChat, confirmarTurnoChat } from './lib/nexus-sesion-store.mjs';
-import { consultarGroqNexus, groqKey } from './lib/nexus-groq.mjs';
+import { consultarGroqNexus, errorPublicoNexus, groqKey } from './lib/nexus-groq.mjs';
 import { contratoPublico, modoValido } from './lib/organo-contratos.mjs';
 import {
   aplicarTripleFiltro,
@@ -188,11 +188,18 @@ async function turno({ req, body, publico }) {
     permanente: esPermanente,
   });
   if (!turnoChat.ok) {
-    return json({ error: turnoChat.error, sesion: { restanteMs: 0, plan: publico ? 'publico' : 'miembro' } }, 429);
+    return json(
+      {
+        error: turnoChat.error,
+        codigo: 'sesion_agotada',
+        sesion: { restanteMs: 0, plan: publico ? 'publico' : 'miembro' },
+      },
+      429,
+    );
   }
 
   const memoria = publico || !consentimientos.memoria ? podarMemoria({}) : await leerMemoria(clave);
-  if (!groqKey()) return json({ error: 'IA no configurada (GROQ_API_KEY).' }, 503);
+  if (!groqKey()) return json({ error: 'IA no configurada (GROQ_API_KEY).', codigo: 'ia_no_configurada' }, 503);
 
   const userBlock = [
     `Modo: ${modo}`,
@@ -204,7 +211,7 @@ async function turno({ req, body, publico }) {
       : 'Sin veto pendiente.',
   ].join('\n');
 
-  const { raw: rawText } = await consultarGroqNexus({
+  const { raw: rawText, error } = await consultarGroqNexus({
     system: systemPromptOrgano({
       modo,
       skills: skillsInvocados,
@@ -218,9 +225,10 @@ async function turno({ req, body, publico }) {
     temperature: 0.55,
   });
   if (!rawText) {
+    const publico = errorPublicoNexus(error);
     return json(
-      { error: 'Sincronía Nexus no pudo sintonizar en este momento. Intenta de nuevo en unos minutos.' },
-      502,
+      { error: publico.error, codigo: publico.codigo },
+      publico.status,
     );
   }
 

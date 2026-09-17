@@ -52,6 +52,10 @@ ECOSISTEMA_OWNER_CODES=CMS-XXXXXX
 ECOSISTEMA_SESSION_SECRET=genera_una_cadena_larga_aleatoria_64_chars
 RAILWAY_INTERNAL_SECRET=la_misma_cadena_que_ECOSISTEMA_SESSION_SECRET
 
+# IA Nexus / Órgano piloto
+GROQ_API_KEY=...
+GROQ_NEXUS_MODELS=openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b
+
 # Unificación Fase 3 (mismo proyecto Supabase que ContacNeed)
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_ANON_KEY=eyJ...   # obligatorio para login en CMS
