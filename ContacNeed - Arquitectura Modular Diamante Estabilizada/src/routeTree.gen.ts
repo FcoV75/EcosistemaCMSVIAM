@@ -18,8 +18,8 @@ import { Route as EscuelaRouteImport } from './routes/escuela'
 import { Route as AvisosRouteImport } from './routes/avisos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as EscuelaSlugRouteImport } from './routes/escuela.$slug'
 import { Route as UUserIdRouteImport } from './routes/u/$userId'
+import { Route as EscuelaSlugRouteImport } from './routes/escuela.$slug'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
 import { Route as MensajesChatPeerIdRouteImport } from './routes/mensajes/chat/$peerId'
@@ -69,15 +69,15 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EscuelaSlugRoute = EscuelaSlugRouteImport.update({
-  id: '/escuela/$slug',
-  path: '/escuela/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const UUserIdRoute = UUserIdRouteImport.update({
   id: '/u/$userId',
   path: '/u/$userId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const EscuelaSlugRoute = EscuelaSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => EscuelaRoute,
 } as any)
 const AuthResetRoute = AuthResetRouteImport.update({
   id: '/auth/reset',
@@ -99,8 +99,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/avisos': typeof AvisosRoute
-  '/escuela': typeof EscuelaRoute
-  '/escuela/$slug': typeof EscuelaSlugRoute
+  '/escuela': typeof EscuelaRouteWithChildren
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -108,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
+  '/escuela/$slug': typeof EscuelaSlugRoute
   '/u/$userId': typeof UUserIdRoute
   '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
@@ -115,8 +115,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/avisos': typeof AvisosRoute
-  '/escuela': typeof EscuelaRoute
-  '/escuela/$slug': typeof EscuelaSlugRoute
+  '/escuela': typeof EscuelaRouteWithChildren
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -124,6 +123,7 @@ export interface FileRoutesByTo {
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
+  '/escuela/$slug': typeof EscuelaSlugRoute
   '/u/$userId': typeof UUserIdRoute
   '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
@@ -132,8 +132,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/avisos': typeof AvisosRoute
-  '/escuela': typeof EscuelaRoute
-  '/escuela/$slug': typeof EscuelaSlugRoute
+  '/escuela': typeof EscuelaRouteWithChildren
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
   '/profile': typeof ProfileRoute
@@ -141,6 +140,7 @@ export interface FileRoutesById {
   '/registro': typeof RegistroRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
+  '/escuela/$slug': typeof EscuelaSlugRoute
   '/u/$userId': typeof UUserIdRoute
   '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
@@ -151,7 +151,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/avisos'
     | '/escuela'
-    | '/escuela/$slug'
     | '/login'
     | '/mensajes'
     | '/profile'
@@ -159,6 +158,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/auth/confirm'
     | '/auth/reset'
+    | '/escuela/$slug'
     | '/u/$userId'
     | '/mensajes/chat/$peerId'
   fileRoutesByTo: FileRoutesByTo
@@ -167,7 +167,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/avisos'
     | '/escuela'
-    | '/escuela/$slug'
     | '/login'
     | '/mensajes'
     | '/profile'
@@ -175,6 +174,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/auth/confirm'
     | '/auth/reset'
+    | '/escuela/$slug'
     | '/u/$userId'
     | '/mensajes/chat/$peerId'
   id:
@@ -183,7 +183,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/avisos'
     | '/escuela'
-    | '/escuela/$slug'
     | '/login'
     | '/mensajes'
     | '/profile'
@@ -191,6 +190,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/auth/confirm'
     | '/auth/reset'
+    | '/escuela/$slug'
     | '/u/$userId'
     | '/mensajes/chat/$peerId'
   fileRoutesById: FileRoutesById
@@ -199,8 +199,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AvisosRoute: typeof AvisosRoute
-  EscuelaRoute: typeof EscuelaRoute
-  EscuelaSlugRoute: typeof EscuelaSlugRoute
+  EscuelaRoute: typeof EscuelaRouteWithChildren
   LoginRoute: typeof LoginRoute
   MensajesRoute: typeof MensajesRouteWithChildren
   ProfileRoute: typeof ProfileRoute
@@ -248,11 +247,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/escuela': {
+      id: '/escuela'
+      path: '/escuela'
+      fullPath: '/escuela'
+      preLoaderRoute: typeof EscuelaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/avisos': {
@@ -262,18 +261,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AvisosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/escuela': {
-      id: '/escuela'
-      path: '/escuela'
-      fullPath: '/escuela'
-      preLoaderRoute: typeof EscuelaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/escuela/$slug': {
-      id: '/escuela/$slug'
-      path: '/escuela/$slug'
-      fullPath: '/escuela/$slug'
-      preLoaderRoute: typeof EscuelaSlugRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -289,6 +281,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/u/$userId'
       preLoaderRoute: typeof UUserIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/escuela/$slug': {
+      id: '/escuela/$slug'
+      path: '/$slug'
+      fullPath: '/escuela/$slug'
+      preLoaderRoute: typeof EscuelaSlugRouteImport
+      parentRoute: typeof EscuelaRoute
     }
     '/auth/reset': {
       id: '/auth/reset'
@@ -314,6 +313,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface EscuelaRouteChildren {
+  EscuelaSlugRoute: typeof EscuelaSlugRoute
+}
+
+const EscuelaRouteChildren: EscuelaRouteChildren = {
+  EscuelaSlugRoute: EscuelaSlugRoute,
+}
+
+const EscuelaRouteWithChildren =
+  EscuelaRoute._addFileChildren(EscuelaRouteChildren)
+
 interface MensajesRouteChildren {
   MensajesChatPeerIdRoute: typeof MensajesChatPeerIdRoute
 }
@@ -330,8 +340,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AvisosRoute: AvisosRoute,
-  EscuelaRoute: EscuelaRoute,
-  EscuelaSlugRoute: EscuelaSlugRoute,
+  EscuelaRoute: EscuelaRouteWithChildren,
   LoginRoute: LoginRoute,
   MensajesRoute: MensajesRouteWithChildren,
   ProfileRoute: ProfileRoute,

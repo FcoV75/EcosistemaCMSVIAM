@@ -12,6 +12,7 @@ import {
   PROMPT_PRIMERA_PUBLICA,
   PROMPT_SEGUIMIENTO_PUBLICA,
   consultarGroqNexus,
+  errorPublicoNexus,
   groqKey,
 } from './lib/nexus-groq.mjs';
 
@@ -56,15 +57,16 @@ export default async (req) => {
       return Response.json({ error: turno.error, sesion: { restanteMs: 0, plan: 'publico' } }, { status: 429 });
     }
 
-    const { raw } = await consultarGroqNexus({
+    const { raw, error } = await consultarGroqNexus({
       system: turno.esPrimera ? PROMPT_PRIMERA_PUBLICA : PROMPT_SEGUIMIENTO_PUBLICA,
       historia: turno.sesion.historia,
       message: message.trim(),
     });
     if (!raw) {
+      const publico = errorPublicoNexus(error);
       return Response.json(
-        { error: 'Sincronía Nexus no pudo responder en este momento. Intenta de nuevo en unos minutos.' },
-        { status: 502 },
+        { error: publico.error },
+        { status: publico.status },
       );
     }
 

@@ -1,6 +1,15 @@
 import { recortarHistoria } from './nexus-sesion.mjs';
 
 export const GROQ_NEXUS_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
+const GROQ_NEXUS_TIMEOUT_MS = 18000;
+
+function modelosNexus() {
+  const fromEnv = String(process.env.GROQ_NEXUS_MODELS || process.env.GROQ_CHAT_MODELS || '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  return [...new Set([...fromEnv, ...GROQ_NEXUS_MODELS])];
+}
 
 export function groqKey() {
   try {
@@ -11,6 +20,49 @@ export function groqKey() {
     /* ignore */
   }
   return process.env.GROQ_API_KEY || '';
+}
+
+function resumirErrorGroq(status, data) {
+  const raw = typeof data === 'string' ? data : JSON.stringify(data || {});
+  const message = data?.error?.message || data?.message || raw;
+  const code = data?.error?.code || data?.code || null;
+  return {
+    status,
+    code,
+    message: String(message || '').replace(/\s+/g, ' ').slice(0, 500),
+  };
+}
+
+function retryMsFrom(error) {
+  const msg = String(error?.message || '');
+  const match = msg.match(/try again in\s+(\d+(?:\.\d+)?)s/i);
+  if (match) return Math.ceil(Number(match[1]) * 1000);
+  if (error?.status === 429) return 6500;
+  return 0;
+}
+
+function respuestaErrorNexus(error) {
+  const msg = String(error?.message || error?.error?.message || '');
+  if (error?.status === 429 || /rate limit|too many requests|try again/i.test(msg)) {
+    return {
+      status: 429,
+      error: 'Sincronía Nexus está recibiendo muchas solicitudes. Respira unos segundos y vuelve a intentarlo.',
+    };
+  }
+  if (error?.code === 'model_decommissioned' || /decommission|no longer supported/i.test(msg)) {
+    return {
+      status: 503,
+      error: 'Sincronía Nexus necesita actualizar su modelo de IA antes de responder.',
+    };
+  }
+  return {
+    status: 502,
+    error: 'Sincronía Nexus no pudo sintonizar en este momento. Intenta de nuevo en unos minutos.',
+  };
+}
+
+export function errorPublicoNexus(error) {
+  return respuestaErrorNexus(error);
 }
 
 export async function consultarGroqNexus({ system, historia = [], message, temperature = 0.65 }) {
@@ -26,33 +78,50 @@ export async function consultarGroqNexus({ system, historia = [], message, tempe
   ];
 
   let lastError = null;
-  for (const model of GROQ_NEXUS_MODELS) {
-    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        temperature,
-        messages,
-      }),
-    });
-    let aiData = null;
-    try {
-      aiData = await groqResponse.json();
-    } catch (parseErr) {
-      lastError = parseErr;
-      continue;
+  for (const model of modelosNexus()) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            temperature,
+            messages,
+          }),
+          signal: AbortSignal.timeout(GROQ_NEXUS_TIMEOUT_MS),
+        });
+        let aiData = null;
+        try {
+          aiData = await groqResponse.json();
+        } catch (parseErr) {
+          lastError = { status: groqResponse.status, message: parseErr?.message || String(parseErr) };
+          continue;
+        }
+        if (!groqResponse.ok) {
+          lastError = resumirErrorGroq(groqResponse.status, aiData);
+          const wait = retryMsFrom(lastError);
+          if (wait && attempt === 0) {
+            await new Promise((r) => setTimeout(r, Math.min(wait, 9000)));
+            continue;
+          }
+          break;
+        }
+        const raw = aiData?.choices?.[0]?.message?.content?.trim();
+        if (raw) return { raw, error: null, model };
+        lastError = { status: groqResponse.status, message: 'Groq respondió sin contenido.' };
+        break;
+      } catch (err) {
+        lastError = {
+          status: /abort|timeout/i.test(String(err?.name || err?.message || err)) ? 504 : 502,
+          message: err?.message || String(err),
+        };
+        break;
+      }
     }
-    if (!groqResponse.ok) {
-      lastError = aiData;
-      continue;
-    }
-    const raw = aiData?.choices?.[0]?.message?.content?.trim();
-    if (raw) return { raw, error: null };
-    lastError = aiData;
   }
   return { error: lastError, raw: null };
 }
