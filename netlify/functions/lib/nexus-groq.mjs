@@ -43,20 +43,58 @@ function retryMsFrom(error) {
 
 function respuestaErrorNexus(error) {
   const msg = String(error?.message || error?.error?.message || '');
+  if (error === 'no_key') {
+    return {
+      status: 503,
+      codigo: 'ia_no_configurada',
+      error: 'IA no configurada (GROQ_API_KEY).',
+    };
+  }
   if (error?.status === 429 || /rate limit|too many requests|try again/i.test(msg)) {
     return {
       status: 429,
+      codigo: 'ia_rate_limit',
       error: 'Sincronía Nexus está recibiendo muchas solicitudes. Respira unos segundos y vuelve a intentarlo.',
+    };
+  }
+  if (error?.status === 504 || /abort|timeout|timed out/i.test(msg)) {
+    return {
+      status: 504,
+      codigo: 'ia_timeout',
+      error: 'La IA tardó demasiado. Intenta con un mensaje más corto o vuelve a enviarlo en unos segundos.',
+    };
+  }
+  if (/terms?.*accept|accept.*terms|model.*terms/i.test(msg)) {
+    return {
+      status: 503,
+      codigo: 'ia_terms_required',
+      error: 'La IA requiere aceptar términos del modelo en la consola del proveedor antes de responder.',
+    };
+  }
+  if (error?.status === 401 || /invalid api key|unauthorized|authentication/i.test(msg)) {
+    return {
+      status: 503,
+      codigo: 'ia_key_invalid',
+      error: 'El Santuario no puede conectar con la IA. Revisa la clave del proveedor.',
+    };
+  }
+  if (error?.status === 403 || /quota|balance|billing|exhausted|insufficient/i.test(msg)) {
+    return {
+      status: 503,
+      codigo: 'ia_quota',
+      error: 'La cuota de IA está agotada o requiere revisar la facturación del proveedor.',
     };
   }
   if (error?.code === 'model_decommissioned' || /decommission|no longer supported/i.test(msg)) {
     return {
       status: 503,
+      codigo: 'ia_modelo_retirado',
       error: 'Sincronía Nexus necesita actualizar su modelo de IA antes de responder.',
     };
   }
   return {
     status: 502,
+    codigo: 'ia_fallo',
     error: 'Sincronía Nexus no pudo sintonizar en este momento. Intenta de nuevo en unos minutos.',
   };
 }

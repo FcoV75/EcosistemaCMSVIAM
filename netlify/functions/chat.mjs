@@ -48,13 +48,16 @@ export default async (req) => {
     }
 
     if (!groqKey()) {
-      return Response.json({ error: 'IA no configurada (GROQ_API_KEY).' }, { status: 503 });
+      return Response.json({ error: 'IA no configurada (GROQ_API_KEY).', codigo: 'ia_no_configurada' }, { status: 503 });
     }
 
     const clave = clavePublica(req);
     const turno = await abrirTurnoChat(clave, { plan: PLAN_PUBLICO, permanente: false });
     if (!turno.ok) {
-      return Response.json({ error: turno.error, sesion: { restanteMs: 0, plan: 'publico' } }, { status: 429 });
+      return Response.json(
+        { error: turno.error, codigo: 'sesion_agotada', sesion: { restanteMs: 0, plan: 'publico' } },
+        { status: 429 },
+      );
     }
 
     const { raw, error } = await consultarGroqNexus({
@@ -65,7 +68,7 @@ export default async (req) => {
     if (!raw) {
       const publico = errorPublicoNexus(error);
       return Response.json(
-        { error: publico.error },
+        { error: publico.error, codigo: publico.codigo },
         { status: publico.status },
       );
     }

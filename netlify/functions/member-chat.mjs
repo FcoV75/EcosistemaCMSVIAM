@@ -96,12 +96,18 @@ export default async (req) => {
 
 async function procesarChat(claveSesion, message, esPermanente) {
   if (!groqKey()) {
-    return Response.json({ error: 'El Santuario no está configurado (GROQ_API_KEY).' }, { status: 503 });
+    return Response.json(
+      { error: 'El Santuario no está configurado (GROQ_API_KEY).', codigo: 'ia_no_configurada' },
+      { status: 503 },
+    );
   }
 
   const turno = await abrirTurnoChat(claveSesion, { plan: PLAN_MIEMBRO, permanente: esPermanente });
   if (!turno.ok) {
-    return Response.json({ error: turno.error, sesion: { restanteMs: 0, plan: 'miembro' } }, { status: 429 });
+    return Response.json(
+      { error: turno.error, codigo: 'sesion_agotada', sesion: { restanteMs: 0, plan: 'miembro' } },
+      { status: 429 },
+    );
   }
 
   const { raw, error } = await consultarGroqNexus({
@@ -111,7 +117,7 @@ async function procesarChat(claveSesion, message, esPermanente) {
   });
   if (!raw) {
     const publico = errorPublicoNexus(error);
-    return Response.json({ error: publico.error }, { status: publico.status });
+    return Response.json({ error: publico.error, codigo: publico.codigo }, { status: publico.status });
   }
 
   const parsed = parsearRespuestaIA(raw);

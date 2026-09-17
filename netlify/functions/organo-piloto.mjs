@@ -188,11 +188,18 @@ async function turno({ req, body, publico }) {
     permanente: esPermanente,
   });
   if (!turnoChat.ok) {
-    return json({ error: turnoChat.error, sesion: { restanteMs: 0, plan: publico ? 'publico' : 'miembro' } }, 429);
+    return json(
+      {
+        error: turnoChat.error,
+        codigo: 'sesion_agotada',
+        sesion: { restanteMs: 0, plan: publico ? 'publico' : 'miembro' },
+      },
+      429,
+    );
   }
 
   const memoria = publico || !consentimientos.memoria ? podarMemoria({}) : await leerMemoria(clave);
-  if (!groqKey()) return json({ error: 'IA no configurada (GROQ_API_KEY).' }, 503);
+  if (!groqKey()) return json({ error: 'IA no configurada (GROQ_API_KEY).', codigo: 'ia_no_configurada' }, 503);
 
   const userBlock = [
     `Modo: ${modo}`,
@@ -220,7 +227,7 @@ async function turno({ req, body, publico }) {
   if (!rawText) {
     const publico = errorPublicoNexus(error);
     return json(
-      { error: publico.error },
+      { error: publico.error, codigo: publico.codigo },
       publico.status,
     );
   }

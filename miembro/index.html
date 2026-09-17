@@ -374,6 +374,7 @@
       btn.disabled = true;
       loading.style.display = 'block';
       const textoEnviado = input;
+      let cerrarPorSesion = false;
       document.getElementById('user-input').value = '';
       if (window.NexusPlatica) {
         NexusPlatica.pintarHilo(hilo, 'user', textoEnviado);
@@ -393,7 +394,10 @@
         const data = await res.json();
 
         if (!res.ok || data.error) {
-          throw new Error(data.error || 'No fue posible conectar con el Santuario.');
+          const err = new Error(data.error || 'No fue posible conectar con el Santuario.');
+          err.codigo = data.codigo || null;
+          err.sesion = data.sesion || null;
+          throw err;
         }
 
         aplicarRespuestaPlatica(textoEnviado, data, { yaPintadoUsuario: true });
@@ -404,8 +408,16 @@
         if (window.NexusPlatica) NexusPlatica.quitarEscribiendo(hilo);
         const nota = document.getElementById('nexus-nota-miembro');
         if (nota) nota.textContent = err.message;
+        if (err.codigo === 'sesion_agotada' && window.NexusPlatica) {
+          cerrarPorSesion = true;
+          NexusPlatica.cerrarComposer({
+            input: document.getElementById('user-input'),
+            button: btn,
+            nota,
+          });
+        }
       } finally {
-        btn.disabled = false;
+        if (!cerrarPorSesion) btn.disabled = false;
         loading.style.display = 'none';
       }
     }

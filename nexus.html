@@ -275,7 +275,7 @@ Mente abierta a consejos: ${data.mente_abierta}`;
         .then(async res => {
            const result = await res.json();
            if (!res.ok || result.error) {
-              throw new Error(result.error || "Error de red con la IA");
+              throw errorPlaticaDesdeRespuesta(result, "Error de red con la IA");
            }
            return result;
         })
@@ -345,6 +345,13 @@ Mente abierta a consejos: ${data.mente_abierta}`;
         return t.slice(0, 220) + '…';
       }
 
+      function errorPlaticaDesdeRespuesta(result, fallback) {
+        const err = new Error(result?.error || fallback || 'Error de red con la IA');
+        err.codigo = result?.codigo || null;
+        err.sesion = result?.sesion || null;
+        return err;
+      }
+
       async function continuarPlaticaPublica() {
         const input = document.getElementById('nexus-followup');
         const mensaje = (input?.value || '').trim();
@@ -362,6 +369,7 @@ Mente abierta a consejos: ${data.mente_abierta}`;
         }
         const nota = document.getElementById('nexus-nota-publica');
         if (nota) nota.textContent = 'Te leo con calma… un momento.';
+        let cerrarPorSesion = false;
         try {
           const res = await fetch('/.netlify/functions/chat', {
             method: 'POST',
@@ -369,15 +377,19 @@ Mente abierta a consejos: ${data.mente_abierta}`;
             body: JSON.stringify({ message: mensaje }),
           });
           const result = await res.json();
-          if (!res.ok || result.error) throw new Error(result.error || 'Error de red con la IA');
+          if (!res.ok || result.error) throw errorPlaticaDesdeRespuesta(result, 'Error de red con la IA');
           if (nota) nota.textContent = 'Escribe debajo. Enter envía; Shift+Enter hace un renglón nuevo. El tiempo corre en silencio, sin prisa.';
           mostrarRespuestaPublica(mensaje, result, { seguimiento: true });
         } catch (err) {
           if (window.NexusPlatica) NexusPlatica.quitarEscribiendo(hilo);
           const nota = document.getElementById('nexus-nota-publica');
           if (nota) nota.textContent = err.message;
+          if (err.codigo === 'sesion_agotada' && window.NexusPlatica) {
+            cerrarPorSesion = true;
+            NexusPlatica.cerrarComposer({ input, button: btn, nota });
+          }
         } finally {
-          btn.disabled = false;
+          if (!cerrarPorSesion) btn.disabled = false;
         }
       }
       document.getElementById('btn-seguir-platica')?.addEventListener('click', continuarPlaticaPublica);
