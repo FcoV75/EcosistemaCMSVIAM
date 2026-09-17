@@ -696,19 +696,45 @@ def estudio_generar_voz():
     if request.method == 'OPTIONS':
         return '', 200
     import base64
+    import math
     import requests as http_requests
     body = request.get_json(silent=True) or {}
     texto = str(body.get("texto") or body.get("text") or "").strip()
     if not texto:
         return jsonify({"error": "Escribe el texto que quieres convertir a voz."}), 400
-    max_seg = int(body.get("maxSeg") or 30)
-    max_seg = max(8, min(240, max_seg))
+
+    solo_tts = bool(body.get("solo_tts") or body.get("soloTts"))
+    chunk_index = max(0, int(body.get("chunkIndex") or 0))
+    es_owner = bool(
+        body.get("es_propietario")
+        or body.get("permanent")
+        or str(body.get("plan") or "").lower() == "propietario"
+        or str(body.get("tier") or "").lower() == "owner"
+    )
+    raw_max = body.get("maxSeg")
+    if es_owner or solo_tts or raw_max is None or raw_max == "" or (
+        isinstance(raw_max, (int, float)) and not math.isfinite(float(raw_max))
+    ):
+        # Propietario / solo_tts: sin tope artificial de 240 s.
+        max_seg = None if (es_owner or solo_tts) else max(8, min(240, int(raw_max or 30)))
+    else:
+        try:
+            max_seg = max(8, min(240, int(raw_max)))
+        except (TypeError, ValueError):
+            max_seg = 30
+
     palabras = texto.split()
-    max_palabras = max(18, int(round(max_seg * 2.4)))
-    recortado = len(palabras) > max_palabras
+    recortado = False
     adaptado = False
-    if recortado:
-        texto = " ".join(palabras[:max_palabras]) + "."
+    if max_seg is not None:
+        max_palabras = max(18, int(round(max_seg * 2.4)))
+        recortado = len(palabras) > max_palabras
+        if recortado:
+            texto = " ".join(palabras[:max_palabras]) + "."
+
+    if solo_tts and len(texto) > 1200:
+        texto = texto[:1200]
+
     voz = str(body.get("voz") or "femenina").lower()
     voces_groq = {
         "femenina": "Celeste-PlayAI",
@@ -718,7 +744,11 @@ def estudio_generar_voz():
     }
     groq_key = os.environ.get("GROQ_API_KEY")
     gemini_key = os.environ.get("GEMINI_API_KEY")
-    # Groq primero (rápido); Gemini como respaldo con timeout corto.
+    detalles = []
+    timeout_groq = 28 if solo_tts else (40 if es_owner else 20)
+    timeout_gemini = 18 if solo_tts else (30 if es_owner else 12)
+
+    # Groq primero (rápido); Gemini como respaldo con prompt TTS envuelto.
     if groq_key:
         try:
             resp = http_requests.post(
@@ -730,7 +760,7 @@ def estudio_generar_voz():
                     "input": texto[:4000],
                     "response_format": "mp3",
                 },
-                timeout=20,
+                timeout=timeout_groq,
             )
             if resp.ok and resp.content and len(resp.content) > 400:
                 return jsonify({
@@ -741,25 +771,38 @@ def estudio_generar_voz():
                     "recortado": recortado,
                     "adaptado": adaptado,
                     "fuente": "groq",
+                    "solo_tts": solo_tts,
+                    "chunkIndex": chunk_index,
+                    "sin_limite_duracion": es_owner,
+                    "maxSeg": max_seg,
                 })
+            detalles.append(f"groq HTTP {resp.status_code}: {(resp.text or '')[:220]}")
         except Exception as exc:
+            detalles.append(f"groq: {exc}")
             print(f"Groq voz falló: {exc}")
+    else:
+        detalles.append("groq: GROQ_API_KEY ausente")
+
     if gemini_key:
         try:
             modelo = "gemini-2.5-flash-preview-tts"
             voces = {"femenina": "Kore", "masculina": "Charon", "calida": "Aoede", "firme": "Fenrir"}
+            prompt_tts = (
+                "Lee en voz alta el siguiente texto en español, con naturalidad y claridad. "
+                "No añadas comentarios ni explicaciones:\n\n" + texto[:2000]
+            )
             resp = http_requests.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={gemini_key}",
                 json={
-                    "contents": [{"parts": [{"text": texto[:2000]}]}],
+                    "contents": [{"parts": [{"text": prompt_tts}]}],
                     "generationConfig": {
                         "responseModalities": ["AUDIO"],
                         "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voces.get(voz, "Kore")}}},
                     },
                 },
-                timeout=12,
+                timeout=timeout_gemini,
             )
-            data = resp.json()
+            data = resp.json() if resp.content else {}
             if resp.ok:
                 for part in data.get("candidates", [{}])[0].get("content", {}).get("parts", []):
                     inline = part.get("inlineData") or part.get("inline_data") or {}
@@ -772,10 +815,26 @@ def estudio_generar_voz():
                             "recortado": recortado,
                             "adaptado": adaptado,
                             "fuente": "gemini",
+                            "solo_tts": solo_tts,
+                            "chunkIndex": chunk_index,
+                            "sin_limite_duracion": es_owner,
+                            "maxSeg": max_seg,
                         })
+                detalles.append("gemini: sin audio en respuesta")
+            else:
+                detalles.append(f"gemini HTTP {resp.status_code}: {str(data)[:220]}")
         except Exception as exc:
+            detalles.append(f"gemini: {exc}")
             print(f"Gemini voz falló: {exc}")
-    return jsonify({"error": "No se pudo generar la voz a tiempo. Intenta de nuevo."}), 502
+    else:
+        detalles.append("gemini: GEMINI_API_KEY ausente")
+
+    return jsonify({
+        "error": "No se pudo generar la voz. Revisa el detalle del proveedor o intenta de nuevo.",
+        "detalle_proveedor": " · ".join(detalles)[:600],
+        "solo_tts": solo_tts,
+        "chunkIndex": chunk_index,
+    }), 502
 
 
 @app.route('/estudio/clip', methods=['POST', 'OPTIONS'])

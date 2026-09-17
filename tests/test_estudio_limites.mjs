@@ -49,4 +49,8 @@ assert.equal(limitesClipPara({ plan: 'propietario' }).maxSeg, LIMITES_CLIP.propi
 assert.equal(limitesClipPara({ tier: 'premium' }).maxSeg, LIMITES_CLIP.premium.maxSeg);
 assert.ok(!Number.isFinite(limitesClipPara({ permanent: true }).maxDia));
 
+// Chunking alineado con client/server (~420 chars).
+const speech60 = Array.from({ length: 144 }, (_, i) => `palabra${i}`).join(' ');
+assert.ok(partirTexto(speech60, 420).length >= 2);
+
 console.log('estudio-limites ok');

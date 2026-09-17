@@ -12,3 +12,7 @@ contacneed6.txt
 
 # Fonogramas completos (~3 GB). El catálogo liviano sí se versiona.
 INDAUTOR-deposito/IA-VIAM-Canciones-Letras-INDAUTOR-2026-08-21.zip
+
+artifacts/
+!artifacts/live-voz-clip/REPORT.md
+!artifacts/live-voz-clip/report.json

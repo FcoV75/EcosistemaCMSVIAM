@@ -1,0 +1,133 @@
+{
+  "started_at": "2026-09-17T20:22:17.851Z",
+  "keys": {
+    "GROQ_API_KEY": 0,
+    "GEMINI_API_KEY": 0,
+    "FAL_KEY": 0
+  },
+  "environment_note": "Keys ausentes en esta VM: el Environment Cursor no está vinculado a este agente.",
+  "chunk_plan": {
+    "30s": {
+      "palabras": 72,
+      "chars": 446,
+      "chunks": 2,
+      "max_chunk_chars": 370
+    },
+    "60s": {
+      "palabras": 144,
+      "chars": 890,
+      "chunks": 3,
+      "max_chunk_chars": 370
+    },
+    "120s": {
+      "palabras": 288,
+      "chars": 1781,
+      "chunks": 5,
+      "max_chunk_chars": 374
+    },
+    "300s": {
+      "palabras": 720,
+      "chars": 4454,
+      "chunks": 12,
+      "max_chunk_chars": 374
+    }
+  },
+  "local_tts": [
+    {
+      "ok": false,
+      "skipped": true,
+      "reason": "Sin GROQ_API_KEY ni GEMINI_API_KEY en esta VM (Environment no vinculado)."
+    }
+  ],
+  "remote_voz": [
+    {
+      "seg": 30,
+      "status": 502,
+      "ok": false,
+      "fuente": null,
+      "modelo": null,
+      "ms": 4405,
+      "error": "No se pudo generar la voz a tiempo. Intenta de nuevo en unos segundos (texto un poco más corto ayuda).",
+      "detalle_proveedor": null
+    },
+    {
+      "seg": 60,
+      "status": 502,
+      "ok": false,
+      "fuente": null,
+      "modelo": null,
+      "ms": 3906,
+      "error": "No se pudo generar la voz a tiempo. Intenta de nuevo en unos segundos (texto un poco más corto ayuda).",
+      "detalle_proveedor": null
+    }
+  ],
+  "remote_clip": null,
+  "gemini_status": {
+    "sitio": "estudio-gemini-status",
+    "gemini_key_presente": true,
+    "gemini_key_longitud": 53,
+    "modelos_utiles": [
+      "gemini-2.5-flash",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash-preview-tts",
+      "gemini-2.5-pro-preview-tts",
+      "gemini-flash-latest",
+      "gemini-flash-lite-latest",
+      "gemini-pro-latest",
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash-image",
+      "gemini-3-flash-preview",
+      "gemini-3.1-pro-preview",
+      "gemini-3.1-pro-preview-customtools",
+      "gemini-3.1-flash-lite-preview",
+      "gemini-3.1-flash-lite",
+      "gemini-3-pro-image-preview",
+      "gemini-3-pro-image",
+      "nano-banana-pro-preview",
+      "gemini-3.1-flash-image-preview",
+      "gemini-3.1-flash-image",
+      "gemini-3.1-flash-lite-image",
+      "gemini-3.5-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-omni-flash-preview",
+      "gemini-omni-1.1-flash",
+      "gemini-3.6-flash",
+      "gemini-3.7-flash",
+      "gemini-3.8-flash",
+      "lyria-3-pro-preview",
+      "gemini-3.1-flash-tts-preview",
+      "deep-research-pro-preview-12-2025",
+      "gemini-2.5-flash-native-audio-latest",
+      "gemini-2.5-flash-native-audio-preview-09-2025",
+      "gemini-2.5-flash-native-audio-preview-12-2025",
+      "gemini-3.1-flash-live-preview"
+    ],
+    "texto": {
+      "ok": false,
+      "status": 503,
+      "modelo": "gemini-flash-latest",
+      "muestra": "",
+      "error": "{\"error\":{\"code\":503,\"message\":\"This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.\",\"status\":\"UNA"
+    },
+    "imagen": {
+      "ok": false,
+      "status": 429,
+      "modelo": "gemini-3.1-flash-lite-image",
+      "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your"
+    },
+    "imagen4": {
+      "ok": false,
+      "status": 404,
+      "modelo": "imagen-3.0-generate-002",
+      "error": "{\"error\":{\"code\":404,\"message\":\"models/imagen-3.0-generate-002 is not found for API version v1beta, or is not supported for predict. Call ModelService.ListModels to see the list of available models and their supported me"
+    },
+    "tts": {
+      "ok": false,
+      "status": 429,
+      "modelo": "gemini-2.5-flash-preview-tts",
+      "error": "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https:"
+    },
+    "modelos_total": 58,
+    "ok": false
+  }
+}

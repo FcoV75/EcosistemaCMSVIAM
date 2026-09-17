@@ -977,6 +977,48 @@ function blobDesdeBase64(b64, mime) {
     return new Blob([arr], { type: mime || "application/octet-stream" });
 }
 
+/** Alineado con partirTexto de estudio-limites (~60–80 palabras / chunk). */
+const CHUNK_CHARS_VOZ_CLIENTE = 420;
+const TIMEOUT_VOZ_CHUNK_MS = 52000;
+
+function partirTextoVozCliente(texto, maxChars = CHUNK_CHARS_VOZ_CLIENTE) {
+    const t = String(texto || "").trim();
+    if (t.length <= maxChars) return t ? [t] : [];
+    const partes = [];
+    const oraciones = t.split(/(?<=[.!?…])\s+/);
+    let actual = "";
+    for (const ora of oraciones) {
+        if (!ora) continue;
+        if (ora.length > maxChars) {
+            if (actual) {
+                partes.push(actual.trim());
+                actual = "";
+            }
+            for (let i = 0; i < ora.length; i += maxChars) {
+                partes.push(ora.slice(i, i + maxChars).trim());
+            }
+            continue;
+        }
+        if (`${actual} ${ora}`.trim().length > maxChars) {
+            if (actual) partes.push(actual.trim());
+            actual = ora;
+        } else {
+            actual = `${actual} ${ora}`.trim();
+        }
+    }
+    if (actual) partes.push(actual.trim());
+    return partes.filter(Boolean);
+}
+
+function errorVozDesdeRespuesta(d) {
+    const raw = String(d?.error || "No se pudo generar la voz.");
+    const det = String(d?.detalle_proveedor || "").trim();
+    if (/inactivity timeout|too much time has passed/i.test(raw)) {
+        return "El servidor tardó demasiado en responder. Reintenta; los chunks cortos suelen completar.";
+    }
+    return det ? `${raw} (${det})` : raw;
+}
+
 async function generarVozIA() {
     if (!puedeUsarVoz()) return;
     const texto = $("#estudio-texto-voz")?.value?.trim() || letraEstudioGenerada;
@@ -994,49 +1036,101 @@ async function generarVozIA() {
     const maxSeg = lim.maxSeg;
     const voz = $("#estudio-voz-estilo")?.value || "femenina";
     const owner = esPropietario();
-    const palabras = texto.split(/\s+/).filter(Boolean).length;
-    // Cliente: owner no aborta a los 55 s (eso mataba speeches de 120 s).
-    const timeoutMs = owner
-        ? Math.min(280000, Math.max(120000, Math.round(palabras * 350) + 60000))
-        : isPremium ? 90000 : 55000;
+    // Free/premium: respetar tope de duración ANTES de chunkear (solo_tts no condensa en servidor).
+    let textoParaChunks = texto;
+    if (!owner && Number.isFinite(maxSeg) && maxSeg > 0) {
+        const maxPalabras = Math.max(18, Math.round(maxSeg * 2.4));
+        const words = texto.split(/\s+/).filter(Boolean);
+        if (words.length > maxPalabras) {
+            textoParaChunks = `${words.slice(0, maxPalabras).join(" ")}.`;
+        }
+    }
+    const palabras = textoParaChunks.split(/\s+/).filter(Boolean).length;
+    const chunks = partirTextoVozCliente(textoParaChunks, CHUNK_CHARS_VOZ_CLIENTE);
 
     if (btn) { btn.disabled = true; btn.textContent = "Generando locución..."; }
     if (status) {
-        status.textContent = owner
-            ? `Creando la voz completa (~${palabras} palabras, sin tope de duración)…`
-            : `Creando la voz (hasta ${maxSeg} s). Suele tardar unos segundos…`;
+        if (chunks.length > 1) {
+            status.textContent = `Preparando locución en ${chunks.length} bloques (~${palabras} palabras)…`;
+        } else if (owner) {
+            status.textContent = `Creando la voz completa (~${palabras} palabras, sin tope de duración)…`;
+        } else {
+            status.textContent = `Creando la voz (hasta ${maxSeg} s). Suele tardar unos segundos…`;
+        }
     }
 
     try {
-        const { ok, data: d } = await fetchEstudio("/estudio/voz", {
-            texto,
-            voz,
-            maxSeg: Number.isFinite(maxSeg) ? maxSeg : null,
-            adaptar: !owner,
-        }, { timeoutMs });
-        if (!ok || !d.audio_base64) {
-            const raw = String(d.error || "No se pudo generar la voz.");
-            if (/inactivity timeout|too much time has passed/i.test(raw)) {
-                throw new Error("El servidor tardó demasiado en responder. Intenta de nuevo; con textos cortos suele ir al primer intento.");
+        let blobFinal = null;
+        let mimeFinal = "audio/mpeg";
+        let fuente = "IA";
+        let metaExtra = { sin_limite_duracion: false, adaptado: false, recortado: false };
+
+        if (chunks.length <= 1) {
+            // Texto corto: un solo request (con director/condensar como antes).
+            const timeoutMs = owner
+                ? Math.min(90000, Math.max(55000, Math.round(palabras * 200) + 40000))
+                : isPremium ? 90000 : 55000;
+            const { ok, data: d } = await fetchEstudio("/estudio/voz", {
+                texto: textoParaChunks,
+                voz,
+                maxSeg: Number.isFinite(maxSeg) ? maxSeg : null,
+                adaptar: !owner,
+            }, { timeoutMs });
+            if (!ok || !d.audio_base64) throw new Error(errorVozDesdeRespuesta(d));
+            mimeFinal = d.mime || "audio/mpeg";
+            blobFinal = blobDesdeBase64(d.audio_base64, mimeFinal);
+            fuente = d.fuente || d.modelo || "IA";
+            metaExtra = {
+                sin_limite_duracion: !!d.sin_limite_duracion,
+                adaptado: !!d.adaptado,
+                recortado: !!d.recortado,
+            };
+        } else {
+            // Speeches largos: un invoke Netlify por chunk (evita timeout 120 s / Safari).
+            const partes = [];
+            const fuentes = [];
+            for (let i = 0; i < chunks.length; i++) {
+                if (status) status.textContent = `Locución ${i + 1}/${chunks.length}…`;
+                if (btn) btn.textContent = `Locución ${i + 1}/${chunks.length}…`;
+                const { ok, data: d } = await fetchEstudio("/estudio/voz", {
+                    texto: chunks[i],
+                    voz,
+                    solo_tts: true,
+                    chunkIndex: i,
+                    chunkTotal: chunks.length,
+                    maxSeg: null,
+                    adaptar: false,
+                }, { timeoutMs: TIMEOUT_VOZ_CHUNK_MS });
+                if (!ok || !d.audio_base64) {
+                    throw new Error(`Bloque ${i + 1}/${chunks.length}: ${errorVozDesdeRespuesta(d)}`);
+                }
+                const mime = d.mime || "audio/mpeg";
+                partes.push(blobDesdeBase64(d.audio_base64, mime));
+                if (d.fuente || d.modelo) fuentes.push(d.fuente || d.modelo);
+                if (d.sin_limite_duracion) metaExtra.sin_limite_duracion = true;
             }
-            throw new Error(raw);
+            mimeFinal = partes.every((b) => (b.type || "").includes("wav"))
+                ? "audio/wav"
+                : "audio/mpeg";
+            blobFinal = new Blob(partes, { type: mimeFinal });
+            fuente = [...new Set(fuentes)].join("+") || "IA";
         }
+
         incrementarEstudioGens("voz");
-        const mime = d.mime || "audio/mpeg";
-        const blob = blobDesdeBase64(d.audio_base64, mime);
-        const ext = mime.includes("wav") ? "wav" : "mp3";
-        vozEstudioAudioFile = new File([blob], `estudio-voz-${Date.now()}.${ext}`, { type: mime });
+        const ext = mimeFinal.includes("wav") ? "wav" : "mp3";
+        vozEstudioAudioFile = new File([blobFinal], `estudio-voz-${Date.now()}.${ext}`, { type: mimeFinal });
         const url = URL.createObjectURL(vozEstudioAudioFile);
         if (audioEl) audioEl.src = url;
         if (preview) preview.style.display = "block";
         if (btnUsar) btnUsar.style.display = "inline-block";
         if (btnDl) btnDl.style.display = "inline-block";
         let extra = "";
-        if (d.sin_limite_duracion) extra = " Speech completo (sin límite de duración para propietario).";
-        else if (d.adaptado) extra = " La IA condensó el texto para que cupiera en la toma.";
-        else if (d.recortado) extra = " Se ajustó al tope de tu plan.";
+        if (chunks.length > 1) extra = ` ${chunks.length} bloques unidos.`;
+        if (metaExtra.sin_limite_duracion) extra += " Speech completo (sin límite de duración para propietario).";
+        else if (metaExtra.adaptado) extra += " La IA condensó el texto para que cupiera en la toma.";
+        else if (metaExtra.recortado) extra += " Se ajustó al tope de tu plan.";
         if (status) {
-            status.textContent = `Voz lista (${d.fuente || d.modelo || "IA"}).${extra} Descárgala o ponla en el riel de locución.`;
+            status.textContent = `Voz lista (${fuente}).${extra} Descárgala o ponla en el riel de locución.`;
         }
     } catch (e) {
         const msg = String(e?.message || e);
