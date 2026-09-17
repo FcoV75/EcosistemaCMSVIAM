@@ -1,22 +1,30 @@
 import { guardRailwayRequest, jsonResponse } from './lib/railway-guard.mjs';
 
 function esErrorInterno(msg) {
-  return String(msg || "").toLowerCase().includes("internal error");
+  return String(msg || '').toLowerCase().includes('internal error');
 }
 
-async function llamarGroq(audio, groqKey, modelo, responseFormat, extras = []) {
+function promptParaModo(modo) {
+  if (modo === 'cancion') {
+    return 'Transcribe only the Spanish sung lyrics with correct accents. If the audio is instrumental or MIDI without vocals, return an empty transcription — do not invent lyrics.';
+  }
+  return 'Transcribe the Spanish spoken narration or speech with correct accents. Keep punctuation natural. Do not invent words that were not spoken.';
+}
+
+async function llamarGroq(audio, groqKey, modelo, responseFormat, extras = [], prompt = '') {
   const upstream = new FormData();
-  upstream.append("file", audio, audio.name || "audio.mp3");
-  upstream.append("model", modelo);
-  upstream.append("language", "es");
-  upstream.append("response_format", responseFormat);
-  upstream.append("temperature", "0");
+  upstream.append('file', audio, audio.name || 'audio.mp3');
+  upstream.append('model', modelo);
+  upstream.append('language', 'es');
+  upstream.append('response_format', responseFormat);
+  upstream.append('temperature', '0');
+  if (prompt) upstream.append('prompt', prompt);
   for (const [k, v] of extras) upstream.append(k, v);
 
-  const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
-    method: "POST",
+  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
     headers: { Authorization: `Bearer ${groqKey}` },
-    body: upstream
+    body: upstream,
   });
 
   let data;
@@ -43,7 +51,7 @@ function palabrasDesdeTexto(texto, duracion = 180) {
 }
 
 function segmentosDesdeTexto(texto, duracion = 180) {
-  const lineas = texto.replace(/\r/g, "").split("\n").map((l) => l.trim()).filter(Boolean);
+  const lineas = texto.replace(/\r/g, '').split('\n').map((l) => l.trim()).filter(Boolean);
   if (!lineas.length) return [];
   const inicio = Math.min(15, duracion * 0.06);
   const fin = Math.max(duracion - 12, inicio + 1);
@@ -56,6 +64,36 @@ function segmentosDesdeTexto(texto, duracion = 180) {
   });
 }
 
+function extraerPalabras(data) {
+  if (Array.isArray(data?.words) && data.words.length) return data.words;
+  const out = [];
+  for (const s of data?.segments || []) {
+    if (Array.isArray(s.words) && s.words.length) {
+      for (const w of s.words) out.push(w);
+    }
+  }
+  return out;
+}
+
+function palabrasDesdeSegmentos(segmentos) {
+  const out = [];
+  for (const s of segmentos || []) {
+    const text = String(s.text || '').trim();
+    if (!text) continue;
+    const start = Number(s.start) || 0;
+    const end = Number(s.end) || start + 1;
+    const tokens = text.split(/\s+/).filter(Boolean);
+    if (!tokens.length) continue;
+    const paso = Math.max(0.05, (end - start) / tokens.length);
+    let t = start;
+    for (const word of tokens) {
+      out.push({ start: t, end: t + paso, text: word, word });
+      t += paso;
+    }
+  }
+  return out;
+}
+
 export default async (req) => {
   try {
     const guard = await guardRailwayRequest(req, {
@@ -65,81 +103,104 @@ export default async (req) => {
     if (guard.preflight) return guard.preflight;
     if (!guard.ok) return jsonResponse({ error: guard.error }, guard.status);
 
-    if (req.method !== "POST") {
-      return jsonResponse({ error: "Method Not Allowed" }, 405);
+    if (req.method !== 'POST') {
+      return jsonResponse({ error: 'Method Not Allowed' }, 405);
     }
 
     const groqKey = process.env.GROQ_API_KEY;
     if (!groqKey) {
-      return jsonResponse({ error: "GROQ_API_KEY no configurada." }, 500);
+      return jsonResponse({ error: 'GROQ_API_KEY no configurada.' }, 500);
     }
 
     let audio = null;
+    let modo = 'locucion';
 
-    const contentType = req.headers.get("content-type") || "";
-    if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
       const form = await req.formData();
-      audio = form.get("audio");
-    } else if (contentType.includes("application/json")) {
+      audio = form.get('audio');
+      modo = String(form.get('modo') || 'locucion').toLowerCase() === 'cancion' ? 'cancion' : 'locucion';
+    } else if (contentType.includes('application/json')) {
       const body = await req.json();
       if (body.audio_base64) {
-        const bin = Buffer.from(body.audio_base64, "base64");
-        audio = new Blob([bin], { type: body.mime || "audio/wav" });
-        audio.name = body.nombre || "audio_transcribe.wav";
+        const bin = Buffer.from(body.audio_base64, 'base64');
+        audio = new Blob([bin], { type: body.mime || 'audio/wav' });
+        audio.name = body.nombre || 'audio_transcribe.wav';
       }
+      modo = String(body.modo || 'locucion').toLowerCase() === 'cancion' ? 'cancion' : 'locucion';
     } else {
       try {
         const form = await req.formData();
-        audio = form.get("audio");
+        audio = form.get('audio');
+        modo = String(form.get('modo') || 'locucion').toLowerCase() === 'cancion' ? 'cancion' : 'locucion';
       } catch {
         /* intentar JSON abajo */
       }
     }
 
-    if (!audio || typeof audio === "string") {
-      return jsonResponse({ error: "Archivo de audio no recibido." }, 400);
+    if (!audio || typeof audio === 'string') {
+      return jsonResponse({ error: 'Archivo de audio no recibido.' }, 400);
     }
 
-    if (typeof audio.size === "number" && audio.size > 5.5 * 1024 * 1024) {
+    if (typeof audio.size === 'number' && audio.size > 5.5 * 1024 * 1024) {
       return jsonResponse(
         {
           error:
-            "Audio demasiado grande (~4.5 MB máx.). Comprime a MP3 más ligero e intenta de nuevo.",
+            'Audio demasiado grande (~4.5 MB máx.). Comprime a MP3 más ligero e intenta de nuevo.',
         },
         413,
       );
     }
 
+    const prompt = promptParaModo(modo);
+    // Prioriza timestamps por palabra (como Railway) — evita letras/karaoke fallidos.
     const estrategias = [
-      ["whisper-large-v3-turbo", "json", []],
-      ["whisper-large-v3-turbo", "verbose_json", []],
-      ["whisper-large-v3", "json", []],
-      ["whisper-large-v3", "verbose_json", []],
-      ["whisper-large-v3", "verbose_json", [["timestamp_granularities[]", "word"]]]
+      ['whisper-large-v3-turbo', 'verbose_json', [['timestamp_granularities[]', 'word']]],
+      ['whisper-large-v3', 'verbose_json', [['timestamp_granularities[]', 'word']]],
+      ['whisper-large-v3-turbo', 'verbose_json', []],
+      ['whisper-large-v3', 'verbose_json', []],
+      ['whisper-large-v3-turbo', 'json', []],
+      ['whisper-large-v3', 'json', []],
     ];
 
-    let ultimoError = "Sin respuesta de Groq";
+    let ultimoError = 'Sin respuesta de Groq';
 
     for (const [modelo, fmt, extras] of estrategias) {
       for (let intento = 0; intento < 2; intento++) {
-        const { response, data } = await llamarGroq(audio, groqKey, modelo, fmt, extras);
+        const { response, data } = await llamarGroq(audio, groqKey, modelo, fmt, extras, prompt);
         if (response.ok) {
-          let texto = (data.text || "").trim();
-          if (!texto && fmt === "verbose_json" && Array.isArray(data.segments)) {
-            texto = data.segments.map((s) => (s.text || "").trim()).filter(Boolean).join(" ");
+          let texto = (data.text || '').trim();
+          if (!texto && fmt === 'verbose_json' && Array.isArray(data.segments)) {
+            texto = data.segments.map((s) => (s.text || '').trim()).filter(Boolean).join(' ');
           }
           if (!texto) {
-            ultimoError = "Groq respondió vacío";
+            // Instrumental / sin voz: respuesta vacía válida para canción.
+            if (modo === 'cancion') {
+              return jsonResponse({
+                success: true,
+                texto: '',
+                segmentos: [],
+                palabras: [],
+                fuente: `${modelo}/${fmt}`,
+                sync_real: false,
+                aviso: 'No se detectó letra cantada (posible instrumental).',
+              });
+            }
+            ultimoError = 'Groq respondió vacío';
             break;
           }
-          const palabras = data.words?.length ? data.words : palabrasDesdeTexto(texto);
           const segmentos = data.segments?.length ? data.segments : segmentosDesdeTexto(texto);
+          let palabras = extraerPalabras(data);
+          const syncReal = palabras.length > 0;
+          if (!palabras.length && segmentos.length) palabras = palabrasDesdeSegmentos(segmentos);
+          if (!palabras.length) palabras = palabrasDesdeTexto(texto);
           return jsonResponse({
             success: true,
             texto,
             segmentos,
             palabras,
-            fuente: `${modelo}/${fmt}`
+            fuente: `${modelo}/${fmt}${extras.length ? '+words' : ''}`,
+            sync_real: syncReal,
           });
         }
         ultimoError = data.error?.message || JSON.stringify(data);
@@ -150,9 +211,9 @@ export default async (req) => {
 
     return jsonResponse({ error: `Transcripción fallida: ${ultimoError}` }, 502);
   } catch (err) {
-    console.error("transcribe-audio:", err);
+    console.error('transcribe-audio:', err);
     return jsonResponse(
-      { error: "Error interno transcribiendo audio.", detalle: String(err?.message || err) },
+      { error: 'Error interno transcribiendo audio.', detalle: String(err?.message || err) },
       500,
     );
   }

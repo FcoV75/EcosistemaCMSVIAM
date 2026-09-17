@@ -426,7 +426,7 @@ def _error_groq_es_interno(mensaje):
     return "internal error" in str(mensaje or "").lower()
 
 
-def _llamar_groq_whisper(groq_key, ruta, nombre, mime, modelo, response_format, extras=None):
+def _llamar_groq_whisper(groq_key, ruta, nombre, mime, modelo, response_format, extras=None, prompt=None):
     import requests as http_requests
     payload = [
         ("model", modelo),
@@ -434,6 +434,8 @@ def _llamar_groq_whisper(groq_key, ruta, nombre, mime, modelo, response_format, 
         ("response_format", response_format),
         ("temperature", "0"),
     ]
+    if prompt:
+        payload.append(("prompt", prompt))
     if extras:
         payload.extend(extras)
     with open(ruta, "rb") as f:
@@ -451,8 +453,21 @@ def _llamar_groq_whisper(groq_key, ruta, nombre, mime, modelo, response_format, 
     return resp, data
 
 
-def _transcribir_groq_cascada(groq_key, ruta_audio, nombre, mime, duracion):
+def _prompt_transcripcion(modo):
+    if str(modo or "").lower() == "cancion":
+        return (
+            "Transcribe only the Spanish sung lyrics with correct accents. "
+            "If the audio is instrumental or MIDI without vocals, return an empty transcription — do not invent lyrics."
+        )
+    return (
+        "Transcribe the Spanish spoken narration or speech with correct accents. "
+        "Keep punctuation natural. Do not invent words that were not spoken."
+    )
+
+
+def _transcribir_groq_cascada(groq_key, ruta_audio, nombre, mime, duracion, modo="locucion"):
     """Prioriza timestamps por palabra (Whisper verbose_json) para karaoke sincronizado."""
+    prompt = _prompt_transcripcion(modo)
     estrategias = [
         ("whisper-large-v3-turbo", "verbose_json", [("timestamp_granularities[]", "word")]),
         ("whisper-large-v3", "verbose_json", [("timestamp_granularities[]", "word")]),
@@ -464,7 +479,9 @@ def _transcribir_groq_cascada(groq_key, ruta_audio, nombre, mime, duracion):
     ultimo_error = "Sin respuesta de Groq"
     for modelo, fmt, extras in estrategias:
         for intento in range(2):
-            resp, data = _llamar_groq_whisper(groq_key, ruta_audio, nombre, mime, modelo, fmt, extras)
+            resp, data = _llamar_groq_whisper(
+                groq_key, ruta_audio, nombre, mime, modelo, fmt, extras, prompt=prompt
+            )
             if resp.ok:
                 texto = (data.get("text") or "").strip()
                 if not texto and fmt == "verbose_json":
@@ -472,10 +489,21 @@ def _transcribir_groq_cascada(groq_key, ruta_audio, nombre, mime, duracion):
                         str(s.get("text", "")).strip() for s in data.get("segments", []) if s.get("text")
                     ).strip()
                 if not texto:
+                    if str(modo or "").lower() == "cancion":
+                        return {
+                            "success": True,
+                            "texto": "",
+                            "segmentos": [],
+                            "palabras": [],
+                            "fuente": f"{modelo}/{fmt}",
+                            "sync_real": False,
+                            "aviso": "No se detectó letra cantada (posible instrumental).",
+                        }
                     ultimo_error = "Groq respondió vacío"
                     break
                 segmentos = data.get("segments") or []
                 palabras = _extraer_palabras_de_respuesta_groq(data)
+                sync_real = bool(palabras)
                 if not palabras and segmentos:
                     palabras = _palabras_desde_segmentos(segmentos)
                 if not palabras:
@@ -491,7 +519,7 @@ def _transcribir_groq_cascada(groq_key, ruta_audio, nombre, mime, duracion):
                     "segmentos": segmentos,
                     "palabras": palabras,
                     "fuente": fuente,
-                    "sync_real": bool(_extraer_palabras_de_respuesta_groq(data)),
+                    "sync_real": sync_real,
                 }
             ultimo_error = data.get("error", {}).get("message", str(data))
             if _error_groq_es_interno(ultimo_error) or resp.status_code >= 500:
@@ -510,6 +538,10 @@ def transcribir_audio():
     if not audio or not audio.filename:
         return jsonify({"error": "No se recibió archivo de audio."}), 400
 
+    modo = (request.form.get("modo") or "locucion").strip().lower()
+    if modo not in ("locucion", "cancion"):
+        modo = "locucion"
+
     groq_key = os.environ.get('GROQ_API_KEY')
     if not groq_key:
         return jsonify({
@@ -525,7 +557,9 @@ def transcribir_audio():
     try:
         duracion = _medir_duracion_audio(temp_entrada)
         ruta_groq, nombre_groq, mime_groq = _preparar_audio_groq(temp_entrada)
-        resultado = _transcribir_groq_cascada(groq_key, ruta_groq, nombre_groq, mime_groq, duracion)
+        resultado = _transcribir_groq_cascada(
+            groq_key, ruta_groq, nombre_groq, mime_groq, duracion, modo=modo
+        )
         return jsonify(resultado)
     except RuntimeError as e:
         return jsonify({"error": f"Transcripción fallida: {e}"}), 502
