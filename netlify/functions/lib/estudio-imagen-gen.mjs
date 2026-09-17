@@ -175,6 +175,7 @@ export async function generarImagenFal(promptEn, opts = {}) {
 
   for (const model of modelos) {
     try {
+      const falTimeout = Number(opts.timeoutMs) > 5000 ? Number(opts.timeoutMs) : 55000;
       const r = await fetchConTimeout(`https://fal.run/${model}`, {
         method: 'POST',
         headers,
@@ -187,7 +188,7 @@ export async function generarImagenFal(promptEn, opts = {}) {
           num_inference_steps: 28,
           guidance_scale: escenaEsPescaEpica(original) ? 4.5 : 3.5,
         }),
-      }, 55000);
+      }, falTimeout);
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
         console.warn('Fal imagen', model, r.status, JSON.stringify(data).slice(0, 180));
