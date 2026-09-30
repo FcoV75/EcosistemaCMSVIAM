@@ -66,7 +66,6 @@ export default async (req) => {
     if (cfg.tipo === 'subscription' && (planTipo === 'mensual' || planTipo === 'anual')) {
       const metadata = await metadataBase(req, { producto, plan: planTipo, detalle: detalle || producto });
       session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
         line_items: [lineaSuscripcion(stripe, cfg, planTipo)],
         mode: 'subscription',
         success_url: successUrl || `${origin}${cfg.successPath}`,
@@ -85,7 +84,6 @@ export default async (req) => {
         detalle: detalle || 'cms_general',
       });
       session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
         line_items: [{
           price_data: {
             currency: 'mxn',

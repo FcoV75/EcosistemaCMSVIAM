@@ -18,6 +18,8 @@
 
 ## Configuración en Stripe (solo 2 pasos)
 
+> Los checkouts del ecosistema no fijan `payment_method_types`: Stripe mostrará métodos dinámicos según lo habilitado en Dashboard → Payment methods.
+
 ### Paso 1 — Un webhook para el CMS (VIAM, NEXUS, Obras, Video Diamante)
 
 **Developers → Webhooks → Add destination**
@@ -71,6 +73,25 @@ STRIPE_PRICE_VIDEO_DIAMANTE_ANNUAL=price_...
 STRIPE_PRICE_NEXUS_MONTHLY=price_...
 STRIPE_PRICE_NEXUS_ANNUAL=price_...
 ```
+
+### Dónde conseguir credenciales privadas y dónde pegarlas
+
+| Servicio | Link para obtenerlo | Dónde introducirlo |
+|----------|---------------------|--------------------|
+| **Stripe secret/restricted key** | https://dashboard.stripe.com/apikeys | Netlify → sitio CMS/ContacNeed → **Site configuration → Environment variables** → `STRIPE_SECRET_KEY` |
+| **Stripe webhook secret CMS** | https://dashboard.stripe.com/webhooks → endpoint CMS → **Signing secret** | Netlify CMS → `STRIPE_WEBHOOK_SECRET` |
+| **Stripe webhook secret ContacNeed** | https://dashboard.stripe.com/webhooks → endpoint ContacNeed → **Signing secret** | Netlify ContacNeed → `STRIPE_WEBHOOK_SECRET` |
+| **Stripe Price IDs** | https://dashboard.stripe.com/products → producto/precio → `price_...` | Netlify CMS/ContacNeed → variables `STRIPE_PRICE_*` correspondientes |
+| **Netlify token** | https://app.netlify.com/user/applications#personal-access-tokens | Netlify env o Cursor Cloud env → `NETLIFY_AUTH_TOKEN` |
+| **Netlify Site ID** | Netlify → sitio → **Site configuration → General → Site details → Site ID** | Netlify env o Cursor Cloud env → `NETLIFY_SITE_ID` / `SITE_ID` |
+| **Supabase URL y anon key** | https://supabase.com/dashboard/project/_/settings/api | Netlify CMS/ContacNeed → `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
+| **Supabase service role key** | https://supabase.com/dashboard/project/_/settings/api → Project API keys | Netlify server env únicamente → `SUPABASE_SERVICE_ROLE_KEY` |
+| **Cloudinary credentials** | https://console.cloudinary.com/settings/api-keys | Netlify/Railway env → `CLOUDINARY_URL` o `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
+| **Railway token** | https://railway.com/account/tokens | Cursor Cloud env o Railway variables → `RAILWAY_TOKEN` |
+| **Railway project/service variables** | https://railway.com/dashboard | Railway project → servicio → **Variables** |
+| **GitHub Actions secrets** | https://github.com/FcoV75/EcosistemaCMSVIAM/settings/secrets/actions | GitHub repo → **Settings → Secrets and variables → Actions** |
+
+Para que este agente pueda auditar paneles privados desde Cursor Cloud, agrega las variables necesarias al entorno de Cursor/Cloud Agent o pásalas como variables de entorno seguras; nunca las pegues en archivos del repo.
 
 ### Servicio Railway (`EcosistemaCMSVIAM`)
 

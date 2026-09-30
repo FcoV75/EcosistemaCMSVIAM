@@ -212,9 +212,12 @@ function resumenErrorProveedor(status, bodyText) {
 
 async function ttsGemini(apiKey, texto, voz, opts = {}) {
   const modelos = [
+    process.env.GEMINI_TTS_MODEL,
+    'gemini-3.8-flash-tts',
+    'gemini-3.1-flash-tts-preview',
     'gemini-2.5-flash-preview-tts',
     'gemini-2.5-pro-preview-tts',
-  ];
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
   // En modo chunk el cliente ya partió; no re-partir agresivo.
   const maxPart = opts.soloTts ? MAX_CHARS_SOLO_TTS : 380;
   const chunks = partirTexto(texto, maxPart);

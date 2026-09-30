@@ -32,6 +32,11 @@ function resumenProveedor(status, body) {
   return `HTTP ${status || '?'}: ${raw.replace(/\s+/g, ' ').slice(0, 220)}`;
 }
 
+function proveedorFalBloqueado(errores = []) {
+  return errores.some((e) => /fal-(?:i2v|t2v)|fal:/i.test(String(e))
+    && /exhausted balance|top_up|user is locked|billing|saldo/i.test(String(e)));
+}
+
 function dataUriDesdeImagen(imagen) {
   if (!imagen?.imagen_base64) return '';
   const mime = String(imagen.mime || 'image/jpeg').split(';')[0] || 'image/jpeg';
@@ -305,6 +310,175 @@ async function generarClipFalT2V(promptEn, segundos, maxWaitMs = 16000) {
   return null;
 }
 
+function modelosVeo() {
+  return [
+    process.env.GEMINI_VEO_MODEL,
+    'veo-3.1-fast-generate-preview',
+    'veo-3.1-lite-generate-preview',
+    'veo-3.1-generate-preview',
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+}
+
+async function esperarGeminiOperacion(nombre, apiKey, timeoutMs = 25000) {
+  const inicio = Date.now();
+  const opName = String(nombre || '').replace(/^\/+/, '');
+  if (!opName) return null;
+  const opUrl = /^https?:\/\//i.test(opName)
+    ? opName
+    : `https://generativelanguage.googleapis.com/v1beta/${opName}`;
+  while (Date.now() - inicio < timeoutMs) {
+    const left = timeoutMs - (Date.now() - inicio);
+    if (left < 1500) break;
+    const sep = opUrl.includes('?') ? '&' : '?';
+    const st = await fetch(`${opUrl}${sep}key=${apiKey}`, {
+      signal: AbortSignal.timeout(Math.min(9000, left)),
+    });
+    const data = await st.json().catch(() => ({}));
+    if (!st.ok) throw new Error(`gemini-veo poll ${resumenProveedor(st.status, data)}`);
+    if (data.done) return data;
+    await new Promise((ok) => setTimeout(ok, 1800));
+  }
+  return null;
+}
+
+function buscarVideoGemini(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  if (typeof obj.bytesBase64Encoded === 'string' && obj.bytesBase64Encoded.length > 1000) {
+    return {
+      video_base64: obj.bytesBase64Encoded,
+      mime: obj.mimeType || obj.mime_type || 'video/mp4',
+    };
+  }
+  if (typeof obj.bytesBase64encoded === 'string' && obj.bytesBase64encoded.length > 1000) {
+    return {
+      video_base64: obj.bytesBase64encoded,
+      mime: obj.mimeType || obj.mime_type || 'video/mp4',
+    };
+  }
+  if (typeof obj.uri === 'string' && obj.uri) {
+    return { uri: obj.uri, mime: obj.mimeType || obj.mime_type || 'video/mp4' };
+  }
+  if (typeof obj.url === 'string' && obj.url) {
+    return { uri: obj.url, mime: obj.mimeType || obj.mime_type || 'video/mp4' };
+  }
+  for (const value of Object.values(obj)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = buscarVideoGemini(item);
+        if (found) return found;
+      }
+    } else if (value && typeof value === 'object') {
+      const found = buscarVideoGemini(value);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+async function descargarVideoGemini(uri, apiKey, timeoutMs = 20000) {
+  if (!/^https?:\/\//i.test(String(uri || ''))) return null;
+  const headers = { 'x-goog-api-key': apiKey };
+  const sep = uri.includes('?') ? '&' : '?';
+  const candidatos = [
+    uri,
+    `${uri}${sep}key=${apiKey}`,
+  ];
+  for (const url of candidatos) {
+    try {
+      const r = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!r.ok) continue;
+      const buf = Buffer.from(await r.arrayBuffer());
+      if (buf.length < 1000) continue;
+      const maxBytes = Number(process.env.GEMINI_VEO_MAX_INLINE_BYTES || 8_000_000);
+      if (buf.length > maxBytes) {
+        return { error: `gemini-veo video ${buf.length} bytes supera inline ${maxBytes}` };
+      }
+      return {
+        video_base64: buf.toString('base64'),
+        mime: r.headers.get('content-type') || 'video/mp4',
+      };
+    } catch {
+      // prueba el siguiente modo de descarga
+    }
+  }
+  return { error: 'gemini-veo no pudo descargar el video generado' };
+}
+
+export async function generarClipGeminiVeoT2V(promptEn, segundos, maxWaitMs = 68000) {
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+  if (!apiKey || maxWaitMs < 9000) return null;
+  const requestedDur = Math.max(4, Math.min(8, Math.round(Number(segundos) || 8)));
+  const dur = requestedDur <= 4 ? 4 : (requestedDur <= 6 ? 6 : 8);
+  const prompt = String(promptEn || '').slice(0, 1800);
+  if (!prompt) return null;
+
+  const tStart = Date.now();
+  for (const model of modelosVeo()) {
+    const left = maxWaitMs - (Date.now() - tStart);
+    if (left < 9000) break;
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:predictLongRunning?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instances: [{
+            prompt: `${prompt}. Real subject motion, continuous cinematic video, not a still image, no slideshow, no text, no watermark.`,
+          }],
+          parameters: {
+            aspectRatio: '16:9',
+            durationSeconds: dur,
+          },
+        }),
+        signal: AbortSignal.timeout(Math.min(12000, left)),
+      });
+      const queued = await r.json().catch(() => ({}));
+      if (!r.ok || !queued?.name) {
+        console.warn('Gemini Veo queue:', model, r.status, JSON.stringify(queued).slice(0, 220));
+        return { error: `gemini-veo:${model} ${resumenProveedor(r.status, queued)}` };
+      }
+      const waitLeft = Math.max(6000, maxWaitMs - (Date.now() - tStart));
+      const done = await esperarGeminiOperacion(queued.name, apiKey, waitLeft);
+      if (!done) return { error: `gemini-veo:${model} timeout_operacion` };
+      if (done.error) {
+        return { error: `gemini-veo:${model} ${JSON.stringify(done.error).slice(0, 220)}` };
+      }
+      const video = buscarVideoGemini(done.response || done);
+      if (video?.video_base64) {
+        return {
+          video_base64: video.video_base64,
+          mime: video.mime || 'video/mp4',
+          fuente: `gemini-veo:${model}`,
+          actuacion: true,
+        };
+      }
+      if (video?.uri) {
+        const descargado = await descargarVideoGemini(
+          video.uri,
+          apiKey,
+          Math.min(20000, Math.max(6000, maxWaitMs - (Date.now() - tStart))),
+        );
+        if (descargado?.video_base64) {
+          return {
+            video_base64: descargado.video_base64,
+            mime: descargado.mime || video.mime || 'video/mp4',
+            fuente: `gemini-veo:${model}`,
+            actuacion: true,
+          };
+        }
+        if (descargado?.error) return { error: `gemini-veo:${model} ${descargado.error}` };
+      }
+      return { error: `gemini-veo:${model} respuesta sin video utilizable` };
+    } catch (err) {
+      console.warn('Gemini Veo:', model, err?.name || err?.message || err);
+      return { error: `gemini-veo:${model} ${err?.message || err?.name || err}` };
+    }
+  }
+  return null;
+}
+
 function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
@@ -495,17 +669,19 @@ export default async (req) => {
     // T2V nativo si I2V falló y aún hay margen (antes de cualquier slideshow).
     if (!nativo && !pasadoSoftDeadline(inicio) && tiempoRestante(inicio) > 16000) {
       write({ type: 'status', msg: 'Filmando video nativo T2V…' });
-      try {
-        const falT2V = await generarClipFalT2V(
-          motionPrompt || promptEn,
-          duracion,
-          Math.min(18000, tiempoRestante(inicio) - 6000),
-        );
-        if (falT2V?.video_url) nativo = falT2V;
-        else if (falT2V?.error) erroresProveedor.push(falT2V.error);
-      } catch (err) {
-        console.warn('Fal T2V clip:', err?.message || err);
-        erroresProveedor.push(`fal-t2v ${err?.message || err}`);
+      if (!proveedorFalBloqueado(erroresProveedor)) {
+        try {
+          const falT2V = await generarClipFalT2V(
+            motionPrompt || promptEn,
+            duracion,
+            Math.min(18000, tiempoRestante(inicio) - 6000),
+          );
+          if (falT2V?.video_url) nativo = falT2V;
+          else if (falT2V?.error) erroresProveedor.push(falT2V.error);
+        } catch (err) {
+          console.warn('Fal T2V clip:', err?.message || err);
+          erroresProveedor.push(`fal-t2v ${err?.message || err}`);
+        }
       }
       if (!nativo && tiempoRestante(inicio) > 14000) {
         try {
@@ -521,14 +697,30 @@ export default async (req) => {
           erroresProveedor.push(`vidu-t2v ${err?.message || err}`);
         }
       }
+      if (!nativo && tiempoRestante(inicio) > 16000) {
+        write({ type: 'status', msg: 'Filmando video nativo Gemini Veo…' });
+        try {
+          const veoT2V = await generarClipGeminiVeoT2V(
+            motionPrompt || promptEn,
+            duracion,
+            Math.min(68000, tiempoRestante(inicio) - 5000),
+          );
+          if (veoT2V?.video_url || veoT2V?.video_base64) nativo = veoT2V;
+          else if (veoT2V?.error) erroresProveedor.push(veoT2V.error);
+        } catch (err) {
+          console.warn('Gemini Veo clip:', err?.message || err);
+          erroresProveedor.push(`gemini-veo ${err?.message || err}`);
+        }
+      }
     }
 
-    if (nativo?.video_url) {
+    if (nativo?.video_url || nativo?.video_base64) {
       write({ type: 'status', msg: 'Entregando microfilme nativo…' });
       return {
         success: true,
         tipo: 'video',
         video_url: nativo.video_url,
+        video_base64: nativo.video_base64,
         mime: nativo.mime,
         fuente: nativo.fuente,
         actuacion: true,
@@ -541,7 +733,8 @@ export default async (req) => {
     if (!motivoFallback) {
       const tieneFal = !!(process.env.FAL_KEY || process.env.FAL_API_KEY);
       const tieneVidu = !!(process.env.VIDU_API_KEY || process.env.VIDU_KEY);
-      if (!tieneFal && !tieneVidu) motivoFallback = 'sin_claves_video';
+      const tieneVeo = !!(process.env.GEMINI_API_KEY || '').trim();
+      if (!tieneFal && !tieneVidu && !tieneVeo) motivoFallback = 'sin_claves_video';
       else motivoFallback = erroresProveedor.length
         ? erroresProveedor.join(' | ').slice(0, 500)
         : 'timeout_proveedor_i2v';
@@ -633,7 +826,7 @@ export default async (req) => {
     }
     return respuestaPlaca(
       motivoFallback,
-      ' El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas.',
+      ' El microfilme real requiere Fal/Vidu/Gemini Veo; sin él no inventamos diapositivas.',
     );
   });
 };

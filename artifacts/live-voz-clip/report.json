@@ -1,5 +1,5 @@
 {
-  "started_at": "2026-09-17T21:16:14.150Z",
+  "started_at": "2026-09-30T06:09:50.742Z",
   "keys": {
     "GROQ_API_KEY": 56,
     "FAL_KEY": 69,
@@ -37,101 +37,138 @@
       "ok": true,
       "seg": 30,
       "chunks": 3,
-      "bytes": 1751060,
+      "bytes": 2882882,
       "fuentes": [
-        "groq"
+        "gemini"
       ],
       "modelos": [
-        "canopylabs/orpheus-v1-english"
+        "gemini-3.8-flash-tts"
       ],
       "mimes": [
         "audio/wav"
       ],
       "file": "/workspace/artifacts/live-voz-clip/voz-30s.wav",
-      "ms": 19130
+      "ms": 21287
     },
     {
       "ok": true,
       "seg": 60,
       "chunks": 6,
-      "bytes": 3490556,
+      "bytes": 5514200,
       "fuentes": [
-        "groq"
+        "gemini"
       ],
       "modelos": [
-        "canopylabs/orpheus-v1-english"
+        "gemini-3.8-flash-tts"
       ],
       "mimes": [
         "audio/wav"
       ],
       "file": "/workspace/artifacts/live-voz-clip/voz-60s.wav",
-      "ms": 44476
+      "ms": 40321
     },
     {
-      "ok": false,
+      "ok": true,
       "seg": 120,
       "chunks": 12,
-      "failed_chunk": 6,
-      "status": 502,
-      "error": "No se pudo generar la voz completa. Revisa el detalle del proveedor o reintenta el chunk.",
-      "detalle_proveedor": "groq: HTTP 429: {\"error\":{\"message\":\"Rate limit reached for model `canopylabs/orpheus-v1-english` in organization `org_01knzsvs4yfdkb6877780afaa9` service tier `on_demand` on tokens per day (TPD): Limit 3600, Used 3498, Requested 146. Please try again in 17m36s. Need more tokens? Upgrade to Dev  · gemini: gemini/gemini-2.5-flash-preview-tts: HTTP 429: {\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quot | gemini/gemini-2.5-flas · fal: HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
-      "ms": 51672
+      "bytes": 11103236,
+      "fuentes": [
+        "gemini"
+      ],
+      "modelos": [
+        "gemini-3.8-flash-tts"
+      ],
+      "mimes": [
+        "audio/wav"
+      ],
+      "file": "/workspace/artifacts/live-voz-clip/voz-120s.wav",
+      "ms": 82391
+    },
+    {
+      "ok": true,
+      "seg": 300,
+      "chunks": 30,
+      "bytes": 27808904,
+      "fuentes": [
+        "gemini"
+      ],
+      "modelos": [
+        "gemini-3.8-flash-tts"
+      ],
+      "mimes": [
+        "audio/wav"
+      ],
+      "file": "/workspace/artifacts/live-voz-clip/voz-300s.wav",
+      "ms": 205878
     }
   ],
   "local_clip": [
     {
       "prompt": "Una bailarina mexicana en un estudio con luces neón mueve brazos, torso y pasos laterales con energía real. Cámara fija a nivel de ojos, movimiento continuo del sujeto, no Ken Burns, no zoom de foto.",
-      "requested_provider": "fal-i2v",
+      "requested_provider": "native-video",
       "duracionSeg": 8,
-      "ok": false,
+      "ok": true,
       "status": 200,
-      "tipo": "cinematico",
-      "fuente": "pollinations-flux-realism",
-      "actuacion": false,
-      "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas.",
+      "tipo": "video",
+      "fuente": "gemini-veo:veo-3.1-fast-generate-preview",
+      "actuacion": true,
+      "aviso": "Clip nativo con movimiento continuo del sujeto (gemini-veo:veo-3.1-fast-generate-preview).",
       "error": null,
-      "motivo_fallback": "fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+      "motivo_fallback": null,
       "events": [
         {
-          "type": "status",
-          "msg": "Director y placa en marcha…"
-        },
-        {
-          "type": "status",
-          "msg": "Creando clip de 8 s (actuación del sujeto)…"
-        },
-        {
-          "type": "status",
-          "msg": "Generando placa rápida…"
+          "type": "ping",
+          "t": 1790748979173
         },
         {
           "type": "ping",
-          "t": 1789679892981
+          "t": 1790748982674
+        },
+        {
+          "type": "ping",
+          "t": 1790748986176
+        },
+        {
+          "type": "ping",
+          "t": 1790748989676
+        },
+        {
+          "type": "ping",
+          "t": 1790748993175
+        },
+        {
+          "type": "ping",
+          "t": 1790748996675
+        },
+        {
+          "type": "ping",
+          "t": 1790749000176
+        },
+        {
+          "type": "ping",
+          "t": 1790749003676
+        },
+        {
+          "type": "ping",
+          "t": 1790749007177
+        },
+        {
+          "type": "ping",
+          "t": 1790749010678
         },
         {
           "type": "status",
-          "msg": "Filmando actuación (I2V nativo)…"
-        },
-        {
-          "type": "status",
-          "msg": "Filmando video nativo T2V…"
-        },
-        {
-          "type": "status",
-          "msg": "Entregando placa (reintenta por microfilme nativo)…"
+          "msg": "Entregando microfilme nativo…"
         },
         {
           "type": "result",
           "success": true,
-          "tipo": "cinematico",
-          "imagen_base64": "[base64:71896]",
-          "mime": "image/jpeg",
-          "fuente": "pollinations-flux-realism",
-          "marca_agua_pollinations": true,
-          "movimiento": false,
-          "actuacion": false,
-          "sin_actuacion": true,
-          "motivo_fallback": "fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+          "tipo": "video",
+          "video_base64": "[base64:3033468]",
+          "mime": "video/mp4",
+          "fuente": "gemini-veo:veo-3.1-fast-generate-preview",
+          "actuacion": true,
+          "sin_actuacion": false,
           "resumen": "Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta.",
           "prompt_en": "MUST INCLUDE: bailarina, mexicana, estudio, luces, neón, mueve, brazos, torso, pasos, laterales, energía, real, fija, nivel, ojos, movimiento, continuo, sujeto, Ken, Burns, zoom. Cinematic 16:9 VIDEO clip with real subject motion. OBEY the user scene exactly. Do NOT invent extra places or drop named subjects. Hyperrealistic commercial photography quality (8k, crisp micro-detail). Animals/wildlife: correct species anatomy, natural limbs and eyes, no extra limbs; do NOT replace animals with people",
           "via_prompt": "fallback-local",
@@ -144,15 +181,12 @@
             "via": "fallback-local"
           },
           "duracionSeg": 8,
-          "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas."
+          "aviso": "Clip nativo con movimiento continuo del sujeto (gemini-veo:veo-3.1-fast-generate-preview)."
         }
       ],
-      "ms": 6854
+      "ms": 70976
     }
   ],
-  "provider_blockers": [
-    "Gemini devolvió 429 por cuota agotada.",
-    "Fal devolvió saldo agotado / usuario bloqueado."
-  ],
-  "finished_at": "2026-09-17T21:18:16.333Z"
+  "provider_blockers": [],
+  "finished_at": "2026-09-30T06:16:51.642Z"
 }
