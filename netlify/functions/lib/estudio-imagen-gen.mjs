@@ -136,7 +136,7 @@ export async function generarImagenGemini(promptEn, opts = {}) {
         console.warn('Gemini imagen', modelo, r.status, JSON.stringify(data).slice(0, 180));
         continue;
       }
-      const extraido = extraerImagenGemini(data);
+      const extraido = await extraerImagenGemini(data);
       if (extraido) {
         return {
           imagen_base64: extraido.buffer.toString('base64'),
