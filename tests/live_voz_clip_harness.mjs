@@ -268,7 +268,7 @@ async function probarClip(handler) {
   const t0 = Date.now();
   const entry = {
     prompt,
-    requested_provider: 'fal-i2v',
+    requested_provider: 'native-video',
     duracionSeg: 8,
   };
   try {
@@ -282,11 +282,12 @@ async function probarClip(handler) {
         ? {
             ...e,
             imagen_base64: e.imagen_base64 ? `[base64:${e.imagen_base64.length}]` : undefined,
+            video_base64: e.video_base64 ? `[base64:${e.video_base64.length}]` : undefined,
             secuencia: Array.isArray(e.secuencia) ? `[frames:${e.secuencia.length}]` : undefined,
           }
         : e
     ));
-    const ok = status < 400 && result?.success && result?.tipo === 'video' && /^fal-i2v:/.test(String(result?.fuente || ''));
+    const ok = status < 400 && result?.success && result?.tipo === 'video' && !!result?.actuacion;
     if (!ok) {
       registrarBlockers([
         result?.motivo_fallback,
@@ -330,7 +331,7 @@ for (const seg of [30, 60, 120, 300]) {
   if (!r.ok) break;
 }
 
-console.log('LIVE local estudio-clip I2V FAL...');
+console.log('LIVE local estudio-clip video nativo...');
 const clip = await probarClip(clipHandler);
 report.local_clip.push(clip);
 console.log(JSON.stringify(clip, null, 2));
@@ -351,7 +352,7 @@ const md = [
   '## Voz',
   ...report.local_voz.map((r) => `- ${r.seg}s: ${r.ok ? `OK (${r.chunks} chunks, ${r.fuentes?.join('/')})` : `FAIL chunk ${r.failed_chunk}: ${r.detalle_proveedor || r.error}`}`),
   '',
-  '## Clip I2V FAL',
+  '## Clip video nativo',
   ...report.local_clip.map((r) => `- ${r.ok ? 'OK' : 'FAIL'}: fuente=${r.fuente || 'n/a'} tipo=${r.tipo || 'n/a'} fallback=${r.motivo_fallback || 'n/a'} error=${r.error || 'n/a'}`),
   '',
   '## Blockers proveedor',
@@ -366,6 +367,6 @@ console.log(JSON.stringify(report, null, 2));
 const vozOk = report.local_voz.length === 4 && report.local_voz.every((x) => x.ok);
 const clipOk = report.local_clip.some((x) => x.ok);
 if (!vozOk || !clipOk) {
-  console.error('LIVE incompleto: voz 30/60/120/300 o clip FAL I2V no pasaron.');
+  console.error('LIVE incompleto: voz 30/60/120/300 o clip video nativo no pasaron.');
   process.exitCode = 2;
 }

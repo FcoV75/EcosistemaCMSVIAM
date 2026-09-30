@@ -11,7 +11,7 @@ const GROQ_CHAT_MODELS = [
   'qwen/qwen3.6-27b',
   'openai/gpt-oss-20b',
 ] as const
-const GEMINI_TEXT_MODELS = ['gemini-flash-latest', 'gemini-3.6-flash'] as const
+const GEMINI_TEXT_MODELS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.6-flash'] as const
 const LLM_TIMEOUT_MS = 18_000
 
 function configuredModels(envValue: string | undefined, defaults: readonly string[]) {

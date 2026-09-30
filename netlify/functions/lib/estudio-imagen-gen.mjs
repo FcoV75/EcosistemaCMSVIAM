@@ -104,10 +104,10 @@ export async function generarImagenGemini(promptEn, opts = {}) {
   // Nombres vivos (ListModels 2026): los *-preview-image-generation / 2.0 ya dan 404.
   const modelos = [
     process.env.GEMINI_IMAGE_MODEL,
-    'gemini-2.5-flash-image',
     'gemini-3.1-flash-image',
-    'gemini-3.1-flash-image-preview',
     'gemini-3-pro-image',
+    'gemini-2.5-flash-image',
+    'gemini-3.1-flash-image-preview',
     'gemini-3-pro-image-preview',
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
   const cuerpo = {

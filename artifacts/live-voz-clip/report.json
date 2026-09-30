@@ -1,5 +1,5 @@
 {
-  "started_at": "2026-09-30T05:49:29.542Z",
+  "started_at": "2026-09-30T06:09:50.742Z",
   "keys": {
     "GROQ_API_KEY": 56,
     "FAL_KEY": 69,
@@ -37,129 +37,138 @@
       "ok": true,
       "seg": 30,
       "chunks": 3,
-      "bytes": 1741142,
+      "bytes": 2882882,
       "fuentes": [
         "gemini"
       ],
       "modelos": [
-        "gemini-2.5-flash-preview-tts"
+        "gemini-3.8-flash-tts"
       ],
       "mimes": [
         "audio/wav"
       ],
       "file": "/workspace/artifacts/live-voz-clip/voz-30s.wav",
-      "ms": 19833
+      "ms": 21287
     },
     {
       "ok": true,
       "seg": 60,
       "chunks": 6,
-      "bytes": 3424640,
+      "bytes": 5514200,
       "fuentes": [
         "gemini"
       ],
       "modelos": [
-        "gemini-2.5-flash-preview-tts"
+        "gemini-3.8-flash-tts"
       ],
       "mimes": [
         "audio/wav"
       ],
       "file": "/workspace/artifacts/live-voz-clip/voz-60s.wav",
-      "ms": 36239
+      "ms": 40321
     },
     {
       "ok": true,
       "seg": 120,
       "chunks": 12,
-      "bytes": 6902996,
+      "bytes": 11103236,
       "fuentes": [
         "gemini"
       ],
       "modelos": [
-        "gemini-2.5-flash-preview-tts"
+        "gemini-3.8-flash-tts"
       ],
       "mimes": [
         "audio/wav"
       ],
       "file": "/workspace/artifacts/live-voz-clip/voz-120s.wav",
-      "ms": 76001
+      "ms": 82391
     },
     {
       "ok": true,
       "seg": 300,
       "chunks": 30,
-      "bytes": 17051984,
+      "bytes": 27808904,
       "fuentes": [
         "gemini"
       ],
       "modelos": [
-        "gemini-2.5-flash-preview-tts"
+        "gemini-3.8-flash-tts"
       ],
       "mimes": [
         "audio/wav"
       ],
       "file": "/workspace/artifacts/live-voz-clip/voz-300s.wav",
-      "ms": 190087
+      "ms": 205878
     }
   ],
   "local_clip": [
     {
       "prompt": "Una bailarina mexicana en un estudio con luces neón mueve brazos, torso y pasos laterales con energía real. Cámara fija a nivel de ojos, movimiento continuo del sujeto, no Ken Burns, no zoom de foto.",
-      "requested_provider": "fal-i2v",
+      "requested_provider": "native-video",
       "duracionSeg": 8,
-      "ok": false,
+      "ok": true,
       "status": 200,
-      "tipo": "cinematico",
-      "fuente": "gemini-2.5-flash-image",
-      "actuacion": false,
-      "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas.",
+      "tipo": "video",
+      "fuente": "gemini-veo:veo-3.1-fast-generate-preview",
+      "actuacion": true,
+      "aviso": "Clip nativo con movimiento continuo del sujeto (gemini-veo:veo-3.1-fast-generate-preview).",
       "error": null,
-      "motivo_fallback": "fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+      "motivo_fallback": null,
       "events": [
         {
-          "type": "status",
-          "msg": "Director y placa en marcha…"
-        },
-        {
-          "type": "status",
-          "msg": "Creando clip de 8 s (actuación del sujeto)…"
+          "type": "ping",
+          "t": 1790748979173
         },
         {
           "type": "ping",
-          "t": 1790747695256
-        },
-        {
-          "type": "status",
-          "msg": "Generando placa rápida…"
+          "t": 1790748982674
         },
         {
           "type": "ping",
-          "t": 1790747698756
+          "t": 1790748986176
+        },
+        {
+          "type": "ping",
+          "t": 1790748989676
+        },
+        {
+          "type": "ping",
+          "t": 1790748993175
+        },
+        {
+          "type": "ping",
+          "t": 1790748996675
+        },
+        {
+          "type": "ping",
+          "t": 1790749000176
+        },
+        {
+          "type": "ping",
+          "t": 1790749003676
+        },
+        {
+          "type": "ping",
+          "t": 1790749007177
+        },
+        {
+          "type": "ping",
+          "t": 1790749010678
         },
         {
           "type": "status",
-          "msg": "Filmando actuación (I2V nativo)…"
-        },
-        {
-          "type": "status",
-          "msg": "Filmando video nativo T2V…"
-        },
-        {
-          "type": "status",
-          "msg": "Entregando placa (reintenta por microfilme nativo)…"
+          "msg": "Entregando microfilme nativo…"
         },
         {
           "type": "result",
           "success": true,
-          "tipo": "cinematico",
-          "imagen_base64": "[base64:2246096]",
-          "mime": "image/png",
-          "fuente": "gemini-2.5-flash-image",
-          "marca_agua_pollinations": false,
-          "movimiento": false,
-          "actuacion": false,
-          "sin_actuacion": true,
-          "motivo_fallback": "fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}",
+          "tipo": "video",
+          "video_base64": "[base64:3033468]",
+          "mime": "video/mp4",
+          "fuente": "gemini-veo:veo-3.1-fast-generate-preview",
+          "actuacion": true,
+          "sin_actuacion": false,
           "resumen": "Actuación corporal: la persona BAILA/se mueve de verdad (pasos, giro, vestido en movimiento), no una silueta quieta.",
           "prompt_en": "MUST INCLUDE: bailarina, mexicana, estudio, luces, neón, mueve, brazos, torso, pasos, laterales, energía, real, fija, nivel, ojos, movimiento, continuo, sujeto, Ken, Burns, zoom. Cinematic 16:9 VIDEO clip with real subject motion. OBEY the user scene exactly. Do NOT invent extra places or drop named subjects. Hyperrealistic commercial photography quality (8k, crisp micro-detail). Animals/wildlife: correct species anatomy, natural limbs and eyes, no extra limbs; do NOT replace animals with people",
           "via_prompt": "fallback-local",
@@ -172,14 +181,12 @@
             "via": "fallback-local"
           },
           "duracionSeg": 8,
-          "aviso": "Clip de 8 s: se entregó placa (sin video nativo: fal-i2v:fal-ai/minimax/hailuo-02/standard/image-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"} | fal-t2v:fal-ai/kling-video/v2.1/standard/text-to-video HTTP 403: {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}). El microfilme real requiere Fal/Vidu I2V; sin él no inventamos diapositivas."
+          "aviso": "Clip nativo con movimiento continuo del sujeto (gemini-veo:veo-3.1-fast-generate-preview)."
         }
       ],
-      "ms": 10262
+      "ms": 70976
     }
   ],
-  "provider_blockers": [
-    "Fal devolvió saldo agotado / usuario bloqueado."
-  ],
-  "finished_at": "2026-09-30T05:55:02.017Z"
+  "provider_blockers": [],
+  "finished_at": "2026-09-30T06:16:51.642Z"
 }

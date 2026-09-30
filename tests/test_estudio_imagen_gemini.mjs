@@ -25,7 +25,7 @@ try {
   const { generarImagenGemini } = await import('../netlify/functions/lib/estudio-imagen-gen.mjs');
   const result = await generarImagenGemini('A red apple on a white table', { timeoutMs: 18000 });
 
-  assert.equal(result?.fuente, 'gemini-2.5-flash-image');
+  assert.equal(result?.fuente, 'gemini-3.1-flash-image');
   assert.equal(result?.mime, 'image/png');
   assert.equal(result?.imagen_base64, imageBytes);
 
