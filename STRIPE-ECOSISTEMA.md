@@ -83,7 +83,7 @@ STRIPE_PRICE_NEXUS_ANNUAL=price_...
 | **Stripe webhook secret ContacNeed** | https://dashboard.stripe.com/webhooks → endpoint ContacNeed → **Signing secret** | Netlify ContacNeed → `STRIPE_WEBHOOK_SECRET` |
 | **Stripe Price IDs** | https://dashboard.stripe.com/products → producto/precio → `price_...` | Netlify CMS/ContacNeed → variables `STRIPE_PRICE_*` correspondientes |
 | **Netlify token** | https://app.netlify.com/user/applications#personal-access-tokens | Netlify env o Cursor Cloud env → `NETLIFY_AUTH_TOKEN` |
-| **Netlify Site ID** | Netlify → sitio → **Site configuration → General → Site details → Site ID** | Netlify env o Cursor Cloud env → `NETLIFY_SITE_ID` / `SITE_ID` |
+| **Netlify Site ID** | Netlify → sitio → **Site configuration → General → Site details → Site ID** | Netlify env o Cursor Cloud env → `NETLIFY_SITE_ID_CMS` para CMS; también se aceptan `NETLIFY_SITE_ID` / `SITE_ID` |
 | **Supabase URL y anon key** | https://supabase.com/dashboard/project/_/settings/api | Netlify CMS/ContacNeed → `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
 | **Supabase service role key** | https://supabase.com/dashboard/project/_/settings/api → Project API keys | Netlify server env únicamente → `SUPABASE_SERVICE_ROLE_KEY` |
 | **Cloudinary credentials** | https://console.cloudinary.com/settings/api-keys | Netlify/Railway env → `CLOUDINARY_URL` o `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
