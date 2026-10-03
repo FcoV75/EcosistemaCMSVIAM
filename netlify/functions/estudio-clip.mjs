@@ -572,10 +572,57 @@ export default async (req) => {
           via: dir.via,
         }
       : null;
+    const placaIn = String(body.imagen_base64 || body.placa_base64 || '').trim();
+
+    const metaBase = {
+      resumen: expansion.resumen || '',
+      prompt_en: promptEn.slice(0, 500),
+      via_prompt: expansion.via || '',
+      director: metaDirector,
+      duracionSeg: duracion,
+    };
+
+    let nativo = null;
+    let motivoFallback = '';
+    const erroresProveedor = [];
+
+    // Veo es el proveedor nativo más confiable cuando FAL está bloqueado. Intentarlo
+    // antes de generar placa deja más margen contra el timeout de Netlify.
+    const puedeVeoPrimero = !placaIn && !!(process.env.GEMINI_API_KEY || '').trim();
+    if (puedeVeoPrimero && !pasadoSoftDeadline(inicio) && tiempoRestante(inicio) > 28000) {
+      write({ type: 'status', msg: 'Filmando video nativo Gemini Veo…' });
+      try {
+        const veoPrimero = await generarClipGeminiVeoT2V(
+          motionPrompt || promptEn,
+          duracion,
+          Math.min(76000, tiempoRestante(inicio) - 7000),
+        );
+        if (veoPrimero?.video_url || veoPrimero?.video_base64) nativo = veoPrimero;
+        else if (veoPrimero?.error) erroresProveedor.push(veoPrimero.error);
+      } catch (err) {
+        console.warn('Gemini Veo primero:', err?.message || err);
+        erroresProveedor.push(`gemini-veo ${err?.message || err}`);
+      }
+    }
+
+    if (nativo?.video_url || nativo?.video_base64) {
+      write({ type: 'status', msg: 'Entregando microfilme nativo…' });
+      return {
+        success: true,
+        tipo: 'video',
+        video_url: nativo.video_url,
+        video_base64: nativo.video_base64,
+        mime: nativo.mime,
+        fuente: nativo.fuente,
+        actuacion: true,
+        sin_actuacion: false,
+        ...metaBase,
+        aviso: `Clip nativo con movimiento continuo del sujeto (${nativo.fuente}).`,
+      };
+    }
 
     // Reintento: placa del cliente → todo el presupuesto a I2V.
     let cine = null;
-    const placaIn = String(body.imagen_base64 || body.placa_base64 || '').trim();
     if (placaIn.length > 80) {
       write({ type: 'status', msg: 'Usando placa anterior; filmando I2V…' });
       cine = {
@@ -600,14 +647,6 @@ export default async (req) => {
       return { success: false, error: 'No se pudo generar la placa del clip. Intenta de nuevo.' };
     }
 
-    const metaBase = {
-      resumen: expansion.resumen || '',
-      prompt_en: promptEn.slice(0, 500),
-      via_prompt: expansion.via || '',
-      director: metaDirector,
-      duracionSeg: duracion,
-    };
-
     const respuestaPlaca = (motivo, avisoExtra = '') => ({
       success: true,
       tipo: 'cinematico',
@@ -628,10 +667,6 @@ export default async (req) => {
       write({ type: 'status', msg: 'Entregando placa (presupuesto corto)…' });
       return respuestaPlaca('presupuesto_corto', ' Reintenta: el microfilme nativo necesita margen I2V.');
     }
-
-    let nativo = null;
-    let motivoFallback = '';
-    const erroresProveedor = [];
 
     // Microfilme: casi TODO el presupuesto restante a I2V (carrera Fal ∥ Vidu).
     const waitI2V = Math.min(

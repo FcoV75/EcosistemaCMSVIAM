@@ -1285,9 +1285,9 @@ async function generarClipIA() {
             bodyClip.mime = clipEstudioPlacaMime;
             if (status) status.textContent = `Reintentando microfilme con la placa anterior (${duracionSeg} s)…`;
         }
-        // 80 s: Netlify clip=90; heartbeats NDJSON evitan Inactivity Timeout de Safari.
+        // Dejar margen al navegador: el servidor mantiene su propio presupuesto Netlify.
         const { ok, data: d } = await fetchEstudio("/estudio/clip", bodyClip, {
-            timeoutMs: 88000,
+            timeoutMs: 115000,
             signal: abortLocal.signal,
             abortErrorMsg: "Generación de clip cancelada (nueva solicitud).",
             onStatus: (st) => {
