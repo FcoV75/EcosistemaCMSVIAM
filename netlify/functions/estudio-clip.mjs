@@ -32,9 +32,89 @@ function resumenProveedor(status, body) {
   return `HTTP ${status || '?'}: ${raw.replace(/\s+/g, ' ').slice(0, 220)}`;
 }
 
-function proveedorFalBloqueado(errores = []) {
+export function proveedorFalBloqueado(errores = []) {
   return errores.some((e) => /fal-(?:i2v|t2v)|fal:/i.test(String(e))
-    && /exhausted balance|top_up|user is locked|billing|saldo/i.test(String(e)));
+    && /exhausted balance|top_up|user is locked|billing|saldo|HTTP 403|forbidden/i.test(String(e)));
+}
+
+/** 401/403 de Vidu: no reintentar el otro modo; el tiempo restante es para el siguiente proveedor. */
+export function proveedorViduBloqueado(errores = []) {
+  return errores.some((e) => /vidu(?:-i2v|-t2v)?/i.test(String(e))
+    && /HTTP 401|HTTP 403|invalid api key|unauthorized|forbidden/i.test(String(e)));
+}
+
+export function clavesVideoClip() {
+  return {
+    veo: !!(process.env.GEMINI_API_KEY || '').trim(),
+    vidu: !!(process.env.VIDU_API_KEY || process.env.VIDU_KEY || '').trim(),
+    fal: !!(process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim(),
+  };
+}
+
+/**
+ * Orden de video nativo. Fal (LTX, Hailuo, Kling servidos por Fal) siempre al final.
+ * Sin placa: Veo T2V no necesita imagen, así que va antes de generar la placa.
+ * Con placa de reintento: Vidu I2V usa esa placa antes de gastar el presupuesto en T2V.
+ * Kling no tiene cliente propio en este repo: solo existe como modelo `fal-ai/kling-video`.
+ */
+export function planIntentosClip({
+  tieneVeo = false,
+  tieneVidu = false,
+  tieneFal = false,
+  conPlaca = false,
+} = {}) {
+  const pasos = [];
+  if (conPlaca) {
+    if (tieneVidu) pasos.push('vidu-i2v');
+    if (tieneVeo) pasos.push('veo-t2v');
+    if (tieneVidu) pasos.push('vidu-t2v');
+  } else {
+    if (tieneVeo) pasos.push('veo-t2v');
+    if (tieneVidu) pasos.push('vidu-i2v', 'vidu-t2v');
+  }
+  if (tieneFal) pasos.push('fal-i2v', 'fal-t2v');
+  return pasos;
+}
+
+/**
+ * Milisegundos para un paso. 0 = saltar sin llamar a la red.
+ * Si Vidu también está configurado, Veo no se queda con los ~80 s: deja margen para la placa y el I2V.
+ * Fal no reserva tiempo; solo corre si los anteriores devolvieron antes el fallo.
+ */
+export function presupuestoPasoClip(paso, restanteMs, {
+  pescaEpica = false,
+  reservarVidu = false,
+  reintentoPlaca = false,
+} = {}) {
+  const restante = Math.max(0, Number(restanteMs) || 0);
+  if (paso === 'veo-t2v') {
+    // Reintento: la placa ya existe para I2V. Veo no se queda con el minuto entero.
+    if (reintentoPlaca) {
+      const libre = restante - 6000;
+      if (libre < 9000) return 0;
+      return Math.min(22000, libre);
+    }
+    const reserva = reservarVidu ? 32000 : 0;
+    const tope = reservarVidu ? 42000 : 70000;
+    const libre = restante - 7000 - reserva;
+    if (libre < 9000) return 0;
+    return Math.min(tope, libre);
+  }
+  if (paso === 'vidu-i2v' || paso === 'fal-i2v') {
+    const tope = pescaEpica ? 52000 : 48000;
+    const libre = restante - 6000;
+    if (libre < 9000) return 0;
+    return Math.min(tope, libre);
+  }
+  if (paso === 'vidu-t2v') {
+    if (restante < 14000) return 0;
+    return Math.min(14000, Math.max(9000, restante - 5000));
+  }
+  if (paso === 'fal-t2v') {
+    if (restante < 16000) return 0;
+    return Math.min(18000, Math.max(9000, restante - 6000));
+  }
+  return 0;
 }
 
 function dataUriDesdeImagen(imagen) {
@@ -67,7 +147,12 @@ async function esperarFal(statusUrl, responseUrl, headers, timeoutMs = 20000) {
   return null;
 }
 
-/** Image-to-video: anima la placa (bailes/actuación). */
+/**
+ * Image-to-video vía Fal (LTX / Hailuo / Kling). Solo se llama como último recurso,
+ * cuando Veo y Vidu no están configurados o ya fallaron. Un 403 de saldo vuelve
+ * `{ error }` y no lanza: el clip sigue y entrega la placa.
+ * Con poco tiempo restante, LTX va primero dentro de Fal porque suele completar antes.
+ */
 async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 22000) {
   const key = (process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
   if (!key || maxWaitMs < 5000) return null;
@@ -585,23 +670,48 @@ export default async (req) => {
     let nativo = null;
     let motivoFallback = '';
     const erroresProveedor = [];
+    const claves = clavesVideoClip();
+    const conPlacaCliente = placaIn.length > 80;
+    const pasos = planIntentosClip({
+      tieneVeo: claves.veo,
+      tieneVidu: claves.vidu,
+      tieneFal: claves.fal,
+      conPlaca: conPlacaCliente,
+    });
+    let veoIntentado = false;
+    let proveedoresIntentados = false;
 
-    // Veo es el proveedor nativo más confiable cuando FAL está bloqueado. Intentarlo
-    // antes de generar placa deja más margen contra el timeout de Netlify.
-    const puedeVeoPrimero = !placaIn && !!(process.env.GEMINI_API_KEY || '').trim();
-    if (puedeVeoPrimero && !pasadoSoftDeadline(inicio) && tiempoRestante(inicio) > 28000) {
-      write({ type: 'status', msg: 'Filmando video nativo Gemini Veo…' });
-      try {
-        const veoPrimero = await generarClipGeminiVeoT2V(
-          motionPrompt || promptEn,
-          duracion,
-          Math.min(76000, tiempoRestante(inicio) - 7000),
-        );
-        if (veoPrimero?.video_url || veoPrimero?.video_base64) nativo = veoPrimero;
-        else if (veoPrimero?.error) erroresProveedor.push(veoPrimero.error);
-      } catch (err) {
-        console.warn('Gemini Veo primero:', err?.message || err);
-        erroresProveedor.push(`gemini-veo ${err?.message || err}`);
+    const tomarVideo = (resultado) => {
+      if (resultado?.video_url || resultado?.video_base64) {
+        nativo = resultado;
+        return true;
+      }
+      if (resultado?.error) erroresProveedor.push(resultado.error);
+      return false;
+    };
+
+    // Sin placa de reintento, Veo (T2V) no espera a la imagen. Si Vidu también
+    // tiene clave, el presupuesto le deja margen; si no, Veo usa casi todo el tiempo.
+    // Fal no entra aquí.
+    if (!conPlacaCliente && pasos[0] === 'veo-t2v' && !pasadoSoftDeadline(inicio)) {
+      const waitVeo = presupuestoPasoClip('veo-t2v', tiempoRestante(inicio), {
+        reservarVidu: claves.vidu,
+      });
+      if (waitVeo >= 9000) {
+        write({ type: 'status', msg: 'Filmando video nativo Gemini Veo…' });
+        veoIntentado = true;
+        proveedoresIntentados = true;
+        try {
+          const veoPrimero = await generarClipGeminiVeoT2V(
+            motionPrompt || promptEn,
+            duracion,
+            waitVeo,
+          );
+          tomarVideo(veoPrimero);
+        } catch (err) {
+          console.warn('Gemini Veo primero:', err?.message || err);
+          erroresProveedor.push(`gemini-veo ${err?.message || err}`);
+        }
       }
     }
 
@@ -668,84 +778,51 @@ export default async (req) => {
       return respuestaPlaca('presupuesto_corto', ' Reintenta: el microfilme nativo necesita margen I2V.');
     }
 
-    // Microfilme: casi TODO el presupuesto restante a I2V (carrera Fal ∥ Vidu).
-    const waitI2V = Math.min(
-      pescaEpica ? 52000 : 48000,
-      Math.max(0, tiempoRestante(inicio) - 6000),
-    );
-    if (waitI2V >= 9000) {
-      write({ type: 'status', msg: pescaEpica ? 'Filmando la lucha (I2V nativo)…' : 'Filmando actuación (I2V nativo)…' });
-      const waitVidu = Math.min(waitI2V, Math.max(9000, tiempoRestante(inicio) - 6000));
-      try {
-        const candidatos = await Promise.allSettled([
-          generarClipFalI2V(cine, motionPrompt, duracion, waitI2V),
-          generarClipViduI2V(cine, motionPrompt, duracion, waitVidu),
-        ]);
-        for (const c of candidatos) {
-          if (c.status === 'fulfilled' && c.value?.video_url) {
-            nativo = c.value;
-            break;
-          }
-          if (c.status === 'fulfilled' && c.value?.error) {
-            erroresProveedor.push(c.value.error);
-          }
-          if (c.status === 'rejected') {
-            console.warn('I2V race:', c.reason?.message || c.reason);
-            erroresProveedor.push(`i2v ${c.reason?.message || c.reason}`);
-          }
-        }
-      } catch (err) {
-        console.warn('I2V race clip:', err?.message || err);
-      }
-    } else {
-      motivoFallback = 'presupuesto_corto_i2v';
-    }
+    // Cascada en serie: Vidu y Veo antes que Fal. Sin clave, el paso no está en el plan
+    // y no se llama a la red. Un 403 o saldo agotado de Fal no corta el clip.
+    const msgPaso = {
+      'veo-t2v': 'Filmando video nativo Gemini Veo…',
+      'vidu-i2v': pescaEpica ? 'Filmando la lucha con Vidu (I2V)…' : 'Filmando actuación con Vidu (I2V)…',
+      'vidu-t2v': 'Filmando video nativo Vidu…',
+      'fal-i2v': pescaEpica
+        ? 'Fal como último recurso: filmando la lucha (I2V)…'
+        : 'Fal como último recurso: filmando actuación (I2V)…',
+      'fal-t2v': 'Fal como último recurso: filmando video nativo…',
+    };
+    for (const paso of pasos) {
+      if (nativo?.video_url || nativo?.video_base64) break;
+      if (pasadoSoftDeadline(inicio)) break;
+      if (paso === 'veo-t2v' && veoIntentado) continue;
+      if (paso.startsWith('vidu') && proveedorViduBloqueado(erroresProveedor)) continue;
+      if (paso.startsWith('fal') && proveedorFalBloqueado(erroresProveedor)) continue;
+      if (paso.endsWith('-i2v') && !cine?.imagen_base64) continue;
+      const wait = presupuestoPasoClip(paso, tiempoRestante(inicio), {
+        pescaEpica,
+        reservarVidu: paso === 'veo-t2v' && claves.vidu && !conPlacaCliente,
+        reintentoPlaca: paso === 'veo-t2v' && conPlacaCliente,
+      });
+      if (!wait) continue;
 
-    // T2V nativo si I2V falló y aún hay margen (antes de cualquier slideshow).
-    if (!nativo && !pasadoSoftDeadline(inicio) && tiempoRestante(inicio) > 16000) {
-      write({ type: 'status', msg: 'Filmando video nativo T2V…' });
-      if (!proveedorFalBloqueado(erroresProveedor)) {
-        try {
-          const falT2V = await generarClipFalT2V(
-            motionPrompt || promptEn,
-            duracion,
-            Math.min(18000, tiempoRestante(inicio) - 6000),
-          );
-          if (falT2V?.video_url) nativo = falT2V;
-          else if (falT2V?.error) erroresProveedor.push(falT2V.error);
-        } catch (err) {
-          console.warn('Fal T2V clip:', err?.message || err);
-          erroresProveedor.push(`fal-t2v ${err?.message || err}`);
+      write({ type: 'status', msg: msgPaso[paso] || 'Filmando video nativo…' });
+      proveedoresIntentados = true;
+      try {
+        let resultado = null;
+        if (paso === 'veo-t2v') {
+          veoIntentado = true;
+          resultado = await generarClipGeminiVeoT2V(motionPrompt || promptEn, duracion, wait);
+        } else if (paso === 'vidu-i2v') {
+          resultado = await generarClipViduI2V(cine, motionPrompt, duracion, wait);
+        } else if (paso === 'vidu-t2v') {
+          resultado = await generarClipViduT2V(motionPrompt || promptEn, duracion, wait);
+        } else if (paso === 'fal-i2v') {
+          resultado = await generarClipFalI2V(cine, motionPrompt, duracion, wait);
+        } else if (paso === 'fal-t2v') {
+          resultado = await generarClipFalT2V(motionPrompt || promptEn, duracion, wait);
         }
-      }
-      if (!nativo && tiempoRestante(inicio) > 14000) {
-        try {
-          const viduT2V = await generarClipViduT2V(
-            motionPrompt || promptEn,
-            duracion,
-            Math.min(14000, tiempoRestante(inicio) - 5000),
-          );
-          if (viduT2V?.video_url) nativo = viduT2V;
-          else if (viduT2V?.error) erroresProveedor.push(viduT2V.error);
-        } catch (err) {
-          console.warn('Vidu T2V clip:', err?.message || err);
-          erroresProveedor.push(`vidu-t2v ${err?.message || err}`);
-        }
-      }
-      if (!nativo && tiempoRestante(inicio) > 16000) {
-        write({ type: 'status', msg: 'Filmando video nativo Gemini Veo…' });
-        try {
-          const veoT2V = await generarClipGeminiVeoT2V(
-            motionPrompt || promptEn,
-            duracion,
-            Math.min(68000, tiempoRestante(inicio) - 5000),
-          );
-          if (veoT2V?.video_url || veoT2V?.video_base64) nativo = veoT2V;
-          else if (veoT2V?.error) erroresProveedor.push(veoT2V.error);
-        } catch (err) {
-          console.warn('Gemini Veo clip:', err?.message || err);
-          erroresProveedor.push(`gemini-veo ${err?.message || err}`);
-        }
+        tomarVideo(resultado);
+      } catch (err) {
+        console.warn('Proveedor clip', paso, err?.message || err);
+        erroresProveedor.push(`${paso} ${err?.message || err}`);
       }
     }
 
@@ -766,10 +843,8 @@ export default async (req) => {
     }
 
     if (!motivoFallback) {
-      const tieneFal = !!(process.env.FAL_KEY || process.env.FAL_API_KEY);
-      const tieneVidu = !!(process.env.VIDU_API_KEY || process.env.VIDU_KEY);
-      const tieneVeo = !!(process.env.GEMINI_API_KEY || '').trim();
-      if (!tieneFal && !tieneVidu && !tieneVeo) motivoFallback = 'sin_claves_video';
+      if (!claves.veo && !claves.vidu && !claves.fal) motivoFallback = 'sin_claves_video';
+      else if (!proveedoresIntentados && !erroresProveedor.length) motivoFallback = 'presupuesto_corto_i2v';
       else motivoFallback = erroresProveedor.length
         ? erroresProveedor.join(' | ').slice(0, 500)
         : 'timeout_proveedor_i2v';
