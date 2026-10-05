@@ -380,7 +380,8 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
 export async function generarImagenEstudio(promptEn, opts = {}) {
   const src = String(opts.original || promptEn || '');
   const tieneGemini = !!(process.env.GEMINI_API_KEY || '').trim();
-  // Clip IA: placa rápida (Fal). Gemini imagen suele 429/lento y deja el NDJSON sin result.
+  // Clip IA: placa rápida sin depender de Fal; si la cuenta Fal está bloqueada por saldo,
+  // no debe tumbar ni retrasar la placa.
   const rapido = opts.prioridad === 'rapido' || opts.rapido === true;
 
   const intentarGeminiPrimero = async () => {
@@ -393,16 +394,13 @@ export async function generarImagenEstudio(promptEn, opts = {}) {
   };
 
   if (rapido) {
-    const fal = await generarImagenFal(promptEn, opts);
-    if (fal) return fal;
+    const gemini = await intentarGeminiPrimero();
+    if (gemini) return gemini;
     const replicate = await generarImagenReplicate(promptEn, opts);
     if (replicate) return replicate;
-    // Un solo intento Gemini corto solo si aún no hay placa.
-    if (tieneGemini) {
-      const gemini = await generarImagenGemini(promptEn, { ...opts, timeoutMs: 18000 });
-      if (gemini) return gemini;
-    }
-    return generarImagenPollinations(promptEn, opts);
+    const pollinations = await generarImagenPollinations(promptEn, opts);
+    if (pollinations) return pollinations;
+    return generarImagenFal(promptEn, opts);
   }
 
   // Escenas multi-sujeto / épicas: Gemini primero (obediencia tipo Dola).
