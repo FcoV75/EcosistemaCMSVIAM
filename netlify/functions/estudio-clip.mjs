@@ -743,7 +743,7 @@ export default async (req) => {
       };
     } else {
       write({ type: 'status', msg: 'Generando placa rápida…' });
-      // Placa RÁPIDA (Fal primero): Gemini imagen con 429 tumba el clip → "respuesta incompleta".
+      // Placa RÁPIDA sin Fal primero: evita bloquear clip cuando Fal está sin saldo.
       cine = await generarImagenEstudio(promptEn, {
         width: 1280,
         height: 720,
