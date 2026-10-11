@@ -38,9 +38,25 @@ export const pingLastSeenFn = createServerFn({ method: 'POST' }).handler(async (
   return { ok: true }
 })
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || '').trim(),
+  )
+}
+
 export const getPublicProfileFn = createServerFn({ method: 'GET' })
   .inputValidator((userId: string) => userId)
   .handler(async ({ data: userId }) => {
+    const id = String(userId || '').trim()
+    if (!isUuid(id)) {
+      return {
+        notFound: true as const,
+        profile: null,
+        negocio: null,
+        relacion: null,
+      }
+    }
+
     const supabase = createSupabaseAdminClient()
     const viewer = await getServerUser()
 
@@ -50,17 +66,33 @@ export const getPublicProfileFn = createServerFn({ method: 'GET' })
         .select(
           'id, nombre, estado, municipio, habilidad_empirica, descripcion_profesion, avatar_url, es_pro, verificado, es_fundador, tipo_miembro, celular, ultima_conexion, bloqueado, calificacion_promedio, total_calificaciones',
         )
-        .eq('id', userId)
+        .eq('id', id)
         .maybeSingle(),
       supabase
         .from('negocios')
         .select('banner_url, items, maps_address, lat, lng')
-        .eq('id', userId)
+        .eq('id', id)
         .maybeSingle(),
     ])
 
-    if (profileError) throw profileError
-    if (!profile || profile.bloqueado) throw new Error('Perfil no disponible')
+    if (profileError) {
+      // UUID inválido o error de lectura: no tumbar la app con error boundary.
+      console.warn('getPublicProfileFn:', profileError.message)
+      return {
+        notFound: true as const,
+        profile: null,
+        negocio: null,
+        relacion: null,
+      }
+    }
+    if (!profile || profile.bloqueado) {
+      return {
+        notFound: true as const,
+        profile: null,
+        negocio: null,
+        relacion: null,
+      }
+    }
 
     const online =
       profile.ultima_conexion &&
@@ -82,6 +114,7 @@ export const getPublicProfileFn = createServerFn({ method: 'GET' })
     }
 
     return {
+      notFound: false as const,
       profile: {
         id: profile.id,
         nombre: profile.nombre,
