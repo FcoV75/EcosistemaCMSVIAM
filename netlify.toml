@@ -32,6 +32,8 @@
 [functions.estudio-voz]
   timeout = 120
 
+# Nota: NDJSON streaming en Netlify tiene tope duro ~60s aunque timeout=120.
+# El handler usa soft~48s / force~52s para flush del result antes del kill.
 [functions.estudio-clip]
   timeout = 120
 

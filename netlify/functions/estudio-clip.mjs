@@ -14,10 +14,16 @@ import {
   generarSecuenciaPanteraMono,
 } from './lib/estudio-secuencia-fauna.mjs';
 
-/** Alineado a Netlify estudio-clip timeout=120s; margen para escribir result. */
-const BUDGET_CLIP_MS = 112000;
-/** Soft deadline: dejar de lanzar proveedores nuevos; siempre flush result antes del kill. */
-const SOFT_DEADLINE_MS = 98000;
+/**
+ * CRÍTICO: respuestas NDJSON = Function streaming en Netlify → tope duro ~60s
+ * (aunque netlify.toml diga timeout=120). Soft/force DEBEN quedar bajo 55s
+ * o el kill cierra el stream sin `result` → "respuesta incompleta" en el cliente.
+ */
+export const BUDGET_CLIP_MS = 54000;
+/** Dejar de lanzar proveedores; devolver placa/video antes del kill streaming. */
+export const SOFT_DEADLINE_MS = 48000;
+/** Forzar write(result) si el trabajo sigue colgado (antes del kill ~60s). */
+export const FORCE_FLUSH_MS = 52000;
 
 function tiempoRestante(inicio, budget = BUDGET_CLIP_MS) {
   return Math.max(0, budget - (Date.now() - inicio));
@@ -89,28 +95,40 @@ export function clavesVideoClip() {
 }
 
 /**
- * Orden de video nativo. Fal (LTX, Hailuo, Kling servidos por Fal) siempre al final.
- * Sin placa: Veo T2V no necesita imagen, así que va antes de generar la placa.
- * Con placa de reintento: Vidu I2V usa esa placa antes de gastar el presupuesto en T2V.
- * Kling no tiene cliente propio en este repo: solo existe como modelo `fal-ai/kling-video`.
+ * Orden de video nativo bajo tope streaming ~60s.
+ * Con Fal: LTX I2V primero (suele completar ~15–35s). Veo solo si no hay Fal/Vidu
+ * (rara vez termina a tiempo y quemaba el presupuesto → incompleta).
+ * Kling no tiene cliente propio: solo como modelo `fal-ai/kling-video`.
  */
 export function planIntentosClip({
   tieneVeo = false,
   tieneVidu = false,
   tieneFal = false,
   conPlaca = false,
-  /** Veo solo genera hasta 8 s: omitir si el usuario pide 10/12 para no quemar el presupuesto. */
+  /** Omite Veo (máx 8s y lento). Default true si hay Fal/Vidu o duración > 8. */
   omitVeo = false,
+  /** Prioriza Fal LTX para caber en el soft streaming. */
+  priorizarFal = true,
 } = {}) {
   const pasos = [];
   const veo = tieneVeo && !omitVeo;
+  if (priorizarFal && tieneFal) {
+    pasos.push('fal-i2v');
+    if (tieneVidu) pasos.push('vidu-i2v');
+    if (veo) pasos.push('veo-t2v');
+    if (tieneVidu) pasos.push('vidu-t2v');
+    pasos.push('fal-t2v');
+    return pasos;
+  }
   if (conPlaca) {
     if (tieneVidu) pasos.push('vidu-i2v');
     if (veo) pasos.push('veo-t2v');
     if (tieneVidu) pasos.push('vidu-t2v');
-  } else {
-    if (veo) pasos.push('veo-t2v');
+  } else if (veo) {
+    pasos.push('veo-t2v');
     if (tieneVidu) pasos.push('vidu-i2v', 'vidu-t2v');
+  } else if (tieneVidu) {
+    pasos.push('vidu-i2v', 'vidu-t2v');
   }
   if (tieneFal) pasos.push('fal-i2v', 'fal-t2v');
   return pasos;
@@ -128,31 +146,38 @@ export function presupuestoPasoClip(paso, restanteMs, {
 } = {}) {
   const restante = Math.max(0, Number(restanteMs) || 0);
   if (paso === 'veo-t2v') {
-    // Reintento: la placa ya existe para I2V. Veo no se queda con el minuto entero.
+    // Veo casi nunca termina dentro del tope streaming 60s: tope bajo.
     if (reintentoPlaca) {
-      const libre = restante - 6000;
+      const libre = restante - 5000;
       if (libre < 9000) return 0;
-      return Math.min(22000, libre);
+      return Math.min(16000, libre);
     }
-    const reserva = reservarVidu ? 32000 : 0;
-    const tope = reservarVidu ? 42000 : 70000;
-    const libre = restante - 7000 - reserva;
+    const reserva = reservarVidu ? 18000 : 0;
+    const tope = reservarVidu ? 18000 : 28000;
+    const libre = restante - 5000 - reserva;
     if (libre < 9000) return 0;
     return Math.min(tope, libre);
   }
-  if (paso === 'vidu-i2v' || paso === 'fal-i2v') {
-    const tope = pescaEpica ? 52000 : 48000;
-    const libre = restante - 6000;
-    if (libre < 9000) return 0;
+  if (paso === 'fal-i2v') {
+    // LTX fast: principal camino fiable bajo 60s.
+    const tope = pescaEpica ? 32000 : 30000;
+    const libre = restante - 5000;
+    if (libre < 8000) return 0;
+    return Math.min(tope, libre);
+  }
+  if (paso === 'vidu-i2v') {
+    const tope = pescaEpica ? 24000 : 20000;
+    const libre = restante - 5000;
+    if (libre < 8000) return 0;
     return Math.min(tope, libre);
   }
   if (paso === 'vidu-t2v') {
-    if (restante < 14000) return 0;
-    return Math.min(14000, Math.max(9000, restante - 5000));
+    if (restante < 12000) return 0;
+    return Math.min(12000, Math.max(8000, restante - 5000));
   }
   if (paso === 'fal-t2v') {
-    if (restante < 16000) return 0;
-    return Math.min(18000, Math.max(9000, restante - 6000));
+    if (restante < 14000) return 0;
+    return Math.min(14000, Math.max(8000, restante - 5000));
   }
   return 0;
 }
@@ -199,20 +224,12 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
   const imageUrl = dataUriDesdeImagen(imagen);
   if (!imageUrl) return null;
 
-  // Con presupuesto corto: LTX primero (más rápido). Con margen: Hailuo/Kling.
-  const modelosRapidos = [
+  // Bajo tope streaming 60s: siempre LTX primero (Hailuo/Kling suelen pasarse de 60s).
+  const modelos = [
     process.env.FAL_I2V_MODEL,
     'fal-ai/ltx-video/image-to-video',
     'fal-ai/minimax/hailuo-02/standard/image-to-video',
-  ];
-  const modelosLargos = [
-    process.env.FAL_I2V_MODEL,
-    'fal-ai/minimax/hailuo-02/standard/image-to-video',
-    'fal-ai/kling-video/v2.1/standard/image-to-video',
-    'fal-ai/ltx-video/image-to-video',
-  ];
-  const modelos = (maxWaitMs < 28000 ? modelosRapidos : modelosLargos)
-    .filter((m, i, arr) => m && arr.indexOf(m) === i);
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
   const headers = {
     Authorization: `Key ${key}`,
@@ -630,16 +647,16 @@ function ndjsonClipResponse(trabajoAsync) {
       const ping = setInterval(() => {
         write({ type: 'ping', t: Date.now() });
       }, 3500);
-      // Tras soft deadline el handler debería devolver placa; si sigue colgado,
-      // forzar result antes del kill Netlify (120s) para que el cliente pueda reintentar.
+      // Streaming Netlify ~60s: forzar result ~52s si el trabajo sigue colgado.
       let forceTimer = null;
       const forceResult = new Promise((resolve) => {
         forceTimer = setTimeout(() => {
           resolve({
             success: false,
             error: 'El clip se cortó a mitad (timeout de presupuesto). Reintenta; suele completar al segundo intento.',
+            registro: [{ t_ms: FORCE_FLUSH_MS, paso: 'force_flush', ok: false }],
           });
-        }, Math.max(SOFT_DEADLINE_MS + 6000, BUDGET_CLIP_MS - 6000));
+        }, FORCE_FLUSH_MS);
       });
       try {
         write({ type: 'status', msg: 'Director y placa en marcha…' });
@@ -700,9 +717,18 @@ export default async (req) => {
     const duracion = clamp(body.duracionSeg ?? body.duracion ?? lim.minSeg, lim.minSeg, lim.maxSeg);
     const pideActuacion = escenaPideActuacion(prompt);
     const pescaEpica = escenaEsPescaEpica(prompt);
+    const registro = [];
+    const mark = (paso, ok, extra = '') => {
+      const row = { t_ms: Date.now() - inicio, paso, ok: !!ok };
+      if (extra) row.extra = String(extra).slice(0, 120);
+      registro.push(row);
+      console.log(`[estudio-clip] t=${row.t_ms}ms ${paso} ok=${row.ok}${extra ? ` ${extra}` : ''}`);
+      write({ type: 'status', msg: `${paso}… (${Math.round(row.t_ms / 1000)} s)`, registro: row });
+    };
 
     write({ type: 'status', msg: `Creando clip de ${duracion} s (actuación del sujeto)…` });
     const expansion = await expandirPromptVisual(prompt, { modo: 'clip' });
+    mark('director', true, expansion.via || '');
     const promptEn = expansion.promptEn;
     const motionPrompt = promptMotionParaVideo(prompt, promptEn);
     const dir = expansion.director;
@@ -722,6 +748,9 @@ export default async (req) => {
       via_prompt: expansion.via || '',
       director: metaDirector,
       duracionSeg: duracion,
+      registro,
+      soft_ms: SOFT_DEADLINE_MS,
+      budget_ms: BUDGET_CLIP_MS,
     };
 
     let nativo = null;
@@ -729,13 +758,15 @@ export default async (req) => {
     const erroresProveedor = [];
     const claves = clavesVideoClip();
     const conPlacaCliente = placaIn.length > 80;
-    // Veo máx 8 s: en Premium 10/12 no quemar el soft deadline con Veo.
+    // Streaming ~60s: omitir Veo si hay Fal/Vidu o duración > 8 (Veo no cabe).
+    const omitVeo = duracion > 8 || claves.fal || claves.vidu || body.modo === 'fiable';
     const pasos = planIntentosClip({
       tieneVeo: claves.veo,
       tieneVidu: claves.vidu,
       tieneFal: claves.fal,
       conPlaca: conPlacaCliente,
-      omitVeo: duracion > 8,
+      omitVeo,
+      priorizarFal: true,
     });
     let veoIntentado = false;
     let proveedoresIntentados = false;
@@ -749,46 +780,8 @@ export default async (req) => {
       return false;
     };
 
-    // Sin placa de reintento, Veo (T2V) no espera a la imagen. Si Vidu también
-    // tiene clave, el presupuesto le deja margen; si no, Veo usa casi todo el tiempo.
-    // Fal no entra aquí. Solo con duración ≤ 8 s (omitVeo ya filtró 10/12).
-    if (!conPlacaCliente && pasos[0] === 'veo-t2v' && !pasadoSoftDeadline(inicio)) {
-      const waitVeo = waitPasoClip('veo-t2v', inicio, {
-        reservarVidu: claves.vidu,
-      });
-      if (waitVeo >= 9000) {
-        write({ type: 'status', msg: 'Filmando video nativo Gemini Veo…' });
-        veoIntentado = true;
-        proveedoresIntentados = true;
-        try {
-          const veoPrimero = await generarClipGeminiVeoT2V(
-            motionPrompt || promptEn,
-            duracion,
-            waitVeo,
-          );
-          tomarVideo(veoPrimero);
-        } catch (err) {
-          console.warn('Gemini Veo primero:', err?.message || err);
-          erroresProveedor.push(`gemini-veo ${err?.message || err}`);
-        }
-      }
-    }
-
-    if (nativo?.video_url || nativo?.video_base64) {
-      write({ type: 'status', msg: 'Entregando microfilme nativo…' });
-      return {
-        success: true,
-        tipo: 'video',
-        video_url: nativo.video_url,
-        video_base64: nativo.video_base64,
-        mime: nativo.mime,
-        fuente: nativo.fuente,
-        actuacion: true,
-        sin_actuacion: false,
-        ...metaBase,
-        aviso: `Clip nativo con movimiento continuo del sujeto (${nativo.fuente}).`,
-      };
-    }
+    // NO hay Veo-primero: quemaba >60s y Netlify mataba el stream sin result.
+    // Placa rápida → Fal LTX / Vidu dentro del soft ~48s.
 
     // Reintento: placa del cliente → todo el presupuesto a I2V.
     let cine = null;
@@ -800,6 +793,7 @@ export default async (req) => {
         fuente: 'placa_reintento',
         marca_agua_pollinations: false,
       };
+      mark('placa', true, 'reintento');
     } else {
       write({ type: 'status', msg: 'Generando placa rápida…' });
       // Placa RÁPIDA (Fal primero): Gemini imagen con 429 tumba el clip → "respuesta incompleta".
@@ -809,11 +803,12 @@ export default async (req) => {
         seed: seedDesdePrompt(`clip:${prompt}`),
         original: prompt,
         prioridad: 'rapido',
-        timeoutMs: 18000,
+        timeoutMs: 12000,
       });
+      mark('placa', !!cine?.imagen_base64, cine?.fuente || 'fail');
     }
     if (!cine?.imagen_base64) {
-      return { success: false, error: 'No se pudo generar la placa del clip. Intenta de nuevo.' };
+      return { success: false, error: 'No se pudo generar la placa del clip. Intenta de nuevo.', registro };
     }
 
     const respuestaPlaca = (motivo, avisoExtra = '') => ({
@@ -832,21 +827,19 @@ export default async (req) => {
       aviso: `Clip de ${duracion} s: se entregó placa (sin video nativo: ${motivo}).${avisoExtra}`,
     });
 
-    if (pasadoSoftDeadline(inicio) || tiempoRestante(inicio) < 12000) {
+    if (pasadoSoftDeadline(inicio) || tiempoRestante(inicio) < 10000) {
       write({ type: 'status', msg: 'Entregando placa (presupuesto corto)…' });
+      mark('fallback_placa', true, 'presupuesto_corto');
       return respuestaPlaca('presupuesto_corto', ' Reintenta: el microfilme nativo necesita margen I2V.');
     }
 
-    // Cascada en serie: Vidu y Veo antes que Fal. Sin clave, el paso no está en el plan
-    // y no se llama a la red. Un 403 o saldo agotado de Fal no corta el clip.
+    // Cascada rápida: Fal LTX primero. Un 403 de saldo no corta el clip.
     const msgPaso = {
       'veo-t2v': 'Filmando video nativo Gemini Veo…',
       'vidu-i2v': pescaEpica ? 'Filmando la lucha con Vidu (I2V)…' : 'Filmando actuación con Vidu (I2V)…',
       'vidu-t2v': 'Filmando video nativo Vidu…',
-      'fal-i2v': pescaEpica
-        ? 'Fal como último recurso: filmando la lucha (I2V)…'
-        : 'Fal como último recurso: filmando actuación (I2V)…',
-      'fal-t2v': 'Fal como último recurso: filmando video nativo…',
+      'fal-i2v': 'Filmando clip con Fal LTX (I2V)…',
+      'fal-t2v': 'Filmando video nativo Fal…',
     };
     for (const paso of pasos) {
       if (nativo?.video_url || nativo?.video_base64) break;
@@ -861,10 +854,14 @@ export default async (req) => {
         reservarVidu: paso === 'veo-t2v' && claves.vidu && !conPlacaCliente,
         reintentoPlaca: paso === 'veo-t2v' && conPlacaCliente,
       });
-      if (!wait || wait < 5000) continue;
+      if (!wait || wait < 5000) {
+        mark(paso, false, 'skip_wait');
+        continue;
+      }
 
       write({ type: 'status', msg: msgPaso[paso] || 'Filmando video nativo…' });
       proveedoresIntentados = true;
+      const tPaso = Date.now();
       try {
         let resultado = null;
         if (paso === 'veo-t2v') {
@@ -879,15 +876,19 @@ export default async (req) => {
         } else if (paso === 'fal-t2v') {
           resultado = await generarClipFalT2V(motionPrompt || promptEn, duracion, wait);
         }
-        tomarVideo(resultado);
+        const ok = tomarVideo(resultado);
+        mark(paso, ok, ok ? (resultado?.fuente || 'ok') : (resultado?.error || `wait=${wait}`));
+        console.log(`[estudio-clip] ${paso} dur_paso=${Date.now() - tPaso}ms wait=${wait}`);
       } catch (err) {
         console.warn('Proveedor clip', paso, err?.message || err);
         erroresProveedor.push(`${paso} ${err?.message || err}`);
+        mark(paso, false, err?.message || err);
       }
     }
 
     if (nativo?.video_url || nativo?.video_base64) {
       write({ type: 'status', msg: 'Entregando microfilme nativo…' });
+      mark('entregado_video', true, nativo.fuente || '');
       return {
         success: true,
         tipo: 'video',
@@ -913,16 +914,17 @@ export default async (req) => {
     // Diapositivas SOLO para pantera/pesca cuando queda mucho margen.
     // Escenas normales (cóctel, etc.): placa limpia — el morph parece slideshow, no película.
     let secuencia = [];
+    // Bajo tope streaming 60s: slideshow solo si aún queda margen real.
     const puedeSlideshowEspecial = (esEscenaPanteraMono(prompt) || pescaEpica)
       && !pasadoSoftDeadline(inicio)
-      && tiempoRestante(inicio) > 28000;
+      && tiempoRestante(inicio) > 18000;
 
     if (puedeSlideshowEspecial) {
       if (esEscenaPanteraMono(prompt)) {
         write({ type: 'status', msg: 'Filmando aproximación pantera→mono (composición)…' });
         try {
           const comp = await generarSecuenciaPanteraMono(prompt, {
-            timeoutMs: Math.min(45000, tiempoRestante(inicio) - 8000),
+            timeoutMs: Math.min(16000, tiempoRestante(inicio) - 6000),
           });
           if (comp?.secuencia?.length >= 2) {
             secuencia = comp.secuencia.map((f) => ({ ...f, fuente: comp.fuente }));
