@@ -5,6 +5,7 @@ import { getSiteUrl } from '../lib/site-url'
 import {
   isSoftRecoveryLookupError,
   mapRecoveryEmailError,
+  mapResendSendError,
   sendRecoveryEmailViaResend,
 } from '../lib/recovery-email'
 import { getResendConfig, sendSignupConfirmEmailViaResend } from '../lib/privilege-email'
@@ -662,9 +663,7 @@ export const requestPasswordResetFn = createServerFn({ method: 'POST' })
         actionLink,
       })
       if (!sent.ok) {
-        throw new Error(
-          `No se pudo enviar el correo con Resend. Verifica dominio y RESEND_FROM. ${sent.error}`,
-        )
+        throw new Error(mapResendSendError(sent.error))
       }
     } else {
       const supabase = createSupabaseServerClient()
