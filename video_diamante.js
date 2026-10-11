@@ -273,6 +273,15 @@ function actualizarPreviewTipografia() {
     ctx.fillText(hintPx, w / 2, 48);
 }
 
+function etiquetaEstudioFn(fn) {
+    if (fn.includes("imagen")) return "imagen";
+    if (fn.includes("voz")) return "voz";
+    if (fn.includes("clip")) return "clip";
+    if (fn.includes("letra")) return "letra";
+    if (fn.includes("director")) return "director";
+    return "estudio";
+}
+
 async function fetchEstudio(endpoint, body, { timeoutMs, onStatus, signal, abortErrorMsg } = {}) {
     await ensureAccessToken();
     let fn = "estudio-imagen";
@@ -280,6 +289,7 @@ async function fetchEstudio(endpoint, body, { timeoutMs, onStatus, signal, abort
     else if (endpoint.includes("voz")) fn = "estudio-voz";
     else if (endpoint.includes("clip")) fn = "estudio-clip";
     else if (endpoint.includes("director")) fn = "estudio-director";
+    const que = etiquetaEstudioFn(fn);
     const ctrl = timeoutMs || signal ? new AbortController() : null;
     const timer = ctrl && timeoutMs ? setTimeout(() => ctrl.abort("timeout"), timeoutMs) : null;
     const onExternalAbort = () => ctrl?.abort("cancel");
@@ -295,7 +305,7 @@ async function fetchEstudio(endpoint, body, { timeoutMs, onStatus, signal, abort
             signal: ctrl?.signal
         });
         const d2 = await parseEstudioResponse(r2, onStatus);
-        return { ok: r2.ok, data: d2 };
+        return { ok: r2.ok && !d2?.error, data: d2 };
     } catch (err) {
         const msg = String(err?.message || err || "");
         if (err?.name === "AbortError" || /abort/i.test(msg)) {
@@ -305,7 +315,7 @@ async function fetchEstudio(endpoint, body, { timeoutMs, onStatus, signal, abort
                 data: {
                     error: cancelado
                         ? (abortErrorMsg || "Generación cancelada.")
-                        : "La petición tardó demasiado (timeout). Vuelve a intentar; el clip puede necesitar un segundo intento."
+                        : `La petición de ${que} tardó demasiado. Vuelve a intentar; a veces completa al segundo intento.`
                 }
             };
         }
@@ -313,7 +323,7 @@ async function fetchEstudio(endpoint, body, { timeoutMs, onStatus, signal, abort
             return {
                 ok: false,
                 data: {
-                    error: "Inactivity Timeout: la conexión quedó en silencio. Reintenta el clip; ya enviamos heartbeats para evitarlo."
+                    error: `La conexión quedó en silencio al generar la ${que}. Vuelve a intentar; el Estudio ya envía pulsos para evitar cortes.`
                 }
             };
         }
@@ -748,7 +758,14 @@ async function generarImagenIA() {
     if (status) status.textContent = "La IA está creando tu escena visual...";
 
     try {
-        const { ok, data: d } = await fetchEstudio("/estudio/imagen", { prompt });
+        // NDJSON + timeout: evita Inactivity Timeout de Safari en waits largos sin bytes.
+        const { ok, data: d } = await fetchEstudio("/estudio/imagen", { prompt }, {
+            timeoutMs: 88000,
+            onStatus: (s) => {
+                if (status && s?.msg) status.textContent = String(s.msg);
+            },
+            abortErrorMsg: "Generación de imagen cancelada.",
+        });
         if (!ok || !d.imagen_base64) throw new Error(d.error || "No se pudo generar la imagen.");
 
         incrementarEstudioGens("imagen");
@@ -772,8 +789,9 @@ async function generarImagenIA() {
             status.textContent = `Imagen fija lista (${d.fuente || "IA"})${textoDirectorStatus(d)} — descárgala a tu equipo o añádela a la pizarra.`;
         }
     } catch (e) {
-        if (status) status.textContent = "Error: " + e.message;
-        alert("Error generando imagen: " + e.message);
+        const msg = String(e?.message || e);
+        if (status) status.textContent = "Error: " + msg;
+        alert("Error generando imagen: " + msg);
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = "✨ Generar imagen"; }
     }
@@ -803,6 +821,9 @@ async function generarLetraIA() {
             genero: tono,
             mood,
             duracionSeg,
+        }, {
+            timeoutMs: 55000,
+            abortErrorMsg: "Generación de discurso cancelada.",
         });
         const texto = d.discurso || d.letra;
         if (!ok || !texto) throw new Error(d.error || "No se pudo generar el discurso.");
@@ -1977,7 +1998,7 @@ async function parseEstudioResponse(respuesta, onStatus) {
                 const { type, ...rest } = last;
                 return rest;
             }
-            return { error: "Respuesta de clip incompleta." };
+            return { error: "Respuesta del Estudio incompleta. Vuelve a intentar." };
         }
         const reader = respuesta.body.getReader();
         const decoder = new TextDecoder();
@@ -2005,7 +2026,7 @@ async function parseEstudioResponse(respuesta, onStatus) {
             const { type, ...rest } = last;
             return rest;
         }
-        return { error: "Respuesta de clip incompleta." };
+        return { error: "Respuesta del Estudio incompleta. Vuelve a intentar." };
     }
     return parseJsonSeguro(respuesta);
 }
