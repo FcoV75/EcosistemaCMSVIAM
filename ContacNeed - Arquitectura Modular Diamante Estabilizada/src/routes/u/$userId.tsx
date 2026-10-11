@@ -23,6 +23,31 @@ function PublicProfilePage() {
   const [serviceNote, setServiceNote] = useState('')
   const [friendNote, setFriendNote] = useState('')
 
+  if (!data || data.notFound || !data.profile) {
+    return (
+      <AppShell
+        selectedState={selectedState}
+        onStateChange={setSelectedState}
+        showStripeModal={showStripeModal}
+        onOpenStripe={() => setShowStripeModal(true)}
+        onCloseStripe={() => setShowStripeModal(false)}
+      >
+        <div className="cn-glass mx-auto max-w-lg rounded-2xl border border-amber-500/25 p-8 text-center">
+          <h1 className="text-xl font-black text-white">Perfil no disponible</h1>
+          <p className="mt-3 text-sm text-purple-200/80">
+            No encontramos esta cuenta o está suspendida. Vuelve a la pizarra para seguir explorando.
+          </p>
+          <Link
+            to="/"
+            className="cn-btn-metallic mt-6 inline-block rounded-xl px-6 py-3 text-sm font-bold text-slate-950"
+          >
+            Volver a la pizarra
+          </Link>
+        </div>
+      </AppShell>
+    )
+  }
+
   const profile = data.profile
   const negocio = data.negocio
   const relacion = data.relacion
