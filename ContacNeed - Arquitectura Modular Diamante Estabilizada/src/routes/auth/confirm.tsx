@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ContacNeedLogo } from '../../components/ContacNeedLogo'
 import { clearGuestBrowseTimer } from '../../components/GuestBrowseGate'
 import {
   confirmEmailFromLinkFn,
+  getEmailConfirmStatusFn,
   resendSignupConfirmFn,
 } from '../../server/auth.functions'
 
@@ -25,7 +26,7 @@ function friendlyLinkError(params: URLSearchParams) {
     description.toLowerCase().includes('invalid or has expired') ||
     description.toLowerCase().includes('expired')
   ) {
-    return 'Este enlace ya expiró o se usó (a veces un filtro antispam lo abre antes que tú). Pide uno nuevo abajo.'
+    return 'Este enlace ya expiró o se usó (a veces un filtro antispam lo abre antes que tú). Escribe tu correo abajo para pedir uno nuevo, o inicia sesión si ya confirmaste.'
   }
   if (code || description) {
     return description || 'No se pudo validar el enlace. Pide uno nuevo abajo.'
@@ -45,35 +46,69 @@ function hasConfirmPayload(params: URLSearchParams) {
 function ConfirmEmailPage() {
   const initial = useMemo(() => {
     if (typeof window === 'undefined') {
-      return { status: 'loading' as const, message: 'Validando tu correo...', canConfirm: false }
+      return {
+        status: 'loading' as const,
+        message: 'Validando tu correo...',
+        canConfirm: false,
+        emailHint: '',
+      }
     }
     const params = parseLinkParams()
+    const emailHint = String(params.get('email') || '').trim().toLowerCase()
     const err = friendlyLinkError(params)
     if (err) {
-      return { status: 'error' as const, message: err, canConfirm: false }
+      return { status: 'error' as const, message: err, canConfirm: false, emailHint }
     }
     if (hasConfirmPayload(params)) {
       return {
         status: 'ready' as const,
-        message: 'Pulsa el botón para activar tu cuenta. Así evitamos que un filtro de correo gaste el enlace solo.',
+        message:
+          'Pulsa el botón para activar tu cuenta. Así evitamos que un filtro de correo gaste el enlace solo.',
         canConfirm: true,
+        emailHint,
       }
     }
     return {
       status: 'error' as const,
       message: 'No encontramos un enlace válido en esta página. Pide uno nuevo con tu correo.',
       canConfirm: false,
+      emailHint,
     }
   }, [])
 
   const [status, setStatus] = useState<'loading' | 'ready' | 'success' | 'error'>(initial.status)
   const [message, setMessage] = useState(initial.message)
   const [confirming, setConfirming] = useState(false)
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initial.emailHint)
   const [resendMsg, setResendMsg] = useState<string | null>(null)
   const [resendLoading, setResendLoading] = useState(false)
+  const confirmLock = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const st = await getEmailConfirmStatusFn()
+        if (cancelled || !st.confirmed) return
+        clearGuestBrowseTimer()
+        setStatus('success')
+        setMessage('Tu correo ya está confirmado. Puedes usar ContacNeed con tu cuenta.')
+        if (st.email) setEmail(st.email)
+        if (window.location.hash || window.location.search) {
+          window.history.replaceState(null, '', window.location.pathname)
+        }
+      } catch {
+        /* sin sesión previa: seguir flujo normal */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function confirmNow() {
+    if (confirmLock.current) return
+    confirmLock.current = true
     setConfirming(true)
     setStatus('loading')
     setMessage('Confirmando tu correo...')
@@ -88,10 +123,24 @@ function ConfirmEmailPage() {
         window.history.replaceState(null, '', window.location.pathname)
       }
     } catch (error) {
+      // Doble clic / link viejo: si la sesión ya quedó confirmada, no asustes a la usuaria.
+      try {
+        const st = await getEmailConfirmStatusFn()
+        if (st.confirmed) {
+          clearGuestBrowseTimer()
+          setStatus('success')
+          setMessage('Tu correo ya está confirmado. Puedes usar ContacNeed con tu cuenta.')
+          if (st.email) setEmail(st.email)
+          return
+        }
+      } catch {
+        /* ignore */
+      }
       setStatus('error')
       setMessage(error instanceof Error ? error.message : 'No se pudo confirmar el correo.')
     } finally {
       setConfirming(false)
+      confirmLock.current = false
     }
   }
 
@@ -101,6 +150,10 @@ function ConfirmEmailPage() {
     try {
       const result = await resendSignupConfirmFn({ data: { email } })
       setResendMsg(result.message)
+      if ('alreadyConfirmed' in result && result.alreadyConfirmed) {
+        setStatus('success')
+        setMessage(result.message)
+      }
     } catch (error) {
       setResendMsg(error instanceof Error ? error.message : 'No se pudo reenviar el correo.')
     } finally {
@@ -148,7 +201,9 @@ function ConfirmEmailPage() {
         {(status === 'error' || status === 'ready') && (
           <div className="mt-6 space-y-3 text-left">
             <p className="text-xs text-purple-200/70">
-              ¿El enlace falló o expiró? Escribe el mismo correo del registro y te mandamos uno nuevo.
+              ¿El enlace falló o expiró? Escribe el mismo correo del registro, pide uno nuevo y
+              pulsa «Confirmar mi correo» en la página (no basta con abrir el mail). Si ya lo
+              confirmaste antes, ve a iniciar sesión.
             </p>
             <label className="block text-sm">
               <span className="mb-1 block text-purple-200/80">Correo electrónico</span>
