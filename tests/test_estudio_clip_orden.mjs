@@ -19,6 +19,9 @@ const {
   duracionClipParaProveedor,
   proveedorFalBloqueado,
   proveedorViduBloqueado,
+  esErrorCreditoClip,
+  resumenMotivoClip,
+  avisoMotivoClip,
   clavesVideoClip,
   SOFT_DEADLINE_MS,
   BUDGET_CLIP_MS,
@@ -98,6 +101,18 @@ assert.equal(proveedorViduBloqueado(['vidu-i2v HTTP 403: Forbidden']), true);
 assert.equal(proveedorViduBloqueado(['vidu-i2v HTTP 401: unauthorized']), true);
 assert.equal(proveedorViduBloqueado(['fal-i2v HTTP 403: Forbidden']), false);
 assert.equal(proveedorViduBloqueado(['vidu-i2v timeout']), false);
+assert.equal(proveedorViduBloqueado(['vidu-i2v tarea {"err_code":"CreditInsufficient","credits":0}']), true);
+assert.equal(esErrorCreditoClip('User is locked. Exhausted balance'), true);
+assert.equal(esErrorCreditoClip('CreditInsufficient'), true);
+assert.equal(esErrorCreditoClip('timeout_operacion'), false);
+assert.equal(
+  resumenMotivoClip([
+    'fal-i2v HTTP 403: Exhausted balance',
+    'vidu-i2v CreditInsufficient credits:0',
+  ]),
+  'saldo_agotado_fal_y_vidu',
+);
+assert.match(avisoMotivoClip('saldo_agotado_fal_y_vidu', 8), /Fal y Vidu sin crédito/);
 
 process.env.GEMINI_API_KEY = '  ';
 process.env.VIDU_KEY = 'vidu-test';
@@ -253,7 +268,7 @@ try {
     assert.ok(!hostsDe(calls).includes('veo'), `Veo no en ${segs}s`);
   }
 
-  // Sin Fal: Vidu I2V con placa (omitVeo por tener Vidu).
+  // Sin Fal: Vidu I2V con placa (éxito → no llega a Veo).
   calls.length = 0;
   delete process.env.FAL_KEY;
   delete process.env.FAL_API_KEY;
@@ -276,7 +291,7 @@ try {
       }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
     if (u.includes('generativelanguage.googleapis.com')) {
-      throw new Error(`Veo omitido si hay Vidu: ${u}`);
+      throw new Error(`Veo no debía llamarse si Vidu ya entregó: ${u}`);
     }
     throw new Error(`No debía llamarse ${u}`);
   };
@@ -291,17 +306,41 @@ try {
   assert.equal(bodyVidu?.duration, 8);
   assert.deepEqual(hostsDe(calls), ['vidu', 'vidu']);
 
-  // 403 en cascada: Fal → Vidu → placa (con registro).
+  // Saldo agotado Fal+Vidu → debe intentar Veo como respaldo.
   calls.length = 0;
   process.env.FAL_KEY = 'fal-key';
   process.env.VIDU_API_KEY = 'vidu-key';
   process.env.GEMINI_API_KEY = 'veo-key';
+  const videoBase64 = Buffer.alloc(2048, 9).toString('base64');
   globalThis.fetch = async (url) => {
-    calls.push(String(url));
-    return new Response(JSON.stringify({ detail: 'Exhausted balance. User is locked.' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const u = String(url);
+    calls.push(u);
+    if (u.includes('fal.run') || u.includes('api.vidu.com')) {
+      return new Response(JSON.stringify({
+        detail: 'Exhausted balance. User is locked.',
+        err_code: 'CreditInsufficient',
+        credits: 0,
+        state: 'failed',
+      }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (u.includes(':predictLongRunning')) {
+      return new Response(JSON.stringify({ name: 'operations/veo-credito' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (u.includes('/operations/veo-credito')) {
+      return new Response(JSON.stringify({
+        done: true,
+        response: {
+          generateVideoResponse: {
+            generatedSamples: [{
+              video: { bytesBase64Encoded: videoBase64, mimeType: 'video/mp4' },
+            }],
+          },
+        },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    throw new Error(`Fetch inesperado ${u}`);
   };
   const fal403 = await invocar({
     prompt: PROMPT_CHAROLA,
@@ -310,14 +349,36 @@ try {
     mime: 'image/jpeg',
   });
   assert.equal(fal403.result?.success, true);
-  assert.equal(fal403.result?.tipo, 'cinematico');
-  assert.match(fal403.result?.motivo_fallback || '', /fal-i2v:/);
-  assert.match(fal403.result?.motivo_fallback || '', /HTTP 403/);
+  assert.equal(fal403.result?.tipo, 'video');
+  assert.match(fal403.result?.fuente || '', /^gemini-veo:/);
   assert.ok(Array.isArray(fal403.result?.registro));
   const orden403 = hostsDe(calls);
   assert.equal(orden403[0], 'fal');
   assert.ok(orden403.includes('vidu'));
-  assert.ok(!orden403.includes('veo'));
+  assert.ok(orden403.includes('veo'), 'Veo debe respaldar cuando Fal/Vidu no tienen saldo');
+
+  // Si Veo también falla: placa + motivo claro de saldo.
+  calls.length = 0;
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    return new Response(JSON.stringify({
+      detail: 'Exhausted balance. User is locked.',
+      err_code: 'CreditInsufficient',
+      credits: 0,
+      state: 'failed',
+    }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+  };
+  const todoSinSaldo = await invocar({
+    prompt: PROMPT_CHAROLA,
+    duracionSeg: 8,
+    imagen_base64: placa,
+    mime: 'image/jpeg',
+  });
+  assert.equal(todoSinSaldo.result?.success, true);
+  assert.equal(todoSinSaldo.result?.tipo, 'cinematico');
+  assert.equal(todoSinSaldo.result?.motivo_fallback, 'saldo_agotado_fal_y_vidu');
+  assert.match(todoSinSaldo.result?.aviso || '', /sin crédito|saldo/i);
+  assert.ok(hostsDe(calls).includes('veo'));
 
   // Sin claves: placa sin fetch.
   calls.length = 0;

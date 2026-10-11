@@ -1447,7 +1447,13 @@ async function generarClipIA() {
         } else if (status && clipEstudioTipo === "cinematico") {
             const aviso = d.aviso
                 || "Sin video nativo esta vez (I2V/T2V no respondió a tiempo).";
-            status.textContent = `Placa del clip lista — no es un video con actuación. ${aviso} Puedes descargarla o pulsar Generar clip otra vez.${textoDirectorStatus(d)}`;
+            const saldo = /saldo_agotado|sin crédito|exhausted|CreditInsufficient/i.test(
+                `${d.motivo_fallback || ""} ${aviso}`,
+            );
+            const extraDir = saldo ? "" : textoDirectorStatus(d);
+            status.textContent = saldo
+                ? `Placa lista (sin video). ${aviso} Recarga Fal/Vidu o espera a Gemini Veo y pulsa Generar clip otra vez.`
+                : `Placa del clip lista — no es un video con actuación. ${aviso} Puedes descargarla o pulsar Generar clip otra vez.${extraDir}`;
         }
     } catch (e) {
         if (gen !== clipEstudioGen) return;

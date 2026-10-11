@@ -75,15 +75,58 @@ function resumenProveedor(status, body) {
   return `HTTP ${status || '?'}: ${raw.replace(/\s+/g, ' ').slice(0, 220)}`;
 }
 
-export function proveedorFalBloqueado(errores = []) {
-  return errores.some((e) => /fal-(?:i2v|t2v)|fal:/i.test(String(e))
-    && /exhausted balance|top_up|user is locked|billing|saldo|HTTP 403|forbidden/i.test(String(e)));
+/** Saldo/créditos agotados en cualquier proveedor de video. */
+export function esErrorCreditoClip(err = '') {
+  return /exhausted balance|creditinsufficient|top[_ ]?up|user is locked|credits?:?\s*0|insufficient credit|billing|saldo agotado/i
+    .test(String(err || ''));
 }
 
-/** 401/403 de Vidu: no reintentar el otro modo; el tiempo restante es para el siguiente proveedor. */
+export function proveedorFalBloqueado(errores = []) {
+  return errores.some((e) => /fal-(?:i2v|t2v)|fal:/i.test(String(e))
+    && (esErrorCreditoClip(e) || /HTTP 403|forbidden/i.test(String(e))));
+}
+
+/** 401/403/créditos de Vidu: no reintentar el otro modo; el tiempo es para Veo/Fal. */
 export function proveedorViduBloqueado(errores = []) {
   return errores.some((e) => /vidu(?:-i2v|-t2v)?/i.test(String(e))
-    && /HTTP 401|HTTP 403|invalid api key|unauthorized|forbidden/i.test(String(e)));
+    && (esErrorCreditoClip(e) || /HTTP 401|HTTP 403|invalid api key|unauthorized|forbidden/i.test(String(e))));
+}
+
+/** Motivo corto para UI (sin dumps JSON de Fal/Vidu). */
+export function resumenMotivoClip(errores = [], { sinClaves = false } = {}) {
+  if (sinClaves) return 'sin_claves_video';
+  const lista = (Array.isArray(errores) ? errores : [errores]).map((e) => String(e || ''));
+  const falCredito = lista.some((e) => /fal/i.test(e) && esErrorCreditoClip(e));
+  const viduCredito = lista.some((e) => /vidu/i.test(e) && esErrorCreditoClip(e));
+  const veoFail = lista.some((e) => /veo|gemini-veo/i.test(e));
+  if (falCredito && viduCredito) {
+    return 'saldo_agotado_fal_y_vidu';
+  }
+  if (falCredito) return 'saldo_agotado_fal';
+  if (viduCredito) return 'saldo_agotado_vidu';
+  if (veoFail && (falCredito || viduCredito)) return 'saldo_agotado_y_veo_fallo';
+  const joined = lista.filter(Boolean).join(' | ').slice(0, 280);
+  return joined || 'timeout_proveedor_i2v';
+}
+
+export function avisoMotivoClip(motivo, duracion) {
+  const m = String(motivo || '');
+  if (m === 'saldo_agotado_fal_y_vidu') {
+    return `Clip de ${duracion} s: Fal y Vidu sin crédito (saldo 0). Recarga en fal.ai/dashboard/billing y Vidu, o deja margen a Gemini Veo. Se entregó la placa.`;
+  }
+  if (m === 'saldo_agotado_fal') {
+    return `Clip de ${duracion} s: Fal sin crédito. Recarga en fal.ai o usa Vidu/Veo. Se entregó la placa.`;
+  }
+  if (m === 'saldo_agotado_vidu') {
+    return `Clip de ${duracion} s: Vidu sin crédito. Recarga Vidu o usa Fal/Veo. Se entregó la placa.`;
+  }
+  if (m === 'sin_claves_video') {
+    return `Clip de ${duracion} s: no hay claves de video (Fal/Vidu/Veo). Se entregó la placa.`;
+  }
+  if (m === 'presupuesto_corto' || m === 'presupuesto_corto_i2v') {
+    return `Clip de ${duracion} s: presupuesto corto para video nativo. Reintenta. Se entregó la placa.`;
+  }
+  return `Clip de ${duracion} s: se entregó placa (sin video nativo: ${m.slice(0, 180)}).`;
 }
 
 export function clavesVideoClip() {
@@ -758,8 +801,9 @@ export default async (req) => {
     const erroresProveedor = [];
     const claves = clavesVideoClip();
     const conPlacaCliente = placaIn.length > 80;
-    // Streaming ~60s: omitir Veo si hay Fal/Vidu o duración > 8 (Veo no cabe).
-    const omitVeo = duracion > 8 || claves.fal || claves.vidu || body.modo === 'fiable';
+    // Veo máx 8 s. NO omitir solo porque existan claves Fal/Vidu:
+    // si esas cuentas van sin saldo, Veo es el respaldo (caso actual del usuario).
+    const omitVeo = duracion > 8;
     const pasos = planIntentosClip({
       tieneVeo: claves.veo,
       tieneVidu: claves.vidu,
@@ -795,15 +839,17 @@ export default async (req) => {
       };
       mark('placa', true, 'reintento');
     } else {
-      write({ type: 'status', msg: 'Generando placa rápida…' });
-      // Placa RÁPIDA (Fal primero): Gemini imagen con 429 tumba el clip → "respuesta incompleta".
+      write({ type: 'status', msg: 'Generando placa (obediente al prompt)…' });
+      // Placa: preferir obediencia (Gemini corto). Fal imagen puede estar sin saldo
+      // igual que I2V → Pollinations genérico (sala vacía sin la charola de pan).
       cine = await generarImagenEstudio(promptEn, {
         width: 1280,
         height: 720,
         seed: seedDesdePrompt(`clip:${prompt}`),
         original: prompt,
         prioridad: 'rapido',
-        timeoutMs: 12000,
+        preferirObediencia: true,
+        timeoutMs: 14000,
       });
       mark('placa', !!cine?.imagen_base64, cine?.fuente || 'fail');
     }
@@ -823,8 +869,9 @@ export default async (req) => {
       actuacion: false,
       sin_actuacion: !!pideActuacion,
       motivo_fallback: motivo,
+      errores_proveedor: erroresProveedor.slice(0, 6),
       ...metaBase,
-      aviso: `Clip de ${duracion} s: se entregó placa (sin video nativo: ${motivo}).${avisoExtra}`,
+      aviso: `${avisoMotivoClip(motivo, duracion)}${avisoExtra}`,
     });
 
     if (pasadoSoftDeadline(inicio) || tiempoRestante(inicio) < 10000) {
@@ -906,9 +953,11 @@ export default async (req) => {
     if (!motivoFallback) {
       if (!claves.veo && !claves.vidu && !claves.fal) motivoFallback = 'sin_claves_video';
       else if (!proveedoresIntentados && !erroresProveedor.length) motivoFallback = 'presupuesto_corto_i2v';
-      else motivoFallback = erroresProveedor.length
-        ? erroresProveedor.join(' | ').slice(0, 500)
-        : 'timeout_proveedor_i2v';
+      else {
+        motivoFallback = resumenMotivoClip(erroresProveedor, {
+          sinClaves: !claves.veo && !claves.vidu && !claves.fal,
+        });
+      }
     }
 
     // Diapositivas SOLO para pantera/pesca cuando queda mucho margen.

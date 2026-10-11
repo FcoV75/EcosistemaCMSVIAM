@@ -438,15 +438,21 @@ export async function generarImagenEstudio(promptEn, opts = {}) {
   };
 
   if (rapido) {
-    const fal = await generarImagenFal(promptEn, withBudget());
-    if (fal) return fal;
-    const replicate = await generarImagenReplicate(promptEn, withBudget({ timeoutMs: 18000 }));
-    if (replicate) return replicate;
-    // Un solo intento Gemini corto solo si aún no hay placa.
-    if (tieneGemini && msRestantesImagen(opts) > 16000) {
-      const gemini = await generarImagenGemini(promptEn, withBudget({ timeoutMs: 18000 }));
+    // Clip / obediencia: Gemini primero (Fal imagen a menudo comparte saldo agotado con I2V).
+    if (opts.preferirObediencia && tieneGemini && msRestantesImagen(opts) > 9000) {
+      say('Placa con Gemini (obediencia al prompt)…');
+      const gemini = await generarImagenGemini(promptEn, withBudget({ timeoutMs: Math.min(12000, Number(opts.timeoutMs) || 12000) }));
       if (gemini) return gemini;
     }
+    const fal = await generarImagenFal(promptEn, withBudget());
+    if (fal) return fal;
+    const replicate = await generarImagenReplicate(promptEn, withBudget({ timeoutMs: 14000 }));
+    if (replicate) return replicate;
+    if (tieneGemini && msRestantesImagen(opts) > 12000 && !opts.preferirObediencia) {
+      const gemini = await generarImagenGemini(promptEn, withBudget({ timeoutMs: 14000 }));
+      if (gemini) return gemini;
+    }
+    say('Respaldo Pollinations…');
     return generarImagenPollinations(promptEn, opts);
   }
 
