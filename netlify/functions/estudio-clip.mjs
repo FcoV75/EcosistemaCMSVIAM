@@ -630,8 +630,8 @@ function ndjsonClipResponse(trabajoAsync) {
       const ping = setInterval(() => {
         write({ type: 'ping', t: Date.now() });
       }, 3500);
-      // Forzar result antes del kill Netlify (120s) si el trabajo se atasca.
-      const margenFlushMs = Math.max(8000, BUDGET_CLIP_MS - SOFT_DEADLINE_MS);
+      // Tras soft deadline el handler debería devolver placa; si sigue colgado,
+      // forzar result antes del kill Netlify (120s) para que el cliente pueda reintentar.
       let forceTimer = null;
       const forceResult = new Promise((resolve) => {
         forceTimer = setTimeout(() => {
@@ -639,7 +639,7 @@ function ndjsonClipResponse(trabajoAsync) {
             success: false,
             error: 'El clip se cortó a mitad (timeout de presupuesto). Reintenta; suele completar al segundo intento.',
           });
-        }, BUDGET_CLIP_MS - margenFlushMs);
+        }, Math.max(SOFT_DEADLINE_MS + 6000, BUDGET_CLIP_MS - 6000));
       });
       try {
         write({ type: 'status', msg: 'Director y placa en marcha…' });
