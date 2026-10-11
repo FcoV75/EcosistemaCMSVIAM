@@ -15,6 +15,8 @@ delete process.env.REPLICATE_API_TOKEN;
 const {
   planIntentosClip,
   presupuestoPasoClip,
+  waitPasoClip,
+  duracionClipParaProveedor,
   proveedorFalBloqueado,
   proveedorViduBloqueado,
   clavesVideoClip,
@@ -56,6 +58,29 @@ assert.deepEqual(
 );
 assert.deepEqual(planIntentosClip({}), []);
 
+// Premium 10/12 s: omitir Veo (máx 8) para no quemar el soft deadline.
+assert.deepEqual(
+  planIntentosClip({ tieneVeo: true, tieneVidu: true, tieneFal: true, conPlaca: false, omitVeo: true }),
+  ['vidu-i2v', 'vidu-t2v', 'fal-i2v', 'fal-t2v'],
+);
+assert.deepEqual(
+  planIntentosClip({ tieneVeo: true, tieneVidu: true, tieneFal: true, conPlaca: true, omitVeo: true }),
+  ['vidu-i2v', 'vidu-t2v', 'fal-i2v', 'fal-t2v'],
+);
+
+// Duraciones pedidas 8 / 10 / 12 → mapeo por proveedor.
+assert.equal(duracionClipParaProveedor('veo-t2v', 8), 8);
+assert.equal(duracionClipParaProveedor('veo-t2v', 10), 8);
+assert.equal(duracionClipParaProveedor('veo-t2v', 12), 8);
+assert.equal(duracionClipParaProveedor('vidu-i2v', 8), 8);
+assert.equal(duracionClipParaProveedor('vidu-i2v', 10), 10);
+assert.equal(duracionClipParaProveedor('vidu-i2v', 12), 12);
+assert.equal(duracionClipParaProveedor('fal-i2v', 8), 8);
+assert.equal(duracionClipParaProveedor('fal-i2v', 10), 10);
+assert.equal(duracionClipParaProveedor('fal-i2v', 12), 10); // LTX snap 6|8|10
+assert.equal(duracionClipParaProveedor('fal-t2v', 12), 10);
+assert.equal(duracionClipParaProveedor('fal-i2v', 12, 15000), 6); // poco margen → 6
+
 assert.equal(presupuestoPasoClip('veo-t2v', 86000, { reservarVidu: true }), 42000);
 assert.equal(presupuestoPasoClip('veo-t2v', 86000), 70000);
 assert.equal(presupuestoPasoClip('veo-t2v', 80000, { reintentoPlaca: true }), 22000);
@@ -91,14 +116,32 @@ delete process.env.VIDU_KEY;
 delete process.env.FAL_API_KEY;
 
 const { default: clipHandler } = await import('../netlify/functions/estudio-clip.mjs');
+const { createAccessToken } = await import('../netlify/functions/lib/ecosistema-auth.mjs');
 
 const originalFetch = globalThis.fetch;
 const placa = 'A'.repeat(120);
+const TEST_SECRET = 'test-clip-orden-secret';
 
-async function invocar(body) {
+function tokenPremium() {
+  process.env.ECOSISTEMA_SESSION_SECRET = TEST_SECRET;
+  return createAccessToken({
+    sub: 'test-clip-premium',
+    product: 'video_diamante_premium',
+    plan: 'premium',
+    tier: 'premium',
+  }, TEST_SECRET, 3600);
+}
+
+async function invocar(body, { premium = false } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (premium) headers.Authorization = `Bearer ${tokenPremium()}`;
+  else {
+    delete process.env.ECOSISTEMA_SESSION_SECRET;
+    delete process.env.RAILWAY_INTERNAL_SECRET;
+  }
   const response = await clipHandler(new Request('http://localhost/.netlify/functions/estudio-clip', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
   }));
   const text = await response.text();
@@ -232,6 +275,89 @@ try {
   assert.equal(sinClaves.result?.tipo, 'cinematico');
   assert.equal(sinClaves.result?.motivo_fallback, 'sin_claves_video');
   assert.equal(calls.length, 0);
+
+  // 10 s y 12 s: no llamar a Veo (omitVeo); Vidu recibe la duración pedida.
+  for (const segs of [10, 12]) {
+    calls.length = 0;
+    process.env.GEMINI_API_KEY = 'veo-key';
+    process.env.VIDU_API_KEY = 'vidu-key';
+    process.env.FAL_KEY = 'fal-key';
+    let bodyVidu = null;
+    globalThis.fetch = async (url, opts = {}) => {
+      const u = String(url);
+      calls.push(u);
+      if (u.includes('api.vidu.com/ent/v2/img2video')) {
+        bodyVidu = JSON.parse(opts.body || '{}');
+        return new Response(JSON.stringify({ task_id: `vidu-${segs}` }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (u.includes(`/tasks/vidu-${segs}/creations`)) {
+        return new Response(JSON.stringify({
+          state: 'success',
+          creations: [{ url: `https://cdn.example/vidu-${segs}.mp4` }],
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      if (u.includes('generativelanguage.googleapis.com')) {
+        throw new Error(`Veo no debe llamarse con ${segs}s: ${u}`);
+      }
+      throw new Error(`No debía llamarse ${u}`);
+    };
+
+    const clipLargo = await invocar({
+      prompt: 'Una charola con pan en mesa elegante, mantel blanco',
+      duracionSeg: segs,
+      imagen_base64: placa,
+      mime: 'image/jpeg',
+    }, { premium: true });
+    assert.equal(clipLargo.result?.success, true);
+    assert.equal(clipLargo.result?.tipo, 'video');
+    assert.equal(clipLargo.result?.fuente, 'vidu-i2v');
+    assert.equal(clipLargo.result?.duracionSeg, segs);
+    assert.equal(bodyVidu?.duration, segs);
+    assert.ok(!hostsDe(calls).includes('veo'), `Veo no debe entrar en ${segs}s`);
+  }
+
+  // 8 s con placa: Vidu primero; duración 8.
+  calls.length = 0;
+  process.env.GEMINI_API_KEY = 'veo-key';
+  process.env.VIDU_API_KEY = 'vidu-key';
+  process.env.FAL_KEY = 'fal-key';
+  let bodyVidu8 = null;
+  globalThis.fetch = async (url, opts = {}) => {
+    const u = String(url);
+    calls.push(u);
+    if (u.includes('api.vidu.com/ent/v2/img2video')) {
+      bodyVidu8 = JSON.parse(opts.body || '{}');
+      return new Response(JSON.stringify({ task_id: 'vidu-8' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (u.includes('/tasks/vidu-8/creations')) {
+      return new Response(JSON.stringify({
+        state: 'success',
+        creations: [{ url: 'https://cdn.example/vidu-8.mp4' }],
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    throw new Error(`No debía llamarse ${u}`);
+  };
+  const clip8 = await invocar({
+    prompt: 'Una charola con pan en mesa elegante',
+    duracionSeg: 8,
+    imagen_base64: placa,
+    mime: 'image/jpeg',
+  });
+  assert.equal(clip8.result?.success, true);
+  assert.equal(clip8.result?.duracionSeg, 8);
+  assert.equal(bodyVidu8?.duration, 8);
+  assert.deepEqual(hostsDe(calls), ['vidu', 'vidu']);
+
+  // waitPasoClip no supera el soft restante.
+  const inicioFake = Date.now() - 90000; // ~8 s de soft restantes (98s soft)
+  const capped = waitPasoClip('vidu-i2v', inicioFake, {});
+  assert.ok(capped > 0 && capped <= 10000, `waitPasoClip debe capar al soft: ${capped}`);
 
   console.log('test_estudio_clip_orden: ok');
 } finally {
