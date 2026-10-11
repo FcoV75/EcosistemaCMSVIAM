@@ -1300,23 +1300,22 @@ async function generarClipIA() {
 
     try {
         let d = null;
-        // Un reintento automático si el stream se corta sin result (timeout Netlify / proxy).
+        // Streaming Netlify ~60s: timeout cliente 70s. Reintento con modo fiable + placa.
         for (let intento = 0; intento < 2; intento += 1) {
-            const bodyClip = { prompt, duracionSeg };
+            const bodyClip = { prompt, duracionSeg, modo: intento ? "fiable" : "normal" };
             if (clipEstudioPlacaB64) {
                 bodyClip.imagen_base64 = clipEstudioPlacaB64;
                 bodyClip.mime = clipEstudioPlacaMime;
                 if (status) {
                     status.textContent = intento
-                        ? `Reintento automático con placa (${duracionSeg} s)…`
+                        ? `Reintento fiable con placa (${duracionSeg} s)…`
                         : `Reintentando microfilme con la placa anterior (${duracionSeg} s)…`;
                 }
             } else if (intento && status) {
-                status.textContent = `Reintento automático del clip (${duracionSeg} s)…`;
+                status.textContent = `Reintento fiable del clip (${duracionSeg} s)…`;
             }
-            // Alineado a Netlify estudio-clip timeout=120s + margen de red.
             const { ok, data } = await fetchEstudio("/estudio/clip", bodyClip, {
-                timeoutMs: 125000,
+                timeoutMs: 70000,
                 signal: abortLocal.signal,
                 abortErrorMsg: "Generación de clip cancelada (nueva solicitud).",
                 onStatus: (st) => {
@@ -1326,19 +1325,24 @@ async function generarClipIA() {
                 }
             });
             if (gen !== clipEstudioGen) return;
+            // Si llegó placa en respuesta de error parcial, guardarla para el reintento.
+            if (data?.imagen_base64 && !clipEstudioPlacaB64) {
+                clipEstudioPlacaB64 = data.imagen_base64;
+                clipEstudioPlacaMime = data.mime || "image/jpeg";
+            }
             if (ok && !data?.error) {
                 d = data;
                 break;
             }
             const raw = String(data?.error || "No se pudo generar el clip.");
             if (/cancelad/i.test(raw)) return;
-            const cortado = /incompleta|tardó demasiado|inactivity timeout|too much time/i.test(raw);
+            const cortado = /incompleta|tardó demasiado|inactivity timeout|too much time|timeout de presupuesto|cortó a mitad/i.test(raw);
             if (cortado && intento === 0) {
-                if (status) status.textContent = `La conexión se cortó; reintentando clip de ${duracionSeg} s…`;
+                if (status) status.textContent = `La conexión se cortó (~60s streaming); reintento fiable ${duracionSeg} s…`;
                 continue;
             }
-            if (/incompleta/i.test(raw)) {
-                throw new Error("El clip se cortó a mitad (timeout). Pulsa Generar clip otra vez; suele completar al segundo intento.");
+            if (/incompleta|cortó a mitad|timeout de presupuesto/i.test(raw)) {
+                throw new Error("El clip se cortó a mitad (límite streaming ~60s). Pulsa Generar clip otra vez.");
             }
             if (/inactivity timeout|too much time has passed|tardó demasiado/i.test(raw)) {
                 throw new Error("El servidor tardó demasiado. Intenta de nuevo; suele completar en el segundo intento.");
@@ -1347,6 +1351,13 @@ async function generarClipIA() {
         }
         if (!d) throw new Error("No se pudo generar el clip.");
         incrementarEstudioGens("clip");
+        if (Array.isArray(d.registro) && d.registro.length && status) {
+            const ultima = d.registro[d.registro.length - 1];
+            console.info("[clip registro]", d.registro);
+            if (ultima?.t_ms) {
+                // Deja rastro en consola; el status final se pisa abajo con el mensaje de éxito.
+            }
+        }
 
         if (d.video_url || d.video_base64) {
             let blob;
