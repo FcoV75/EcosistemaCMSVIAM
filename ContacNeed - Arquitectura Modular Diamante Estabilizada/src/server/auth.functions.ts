@@ -8,6 +8,11 @@ import {
   sendRecoveryEmailViaResend,
 } from '../lib/recovery-email'
 import { getResendConfig, sendSignupConfirmEmailViaResend } from '../lib/privilege-email'
+import {
+  mapResendSendError,
+  normalizeTipoMiembro,
+  validateSignUpInput,
+} from '../lib/signup-validation'
 import { generarCodigoReferido } from '../lib/gamificacion'
 import { registrarReferidoEnSignup } from './gamificacion.functions'
 import {
@@ -35,7 +40,7 @@ function mapAuthLinkError(message: string, fallback: string) {
     msg.includes('token has expired') ||
     msg.includes('invalid or has expired')
   ) {
-    return 'Este enlace ya expiró o se usó. Pide uno nuevo con tu correo abajo.'
+    return 'Este enlace ya expiró o se usó. Escribe tu correo abajo para pedir uno nuevo, o inicia sesión si ya lo confirmaste.'
   }
   if (msg.includes('access_denied')) {
     return 'No se pudo validar el enlace. Pide uno nuevo con tu correo abajo.'
@@ -46,20 +51,51 @@ function mapAuthLinkError(message: string, fallback: string) {
   return message || fallback
 }
 
+function isOtpExpiredMessage(message: string) {
+  const msg = String(message || '').toLowerCase()
+  return (
+    msg.includes('otp_expired') ||
+    msg.includes('email link is invalid or has expired') ||
+    msg.includes('token has expired') ||
+    msg.includes('invalid or has expired')
+  )
+}
+
 /** Prefiere enlace directo a ContacNeed con token_hash (evita que un escáner de correo gaste el /verify de Supabase). */
 function buildContacNeedAuthLink(
   path: '/auth/confirm' | '/auth/reset',
   properties: { hashed_token?: string | null; action_link?: string | null } | null | undefined,
   type: EmailOtpType,
+  email?: string | null,
 ) {
   const hashed = String(properties?.hashed_token || '').trim()
   if (hashed) {
     const url = new URL(`${getSiteUrl()}${path}`)
     url.searchParams.set('token_hash', hashed)
     url.searchParams.set('type', type)
+    const mail = String(email || '').trim().toLowerCase()
+    if (mail) url.searchParams.set('email', mail)
     return url.toString()
   }
   return String(properties?.action_link || '').trim() || null
+}
+
+async function markPerfilVerificado(userId: string) {
+  const admin = createSupabaseAdminClient()
+  await admin.from('perfiles').update({ verificado: true }).eq('id', userId)
+}
+
+/** Si el OTP ya se gastó pero la sesión quedó confirmada (doble clic / red lenta), trata como éxito. */
+async function sessionIfAlreadyConfirmed(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+) {
+  const { data } = await supabase.auth.getUser()
+  const user = data.user
+  if (user?.id && user.email_confirmed_at) {
+    await markPerfilVerificado(user.id)
+    return { user, session: null }
+  }
+  return null
 }
 
 async function establishSessionFromAuthParams(
@@ -73,25 +109,46 @@ async function establishSessionFromAuthParams(
       params.get('error_description')?.replace(/\+/g, ' ') ||
       params.get('error_code') ||
       linkError
+    const already = await sessionIfAlreadyConfirmed(supabase)
+    if (already && isOtpExpiredMessage(description)) return already
     throw new Error(mapAuthLinkError(description, invalidMessage))
   }
 
   const code = params.get('code')
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) throw new Error(mapAuthLinkError(error.message, invalidMessage))
+    if (error) {
+      const already = await sessionIfAlreadyConfirmed(supabase)
+      if (already && isOtpExpiredMessage(error.message)) return already
+      throw new Error(mapAuthLinkError(error.message, invalidMessage))
+    }
     return data
   }
 
   const tokenHash = params.get('token_hash')
   const type = params.get('type') as EmailOtpType | null
   if (tokenHash && type) {
-    const { data, error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type,
-    })
-    if (error) throw new Error(mapAuthLinkError(error.message, invalidMessage))
-    return data
+    // signup / magiclink / email: probar el type del link y respaldos (reenvíos mezclan tipos).
+    const typesToTry = Array.from(
+      new Set(
+        [type, 'signup', 'magiclink', 'email'].filter(Boolean) as EmailOtpType[],
+      ),
+    )
+    let lastError: { message: string } | null = null
+    for (const otpType of typesToTry) {
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: otpType,
+      })
+      if (!error) return data
+      lastError = error
+      if (!isOtpExpiredMessage(error.message) && !/otp|token|type/i.test(error.message)) {
+        break
+      }
+    }
+    const already = await sessionIfAlreadyConfirmed(supabase)
+    if (already) return already
+    throw new Error(mapAuthLinkError(lastError?.message || '', invalidMessage))
   }
 
   const accessToken = params.get('access_token')
@@ -274,21 +331,6 @@ function mapSignUpError(message: string, email: string) {
   return message
 }
 
-function normalizeTipoMiembro(
-  value: string | undefined | null,
-): 'Observador' | 'Oficio' | 'Profesion' | 'Especialidad' {
-  const key = String(value ?? '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-  if (key === 'observador') return 'Observador'
-  if (key === 'oficio') return 'Oficio'
-  if (key === 'profesion') return 'Profesion'
-  if (key === 'especialidad') return 'Especialidad'
-  return 'Observador'
-}
-
 async function saveSignupProfile(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   userId: string,
@@ -323,37 +365,47 @@ async function saveSignupProfile(
     bloqueado: false,
   }
 
-  const full = await admin.from('perfiles').upsert(payload, { onConflict: 'id' })
-  if (!full.error) return
-
-  // Si el check antiguo aún no se actualizó, reintenta con minúsculas (legado)
-  if (String(full.error.message).includes('perfiles_tipo_miembro_check')) {
-    const legacyPayload = {
-      ...payload,
-      tipo_miembro: tipoMiembro.toLowerCase(),
-    }
-    const legacy = await admin.from('perfiles').upsert(legacyPayload, { onConflict: 'id' })
-    if (!legacy.error) return
-    throw new Error(
-      `No se pudo guardar el perfil: ${legacy.error.message}. Ejecuta en Supabase el SQL 014_fix_tipo_miembro_observador.sql`,
-    )
+  // Producción aún puede tener un CHECK viejo (sin Observador / con "Profesión" acentuada).
+  // Probamos variantes hasta que una pase; SQL 014 deja el constraint definitivo.
+  const tipoCandidates: Array<string | null> = [tipoMiembro, tipoMiembro.toLowerCase()]
+  if (tipoMiembro === 'Profesion') {
+    tipoCandidates.push('Profesión', 'profesión')
+  }
+  if (tipoMiembro === 'Observador') {
+    // Observador no existía en el check antiguo: NULL permite completar el alta.
+    tipoCandidates.push(null)
   }
 
-  const { fecha_registro: _fecha, ...withoutFecha } = payload
-  const fallback = await admin.from('perfiles').upsert(withoutFecha, { onConflict: 'id' })
-  if (fallback.error) {
-    throw new Error(`No se pudo guardar el perfil: ${fallback.error.message}`)
+  let lastError: string | null = null
+  for (const tipoTry of tipoCandidates) {
+    const attempt = { ...payload, tipo_miembro: tipoTry }
+    const { error } = await admin.from('perfiles').upsert(attempt, { onConflict: 'id' })
+    if (!error) return
+    lastError = error.message
+    if (!String(error.message).includes('perfiles_tipo_miembro_check')) break
   }
+
+  throw new Error(
+    `No se pudo guardar el perfil: ${lastError || 'error desconocido'}. ` +
+      'Ejecuta en Supabase el SQL 014_fix_tipo_miembro_observador.sql',
+  )
 }
 
 export const signUpFn = createServerFn({ method: 'POST' })
   .inputValidator((d: SignUpInput) => d)
   .handler(async ({ data }) => {
+    const parsed = validateSignUpInput(data)
+    if (!parsed.ok) throw new Error(parsed.error)
+
     const supabase = createSupabaseServerClient()
     const admin = createSupabaseAdminClient()
-    const email = data.email.trim().toLowerCase()
+    const email = parsed.value.email
     const redirectTo = `${getSiteUrl()}/auth/confirm`
     const resend = getResendConfig()
+    const signupData: SignUpInput = {
+      ...data,
+      ...parsed.value,
+    }
 
     let userId: string
     let emailConfirmed = false
@@ -365,10 +417,10 @@ export const signUpFn = createServerFn({ method: 'POST' })
       const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
         type: 'signup',
         email,
-        password: data.password,
+        password: parsed.value.password,
         options: {
           redirectTo,
-          data: { nombre: data.nombre.trim() },
+          data: { nombre: parsed.value.nombre },
         },
       })
       if (linkError) {
@@ -383,6 +435,7 @@ export const signUpFn = createServerFn({ method: 'POST' })
         '/auth/confirm',
         linkData.properties,
         'signup',
+        email,
       )
       if (!actionLink) {
         throw new Error('No se pudo generar el enlace de confirmación.')
@@ -393,11 +446,11 @@ export const signUpFn = createServerFn({ method: 'POST' })
         from: resend.from,
         to: email,
         actionLink,
-        nombre: data.nombre,
+        nombre: parsed.value.nombre,
       })
       if (!sent.ok) {
         throw new Error(
-          `Cuenta creada, pero no se pudo enviar el correo de confirmación. Verifica dominio y RESEND_FROM. ${sent.error}`,
+          `Cuenta creada, pero no se pudo enviar el correo de confirmación. ${mapResendSendError(sent.error)}`,
         )
       }
       confirmationSentViaResend = true
@@ -405,10 +458,10 @@ export const signUpFn = createServerFn({ method: 'POST' })
     } else {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
-        password: data.password,
+        password: parsed.value.password,
         options: {
           emailRedirectTo: redirectTo,
-          data: { nombre: data.nombre.trim() },
+          data: { nombre: parsed.value.nombre },
         },
       })
 
@@ -422,13 +475,17 @@ export const signUpFn = createServerFn({ method: 'POST' })
       needsEmailConfirmation = !signUpData.session
     }
 
-    await saveSignupProfile(admin, userId, email, data, emailConfirmed)
+    await saveSignupProfile(admin, userId, email, signupData, emailConfirmed)
 
     await admin.from('perfiles').update({
       codigo_referido: generarCodigoReferido(userId),
     }).eq('id', userId)
 
-    await registrarReferidoEnSignup(admin, userId, data.codigo_referido)
+    try {
+      await registrarReferidoEnSignup(admin, userId, parsed.value.codigo_referido)
+    } catch (refErr) {
+      console.warn('registrarReferidoEnSignup:', refErr instanceof Error ? refErr.message : refErr)
+    }
 
     if (!needsEmailConfirmation) {
       return {
@@ -447,7 +504,8 @@ export const signUpFn = createServerFn({ method: 'POST' })
     }
   })
 
-export const confirmEmailFromLinkFn = createServerFn({ method: 'GET' })
+/** POST: evita que un prefetch GET consuma el OTP. */
+export const confirmEmailFromLinkFn = createServerFn({ method: 'POST' })
   .inputValidator((search: string) => search)
   .handler(async ({ data: search }) => {
     const supabase = createSupabaseServerClient()
@@ -459,15 +517,26 @@ export const confirmEmailFromLinkFn = createServerFn({ method: 'GET' })
     )
 
     if (sessionData.user?.id) {
-      const admin = createSupabaseAdminClient()
-      await admin
-        .from('perfiles')
-        .update({ verificado: true })
-        .eq('id', sessionData.user.id)
+      await markPerfilVerificado(sessionData.user.id)
     }
 
-    return { success: true }
+    return {
+      success: true,
+      email: sessionData.user?.email || null,
+      alreadyConfirmed: Boolean(sessionData.user?.email_confirmed_at),
+    }
   })
+
+/** ¿La sesión actual ya tiene correo confirmado? (útil si el link viejo ya se usó). */
+export const getEmailConfirmStatusFn = createServerFn({ method: 'GET' }).handler(async () => {
+  const user = await getServerUser()
+  if (!user) return { loggedIn: false, confirmed: false, email: null as string | null }
+  return {
+    loggedIn: true,
+    confirmed: Boolean(user.email_confirmed_at),
+    email: user.email || null,
+  }
+})
 
 /** Reenvía confirmación cuando el enlace anterior expiró o lo gastó un escáner de correo. */
 export const resendSignupConfirmFn = createServerFn({ method: 'POST' })
@@ -479,7 +548,7 @@ export const resendSignupConfirmFn = createServerFn({ method: 'POST' })
     const softSuccess = {
       success: true as const,
       message:
-        'Si el correo está registrado y pendiente, te enviamos un enlace nuevo. Revisa bandeja y spam.',
+        'Si el correo está registrado y pendiente, te enviamos un enlace nuevo. Revisa bandeja y spam. Abre el correo nuevo y pulsa «Confirmar mi correo».',
     }
 
     const redirectTo = `${getSiteUrl()}/auth/confirm`
@@ -487,6 +556,7 @@ export const resendSignupConfirmFn = createServerFn({ method: 'POST' })
 
     if (resend.enabled) {
       const admin = createSupabaseAdminClient()
+      // magiclink funciona con cuentas ya creadas pendientes de confirmar.
       const { data: linkData, error } = await admin.auth.admin.generateLink({
         type: 'magiclink',
         email,
@@ -498,9 +568,11 @@ export const resendSignupConfirmFn = createServerFn({ method: 'POST' })
       }
 
       if (linkData.user?.email_confirmed_at) {
+        if (linkData.user.id) await markPerfilVerificado(linkData.user.id)
         return {
           success: true as const,
           message: 'Ese correo ya está confirmado. Puedes iniciar sesión normalmente.',
+          alreadyConfirmed: true,
         }
       }
 
@@ -508,6 +580,7 @@ export const resendSignupConfirmFn = createServerFn({ method: 'POST' })
         '/auth/confirm',
         linkData.properties,
         'magiclink',
+        email,
       )
       if (!actionLink) return softSuccess
 
@@ -576,6 +649,7 @@ export const requestPasswordResetFn = createServerFn({ method: 'POST' })
         '/auth/reset',
         linkData?.properties,
         'recovery',
+        email,
       )
       if (!actionLink) {
         throw new Error('No se pudo generar el enlace de recuperación.')

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { MEXICO_STATES } from '../lib/mexico-states'
+import { MEMBER_TYPES, validateSignUpInput } from '../lib/signup-validation'
 import { signUpFn } from '../server/auth.functions'
-
-const MEMBER_TYPES = ['Observador', 'Oficio', 'Profesion', 'Especialidad'] as const
 
 type RegistroFormProps = {
   onSuccess?: () => void
@@ -37,29 +36,33 @@ export function RegistroForm({ onSuccess, onSwitchToLogin, compact }: RegistroFo
         const form = new FormData(event.currentTarget)
 
         try {
-          const result = await signUpFn({
-            data: {
-              email: String(form.get('email')),
-              password: String(form.get('password')),
-              nombre: String(form.get('nombre')),
-              tipo_miembro: tipo,
-              direccion: String(form.get('direccion') ?? ''),
-              cp: String(form.get('cp') ?? ''),
-              celular: String(form.get('celular') ?? ''),
-              estado: String(form.get('estado') ?? ''),
-              municipio: String(form.get('municipio') ?? ''),
-              comunidad: String(form.get('comunidad') ?? ''),
-              sexo: String(form.get('sexo') ?? ''),
-              fecha_nacimiento: String(form.get('fecha_nacimiento') ?? ''),
-              habilidad_empirica: String(form.get('habilidad_empirica') ?? ''),
-              descripcion_profesion: String(form.get('descripcion_profesion') ?? ''),
-              cedula: String(form.get('cedula') ?? ''),
-              codigo_referido: codigoReferido || undefined,
-            },
-          })
+          const draft = {
+            email: String(form.get('email')),
+            password: String(form.get('password')),
+            nombre: String(form.get('nombre')),
+            tipo_miembro: tipo,
+            direccion: String(form.get('direccion') ?? ''),
+            cp: String(form.get('cp') ?? ''),
+            celular: String(form.get('celular') ?? ''),
+            estado: String(form.get('estado') ?? ''),
+            municipio: String(form.get('municipio') ?? ''),
+            comunidad: String(form.get('comunidad') ?? ''),
+            sexo: String(form.get('sexo') ?? ''),
+            fecha_nacimiento: String(form.get('fecha_nacimiento') ?? ''),
+            habilidad_empirica: String(form.get('habilidad_empirica') ?? ''),
+            descripcion_profesion: String(form.get('descripcion_profesion') ?? ''),
+            cedula: String(form.get('cedula') ?? ''),
+            codigo_referido: codigoReferido || undefined,
+          }
+          const parsed = validateSignUpInput(draft)
+          if (!parsed.ok) throw new Error(parsed.error)
+
+          const result = await signUpFn({ data: { ...draft, ...parsed.value } })
 
           if (result.needsEmailConfirmation) {
-            setSuccess(result.message)
+            setSuccess(
+              `${result.message} Si el enlace falla, entra a /auth/confirm y pide uno nuevo con el mismo correo.`,
+            )
             return
           }
 
