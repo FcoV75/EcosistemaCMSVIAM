@@ -1299,36 +1299,53 @@ async function generarClipIA() {
     if (btnDl) btnDl.style.display = "none";
 
     try {
-        // Reintento: reutilizar placa previa para gastar el presupuesto en I2V (no regenerar foto).
-        const bodyClip = { prompt, duracionSeg };
-        if (clipEstudioPlacaB64) {
-            bodyClip.imagen_base64 = clipEstudioPlacaB64;
-            bodyClip.mime = clipEstudioPlacaMime;
-            if (status) status.textContent = `Reintentando microfilme con la placa anterior (${duracionSeg} s)…`;
-        }
-        // Dejar margen al navegador: el servidor mantiene su propio presupuesto Netlify.
-        const { ok, data: d } = await fetchEstudio("/estudio/clip", bodyClip, {
-            timeoutMs: 115000,
-            signal: abortLocal.signal,
-            abortErrorMsg: "Generación de clip cancelada (nueva solicitud).",
-            onStatus: (st) => {
-                if (gen !== clipEstudioGen || !status || !st) return;
-                if (st.type === "status" && st.msg) status.textContent = st.msg;
-                else if (st.type === "ping") status.textContent = `Creando clip de ${duracionSeg} s… (sigue activo)`;
+        let d = null;
+        // Un reintento automático si el stream se corta sin result (timeout Netlify / proxy).
+        for (let intento = 0; intento < 2; intento += 1) {
+            const bodyClip = { prompt, duracionSeg };
+            if (clipEstudioPlacaB64) {
+                bodyClip.imagen_base64 = clipEstudioPlacaB64;
+                bodyClip.mime = clipEstudioPlacaMime;
+                if (status) {
+                    status.textContent = intento
+                        ? `Reintento automático con placa (${duracionSeg} s)…`
+                        : `Reintentando microfilme con la placa anterior (${duracionSeg} s)…`;
+                }
+            } else if (intento && status) {
+                status.textContent = `Reintento automático del clip (${duracionSeg} s)…`;
             }
-        });
-        if (gen !== clipEstudioGen) return;
-        if (!ok || d?.error) {
-            const raw = String(d?.error || "No se pudo generar el clip.");
+            // Alineado a Netlify estudio-clip timeout=120s + margen de red.
+            const { ok, data } = await fetchEstudio("/estudio/clip", bodyClip, {
+                timeoutMs: 125000,
+                signal: abortLocal.signal,
+                abortErrorMsg: "Generación de clip cancelada (nueva solicitud).",
+                onStatus: (st) => {
+                    if (gen !== clipEstudioGen || !status || !st) return;
+                    if (st.type === "status" && st.msg) status.textContent = st.msg;
+                    else if (st.type === "ping") status.textContent = `Creando clip de ${duracionSeg} s… (sigue activo)`;
+                }
+            });
+            if (gen !== clipEstudioGen) return;
+            if (ok && !data?.error) {
+                d = data;
+                break;
+            }
+            const raw = String(data?.error || "No se pudo generar el clip.");
             if (/cancelad/i.test(raw)) return;
+            const cortado = /incompleta|tardó demasiado|inactivity timeout|too much time/i.test(raw);
+            if (cortado && intento === 0) {
+                if (status) status.textContent = `La conexión se cortó; reintentando clip de ${duracionSeg} s…`;
+                continue;
+            }
             if (/incompleta/i.test(raw)) {
                 throw new Error("El clip se cortó a mitad (timeout). Pulsa Generar clip otra vez; suele completar al segundo intento.");
             }
-            if (/inactivity timeout|too much time has passed/i.test(raw)) {
+            if (/inactivity timeout|too much time has passed|tardó demasiado/i.test(raw)) {
                 throw new Error("El servidor tardó demasiado. Intenta de nuevo; suele completar en el segundo intento.");
             }
             throw new Error(raw);
         }
+        if (!d) throw new Error("No se pudo generar el clip.");
         incrementarEstudioGens("clip");
 
         if (d.video_url || d.video_base64) {

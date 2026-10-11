@@ -14,10 +14,10 @@ import {
   generarSecuenciaPanteraMono,
 } from './lib/estudio-secuencia-fauna.mjs';
 
-/** Usar casi todo el timeout Netlify (90s); dejar margen para escribir result. */
-const BUDGET_CLIP_MS = 86000;
-/** Soft deadline alto: más segundos reales para I2V (antes 62s dejaba solo placa). */
-const SOFT_DEADLINE_MS = 80000;
+/** Alineado a Netlify estudio-clip timeout=120s; margen para escribir result. */
+const BUDGET_CLIP_MS = 112000;
+/** Soft deadline: dejar de lanzar proveedores nuevos; siempre flush result antes del kill. */
+const SOFT_DEADLINE_MS = 98000;
 
 function tiempoRestante(inicio, budget = BUDGET_CLIP_MS) {
   return Math.max(0, budget - (Date.now() - inicio));
@@ -25,6 +25,43 @@ function tiempoRestante(inicio, budget = BUDGET_CLIP_MS) {
 
 function pasadoSoftDeadline(inicio) {
   return Date.now() - inicio >= SOFT_DEADLINE_MS;
+}
+
+/** Tiempo útil hasta soft deadline (nunca arrancar un wait que mate el NDJSON). */
+export function tiempoHastaSoft(inicio) {
+  return Math.max(0, SOFT_DEADLINE_MS - (Date.now() - inicio));
+}
+
+/**
+ * Duración pedida por el usuario → valor aceptado por cada proveedor.
+ * Veo máx 8; Fal/LTX 6|8|10; Vidu hasta 16. Premium pide 8/10/12.
+ */
+export function duracionClipParaProveedor(paso, segundos, maxWaitMs = 60000) {
+  const pedida = Math.max(5, Math.round(Number(segundos) || 8));
+  if (paso === 'veo-t2v') {
+    return Math.max(4, Math.min(8, pedida));
+  }
+  if (paso === 'vidu-i2v' || paso === 'vidu-t2v') {
+    return Math.max(5, Math.min(16, pedida));
+  }
+  if (paso === 'fal-i2v' || paso === 'fal-t2v') {
+    // LTX/Hailuo: preferir 6/8/10 (12 → 10). Con poco margen, 6.
+    const snaps = [6, 8, 10];
+    let best = snaps.reduce((a, b) => (Math.abs(b - pedida) < Math.abs(a - pedida) ? b : a));
+    if (maxWaitMs < 20000 && best > 6) best = 6;
+    if (maxWaitMs < 14000) best = 5;
+    return best;
+  }
+  return Math.min(12, pedida);
+}
+
+/** Wait real de un paso: min(presupuesto ideal, soft restante − margen). */
+export function waitPasoClip(paso, inicio, opts = {}) {
+  const restBudget = tiempoRestante(inicio);
+  const restSoft = Math.max(0, tiempoHastaSoft(inicio) - 4000);
+  const ideal = presupuestoPasoClip(paso, restBudget, opts);
+  if (!ideal) return 0;
+  return Math.min(ideal, restSoft, restBudget);
 }
 
 function resumenProveedor(status, body) {
@@ -62,14 +99,17 @@ export function planIntentosClip({
   tieneVidu = false,
   tieneFal = false,
   conPlaca = false,
+  /** Veo solo genera hasta 8 s: omitir si el usuario pide 10/12 para no quemar el presupuesto. */
+  omitVeo = false,
 } = {}) {
   const pasos = [];
+  const veo = tieneVeo && !omitVeo;
   if (conPlaca) {
     if (tieneVidu) pasos.push('vidu-i2v');
-    if (tieneVeo) pasos.push('veo-t2v');
+    if (veo) pasos.push('veo-t2v');
     if (tieneVidu) pasos.push('vidu-t2v');
   } else {
-    if (tieneVeo) pasos.push('veo-t2v');
+    if (veo) pasos.push('veo-t2v');
     if (tieneVidu) pasos.push('vidu-i2v', 'vidu-t2v');
   }
   if (tieneFal) pasos.push('fal-i2v', 'fal-t2v');
@@ -178,13 +218,11 @@ async function generarClipFalI2V(imagen, motionPrompt, segundos, maxWaitMs = 220
     Authorization: `Key ${key}`,
     'Content-Type': 'application/json',
   };
-  // Duración más corta = más probabilidad de completar a tiempo.
-  const dur = maxWaitMs < 25000
-    ? 5
-    : Math.max(5, Math.min(10, Math.round(Number(segundos) || 8)));
+  const dur = duracionClipParaProveedor('fal-i2v', segundos, maxWaitMs);
   const tStart = Date.now();
   // Un solo modelo con TODO el presupuesto (partir a la mitad mataba I2V).
-  const model = modelos[0];
+  // Preferir LTX 2.3 fast cuando existe (completa dentro del soft deadline).
+  const model = modelos.find((m) => /ltx-2\.3.*fast|ltx-video/i.test(m)) || modelos[0];
   try {
     const r = await fetch(`https://queue.fal.run/${model}`, {
       method: 'POST',
@@ -227,7 +265,7 @@ async function generarClipViduI2V(imagen, motionPrompt, segundos, maxWaitMs = 20
   const imageUrl = dataUriDesdeImagen(imagen);
   if (!imageUrl) return null;
   const model = process.env.VIDU_I2V_MODEL || 'viduq2-pro';
-  const dur = Math.max(5, Math.min(16, Math.round(Number(segundos) || 8)));
+  const dur = duracionClipParaProveedor('vidu-i2v', segundos, maxWaitMs);
   const headers = {
     Authorization: `Token ${key}`,
     'Content-Type': 'application/json',
@@ -286,7 +324,7 @@ async function generarClipViduT2V(promptEn, segundos, maxWaitMs = 16000) {
   const key = (process.env.VIDU_API_KEY || process.env.VIDU_KEY || '').trim();
   if (!key || maxWaitMs < 5000) return null;
   const model = process.env.VIDU_VIDEO_MODEL || 'viduq3-turbo';
-  const dur = Math.max(5, Math.min(16, Math.round(Number(segundos) || 8)));
+  const dur = duracionClipParaProveedor('vidu-t2v', segundos, maxWaitMs);
   const headers = {
     Authorization: `Token ${key}`,
     'Content-Type': 'application/json',
@@ -359,6 +397,7 @@ async function generarClipFalT2V(promptEn, segundos, maxWaitMs = 16000) {
     Authorization: `Key ${key}`,
     'Content-Type': 'application/json',
   };
+  const dur = duracionClipParaProveedor('fal-t2v', segundos, maxWaitMs);
   const tStart = Date.now();
   for (const model of modelos.slice(0, 1)) {
     try {
@@ -369,7 +408,7 @@ async function generarClipFalT2V(promptEn, segundos, maxWaitMs = 16000) {
           negative_prompt:
             'static pose, frozen, still photo, text, watermark, logo, nude, naked, nsfw, deformed face, asymmetric eyes, melted face, extra fingers, bad anatomy, missing subjects',
           prompt: `${promptEn}, subject body performance and continuous motion, photorealistic hyperrealistic 8k, SFW clothed, smooth dance/acting motion, 16:9, no text, no watermark`,
-          duration: segundos,
+          duration: dur,
           aspect_ratio: '16:9',
         }),
         signal: AbortSignal.timeout(12000),
@@ -495,7 +534,7 @@ async function descargarVideoGemini(uri, apiKey, timeoutMs = 20000) {
 export async function generarClipGeminiVeoT2V(promptEn, segundos, maxWaitMs = 68000) {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey || maxWaitMs < 9000) return null;
-  const requestedDur = Math.max(4, Math.min(8, Math.round(Number(segundos) || 8)));
+  const requestedDur = duracionClipParaProveedor('veo-t2v', segundos, maxWaitMs);
   const dur = requestedDur <= 4 ? 4 : (requestedDur <= 6 ? 6 : 8);
   const prompt = String(promptEn || '').slice(0, 1800);
   if (!prompt) return null;
@@ -579,19 +618,35 @@ function ndjsonClipResponse(trabajoAsync) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      let cerrado = false;
       const write = (obj) => {
-        controller.enqueue(encoder.encode(`${JSON.stringify(obj)}\n`));
+        if (cerrado) return;
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify(obj)}\n`));
+        } catch {
+          cerrado = true;
+        }
       };
       const ping = setInterval(() => {
-        try {
-          write({ type: 'ping', t: Date.now() });
-        } catch {
-          /* stream cerrado */
-        }
+        write({ type: 'ping', t: Date.now() });
       }, 3500);
+      // Tras soft deadline el handler debería devolver placa; si sigue colgado,
+      // forzar result antes del kill Netlify (120s) para que el cliente pueda reintentar.
+      let forceTimer = null;
+      const forceResult = new Promise((resolve) => {
+        forceTimer = setTimeout(() => {
+          resolve({
+            success: false,
+            error: 'El clip se cortó a mitad (timeout de presupuesto). Reintenta; suele completar al segundo intento.',
+          });
+        }, Math.max(SOFT_DEADLINE_MS + 6000, BUDGET_CLIP_MS - 6000));
+      });
       try {
         write({ type: 'status', msg: 'Director y placa en marcha…' });
-        const result = await trabajoAsync(write);
+        const result = await Promise.race([
+          Promise.resolve().then(() => trabajoAsync(write)),
+          forceResult,
+        ]);
         write({ type: 'result', ...result });
       } catch (err) {
         write({
@@ -600,7 +655,9 @@ function ndjsonClipResponse(trabajoAsync) {
           error: String(err?.message || err),
         });
       } finally {
+        if (forceTimer) clearTimeout(forceTimer);
         clearInterval(ping);
+        cerrado = true;
         try {
           controller.close();
         } catch {
@@ -672,11 +729,13 @@ export default async (req) => {
     const erroresProveedor = [];
     const claves = clavesVideoClip();
     const conPlacaCliente = placaIn.length > 80;
+    // Veo máx 8 s: en Premium 10/12 no quemar el soft deadline con Veo.
     const pasos = planIntentosClip({
       tieneVeo: claves.veo,
       tieneVidu: claves.vidu,
       tieneFal: claves.fal,
       conPlaca: conPlacaCliente,
+      omitVeo: duracion > 8,
     });
     let veoIntentado = false;
     let proveedoresIntentados = false;
@@ -692,9 +751,9 @@ export default async (req) => {
 
     // Sin placa de reintento, Veo (T2V) no espera a la imagen. Si Vidu también
     // tiene clave, el presupuesto le deja margen; si no, Veo usa casi todo el tiempo.
-    // Fal no entra aquí.
+    // Fal no entra aquí. Solo con duración ≤ 8 s (omitVeo ya filtró 10/12).
     if (!conPlacaCliente && pasos[0] === 'veo-t2v' && !pasadoSoftDeadline(inicio)) {
-      const waitVeo = presupuestoPasoClip('veo-t2v', tiempoRestante(inicio), {
+      const waitVeo = waitPasoClip('veo-t2v', inicio, {
         reservarVidu: claves.vidu,
       });
       if (waitVeo >= 9000) {
@@ -796,12 +855,13 @@ export default async (req) => {
       if (paso.startsWith('vidu') && proveedorViduBloqueado(erroresProveedor)) continue;
       if (paso.startsWith('fal') && proveedorFalBloqueado(erroresProveedor)) continue;
       if (paso.endsWith('-i2v') && !cine?.imagen_base64) continue;
-      const wait = presupuestoPasoClip(paso, tiempoRestante(inicio), {
+      // Cap al soft deadline: nunca arrancar un wait que mate el NDJSON sin result.
+      const wait = waitPasoClip(paso, inicio, {
         pescaEpica,
         reservarVidu: paso === 'veo-t2v' && claves.vidu && !conPlacaCliente,
         reintentoPlaca: paso === 'veo-t2v' && conPlacaCliente,
       });
-      if (!wait) continue;
+      if (!wait || wait < 5000) continue;
 
       write({ type: 'status', msg: msgPaso[paso] || 'Filmando video nativo…' });
       proveedoresIntentados = true;
