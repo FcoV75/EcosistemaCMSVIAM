@@ -341,6 +341,7 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
     'imagen-4.0-fast-generate-001',
     'imagen-3.0-generate-002',
   ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+  const imagenTimeout = Number(opts.timeoutMs) > 5000 ? Number(opts.timeoutMs) : 28000;
   for (const modelo of modelos) {
     try {
       const r = await fetchConTimeout(
@@ -358,7 +359,7 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
             },
           }),
         },
-        55000,
+        imagenTimeout,
       );
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -377,54 +378,94 @@ export async function generarImagenImagen4(promptEn, opts = {}) {
   return null;
 }
 
+function msRestantesImagen(opts = {}) {
+  const dl = Number(opts.softDeadlineMs) || 0;
+  if (!dl) return Number.POSITIVE_INFINITY;
+  return Math.max(0, dl - Date.now());
+}
+
 export async function generarImagenEstudio(promptEn, opts = {}) {
   const src = String(opts.original || promptEn || '');
   const tieneGemini = !!(process.env.GEMINI_API_KEY || '').trim();
   // Clip IA: placa rápida (Fal). Gemini imagen suele 429/lento y deja el NDJSON sin result.
   const rapido = opts.prioridad === 'rapido' || opts.rapido === true;
+  const say = (msg) => {
+    if (typeof opts.onStatus === 'function' && msg) {
+      try {
+        opts.onStatus(msg);
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+  const withBudget = (extra = {}) => {
+    const left = msRestantesImagen(opts);
+    const base = Number(opts.timeoutMs) > 5000 ? Number(opts.timeoutMs) : 28000;
+    const timeoutMs = Number.isFinite(left)
+      ? Math.min(base, Math.max(8000, left - 6000))
+      : base;
+    return { ...opts, ...extra, timeoutMs };
+  };
 
   const intentarGeminiPrimero = async () => {
     if (!tieneGemini) return null;
-    const gemini = await generarImagenGemini(promptEn, opts);
+    if (msRestantesImagen(opts) < 14000) return null;
+    say('Probando Gemini Imagen…');
+    const gemini = await generarImagenGemini(promptEn, withBudget());
     if (gemini) return gemini;
-    const imagen4 = await generarImagenImagen4(promptEn, opts);
+    if (msRestantesImagen(opts) < 16000) return null;
+    say('Probando Imagen 4…');
+    const imagen4 = await generarImagenImagen4(promptEn, withBudget({ timeoutMs: 22000 }));
     if (imagen4) return imagen4;
     return null;
   };
 
-  if (rapido) {
-    const fal = await generarImagenFal(promptEn, opts);
+  const intentarFalYRespaldo = async () => {
+    if (msRestantesImagen(opts) < 10000) {
+      say('Cierre rápido con respaldo…');
+      return generarImagenPollinations(promptEn, opts);
+    }
+    say('Probando Fal…');
+    const fal = await generarImagenFal(promptEn, withBudget());
     if (fal) return fal;
-    const replicate = await generarImagenReplicate(promptEn, opts);
+    if (msRestantesImagen(opts) > 18000) {
+      say('Probando Replicate…');
+      const replicate = await generarImagenReplicate(promptEn, withBudget({ timeoutMs: 22000 }));
+      if (replicate) return replicate;
+    }
+    say('Respaldo Pollinations…');
+    return generarImagenPollinations(promptEn, opts);
+  };
+
+  if (rapido) {
+    const fal = await generarImagenFal(promptEn, withBudget());
+    if (fal) return fal;
+    const replicate = await generarImagenReplicate(promptEn, withBudget({ timeoutMs: 18000 }));
     if (replicate) return replicate;
     // Un solo intento Gemini corto solo si aún no hay placa.
-    if (tieneGemini) {
-      const gemini = await generarImagenGemini(promptEn, { ...opts, timeoutMs: 18000 });
+    if (tieneGemini && msRestantesImagen(opts) > 16000) {
+      const gemini = await generarImagenGemini(promptEn, withBudget({ timeoutMs: 18000 }));
       if (gemini) return gemini;
     }
     return generarImagenPollinations(promptEn, opts);
+  }
+
+  // Poco margen: no encadenar 4 proveedores (eso provocaba Inactivity Timeout).
+  if (msRestantesImagen(opts) < 32000) {
+    say('Presupuesto corto: priorizando proveedores rápidos…');
+    return intentarFalYRespaldo();
   }
 
   // Escenas multi-sujeto / épicas: Gemini primero (obediencia tipo Dola).
   if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && escenaPidePersonas(src))) {
     const g = await intentarGeminiPrimero();
     if (g) return g;
-    const fal = await generarImagenFal(promptEn, opts);
-    if (fal) return fal;
-    const replicate = await generarImagenReplicate(promptEn, opts);
-    if (replicate) return replicate;
-    return generarImagenPollinations(promptEn, opts);
+    return intentarFalYRespaldo();
   }
 
   // Orden general Imagen IA: Gemini → Imagen 4 → Fal → Replicate → Pollinations.
   const g = await intentarGeminiPrimero();
   if (g) return g;
 
-  const fal = await generarImagenFal(promptEn, opts);
-  if (fal) return fal;
-
-  const replicate = await generarImagenReplicate(promptEn, opts);
-  if (replicate) return replicate;
-
-  return generarImagenPollinations(promptEn, opts);
+  return intentarFalYRespaldo();
 }
