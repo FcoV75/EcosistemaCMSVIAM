@@ -1,6 +1,7 @@
 import { Shield, UserPlus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ContacNeedLogo } from './ContacNeedLogo'
+import { GoogleSignInButton } from './GoogleSignInButton'
 import { RegistroForm } from './RegistroForm'
 import { requestPasswordResetFn, signInFn } from '../server/auth.functions'
 
@@ -122,11 +123,17 @@ export function AuthModal({ open, onClose, initialTab = 'login', required = fals
                 </button>
               </div>
             ) : (
-              <RegistroForm
-                compact
-                onSuccess={() => setRegisterDone(true)}
-                onSwitchToLogin={() => setTab('login')}
-              />
+              <div className="space-y-4">
+                <GoogleSignInButton label="Registrarme con Google (más rápido)" />
+                <div className="relative py-1 text-center text-[11px] uppercase tracking-wider text-purple-300/50">
+                  <span className="bg-transparent px-2">o formulario completo</span>
+                </div>
+                <RegistroForm
+                  compact
+                  onSuccess={() => setRegisterDone(true)}
+                  onSwitchToLogin={() => setTab('login')}
+                />
+              </div>
             )
           ) : (
             <form
@@ -140,6 +147,15 @@ export function AuthModal({ open, onClose, initialTab = 'login', required = fals
                 <p className="rounded-xl border border-purple-400/30 bg-purple-950/40 px-3 py-2 text-xs text-purple-100">
                   Solo personal autorizado. Tras entrar, irás al Panel Admin si tu cuenta tiene permisos.
                 </p>
+              )}
+
+              {tab === 'login' && (
+                <>
+                  <GoogleSignInButton label="Entrar con Google" />
+                  <div className="relative py-1 text-center text-[11px] uppercase tracking-wider text-purple-300/50">
+                    <span className="bg-transparent px-2">o con correo</span>
+                  </div>
+                </>
               )}
 
               <label className="block text-sm">

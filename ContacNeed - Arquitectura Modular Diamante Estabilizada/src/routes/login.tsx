@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ContacNeedLogo } from '../components/ContacNeedLogo'
+import { GoogleSignInButton } from '../components/GoogleSignInButton'
 import { clearGuestBrowseTimer } from '../components/GuestBrowseGate'
 import { requestPasswordResetFn, signInFn } from '../server/auth.functions'
 
@@ -32,6 +33,13 @@ function LoginPage() {
           <p className="mt-1 text-sm text-purple-200/70">Accede a tu cuenta ContacNeed</p>
         </div>
 
+        <div className="mb-4">
+          <GoogleSignInButton label="Entrar con Google" />
+        </div>
+        <p className="mb-4 text-center text-[11px] uppercase tracking-wider text-purple-300/50">
+          o con correo
+        </p>
+
         <form
           className="space-y-4"
           onSubmit={async (event) => {
@@ -39,7 +47,7 @@ function LoginPage() {
             setLoading(true)
             setError(null)
             try {
-      await signInFn({ data: { email: email.trim(), password } })
+              await signInFn({ data: { email: email.trim(), password } })
               clearGuestBrowseTimer()
               window.location.href = '/'
             } catch (err) {

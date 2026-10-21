@@ -6,6 +6,15 @@ export type IdentityProfile = {
   municipio?: string | null
   habilidad_empirica?: string | null
   descripcion_profesion?: string | null
+  tipo_miembro?: string | null
+  cedula?: string | null
+  es_estudiante?: boolean
+  cedula_pendiente?: boolean
+  onboarding_pospuestos?: number
+  onboarding_pospuesto_hasta?: string | null
+  onboarding_completado_at?: string | null
+  needs_onboarding?: boolean
+  needs_cedula_reminder?: boolean
   es_pro?: boolean
   verificado?: boolean
   es_fundador?: boolean

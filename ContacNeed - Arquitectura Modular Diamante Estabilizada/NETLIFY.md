@@ -76,10 +76,22 @@ Supabase **no envía correos a usuarios externos** con el email por defecto. Nec
 2. En Netlify → Environment variables agrega `RESEND_API_KEY` y `RESEND_FROM` (ej. `ContacNeed <noreply@contacneed.com>`).
 3. En Supabase → Authentication → URL Configuration:
    - **Site URL:** `https://contacneed.com`
-   - **Redirect URLs** (ambas):
+   - **Redirect URLs**:
      - `https://contacneed.com/auth/confirm`
      - `https://contacneed.com/auth/reset`
-     - (opcionales) `http://localhost:3000/auth/confirm` y `http://localhost:3000/auth/reset` para local
+     - `https://contacneed.com/auth/callback` *(Google OAuth)*
+     - (opcionales local) `http://localhost:3000/auth/confirm`, `/auth/reset`, `/auth/callback`
+
+## Google Sign-In (registro rápido)
+
+1. En [Google Cloud Console](https://console.cloud.google.com/) crea OAuth Client ID (tipo Web) con:
+   - Authorized redirect URI: `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
+2. Supabase → **Authentication → Providers → Google**: pega Client ID y Secret; activa el proveedor.
+3. Supabase → **Authentication → URL Configuration**: agrega `https://contacneed.com/auth/callback` a Redirect URLs.
+4. Ejecuta en SQL Editor: `supabase/migrations/015_google_onboarding.sql`
+5. (Recomendado) Authentication → Providers → **Enable automatic linking** si quieres vincular el mismo correo Google con una cuenta email/contraseña ya existente.
+
+Flujo: el usuario entra con Google → llega a `/auth/callback` → si aún no eligió Observador/Oficio/Profesión/Especialidad, aparece el modal de onboarding (posponible 1–2 veces). Estudiantes sin cédula usan **Oficio** y reciben recordatorio de cédula.
 
 ### Opción B — SMTP en Supabase
 

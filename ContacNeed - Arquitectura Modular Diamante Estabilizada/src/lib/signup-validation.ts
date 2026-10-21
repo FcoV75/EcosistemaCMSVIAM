@@ -49,6 +49,93 @@ export function mapResendSendError(message: string) {
 }
 
 /** Validación única client/server para que ningún tipo de registro falle por campos a medias. */
+export type OnboardingFields = {
+  tipo_miembro?: string | null
+  habilidad_empirica?: string
+  descripcion_profesion?: string
+  cedula?: string
+  es_estudiante?: boolean
+  estado?: string
+  municipio?: string
+}
+
+/** Onboarding post-Google (o perfil incompleto): sin email/contraseña. */
+export function validateOnboardingInput(data: OnboardingFields) {
+  let tipo = normalizeTipoMiembro(data.tipo_miembro)
+  const habilidad = String(data.habilidad_empirica || '').trim()
+  const cedula = String(data.cedula || '').trim()
+  const descripcion = String(data.descripcion_profesion || '').trim()
+  const esEstudiante = Boolean(data.es_estudiante)
+
+  // Estudiantes/pasantes sin cédula → Oficio (como indica el producto).
+  if (esEstudiante && (tipo === 'Profesion' || tipo === 'Especialidad') && !cedula) {
+    tipo = 'Oficio'
+  }
+
+  if (!MEMBER_TYPES.includes(tipo)) {
+    return { ok: false as const, error: 'Elige cómo quieres participar en ContacNeed.' }
+  }
+
+  if (tipo !== 'Observador' && !habilidad) {
+    return {
+      ok: false as const,
+      error:
+        tipo === 'Oficio'
+          ? 'Indica el nombre de tu oficio, habilidad o que eres estudiante de…'
+          : 'Indica tu profesión, licenciatura o especialidad.',
+    }
+  }
+
+  if ((tipo === 'Profesion' || tipo === 'Especialidad') && !cedula) {
+    return {
+      ok: false as const,
+      error:
+        'La cédula profesional es obligatoria para Profesión o Especialidad. Si eres estudiante o pasante y aún no la tienes, elige Oficio y márcalo abajo.',
+    }
+  }
+
+  return {
+    ok: true as const,
+    value: {
+      tipo_miembro: tipo,
+      habilidad_empirica: tipo === 'Observador' ? '' : habilidad,
+      descripcion_profesion: tipo === 'Observador' ? '' : descripcion,
+      cedula: tipo === 'Profesion' || tipo === 'Especialidad' ? cedula : '',
+      es_estudiante: esEstudiante || (tipo === 'Oficio' && /estudiante|pasante/i.test(habilidad)),
+      cedula_pendiente:
+        esEstudiante ||
+        (tipo === 'Oficio' && /estudiante|pasante/i.test(habilidad)),
+      estado: String(data.estado || '').trim(),
+      municipio: String(data.municipio || '').trim(),
+    },
+  }
+}
+
+export function perfilNecesitaOnboarding(profile: {
+  tipo_miembro?: string | null
+  onboarding_pospuesto_hasta?: string | null
+} | null) {
+  if (!profile) return true
+  const tipo = String(profile.tipo_miembro || '').trim()
+  if (tipo) return false
+  const until = profile.onboarding_pospuesto_hasta
+    ? Date.parse(profile.onboarding_pospuesto_hasta)
+    : 0
+  if (Number.isFinite(until) && until > Date.now()) return false
+  return true
+}
+
+export function perfilCedulaPendiente(profile: {
+  es_estudiante?: boolean | null
+  cedula_pendiente?: boolean | null
+  cedula?: string | null
+  tipo_miembro?: string | null
+} | null) {
+  if (!profile) return false
+  if (profile.cedula && String(profile.cedula).trim()) return false
+  return Boolean(profile.es_estudiante || profile.cedula_pendiente)
+}
+
 export function validateSignUpInput(data: SignUpFields) {
   const email = String(data.email || '').trim().toLowerCase()
   const password = String(data.password || '')

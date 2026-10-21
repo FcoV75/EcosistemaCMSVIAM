@@ -11,6 +11,9 @@ import { getResendConfig, sendSignupConfirmEmailViaResend } from '../lib/privile
 import {
   mapResendSendError,
   normalizeTipoMiembro,
+  perfilCedulaPendiente,
+  perfilNecesitaOnboarding,
+  validateOnboardingInput,
   validateSignUpInput,
 } from '../lib/signup-validation'
 import { generarCodigoReferido } from '../lib/gamificacion'
@@ -205,6 +208,15 @@ export const getSessionContextFn = createServerFn({ method: 'GET' }).handler(asy
               municipio: profile.municipio,
               habilidad_empirica: profile.habilidad_empirica,
               descripcion_profesion: profile.descripcion_profesion,
+              tipo_miembro: profile.tipo_miembro,
+              cedula: profile.cedula,
+              es_estudiante: Boolean(profile.es_estudiante),
+              cedula_pendiente: Boolean(profile.cedula_pendiente),
+              onboarding_pospuestos: Number(profile.onboarding_pospuestos || 0),
+              onboarding_pospuesto_hasta: profile.onboarding_pospuesto_hasta || null,
+              onboarding_completado_at: profile.onboarding_completado_at || null,
+              needs_onboarding: perfilNecesitaOnboarding(profile),
+              needs_cedula_reminder: perfilCedulaPendiente(profile),
               es_pro: Boolean(profile.es_pro),
               verificado: Boolean(profile.verificado),
               es_fundador: Boolean(profile.es_fundador),
@@ -696,6 +708,194 @@ export const signOutFn = createServerFn({ method: 'POST' }).handler(async () => 
   return { success: true }
 })
 
+/** Inicia OAuth Google; el cliente redirige a data.url. */
+export const getGoogleOAuthUrlFn = createServerFn({ method: 'POST' })
+  .inputValidator((d?: { next?: string }) => d || {})
+  .handler(async ({ data }) => {
+    const supabase = createSupabaseServerClient()
+    const next = String(data?.next || '/').startsWith('/') ? String(data?.next || '/') : '/'
+    const redirectTo = `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(next)}`
+    const { data: oauth, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        },
+      },
+    })
+    if (error || !oauth?.url) {
+      throw new Error(
+        error?.message ||
+          'No se pudo iniciar con Google. Revisa que el proveedor Google esté activo en Supabase Auth.',
+      )
+    }
+    return { url: oauth.url }
+  })
+
+async function ensureOAuthProfileRow(user: {
+  id: string
+  email?: string | null
+  email_confirmed_at?: string | null
+  user_metadata?: Record<string, unknown> | null
+}) {
+  const admin = createSupabaseAdminClient()
+  const meta = (user.user_metadata || {}) as Record<string, unknown>
+  const nombre = String(
+    meta.nombre || meta.full_name || meta.name || (user.email || '').split('@')[0] || 'Miembro',
+  ).trim()
+  const avatar = String(meta.avatar_url || meta.picture || '').trim() || null
+  const email = String(user.email || '').trim().toLowerCase()
+
+  const { data: existing } = await admin
+    .from('perfiles')
+    .select('id, nombre, avatar_url, codigo_referido, tipo_miembro')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const payload: Record<string, unknown> = {
+    id: user.id,
+    correo: email || null,
+    nombre: existing?.nombre && String(existing.nombre).trim().length >= 2 ? existing.nombre : nombre,
+    avatar_url: existing?.avatar_url || avatar,
+    verificado: Boolean(user.email_confirmed_at) || true,
+    es_pro: false,
+    is_admin: false,
+    bloqueado: false,
+  }
+
+  const { error } = await admin.from('perfiles').upsert(payload, { onConflict: 'id' })
+  if (error) {
+    console.warn('ensureOAuthProfileRow:', error.message)
+  }
+
+  if (!existing?.codigo_referido) {
+    await admin.from('perfiles').update({
+      codigo_referido: generarCodigoReferido(user.id),
+    }).eq('id', user.id)
+  }
+
+  return {
+    needs_onboarding: !String(existing?.tipo_miembro || payload.tipo_miembro || '').trim(),
+  }
+}
+
+/** Callback OAuth: intercambia code y asegura perfil mínimo. */
+export const completeOAuthCallbackFn = createServerFn({ method: 'POST' })
+  .inputValidator((search: string) => search)
+  .handler(async ({ data: search }) => {
+    const supabase = createSupabaseServerClient()
+    const params = parseAuthLinkParams(search)
+    const sessionData = await establishSessionFromAuthParams(
+      supabase,
+      params,
+      'No se pudo completar el acceso con Google. Intenta de nuevo.',
+    )
+    const user = sessionData.user
+    if (!user?.id) throw new Error('Google no devolvió una sesión válida.')
+
+    if (user.id) await markPerfilVerificado(user.id)
+    const ensured = await ensureOAuthProfileRow(user)
+
+    return {
+      success: true,
+      email: user.email || null,
+      needs_onboarding: ensured.needs_onboarding,
+    }
+  })
+
+export const completeMemberOnboardingFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: {
+    tipo_miembro: string
+    habilidad_empirica?: string
+    descripcion_profesion?: string
+    cedula?: string
+    es_estudiante?: boolean
+    estado?: string
+    municipio?: string
+  }) => d)
+  .handler(async ({ data }) => {
+    const { user } = await requireActiveUser()
+    const parsed = validateOnboardingInput(data)
+    if (!parsed.ok) throw new Error(parsed.error)
+
+    const admin = createSupabaseAdminClient()
+    const payload: Record<string, unknown> = {
+      id: user.id,
+      tipo_miembro: parsed.value.tipo_miembro,
+      habilidad_empirica: parsed.value.habilidad_empirica || null,
+      descripcion_profesion: parsed.value.descripcion_profesion || null,
+      cedula: parsed.value.cedula || null,
+      es_estudiante: parsed.value.es_estudiante,
+      cedula_pendiente: parsed.value.cedula_pendiente,
+      estado: parsed.value.estado || null,
+      municipio: parsed.value.municipio || null,
+      onboarding_completado_at: new Date().toISOString(),
+      onboarding_pospuesto_hasta: null,
+    }
+
+    const { error } = await admin.from('perfiles').upsert(payload, { onConflict: 'id' })
+    if (error) {
+      if (String(error.message).includes('perfiles_tipo_miembro_check')) {
+        throw new Error(
+          'No se pudo guardar el tipo de miembro. Ejecuta en Supabase el SQL 014_fix_tipo_miembro_observador.sql',
+        )
+      }
+      if (String(error.message).includes('es_estudiante') || String(error.message).includes('cedula_pendiente')) {
+        throw new Error(
+          'Falta actualizar la base: ejecuta en Supabase el SQL 015_google_onboarding.sql',
+        )
+      }
+      throw new Error(`No se pudo completar tu registro: ${error.message}`)
+    }
+
+    return {
+      success: true,
+      message: parsed.value.cedula_pendiente
+        ? 'Listo. Cuando tengas tu cédula profesional, regístrala en Mi Perfil; te lo recordaremos de vez en cuando.'
+        : 'Perfil completado. ¡Bienvenido a ContacNeed!',
+      tipo_miembro: parsed.value.tipo_miembro,
+    }
+  })
+
+export const postponeMemberOnboardingFn = createServerFn({ method: 'POST' }).handler(async () => {
+  const { user, profile } = await requireActiveUser()
+  const admin = createSupabaseAdminClient()
+  const prev = Number(profile?.onboarding_pospuestos || 0)
+  if (prev >= 2) {
+    return {
+      success: true,
+      postponed: false,
+      message: 'Completa cómo quieres participar para publicar ofertas y destacar tu oficio.',
+    }
+  }
+
+  const until = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  const { error } = await admin
+    .from('perfiles')
+    .update({
+      onboarding_pospuestos: prev + 1,
+      onboarding_pospuesto_hasta: until,
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    // Columnas aún no migradas: posponer solo en cliente.
+    console.warn('postponeMemberOnboardingFn:', error.message)
+    return { success: true, postponed: true, until, clientOnly: true }
+  }
+
+  return {
+    success: true,
+    postponed: true,
+    until,
+    remaining: Math.max(0, 1 - prev),
+    message: 'Puedes completar tu oficio o profesión más tarde. Te lo pediremos de nuevo pronto.',
+  }
+})
+
 type UpdateProfileInput = {
   nombre?: string
   habilidad_empirica?: string
@@ -703,26 +903,46 @@ type UpdateProfileInput = {
   estado?: string
   municipio?: string
   avatar_url?: string
+  cedula?: string
+  tipo_miembro?: string
+  es_estudiante?: boolean
+  cedula_pendiente?: boolean
 }
 
 export const updateProfileFn = createServerFn({ method: 'POST' })
   .inputValidator((d: UpdateProfileInput) => d)
   .handler(async ({ data }) => {
-    const { user } = await requireActiveUser()
+    const { user, profile } = await requireActiveUser()
     const supabase = createSupabaseAdminClient()
 
-    const { error } = await supabase.from('perfiles').upsert(
-      {
-        id: user.id,
-        nombre: data.nombre,
-        habilidad_empirica: data.habilidad_empirica,
-        descripcion_profesion: data.descripcion_profesion,
-        estado: data.estado,
-        municipio: data.municipio,
-        avatar_url: data.avatar_url,
-      },
-      { onConflict: 'id' },
-    )
+    const patch: Record<string, unknown> = { id: user.id }
+    if (data.nombre !== undefined) patch.nombre = data.nombre
+    if (data.habilidad_empirica !== undefined) patch.habilidad_empirica = data.habilidad_empirica
+    if (data.descripcion_profesion !== undefined) {
+      patch.descripcion_profesion = data.descripcion_profesion
+    }
+    if (data.estado !== undefined) patch.estado = data.estado
+    if (data.municipio !== undefined) patch.municipio = data.municipio
+    if (data.avatar_url !== undefined) patch.avatar_url = data.avatar_url
+    if (data.cedula !== undefined) {
+      patch.cedula = String(data.cedula || '').trim() || null
+      if (patch.cedula) {
+        patch.cedula_pendiente = false
+        patch.es_estudiante = false
+      }
+    }
+    if (data.tipo_miembro !== undefined) {
+      patch.tipo_miembro = normalizeTipoMiembro(data.tipo_miembro)
+    }
+    if (data.es_estudiante !== undefined) patch.es_estudiante = data.es_estudiante
+    if (data.cedula_pendiente !== undefined) patch.cedula_pendiente = data.cedula_pendiente
+
+    // Si sube cédula y era Oficio estudiante, puede pasar a Profesion opcionalmente vía tipo_miembro.
+    if (patch.cedula && !patch.tipo_miembro && profile?.tipo_miembro === 'Oficio') {
+      // se queda Oficio hasta que elija Profesion/Especialidad en onboarding/perfil
+    }
+
+    const { error } = await supabase.from('perfiles').upsert(patch, { onConflict: 'id' })
 
     if (error) throw new Error(`No se pudo guardar el perfil: ${error.message}`)
     return { success: true }

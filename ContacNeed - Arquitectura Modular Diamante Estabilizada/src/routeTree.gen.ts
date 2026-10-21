@@ -22,6 +22,7 @@ import { Route as UUserIdRouteImport } from './routes/u/$userId'
 import { Route as EscuelaSlugRouteImport } from './routes/escuela.$slug'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as MensajesChatPeerIdRouteImport } from './routes/mensajes/chat/$peerId'
 
 const RegistroRoute = RegistroRouteImport.update({
@@ -89,6 +90,11 @@ const AuthConfirmRoute = AuthConfirmRouteImport.update({
   path: '/auth/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MensajesChatPeerIdRoute = MensajesChatPeerIdRouteImport.update({
   id: '/chat/$peerId',
   path: '/chat/$peerId',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
   '/escuela/$slug': typeof EscuelaSlugRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
   '/escuela/$slug': typeof EscuelaSlugRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
   '/escuela/$slug': typeof EscuelaSlugRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/radio'
     | '/registro'
+    | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
     | '/escuela/$slug'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/radio'
     | '/registro'
+    | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
     | '/escuela/$slug'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/radio'
     | '/registro'
+    | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
     | '/escuela/$slug'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RadioRoute: typeof RadioRoute
   RegistroRoute: typeof RegistroRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
   AuthResetRoute: typeof AuthResetRoute
   UUserIdRoute: typeof UUserIdRoute
@@ -303,6 +316,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mensajes/chat/$peerId': {
       id: '/mensajes/chat/$peerId'
       path: '/chat/$peerId'
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RadioRoute: RadioRoute,
   RegistroRoute: RegistroRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   AuthConfirmRoute: AuthConfirmRoute,
   AuthResetRoute: AuthResetRoute,
   UUserIdRoute: UUserIdRoute,
