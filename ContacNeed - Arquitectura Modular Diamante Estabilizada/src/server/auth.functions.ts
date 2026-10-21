@@ -264,7 +264,7 @@ function mapSignInError(message: string) {
     return 'Debes confirmar tu correo antes de entrar. Abre el enlace del correo o entra a /auth/confirm para pedir uno nuevo.'
   }
   if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('invalid_credentials')) {
-    return 'Correo o contraseña incorrectos.'
+    return 'Correo o contraseña incorrectos. Si te registraste con Google, usa «Entrar con Google».'
   }
   if (msg.includes('too many requests') || msg.includes('rate limit')) {
     return 'Demasiados intentos. Espera un minuto y vuelve a entrar.'
@@ -273,6 +273,29 @@ function mapSignInError(message: string) {
     return 'No se pudo conectar con la cuenta. Intenta de nuevo en unos segundos.'
   }
   return message || 'No se pudo iniciar sesión.'
+}
+
+function mapGoogleOAuthError(message: string) {
+  const msg = message.toLowerCase()
+  if (
+    msg.includes('manual linking') ||
+    msg.includes('identity is already linked') ||
+    msg.includes('already linked') ||
+    msg.includes('multiple accounts') ||
+    msg.includes('email address is already')
+  ) {
+    return 'Este correo ya tiene cuenta en ContacNeed. Entra con tu contraseña o activa «Automatic linking» en Supabase Auth para unir Google con esa cuenta.'
+  }
+  if (msg.includes('provider is not enabled') || msg.includes('unsupported provider')) {
+    return 'Google no está activo en Supabase Auth. Activa el proveedor Google e intenta de nuevo.'
+  }
+  if (msg.includes('redirect') && msg.includes('uri')) {
+    return 'Hay un problema con la URI de redirección de Google. Revisa el Client OAuth en Google Cloud y Supabase.'
+  }
+  return (
+    message ||
+    'No se pudo iniciar con Google. Revisa que el proveedor Google esté activo en Supabase Auth.'
+  )
 }
 
 export const signInFn = createServerFn({ method: 'POST' })
@@ -332,7 +355,7 @@ type SignUpInput = {
 function mapSignUpError(message: string, email: string) {
   const msg = message.toLowerCase()
   if (msg.includes('already been registered') || msg.includes('already exists') || msg.includes('already registered')) {
-    return 'Este correo ya está registrado. Revisa tu bandeja de confirmación o inicia sesión.'
+    return 'Este correo ya está registrado. Inicia sesión o usa «Entrar con Google» si así lo creaste.'
   }
   if (msg.includes('database error updating user') || msg.includes('database error saving new user')) {
     return `No se pudo completar el registro para ${email}. Suele pasar si ya intentaste registrarte antes con este correo, o si falta actualizar Supabase (script 007). Prueba iniciar sesión o usa otro correo; si persiste, contacta soporte.`
@@ -727,10 +750,7 @@ export const getGoogleOAuthUrlFn = createServerFn({ method: 'POST' })
       },
     })
     if (error || !oauth?.url) {
-      throw new Error(
-        error?.message ||
-          'No se pudo iniciar con Google. Revisa que el proveedor Google esté activo en Supabase Auth.',
-      )
+      throw new Error(mapGoogleOAuthError(error?.message || ''))
     }
     return { url: oauth.url }
   })
@@ -786,23 +806,28 @@ async function ensureOAuthProfileRow(user: {
 export const completeOAuthCallbackFn = createServerFn({ method: 'POST' })
   .inputValidator((search: string) => search)
   .handler(async ({ data: search }) => {
-    const supabase = createSupabaseServerClient()
-    const params = parseAuthLinkParams(search)
-    const sessionData = await establishSessionFromAuthParams(
-      supabase,
-      params,
-      'No se pudo completar el acceso con Google. Intenta de nuevo.',
-    )
-    const user = sessionData.user
-    if (!user?.id) throw new Error('Google no devolvió una sesión válida.')
+    try {
+      const supabase = createSupabaseServerClient()
+      const params = parseAuthLinkParams(search)
+      const sessionData = await establishSessionFromAuthParams(
+        supabase,
+        params,
+        'No se pudo completar el acceso con Google. Intenta de nuevo.',
+      )
+      const user = sessionData.user
+      if (!user?.id) throw new Error('Google no devolvió una sesión válida.')
 
-    if (user.id) await markPerfilVerificado(user.id)
-    const ensured = await ensureOAuthProfileRow(user)
+      if (user.id) await markPerfilVerificado(user.id)
+      const ensured = await ensureOAuthProfileRow(user)
 
-    return {
-      success: true,
-      email: user.email || null,
-      needs_onboarding: ensured.needs_onboarding,
+      return {
+        success: true,
+        email: user.email || null,
+        needs_onboarding: ensured.needs_onboarding,
+      }
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err || '')
+      throw new Error(mapGoogleOAuthError(raw))
     }
   })
 
