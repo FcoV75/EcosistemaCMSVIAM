@@ -1,12 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import { LogOut, Mail } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AuthModal, type AuthTab } from './AuthModal'
 import { ContacNeedLogo } from './ContacNeedLogo'
 import { GuestBrowseGate } from './GuestBrowseGate'
 import { HeaderSearchBar } from './HeaderSearchBar'
 import { LastSeenPing } from './LastSeenPing'
 import { LiveSocialBridge } from './LiveSocialBridge'
+import { MemberOnboardingModal } from './MemberOnboardingModal'
 import { NotificationsBell } from './NotificationsBell'
 import { useOnboardingGuide } from '../lib/onboarding-context'
 import { ProAdModal } from './ProAdModal'
@@ -39,15 +40,25 @@ export function AppShell({
   onOpenStripe,
   onCloseStripe,
 }: AppShellProps) {
-  const { user, isAdmin, isPro } = useIdentity()
+  const { user, profile, isAdmin, isPro } = useIdentity()
   const [signingOut, setSigningOut] = useState(false)
   const [showProAdModal, setShowProAdModal] = useState(false)
+  const [showMemberOnboarding, setShowMemberOnboarding] = useState(false)
+  const [cedulaBannerDismissed, setCedulaBannerDismissed] = useState(false)
   const onboarding = useOnboardingGuide()
   const [authModal, setAuthModal] = useState<{ open: boolean; tab: AuthTab; required: boolean }>({
     open: false,
     tab: 'login',
     required: false,
   })
+
+  useEffect(() => {
+    if (user && profile?.needs_onboarding) {
+      setShowMemberOnboarding(true)
+    } else {
+      setShowMemberOnboarding(false)
+    }
+  }, [user, profile?.needs_onboarding])
 
   const openAuth = (tab: AuthTab, required = false) => {
     setAuthModal({ open: true, tab, required })
@@ -183,6 +194,46 @@ export function AppShell({
           </aside>
 
           <main className="order-1 min-w-0 lg:order-none lg:col-span-6 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:px-1">
+            {user && profile?.needs_onboarding && !showMemberOnboarding && (
+              <div className="mb-4 rounded-xl border border-amber-400/35 bg-amber-950/40 px-4 py-3 text-sm text-amber-50">
+                <p className="font-semibold">Completa cómo quieres participar</p>
+                <p className="mt-1 text-amber-100/80">
+                  Sin oficio o profesión aún no destacamos tu perfil en búsquedas. Puedes observar la red
+                  con normalidad.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowMemberOnboarding(true)}
+                  className="mt-2 text-xs font-bold text-amber-200 underline hover:text-white"
+                >
+                  Completar ahora
+                </button>
+              </div>
+            )}
+            {user && profile?.needs_cedula_reminder && !cedulaBannerDismissed && !profile?.needs_onboarding && (
+              <div className="mb-4 rounded-xl border border-purple-400/30 bg-purple-950/40 px-4 py-3 text-sm text-purple-50">
+                <p className="font-semibold">Recordatorio de cédula profesional</p>
+                <p className="mt-1 text-purple-100/80">
+                  Cuando tengas tu cédula, regístrala en Mi Perfil. Si eres estudiante/pasante, puedes
+                  seguir como Oficio hasta entonces.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  <Link
+                    to="/profile"
+                    className="text-xs font-bold text-amber-200 underline hover:text-white"
+                  >
+                    Ir a Mi Perfil
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setCedulaBannerDismissed(true)}
+                    className="text-xs font-semibold text-purple-200/70 hover:text-white"
+                  >
+                    Ahora no
+                  </button>
+                </div>
+              </div>
+            )}
             {children}
           </main>
 
@@ -215,6 +266,19 @@ export function AppShell({
           initialTab={authModal.tab}
           required={authModal.required}
           onClose={() => setAuthModal((prev) => ({ ...prev, open: false, required: false }))}
+        />
+        <MemberOnboardingModal
+          open={Boolean(user && showMemberOnboarding && profile?.needs_onboarding)}
+          forced
+          pospuestos={Number(profile?.onboarding_pospuestos || 0)}
+          onCompleted={() => {
+            setShowMemberOnboarding(false)
+            window.location.reload()
+          }}
+          onPostponed={() => {
+            setShowMemberOnboarding(false)
+            window.location.reload()
+          }}
         />
         <GuestBrowseGate onAskAuth={handleGateOpen} />
         <LastSeenPing />

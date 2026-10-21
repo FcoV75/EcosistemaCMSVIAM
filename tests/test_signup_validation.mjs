@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import {
   mapResendSendError,
   normalizeTipoMiembro,
+  perfilCedulaPendiente,
+  perfilNecesitaOnboarding,
+  validateOnboardingInput,
   validateSignUpInput,
 } from '../ContacNeed - Arquitectura Modular Diamante Estabilizada/src/lib/signup-validation.ts'
 
@@ -70,4 +73,43 @@ assert.equal(passBad.ok, false)
 assert.match(mapResendSendError('Domain not verified'), /dominio/i)
 assert.match(mapResendSendError('Invalid API key'), /API key/i)
 
-console.log('signup-validation ok — Observador/Oficio/Profesion/Especialidad')
+// Onboarding post-Google
+const onbObs = validateOnboardingInput({ tipo_miembro: 'Observador' })
+assert.equal(onbObs.ok, true)
+
+const onbEstudiante = validateOnboardingInput({
+  tipo_miembro: 'Profesion',
+  habilidad_empirica: 'Estudiante de Medicina',
+  es_estudiante: true,
+})
+assert.equal(onbEstudiante.ok, true)
+assert.equal(onbEstudiante.value.tipo_miembro, 'Oficio')
+assert.equal(onbEstudiante.value.es_estudiante, true)
+assert.equal(onbEstudiante.value.cedula_pendiente, true)
+
+const onbProfSin = validateOnboardingInput({
+  tipo_miembro: 'Profesion',
+  habilidad_empirica: 'Médico',
+})
+assert.equal(onbProfSin.ok, false)
+assert.match(onbProfSin.error, /cédula|Oficio/i)
+
+assert.equal(perfilNecesitaOnboarding({ tipo_miembro: null }), true)
+assert.equal(perfilNecesitaOnboarding({ tipo_miembro: 'Oficio' }), false)
+assert.equal(
+  perfilNecesitaOnboarding({
+    tipo_miembro: null,
+    onboarding_pospuesto_hasta: new Date(Date.now() + 60_000).toISOString(),
+  }),
+  false,
+)
+assert.equal(
+  perfilCedulaPendiente({ es_estudiante: true, cedula: null }),
+  true,
+)
+assert.equal(
+  perfilCedulaPendiente({ es_estudiante: true, cedula: '123' }),
+  false,
+)
+
+console.log('signup-validation ok — Observador/Oficio/Profesion/Especialidad + onboarding Google')

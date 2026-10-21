@@ -9,6 +9,13 @@ export type ServerProfile = {
   municipio?: string | null
   habilidad_empirica?: string | null
   descripcion_profesion?: string | null
+  tipo_miembro?: string | null
+  cedula?: string | null
+  es_estudiante?: boolean | null
+  cedula_pendiente?: boolean | null
+  onboarding_pospuestos?: number | null
+  onboarding_pospuesto_hasta?: string | null
+  onboarding_completado_at?: string | null
   es_pro?: boolean | null
   is_admin?: boolean | null
   verificado?: boolean | null
@@ -26,26 +33,43 @@ export async function getServerUser() {
   return data.user ?? null
 }
 
+const PROFILE_SELECT_FULL =
+  'id, nombre, correo, estado, municipio, habilidad_empirica, descripcion_profesion, tipo_miembro, cedula, es_estudiante, cedula_pendiente, onboarding_pospuestos, onboarding_pospuesto_hasta, onboarding_completado_at, es_pro, is_admin, verificado, es_fundador, avatar_url, bloqueado, pro_extra_ad_slots, pro_plan_type, ultimo_informe_pro'
+
+const PROFILE_SELECT_LEGACY =
+  'id, nombre, correo, estado, municipio, habilidad_empirica, descripcion_profesion, tipo_miembro, cedula, es_pro, is_admin, verificado, es_fundador, avatar_url, bloqueado, pro_extra_ad_slots, pro_plan_type, ultimo_informe_pro'
+
 export async function getServerProfile(userId: string): Promise<ServerProfile | null> {
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase
+  let data: Record<string, unknown> | null = null
+  const full = await supabase
     .from('perfiles')
-    .select(
-      'id, nombre, correo, estado, municipio, habilidad_empirica, descripcion_profesion, es_pro, is_admin, verificado, es_fundador, avatar_url, bloqueado, pro_extra_ad_slots, pro_plan_type, ultimo_informe_pro',
-    )
+    .select(PROFILE_SELECT_FULL)
     .eq('id', userId)
     .maybeSingle()
 
-  if (error) throw error
+  if (full.error) {
+    // SQL 015 aún no aplicado: caer a columnas legacy.
+    const legacy = await supabase
+      .from('perfiles')
+      .select(PROFILE_SELECT_LEGACY)
+      .eq('id', userId)
+      .maybeSingle()
+    if (legacy.error) throw legacy.error
+    data = legacy.data as Record<string, unknown> | null
+  } else {
+    data = full.data as Record<string, unknown> | null
+  }
+
   if (!data) return null
 
   const pro = await getContacNeedProStatus(supabase, userId)
   const esPro = pro.active || Boolean(data.es_pro)
 
   return {
-    ...data,
+    ...(data as unknown as ServerProfile),
     es_pro: esPro,
-    pro_plan_type: pro.plan ?? data.pro_plan_type ?? null,
+    pro_plan_type: (pro.plan ?? (data.pro_plan_type as string | null) ?? null) as string | null,
   }
 }
 

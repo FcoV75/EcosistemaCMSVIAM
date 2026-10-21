@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ContacNeedLogo } from '../components/ContacNeedLogo'
+import { GoogleSignInButton } from '../components/GoogleSignInButton'
 import { clearGuestBrowseTimer } from '../components/GuestBrowseGate'
 import { RegistroForm } from '../components/RegistroForm'
 
@@ -25,6 +26,16 @@ function RegistroPage() {
         </div>
 
         <div className="cn-glass rounded-2xl border border-amber-500/20 p-6">
+          <div className="mb-5 space-y-3">
+            <GoogleSignInButton label="Registrarme con Google (recomendado)" />
+            <p className="text-center text-xs text-purple-200/60">
+              Con Google entras en segundos. Después te pediremos si eres Observador, Oficio, Profesión o
+              Especialidad.
+            </p>
+            <p className="text-center text-[11px] uppercase tracking-wider text-purple-300/50">
+              o formulario completo
+            </p>
+          </div>
           <RegistroForm
             onSuccess={() => {
               clearGuestBrowseTimer()
