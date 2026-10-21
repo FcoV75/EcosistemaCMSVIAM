@@ -9,55 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RegistroRouteImport } from './routes/registro'
-import { Route as RadioRouteImport } from './routes/radio'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as MensajesRouteImport } from './routes/mensajes'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as EscuelaRouteImport } from './routes/escuela'
-import { Route as AvisosRouteImport } from './routes/avisos'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as UUserIdRouteImport } from './routes/u/$userId'
-import { Route as EscuelaSlugRouteImport } from './routes/escuela.$slug'
-import { Route as AuthResetRouteImport } from './routes/auth/reset'
-import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AvisosRouteImport } from './routes/avisos'
+import { Route as EscuelaRouteImport } from './routes/escuela'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MensajesRouteImport } from './routes/mensajes'
+import { Route as PrivacidadRouteImport } from './routes/privacidad'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as RadioRouteImport } from './routes/radio'
+import { Route as RegistroRouteImport } from './routes/registro'
+import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
+import { Route as AuthResetRouteImport } from './routes/auth/reset'
+import { Route as EscuelaSlugRouteImport } from './routes/escuela.$slug'
+import { Route as UUserIdRouteImport } from './routes/u/$userId'
 import { Route as MensajesChatPeerIdRouteImport } from './routes/mensajes/chat/$peerId'
 
-const RegistroRoute = RegistroRouteImport.update({
-  id: '/registro',
-  path: '/registro',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RadioRoute = RadioRouteImport.update({
-  id: '/radio',
-  path: '/radio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MensajesRoute = MensajesRouteImport.update({
-  id: '/mensajes',
-  path: '/mensajes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EscuelaRoute = EscuelaRouteImport.update({
-  id: '/escuela',
-  path: '/escuela',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AvisosRoute = AvisosRouteImport.update({
-  id: '/avisos',
-  path: '/avisos',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -65,24 +37,54 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AvisosRoute = AvisosRouteImport.update({
+  id: '/avisos',
+  path: '/avisos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UUserIdRoute = UUserIdRouteImport.update({
-  id: '/u/$userId',
-  path: '/u/$userId',
+const EscuelaRoute = EscuelaRouteImport.update({
+  id: '/escuela',
+  path: '/escuela',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EscuelaSlugRoute = EscuelaSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => EscuelaRoute,
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthResetRoute = AuthResetRouteImport.update({
-  id: '/auth/reset',
-  path: '/auth/reset',
+const MensajesRoute = MensajesRouteImport.update({
+  id: '/mensajes',
+  path: '/mensajes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadRoute = PrivacidadRouteImport.update({
+  id: '/privacidad',
+  path: '/privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RadioRoute = RadioRouteImport.update({
+  id: '/radio',
+  path: '/radio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegistroRoute = RegistroRouteImport.update({
+  id: '/registro',
+  path: '/registro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminosRoute = TerminosRouteImport.update({
+  id: '/terminos',
+  path: '/terminos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthConfirmRoute = AuthConfirmRouteImport.update({
@@ -90,9 +92,19 @@ const AuthConfirmRoute = AuthConfirmRouteImport.update({
   path: '/auth/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/auth/callback',
-  path: '/auth/callback',
+const AuthResetRoute = AuthResetRouteImport.update({
+  id: '/auth/reset',
+  path: '/auth/reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscuelaSlugRoute = EscuelaSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => EscuelaRoute,
+} as any)
+const UUserIdRoute = UUserIdRouteImport.update({
+  id: '/u/$userId',
+  path: '/u/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MensajesChatPeerIdRoute = MensajesChatPeerIdRouteImport.update({
@@ -108,9 +120,11 @@ export interface FileRoutesByFullPath {
   '/escuela': typeof EscuelaRouteWithChildren
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
+  '/privacidad': typeof PrivacidadRoute
   '/profile': typeof ProfileRoute
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
+  '/terminos': typeof TerminosRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
@@ -125,9 +139,11 @@ export interface FileRoutesByTo {
   '/escuela': typeof EscuelaRouteWithChildren
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
+  '/privacidad': typeof PrivacidadRoute
   '/profile': typeof ProfileRoute
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
+  '/terminos': typeof TerminosRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
@@ -143,9 +159,11 @@ export interface FileRoutesById {
   '/escuela': typeof EscuelaRouteWithChildren
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
+  '/privacidad': typeof PrivacidadRoute
   '/profile': typeof ProfileRoute
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
+  '/terminos': typeof TerminosRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
@@ -162,9 +180,11 @@ export interface FileRouteTypes {
     | '/escuela'
     | '/login'
     | '/mensajes'
+    | '/privacidad'
     | '/profile'
     | '/radio'
     | '/registro'
+    | '/terminos'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
@@ -179,9 +199,11 @@ export interface FileRouteTypes {
     | '/escuela'
     | '/login'
     | '/mensajes'
+    | '/privacidad'
     | '/profile'
     | '/radio'
     | '/registro'
+    | '/terminos'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
@@ -196,9 +218,11 @@ export interface FileRouteTypes {
     | '/escuela'
     | '/login'
     | '/mensajes'
+    | '/privacidad'
     | '/profile'
     | '/radio'
     | '/registro'
+    | '/terminos'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
@@ -214,9 +238,11 @@ export interface RootRouteChildren {
   EscuelaRoute: typeof EscuelaRouteWithChildren
   LoginRoute: typeof LoginRoute
   MensajesRoute: typeof MensajesRouteWithChildren
+  PrivacidadRoute: typeof PrivacidadRoute
   ProfileRoute: typeof ProfileRoute
   RadioRoute: typeof RadioRoute
   RegistroRoute: typeof RegistroRoute
+  TerminosRoute: typeof TerminosRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
   AuthResetRoute: typeof AuthResetRoute
@@ -225,53 +251,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/registro': {
-      id: '/registro'
-      path: '/registro'
-      fullPath: '/registro'
-      preLoaderRoute: typeof RegistroRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/radio': {
-      id: '/radio'
-      path: '/radio'
-      fullPath: '/radio'
-      preLoaderRoute: typeof RadioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mensajes': {
-      id: '/mensajes'
-      path: '/mensajes'
-      fullPath: '/mensajes'
-      preLoaderRoute: typeof MensajesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/escuela': {
-      id: '/escuela'
-      path: '/escuela'
-      fullPath: '/escuela'
-      preLoaderRoute: typeof EscuelaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/avisos': {
-      id: '/avisos'
-      path: '/avisos'
-      fullPath: '/avisos'
-      preLoaderRoute: typeof AvisosRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -281,32 +265,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/avisos': {
+      id: '/avisos'
+      path: '/avisos'
+      fullPath: '/avisos'
+      preLoaderRoute: typeof AvisosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/u/$userId': {
-      id: '/u/$userId'
-      path: '/u/$userId'
-      fullPath: '/u/$userId'
-      preLoaderRoute: typeof UUserIdRouteImport
+    '/escuela': {
+      id: '/escuela'
+      path: '/escuela'
+      fullPath: '/escuela'
+      preLoaderRoute: typeof EscuelaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/escuela/$slug': {
-      id: '/escuela/$slug'
-      path: '/$slug'
-      fullPath: '/escuela/$slug'
-      preLoaderRoute: typeof EscuelaSlugRouteImport
-      parentRoute: typeof EscuelaRoute
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/auth/reset': {
-      id: '/auth/reset'
-      path: '/auth/reset'
-      fullPath: '/auth/reset'
-      preLoaderRoute: typeof AuthResetRouteImport
+    '/mensajes': {
+      id: '/mensajes'
+      path: '/mensajes'
+      fullPath: '/mensajes'
+      preLoaderRoute: typeof MensajesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidad': {
+      id: '/privacidad'
+      path: '/privacidad'
+      fullPath: '/privacidad'
+      preLoaderRoute: typeof PrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/radio': {
+      id: '/radio'
+      path: '/radio'
+      fullPath: '/radio'
+      preLoaderRoute: typeof RadioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/registro': {
+      id: '/registro'
+      path: '/registro'
+      fullPath: '/registro'
+      preLoaderRoute: typeof RegistroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminos': {
+      id: '/terminos'
+      path: '/terminos'
+      fullPath: '/terminos'
+      preLoaderRoute: typeof TerminosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/confirm': {
@@ -316,11 +342,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/auth/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
+    '/auth/reset': {
+      id: '/auth/reset'
+      path: '/auth/reset'
+      fullPath: '/auth/reset'
+      preLoaderRoute: typeof AuthResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escuela/$slug': {
+      id: '/escuela/$slug'
+      path: '/$slug'
+      fullPath: '/escuela/$slug'
+      preLoaderRoute: typeof EscuelaSlugRouteImport
+      parentRoute: typeof EscuelaRoute
+    }
+    '/u/$userId': {
+      id: '/u/$userId'
+      path: '/u/$userId'
+      fullPath: '/u/$userId'
+      preLoaderRoute: typeof UUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mensajes/chat/$peerId': {
@@ -363,9 +403,11 @@ const rootRouteChildren: RootRouteChildren = {
   EscuelaRoute: EscuelaRouteWithChildren,
   LoginRoute: LoginRoute,
   MensajesRoute: MensajesRouteWithChildren,
+  PrivacidadRoute: PrivacidadRoute,
   ProfileRoute: ProfileRoute,
   RadioRoute: RadioRoute,
   RegistroRoute: RegistroRoute,
+  TerminosRoute: TerminosRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthConfirmRoute: AuthConfirmRoute,
   AuthResetRoute: AuthResetRoute,
@@ -374,12 +416,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
