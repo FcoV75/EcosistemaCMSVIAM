@@ -93,7 +93,14 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
 export function shouldShowOnboardingAuto(): boolean {
   if (typeof window === 'undefined') return false
   const path = window.location.pathname
-  if (path === '/login' || path === '/registro' || path.startsWith('/auth/')) return false
+  if (
+    path === '/login' ||
+    path === '/registro' ||
+    path === '/privacidad' ||
+    path === '/terminos' ||
+    path.startsWith('/auth/')
+  )
+    return false
   if (storageGet('local', ONBOARDING_STORAGE_KEY) === '1') return false
   if (storageGet('local', ONBOARDING_STORAGE_KEY_LEGACY) === '1') return false
   if (storageGet('session', ONBOARDING_SESSION_KEY) === '1') return false
