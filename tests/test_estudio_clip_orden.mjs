@@ -6,6 +6,7 @@ delete process.env.RAILWAY_INTERNAL_SECRET;
 delete process.env.GROQ_API_KEY;
 delete process.env.GEMINI_API_KEY;
 delete process.env.GEMINI_VEO_MODEL;
+delete process.env.GEMINI_VIDEO_MODEL;
 delete process.env.VIDU_API_KEY;
 delete process.env.VIDU_KEY;
 delete process.env.FAL_KEY;
@@ -35,42 +36,32 @@ assert.ok(BUDGET_CLIP_MS < 58000, `budget ${BUDGET_CLIP_MS}`);
 assert.ok(FORCE_FLUSH_MS > SOFT_DEADLINE_MS, 'force después de soft');
 assert.ok(BUDGET_CLIP_MS >= SOFT_DEADLINE_MS, 'budget >= soft');
 
-// Default priorizarFal: LTX primero para caber en ~60s.
-const conFal = planIntentosClip({
-  tieneVeo: true, tieneVidu: true, tieneFal: true, conPlaca: false, priorizarFal: true,
+// Gemini primero, Fal al final. La placa no es un paso de esta lista.
+const orden = planIntentosClip({
+  tieneVeo: true, tieneVidu: true, tieneFal: true,
 });
-assert.deepEqual(conFal, ['fal-i2v', 'vidu-i2v', 'veo-t2v', 'vidu-t2v', 'fal-t2v']);
-assert.equal(conFal[0], 'fal-i2v');
+assert.deepEqual(orden, ['veo-t2v', 'vidu-i2v', 'vidu-t2v', 'fal-i2v', 'fal-t2v']);
+assert.equal(orden[0], 'veo-t2v');
+assert.equal(orden.at(-1), 'fal-t2v');
 
-const conFalOmitVeo = planIntentosClip({
-  tieneVeo: true, tieneVidu: true, tieneFal: true, omitVeo: true, priorizarFal: true,
+const sinGemini = planIntentosClip({
+  tieneVeo: true, tieneVidu: true, tieneFal: true, omitVeo: true,
 });
-assert.deepEqual(conFalOmitVeo, ['fal-i2v', 'vidu-i2v', 'vidu-t2v', 'fal-t2v']);
+assert.deepEqual(sinGemini, ['vidu-i2v', 'vidu-t2v', 'fal-i2v', 'fal-t2v']);
 
-// Sin Fal: orden clásico (legacy).
 assert.deepEqual(
-  planIntentosClip({ tieneVeo: true, tieneVidu: true, conPlaca: false, priorizarFal: false }),
+  planIntentosClip({ tieneVeo: true, tieneVidu: true }),
   ['veo-t2v', 'vidu-i2v', 'vidu-t2v'],
 );
-assert.deepEqual(
-  planIntentosClip({ tieneVeo: true, tieneVidu: true, conPlaca: true, priorizarFal: false }),
-  ['vidu-i2v', 'veo-t2v', 'vidu-t2v'],
-);
 assert.deepEqual(planIntentosClip({ tieneFal: true }), ['fal-i2v', 'fal-t2v']);
-assert.deepEqual(
-  planIntentosClip({ tieneVeo: true, priorizarFal: false }),
-  ['veo-t2v'],
-);
-assert.deepEqual(
-  planIntentosClip({ tieneVidu: true, conPlaca: true, priorizarFal: false }),
-  ['vidu-i2v', 'vidu-t2v'],
-);
+assert.deepEqual(planIntentosClip({ tieneVeo: true }), ['veo-t2v']);
+assert.deepEqual(planIntentosClip({ tieneVidu: true }), ['vidu-i2v', 'vidu-t2v']);
 assert.deepEqual(planIntentosClip({}), []);
 
-// Duraciones 8 / 10 / 12 → mapeo por proveedor.
+// Omni 3–10 s. 12 s pedido se acota a 10; Vidu conserva 12.
 assert.equal(duracionClipParaProveedor('veo-t2v', 8), 8);
-assert.equal(duracionClipParaProveedor('veo-t2v', 10), 8);
-assert.equal(duracionClipParaProveedor('veo-t2v', 12), 8);
+assert.equal(duracionClipParaProveedor('veo-t2v', 10), 10);
+assert.equal(duracionClipParaProveedor('veo-t2v', 12), 10);
 assert.equal(duracionClipParaProveedor('vidu-i2v', 8), 8);
 assert.equal(duracionClipParaProveedor('vidu-i2v', 10), 10);
 assert.equal(duracionClipParaProveedor('vidu-i2v', 12), 12);
@@ -179,105 +170,122 @@ try {
   process.env.VIDU_API_KEY = 'vidu-key';
   process.env.FAL_KEY = 'fal-key';
 
-  // 8 s charola: Fal I2V primero (priorizarFal + omitVeo por tener Fal).
-  let bodyFal = null;
+  const videoBytes = Buffer.alloc(2048, 4);
+  const respuestaGemini = () => new Response(JSON.stringify({
+    id: 'v1_clip',
+    status: 'completed',
+    model: 'gemini-omni-1.1-flash',
+    steps: [{
+      type: 'model_output',
+      content: [{
+        type: 'video',
+        mime_type: 'video/mp4',
+        uri: 'https://generativelanguage.googleapis.com/v1beta/files/clip123:download?alt=media',
+      }],
+    }],
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+  // 8 s: Gemini Omni primero. Si entrega video, no se llama Vidu ni Fal.
+  let bodyGemini = null;
   globalThis.fetch = async (url, opts = {}) => {
     const u = String(url);
     calls.push(u);
-    if (u.includes('queue.fal.run') && opts.method === 'POST') {
-      bodyFal = JSON.parse(opts.body || '{}');
-      return new Response(JSON.stringify({
-        status_url: 'https://queue.fal.run/status/1',
-        response_url: 'https://queue.fal.run/response/1',
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    if (u.includes('/interactions') && opts.method === 'POST') {
+      bodyGemini = JSON.parse(opts.body || '{}');
+      return respuestaGemini();
     }
-    if (u.includes('queue.fal.run/status')) {
-      return new Response(JSON.stringify({ status: 'COMPLETED' }), {
-        status: 200, headers: { 'Content-Type': 'application/json' },
+    if (u.includes('/files/clip123')) {
+      return new Response(videoBytes, {
+        status: 200,
+        headers: { 'Content-Type': 'video/mp4' },
       });
     }
-    if (u.includes('queue.fal.run/response')) {
-      return new Response(JSON.stringify({ video: { url: 'https://cdn.example/fal-8.mp4' } }), {
-        status: 200, headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    if (u.includes('generativelanguage.googleapis.com')) {
-      throw new Error(`Veo no debe llamarse con Fal disponible: ${u}`);
-    }
-    throw new Error(`No debía llamarse ${u}`);
+    throw new Error(`Vidu/Fal no van si Gemini ya entregó: ${u}`);
   };
 
-  const falOk = await invocar({
+  const geminiOk = await invocar({
     prompt: PROMPT_CHAROLA,
     duracionSeg: 8,
     imagen_base64: placa,
     mime: 'image/jpeg',
   });
-  assert.equal(falOk.status, 200);
-  assert.equal(falOk.result?.success, true);
-  assert.equal(falOk.result?.tipo, 'video');
-  assert.match(falOk.result?.fuente || '', /^fal-i2v:/);
-  assert.equal(falOk.result?.duracionSeg, 8);
-  assert.equal(String(bodyFal?.duration), '8');
-  assert.ok(Array.isArray(falOk.result?.registro), 'debe traer registro de tiempos');
-  assert.ok(falOk.result.registro.some((r) => r.paso === 'fal-i2v' && r.ok));
-  assert.ok(!hostsDe(calls).includes('veo'));
+  assert.equal(geminiOk.status, 200);
+  assert.equal(geminiOk.result?.success, true);
+  assert.equal(geminiOk.result?.tipo, 'video');
+  assert.equal(geminiOk.result?.fuente, 'gemini-veo:gemini-omni-1.1-flash');
+  assert.equal(geminiOk.result?.duracionSeg, 8);
+  assert.equal(bodyGemini?.model, 'gemini-omni-1.1-flash');
+  assert.equal(bodyGemini?.response_format?.type, 'video');
+  assert.equal(bodyGemini?.response_format?.aspect_ratio, '16:9');
+  assert.equal(bodyGemini?.generation_config?.video_config?.task, 'text_to_video');
+  assert.match(bodyGemini?.input || '', /8 seconds/);
+  assert.ok(!String(bodyGemini?.model || '').includes('veo-'));
+  assert.ok(geminiOk.result.registro.some((r) => r.paso === 'veo-t2v' && r.ok));
+  assert.deepEqual(hostsDe(calls), ['veo', 'veo']);
+  assert.ok(!calls.some((u) => u.includes('predictLongRunning')));
 
-  // 10 s y 12 s Premium: duración pedida a Fal (12→10); sin Veo.
-  for (const segs of [10, 12]) {
-    calls.length = 0;
-    bodyFal = null;
-    const esperada = segs === 12 ? 10 : segs;
-    globalThis.fetch = async (url, opts = {}) => {
-      const u = String(url);
-      calls.push(u);
-      if (u.includes('queue.fal.run') && opts.method === 'POST') {
-        bodyFal = JSON.parse(opts.body || '{}');
-        return new Response(JSON.stringify({
-          status_url: `https://queue.fal.run/status/${segs}`,
-          response_url: `https://queue.fal.run/response/${segs}`,
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-      }
-      if (u.includes('/status/')) {
-        return new Response(JSON.stringify({ status: 'COMPLETED' }), {
-          status: 200, headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      if (u.includes('/response/')) {
-        return new Response(JSON.stringify({ video: { url: `https://cdn.example/fal-${segs}.mp4` } }), {
-          status: 200, headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      if (u.includes('generativelanguage.googleapis.com')) {
-        throw new Error(`Veo no debe entrar en ${segs}s`);
-      }
-      throw new Error(`No debía llamarse ${u}`);
-    };
-
-    const clipLargo = await invocar({
-      prompt: PROMPT_CHAROLA,
-      duracionSeg: segs,
-      imagen_base64: placa,
-      mime: 'image/jpeg',
-    }, { premium: true });
-    assert.equal(clipLargo.result?.success, true);
-    assert.equal(clipLargo.result?.tipo, 'video');
-    assert.match(clipLargo.result?.fuente || '', /^fal-i2v:/);
-    assert.equal(clipLargo.result?.duracionSeg, segs);
-    assert.equal(String(bodyFal?.duration), String(esperada));
-    assert.ok(!hostsDe(calls).includes('veo'), `Veo no en ${segs}s`);
-  }
-
-  // Sin Fal: Vidu I2V con placa (éxito → no llega a Veo).
+  // 10 s Premium: Omni sí entra (tope 10 s) y va primero.
   calls.length = 0;
-  delete process.env.FAL_KEY;
-  delete process.env.FAL_API_KEY;
-  process.env.VIDU_API_KEY = 'vidu-key';
-  process.env.GEMINI_API_KEY = 'veo-key';
+  bodyGemini = null;
+  const gemini10 = await invocar({
+    prompt: PROMPT_CHAROLA,
+    duracionSeg: 10,
+    imagen_base64: placa,
+    mime: 'image/jpeg',
+  }, { premium: true });
+  assert.equal(gemini10.result?.success, true);
+  assert.equal(gemini10.result?.fuente, 'gemini-veo:gemini-omni-1.1-flash');
+  assert.equal(gemini10.result?.duracionSeg, 10);
+  assert.match(bodyGemini?.input || '', /10 seconds/);
+  assert.ok(!calls.some((u) => u.includes('fal.run') || u.includes('api.vidu.com')));
+
+  // 12 s: Omni no llega; Vidu I2V antes que Fal.
+  calls.length = 0;
   let bodyVidu = null;
   globalThis.fetch = async (url, opts = {}) => {
     const u = String(url);
     calls.push(u);
+    if (u.includes('generativelanguage.googleapis.com')) {
+      throw new Error(`Gemini no debe entrar en 12s: ${u}`);
+    }
+    if (u.includes('api.vidu.com/ent/v2/img2video')) {
+      bodyVidu = JSON.parse(opts.body || '{}');
+      return new Response(JSON.stringify({ task_id: 'vidu-12' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (u.includes('/tasks/vidu-12/creations')) {
+      return new Response(JSON.stringify({
+        state: 'success',
+        creations: [{ url: 'https://cdn.example/vidu-12.mp4' }],
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    throw new Error(`Fal no debe ir antes de Vidu: ${u}`);
+  };
+  const clip12 = await invocar({
+    prompt: PROMPT_CHAROLA,
+    duracionSeg: 12,
+    imagen_base64: placa,
+    mime: 'image/jpeg',
+  }, { premium: true });
+  assert.equal(clip12.result?.success, true);
+  assert.equal(clip12.result?.tipo, 'video');
+  assert.equal(clip12.result?.fuente, 'vidu-i2v');
+  assert.equal(clip12.result?.duracionSeg, 12);
+  assert.equal(bodyVidu?.duration, 12);
+  assert.deepEqual(hostsDe(calls), ['vidu', 'vidu']);
+
+  // Gemini falla → Vidu I2V. Fal no se llama si Vidu entrega.
+  calls.length = 0;
+  bodyVidu = null;
+  globalThis.fetch = async (url, opts = {}) => {
+    const u = String(url);
+    calls.push(u);
+    if (u.includes('/interactions')) {
+      return new Response(JSON.stringify({ error: { message: 'unavailable' } }), {
+        status: 503, headers: { 'Content-Type': 'application/json' },
+      });
+    }
     if (u.includes('api.vidu.com/ent/v2/img2video')) {
       bodyVidu = JSON.parse(opts.body || '{}');
       return new Response(JSON.stringify({ task_id: 'vidu-8' }), {
@@ -290,10 +298,7 @@ try {
         creations: [{ url: 'https://cdn.example/vidu-8.mp4' }],
       }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
-    if (u.includes('generativelanguage.googleapis.com')) {
-      throw new Error(`Veo no debía llamarse si Vidu ya entregó: ${u}`);
-    }
-    throw new Error(`No debía llamarse ${u}`);
+    throw new Error(`Fal no debe ir si Vidu ya entregó: ${u}`);
   };
   const viduOk = await invocar({
     prompt: PROMPT_CHAROLA,
@@ -304,43 +309,22 @@ try {
   assert.equal(viduOk.result?.success, true);
   assert.equal(viduOk.result?.fuente, 'vidu-i2v');
   assert.equal(bodyVidu?.duration, 8);
-  assert.deepEqual(hostsDe(calls), ['vidu', 'vidu']);
+  assert.equal(hostsDe(calls)[0], 'veo');
+  assert.ok(hostsDe(calls).includes('vidu'));
+  assert.ok(!calls.some((u) => u.includes('fal.run')));
 
-  // Saldo agotado Fal+Vidu → debe intentar Veo como respaldo.
+  // Gemini, Vidu y Fal sin video: placa y motivo de saldo. Orden Gemini → Vidu → Fal.
   calls.length = 0;
-  process.env.FAL_KEY = 'fal-key';
-  process.env.VIDU_API_KEY = 'vidu-key';
-  process.env.GEMINI_API_KEY = 'veo-key';
-  const videoBase64 = Buffer.alloc(2048, 9).toString('base64');
   globalThis.fetch = async (url) => {
     const u = String(url);
     calls.push(u);
-    if (u.includes('fal.run') || u.includes('api.vidu.com')) {
-      return new Response(JSON.stringify({
-        detail: 'Exhausted balance. User is locked.',
-        err_code: 'CreditInsufficient',
-        credits: 0,
-        state: 'failed',
-      }), { status: 403, headers: { 'Content-Type': 'application/json' } });
-    }
-    if (u.includes(':predictLongRunning')) {
-      return new Response(JSON.stringify({ name: 'operations/veo-credito' }), {
-        status: 200, headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    if (u.includes('/operations/veo-credito')) {
-      return new Response(JSON.stringify({
-        done: true,
-        response: {
-          generateVideoResponse: {
-            generatedSamples: [{
-              video: { bytesBase64Encoded: videoBase64, mimeType: 'video/mp4' },
-            }],
-          },
-        },
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    }
-    throw new Error(`Fetch inesperado ${u}`);
+    return new Response(JSON.stringify({
+      detail: 'Exhausted balance. User is locked.',
+      err_code: 'CreditInsufficient',
+      credits: 0,
+      state: 'failed',
+      error: { message: 'Exhausted balance' },
+    }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   };
   const fal403 = await invocar({
     prompt: PROMPT_CHAROLA,
@@ -349,13 +333,14 @@ try {
     mime: 'image/jpeg',
   });
   assert.equal(fal403.result?.success, true);
-  assert.equal(fal403.result?.tipo, 'video');
-  assert.match(fal403.result?.fuente || '', /^gemini-veo:/);
-  assert.ok(Array.isArray(fal403.result?.registro));
+  assert.equal(fal403.result?.tipo, 'cinematico');
+  assert.equal(fal403.result?.motivo_fallback, 'saldo_agotado_fal_y_vidu');
   const orden403 = hostsDe(calls);
-  assert.equal(orden403[0], 'fal');
+  assert.equal(orden403[0], 'veo');
   assert.ok(orden403.includes('vidu'));
-  assert.ok(orden403.includes('veo'), 'Veo debe respaldar cuando Fal/Vidu no tienen saldo');
+  assert.ok(orden403.includes('fal'));
+  assert.ok(orden403.indexOf('veo') < orden403.indexOf('vidu'));
+  assert.ok(orden403.lastIndexOf('vidu') < orden403.indexOf('fal'));
 
   // Si Veo también falla: placa + motivo claro de saldo.
   calls.length = 0;

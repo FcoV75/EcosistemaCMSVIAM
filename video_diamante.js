@@ -1452,7 +1452,7 @@ async function generarClipIA() {
             );
             const extraDir = saldo ? "" : textoDirectorStatus(d);
             status.textContent = saldo
-                ? `Placa lista (sin video). ${aviso} Recarga Fal/Vidu o espera a Gemini Veo y pulsa Generar clip otra vez.`
+                ? `Placa lista (sin video). ${aviso} Recarga Fal/Vidu o espera a Gemini y pulsa Generar clip otra vez.`
                 : `Placa del clip lista — no es un video con actuación. ${aviso} Puedes descargarla o pulsar Generar clip otra vez.${extraDir}`;
         }
     } catch (e) {
