@@ -16,6 +16,7 @@ export type ServerProfile = {
   onboarding_pospuestos?: number | null
   onboarding_pospuesto_hasta?: string | null
   onboarding_completado_at?: string | null
+  fecha_registro?: string | null
   es_pro?: boolean | null
   is_admin?: boolean | null
   verificado?: boolean | null
@@ -34,10 +35,10 @@ export async function getServerUser() {
 }
 
 const PROFILE_SELECT_FULL =
-  'id, nombre, correo, estado, municipio, habilidad_empirica, descripcion_profesion, tipo_miembro, cedula, es_estudiante, cedula_pendiente, onboarding_pospuestos, onboarding_pospuesto_hasta, onboarding_completado_at, es_pro, is_admin, verificado, es_fundador, avatar_url, bloqueado, pro_extra_ad_slots, pro_plan_type, ultimo_informe_pro'
+  'id, nombre, correo, estado, municipio, habilidad_empirica, descripcion_profesion, tipo_miembro, cedula, es_estudiante, cedula_pendiente, onboarding_pospuestos, onboarding_pospuesto_hasta, onboarding_completado_at, fecha_registro, es_pro, is_admin, verificado, es_fundador, avatar_url, bloqueado, pro_extra_ad_slots, pro_plan_type, ultimo_informe_pro'
 
 const PROFILE_SELECT_LEGACY =
-  'id, nombre, correo, estado, municipio, habilidad_empirica, descripcion_profesion, tipo_miembro, cedula, es_pro, is_admin, verificado, es_fundador, avatar_url, bloqueado, pro_extra_ad_slots, pro_plan_type, ultimo_informe_pro'
+  'id, nombre, correo, estado, municipio, habilidad_empirica, descripcion_profesion, tipo_miembro, cedula, fecha_registro, es_pro, is_admin, verificado, es_fundador, avatar_url, bloqueado, pro_extra_ad_slots, pro_plan_type, ultimo_informe_pro'
 
 export async function getServerProfile(userId: string): Promise<ServerProfile | null> {
   const supabase = createSupabaseAdminClient()

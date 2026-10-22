@@ -1,5 +1,5 @@
 /** Generadores de imagen HD para Estudio VIAM.
- * Orden: Imagen 4 → Fal Flux → Gemini → Replicate → Pollinations (último recurso).
+ * Orden: Gemini → Imagen 4 → Replicate → Pollinations → Fal al final.
  * Pollinations: sin gptimage (propenso a NSFW); flux + SFW + nologo.
  * El logo residual de pollinations.ai se recorta aquí (servidor) antes de devolver.
  */
@@ -387,7 +387,7 @@ function msRestantesImagen(opts = {}) {
 export async function generarImagenEstudio(promptEn, opts = {}) {
   const src = String(opts.original || promptEn || '');
   const tieneGemini = !!(process.env.GEMINI_API_KEY || '').trim();
-  // Clip IA: placa rápida (Fal). Gemini imagen suele 429/lento y deja el NDJSON sin result.
+  // Clip IA: placa rápida con Fal al final (saldo agotado no debe ir primero).
   const rapido = opts.prioridad === 'rapido' || opts.rapido === true;
   const say = (msg) => {
     if (typeof opts.onStatus === 'function' && msg) {
@@ -420,58 +420,44 @@ export async function generarImagenEstudio(promptEn, opts = {}) {
     return null;
   };
 
-  const intentarFalYRespaldo = async () => {
-    if (msRestantesImagen(opts) < 10000) {
-      say('Cierre rápido con respaldo…');
-      return generarImagenPollinations(promptEn, opts);
-    }
-    say('Probando Fal…');
-    const fal = await generarImagenFal(promptEn, withBudget());
-    if (fal) return fal;
-    if (msRestantesImagen(opts) > 18000) {
+  const intentarReplicatePollinationsFal = async () => {
+    if (msRestantesImagen(opts) > 12000) {
       say('Probando Replicate…');
-      const replicate = await generarImagenReplicate(promptEn, withBudget({ timeoutMs: 22000 }));
+      const replicate = await generarImagenReplicate(promptEn, withBudget({ timeoutMs: 18000 }));
       if (replicate) return replicate;
     }
     say('Respaldo Pollinations…');
-    return generarImagenPollinations(promptEn, opts);
+    const pollinations = await generarImagenPollinations(promptEn, opts);
+    if (pollinations) return pollinations;
+    say('Fal al final…');
+    return generarImagenFal(promptEn, withBudget());
   };
 
   if (rapido) {
-    // Clip / obediencia: Gemini primero (Fal imagen a menudo comparte saldo agotado con I2V).
-    if (opts.preferirObediencia && tieneGemini && msRestantesImagen(opts) > 9000) {
-      say('Placa con Gemini (obediencia al prompt)…');
-      const gemini = await generarImagenGemini(promptEn, withBudget({ timeoutMs: Math.min(12000, Number(opts.timeoutMs) || 12000) }));
-      if (gemini) return gemini;
-    }
-    const fal = await generarImagenFal(promptEn, withBudget());
-    if (fal) return fal;
-    const replicate = await generarImagenReplicate(promptEn, withBudget({ timeoutMs: 14000 }));
-    if (replicate) return replicate;
-    if (tieneGemini && msRestantesImagen(opts) > 12000 && !opts.preferirObediencia) {
-      const gemini = await generarImagenGemini(promptEn, withBudget({ timeoutMs: 14000 }));
-      if (gemini) return gemini;
-    }
-    say('Respaldo Pollinations…');
-    return generarImagenPollinations(promptEn, opts);
+    // Placa rápida: Gemini → Replicate → Pollinations → Fal al final.
+    // Fal imagen comparte saldo con el I2V; no puede ir primero.
+    say('Placa con Gemini…');
+    const gemini = await intentarGeminiPrimero();
+    if (gemini) return gemini;
+    return intentarReplicatePollinationsFal();
   }
 
   // Poco margen: no encadenar 4 proveedores (eso provocaba Inactivity Timeout).
   if (msRestantesImagen(opts) < 32000) {
     say('Presupuesto corto: priorizando proveedores rápidos…');
-    return intentarFalYRespaldo();
+    return intentarReplicatePollinationsFal();
   }
 
   // Escenas multi-sujeto / épicas: Gemini primero (obediencia tipo Dola).
   if (escenaEsPescaEpica(src) || (escenaEsDramatica(src) && escenaPidePersonas(src))) {
     const g = await intentarGeminiPrimero();
     if (g) return g;
-    return intentarFalYRespaldo();
+    return intentarReplicatePollinationsFal();
   }
 
-  // Orden general Imagen IA: Gemini → Imagen 4 → Fal → Replicate → Pollinations.
+  // Orden general Imagen IA: Gemini → Imagen 4 → Replicate → Pollinations → Fal.
   const g = await intentarGeminiPrimero();
   if (g) return g;
 
-  return intentarFalYRespaldo();
+  return intentarReplicatePollinationsFal();
 }

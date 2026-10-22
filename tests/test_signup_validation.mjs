@@ -3,6 +3,7 @@ import {
   mapResendSendError,
   normalizeTipoMiembro,
   perfilCedulaPendiente,
+  ONBOARDING_OFICIO_DESDE_MS,
   perfilNecesitaOnboarding,
   validateOnboardingInput,
   validateSignUpInput,
@@ -94,13 +95,83 @@ const onbProfSin = validateOnboardingInput({
 assert.equal(onbProfSin.ok, false)
 assert.match(onbProfSin.error, /cédula|Oficio/i)
 
-assert.equal(perfilNecesitaOnboarding({ tipo_miembro: null }), true)
-assert.equal(perfilNecesitaOnboarding({ tipo_miembro: 'Oficio' }), false)
+const antes = new Date(ONBOARDING_OFICIO_DESDE_MS - 86_400_000).toISOString()
+const despues = new Date(ONBOARDING_OFICIO_DESDE_MS + 86_400_000).toISOString()
+
+// Sin fecha o anterior a #87: la cuenta ya existía. No se reabre el formulario.
+assert.equal(perfilNecesitaOnboarding({ tipo_miembro: null }), false)
+assert.equal(perfilNecesitaOnboarding({ tipo_miembro: null, fecha_registro: antes }), false)
+assert.equal(perfilNecesitaOnboarding({ tipo_miembro: '', fecha_registro: null }), false)
 assert.equal(
   perfilNecesitaOnboarding({
     tipo_miembro: null,
+    fecha_registro: antes,
+    habilidad_empirica: 'Carpintería',
+    descripcion_profesion: 'Muebles',
+  }),
+  false,
+)
+
+// Alta nueva (correo o Google) sin oficio: sí se pide, una sola vez.
+assert.equal(
+  perfilNecesitaOnboarding({ tipo_miembro: null, fecha_registro: despues }),
+  true,
+)
+assert.equal(perfilNecesitaOnboarding({ tipo_miembro: 'Oficio', fecha_registro: despues }), false)
+assert.equal(perfilNecesitaOnboarding({ tipo_miembro: 'Observador', fecha_registro: despues }), false)
+assert.equal(
+  perfilNecesitaOnboarding({
+    tipo_miembro: null,
+    fecha_registro: despues,
+    habilidad_empirica: 'Médico',
+  }),
+  false,
+)
+assert.equal(
+  perfilNecesitaOnboarding({
+    tipo_miembro: null,
+    fecha_registro: despues,
+    descripcion_profesion: 'Consulta',
+  }),
+  false,
+)
+assert.equal(
+  perfilNecesitaOnboarding({
+    tipo_miembro: null,
+    fecha_registro: despues,
+    cedula: '1234567',
+  }),
+  false,
+)
+assert.equal(
+  perfilNecesitaOnboarding({
+    tipo_miembro: null,
+    fecha_registro: despues,
+    onboarding_completado_at: despues,
+  }),
+  false,
+)
+assert.equal(
+  perfilNecesitaOnboarding({
+    tipo_miembro: null,
+    fecha_registro: despues,
     onboarding_pospuesto_hasta: new Date(Date.now() + 60_000).toISOString(),
   }),
+  false,
+)
+// Google abrió otro id, pero el correo ya tenía perfil. No se pide otra vez ni se toca la fila vieja.
+assert.equal(
+  perfilNecesitaOnboarding(
+    { tipo_miembro: null, fecha_registro: despues, correo: 'dueno@example.com' },
+    { otrasCuentasMismoCorreo: [{ tipo_miembro: 'Oficio', fecha_registro: antes }] },
+  ),
+  false,
+)
+assert.equal(
+  perfilNecesitaOnboarding(
+    { tipo_miembro: null, fecha_registro: despues },
+    { otrasCuentasMismoCorreo: [{ tipo_miembro: null, fecha_registro: antes, habilidad_empirica: 'Albañil' }] },
+  ),
   false,
 )
 assert.equal(

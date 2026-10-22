@@ -111,17 +111,68 @@ export function validateOnboardingInput(data: OnboardingFields) {
   }
 }
 
-export function perfilNecesitaOnboarding(profile: {
+/**
+ * Momento en que se pidió oficio/profesión al entrar (#87, 2026-10-20 20:34 -0600).
+ * Las cuentas anteriores no tienen `onboarding_completado_at` ni, a veces, `tipo_miembro`
+ * (columna añadida después, nullable). Eso no las convierte en registros nuevos.
+ */
+export const ONBOARDING_OFICIO_DESDE_MS = Date.parse('2026-10-21T02:34:02.000Z')
+
+type PerfilOnboarding = {
   tipo_miembro?: string | null
+  habilidad_empirica?: string | null
+  descripcion_profesion?: string | null
+  cedula?: string | null
+  onboarding_completado_at?: string | null
   onboarding_pospuesto_hasta?: string | null
-} | null) {
-  if (!profile) return true
-  const tipo = String(profile.tipo_miembro || '').trim()
-  if (tipo) return false
+  fecha_registro?: string | null
+} | null
+
+function textoPerfil(value: unknown) {
+  return String(value || '').trim()
+}
+
+/** Ya contestó oficio/profesión, o el perfil guarda esos datos aunque falte el tipo. */
+function perfilYaTieneOficio(profile: NonNullable<PerfilOnboarding>) {
+  if (textoPerfil(profile.tipo_miembro)) return true
+  if (textoPerfil(profile.onboarding_completado_at)) return true
+  if (textoPerfil(profile.habilidad_empirica)) return true
+  if (textoPerfil(profile.descripcion_profesion)) return true
+  if (textoPerfil(profile.cedula)) return true
+  return false
+}
+
+/**
+ * Sin fecha, o fecha anterior al alta de Google: la cuenta ya existía.
+ * No se rellena ninguna columna; solo se lee.
+ */
+function perfilAnteriorAlOnboarding(profile: NonNullable<PerfilOnboarding>) {
+  const raw = textoPerfil(profile.fecha_registro)
+  if (!raw) return true
+  const registrado = Date.parse(raw)
+  if (!Number.isFinite(registrado)) return true
+  return registrado < ONBOARDING_OFICIO_DESDE_MS
+}
+
+/**
+ * El formulario de oficio/profesión es solo para un alta nueva que aún no lo contestó.
+ * Cuentas previas a #87, o que ya tienen oficio/profesión/cédula/tipo, no vuelven al formulario
+ * (correo o Google). `otrasCuentasMismoCorreo` cubre un inicio con Google que abrió otro id
+ * para un correo que ya estaba registrado: no se escribe sobre el perfil viejo.
+ */
+export function perfilNecesitaOnboarding(
+  profile: PerfilOnboarding,
+  ctx: { otrasCuentasMismoCorreo?: PerfilOnboarding[] } = {},
+) {
+  if (!profile) return false
+  if (perfilYaTieneOficio(profile)) return false
   const until = profile.onboarding_pospuesto_hasta
     ? Date.parse(profile.onboarding_pospuesto_hasta)
     : 0
   if (Number.isFinite(until) && until > Date.now()) return false
+  if (perfilAnteriorAlOnboarding(profile)) return false
+  const otras = ctx.otrasCuentasMismoCorreo || []
+  if (otras.some((row) => row && !perfilNecesitaOnboarding(row))) return false
   return true
 }
 
