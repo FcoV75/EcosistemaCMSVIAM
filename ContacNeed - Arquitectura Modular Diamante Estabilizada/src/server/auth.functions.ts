@@ -199,6 +199,8 @@ export const getSessionContextFn = createServerFn({ method: 'GET' }).handler(asy
         return { user: null, profile: null, isAdmin: false }
       }
 
+      const needsOnboarding = await needsOnboardingForProfile(profile)
+
       return {
         user: { id: user.id, email: user.email ?? undefined },
         profile: profile
@@ -215,7 +217,7 @@ export const getSessionContextFn = createServerFn({ method: 'GET' }).handler(asy
               onboarding_pospuestos: Number(profile.onboarding_pospuestos || 0),
               onboarding_pospuesto_hasta: profile.onboarding_pospuesto_hasta || null,
               onboarding_completado_at: profile.onboarding_completado_at || null,
-              needs_onboarding: perfilNecesitaOnboarding(profile),
+              needs_onboarding: needsOnboarding,
               needs_cedula_reminder: perfilCedulaPendiente(profile),
               es_pro: Boolean(profile.es_pro),
               verificado: Boolean(profile.verificado),
@@ -708,6 +710,78 @@ export const signOutFn = createServerFn({ method: 'POST' }).handler(async () => 
   return { success: true }
 })
 
+const PERFIL_ONBOARDING_SELECT =
+  'id, correo, nombre, avatar_url, codigo_referido, tipo_miembro, habilidad_empirica, descripcion_profesion, cedula, fecha_registro, onboarding_completado_at, onboarding_pospuesto_hasta, verificado, es_pro, is_admin'
+
+const PERFIL_ONBOARDING_SELECT_LEGACY =
+  'id, correo, nombre, avatar_url, codigo_referido, tipo_miembro, habilidad_empirica, descripcion_profesion, cedula, fecha_registro, verificado, es_pro, is_admin'
+
+async function leerPerfilPorId(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+) {
+  const full = await admin.from('perfiles').select(PERFIL_ONBOARDING_SELECT).eq('id', userId).maybeSingle()
+  if (!full.error) return { ok: true as const, row: full.data }
+  const legacy = await admin
+    .from('perfiles')
+    .select(PERFIL_ONBOARDING_SELECT_LEGACY)
+    .eq('id', userId)
+    .maybeSingle()
+  if (!legacy.error) return { ok: true as const, row: legacy.data }
+  console.warn('leerPerfilPorId:', full.error.message)
+  return { ok: false as const, row: null }
+}
+
+function correoComparable(value: unknown) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[%_]/g, '')
+}
+
+/** Lee otras filas del mismo correo sin modificarlas. */
+async function otrasCuentasMismoCorreo(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  correo: unknown,
+  userId: string,
+) {
+  const email = correoComparable(correo)
+  if (!email || !email.includes('@')) return []
+  const { data, error } = await admin
+    .from('perfiles')
+    .select(PERFIL_ONBOARDING_SELECT)
+    .ilike('correo', email)
+    .neq('id', userId)
+    .limit(5)
+  if (error) {
+    console.warn('otrasCuentasMismoCorreo:', error.message)
+    return []
+  }
+  return data || []
+}
+
+async function needsOnboardingForProfile(
+  profile: {
+    id?: string
+    correo?: string | null
+    tipo_miembro?: string | null
+    habilidad_empirica?: string | null
+    descripcion_profesion?: string | null
+    cedula?: string | null
+    fecha_registro?: string | null
+    onboarding_completado_at?: string | null
+    onboarding_pospuesto_hasta?: string | null
+  } | null,
+) {
+  if (!profile) return false
+  if (!perfilNecesitaOnboarding(profile)) return false
+  const admin = createSupabaseAdminClient()
+  const otras = profile.id
+    ? await otrasCuentasMismoCorreo(admin, profile.correo, profile.id)
+    : []
+  return perfilNecesitaOnboarding(profile, { otrasCuentasMismoCorreo: otras })
+}
+
 /** Inicia OAuth Google; el cliente redirige a data.url. */
 export const getGoogleOAuthUrlFn = createServerFn({ method: 'POST' })
   .inputValidator((d?: { next?: string }) => d || {})
@@ -749,36 +823,62 @@ async function ensureOAuthProfileRow(user: {
   const avatar = String(meta.avatar_url || meta.picture || '').trim() || null
   const email = String(user.email || '').trim().toLowerCase()
 
-  const { data: existing } = await admin
-    .from('perfiles')
-    .select('id, nombre, avatar_url, codigo_referido, tipo_miembro')
-    .eq('id', user.id)
-    .maybeSingle()
+  const leido = await leerPerfilPorId(admin, user.id)
+  if (!leido.ok) {
+    return { needs_onboarding: false }
+  }
+  const existing = leido.row
 
-  const payload: Record<string, unknown> = {
-    id: user.id,
-    correo: email || null,
-    nombre: existing?.nombre && String(existing.nombre).trim().length >= 2 ? existing.nombre : nombre,
-    avatar_url: existing?.avatar_url || avatar,
-    verificado: Boolean(user.email_confirmed_at) || true,
-    es_pro: false,
-    is_admin: false,
-    bloqueado: false,
+  // No pisar es_pro / is_admin / tipo / oficio de quien ya estaba registrado.
+  if (existing) {
+    const patch: Record<string, unknown> = {}
+    if (email && !existing.correo) patch.correo = email
+    if ((!existing.nombre || String(existing.nombre).trim().length < 2) && nombre) patch.nombre = nombre
+    if (!existing.avatar_url && avatar) patch.avatar_url = avatar
+    if (!existing.verificado && (user.email_confirmed_at || email)) patch.verificado = true
+    if (Object.keys(patch).length) {
+      const { error } = await admin.from('perfiles').update(patch).eq('id', user.id)
+      if (error) console.warn('ensureOAuthProfileRow:', error.message)
+    }
+  } else {
+    const otras = await otrasCuentasMismoCorreo(admin, email, user.id)
+    const yaRegistrado = otras.some((row) => !perfilNecesitaOnboarding(row))
+    // Mismo correo, otro id de Google: no crear un perfil vacío que parezca alta nueva
+    // y no reescribir la fila que ya tenía el oficio.
+    if (!yaRegistrado) {
+      const { error } = await admin.from('perfiles').insert({
+        id: user.id,
+        correo: email || null,
+        nombre,
+        avatar_url: avatar,
+        verificado: true,
+        es_pro: false,
+        is_admin: false,
+        bloqueado: false,
+        fecha_registro: new Date().toISOString(),
+        codigo_referido: generarCodigoReferido(user.id),
+      })
+      if (error) console.warn('ensureOAuthProfileRow:', error.message)
+    }
   }
 
-  const { error } = await admin.from('perfiles').upsert(payload, { onConflict: 'id' })
-  if (error) {
-    console.warn('ensureOAuthProfileRow:', error.message)
-  }
-
-  if (!existing?.codigo_referido) {
+  if (existing && !existing.codigo_referido) {
     await admin.from('perfiles').update({
       codigo_referido: generarCodigoReferido(user.id),
     }).eq('id', user.id)
   }
 
+  const rowParaOnboarding = existing || {
+    id: user.id,
+    correo: email || null,
+    fecha_registro: new Date().toISOString(),
+    tipo_miembro: null,
+  }
+  const otras = await otrasCuentasMismoCorreo(admin, rowParaOnboarding.correo, user.id)
   return {
-    needs_onboarding: !String(existing?.tipo_miembro || payload.tipo_miembro || '').trim(),
+    needs_onboarding: perfilNecesitaOnboarding(rowParaOnboarding, {
+      otrasCuentasMismoCorreo: otras,
+    }),
   }
 }
 
