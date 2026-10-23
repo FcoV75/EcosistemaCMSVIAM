@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
+import { AuthLegalLinks } from '../components/AuthLegalLinks'
 import { ContacNeedLogo } from '../components/ContacNeedLogo'
 import { GoogleSignInButton } from '../components/GoogleSignInButton'
 import { clearGuestBrowseTimer } from '../components/GuestBrowseGate'
@@ -36,6 +37,7 @@ function LoginPage() {
         <div className="mb-4">
           <GoogleSignInButton label="Entrar con Google" />
         </div>
+        <AuthLegalLinks className="mb-4" />
         <p className="mb-4 text-center text-[11px] uppercase tracking-wider text-purple-300/50">
           o con correo
         </p>
