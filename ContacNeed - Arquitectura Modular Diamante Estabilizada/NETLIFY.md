@@ -74,7 +74,10 @@ Supabase **no envía correos a usuarios externos** con el email por defecto. Nec
 
 1. Crea cuenta en [resend.com](https://resend.com) y verifica el dominio `contacneed.com` (DNS).
 2. En Netlify → Environment variables agrega `RESEND_API_KEY` y `RESEND_FROM` (ej. `ContacNeed <noreply@contacneed.com>`).
-3. En Supabase → Authentication → URL Configuration:
+3. En Netlify → Environment variables:
+   - `RESEND_API_KEY` = tu API key de Resend
+   - `RESEND_FROM` = `ContacNeed <noreply@contacneed.com>` (debe ser del dominio verificado)
+4. En Supabase → Authentication → URL Configuration:
    - **Site URL:** `https://contacneed.com`
    - **Redirect URLs**:
      - `https://contacneed.com/auth/confirm`
@@ -92,6 +95,8 @@ Supabase **no envía correos a usuarios externos** con el email por defecto. Nec
 5. (Recomendado) Authentication → Providers → **Enable automatic linking** si quieres vincular el mismo correo Google con una cuenta email/contraseña ya existente.
 
 Flujo: el usuario entra con Google → llega a `/auth/callback` → si aún no eligió Observador/Oficio/Profesión/Especialidad, aparece el modal de onboarding (posponible 1–2 veces). Estudiantes sin cédula usan **Oficio** y reciben recordatorio de cédula.
+
+Si Resend responde *domain is not verified*, el correo no saldrá hasta completar el paso 1.
 
 ### Opción B — SMTP en Supabase
 
