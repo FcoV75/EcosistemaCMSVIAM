@@ -771,6 +771,7 @@ async function needsOnboardingForProfile(
     fecha_registro?: string | null
     onboarding_completado_at?: string | null
     onboarding_pospuesto_hasta?: string | null
+    onboarding_pospuestos?: number | null
   } | null,
 ) {
   if (!profile) return false
@@ -796,7 +797,6 @@ export const getGoogleOAuthUrlFn = createServerFn({ method: 'POST' })
         skipBrowserRedirect: true,
         queryParams: {
           access_type: 'offline',
-          prompt: 'select_account',
         },
       },
     })

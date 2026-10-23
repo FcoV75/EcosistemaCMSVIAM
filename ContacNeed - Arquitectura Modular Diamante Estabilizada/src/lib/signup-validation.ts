@@ -118,6 +118,9 @@ export function validateOnboardingInput(data: OnboardingFields) {
  */
 export const ONBOARDING_OFICIO_DESDE_MS = Date.parse('2026-10-21T02:34:02.000Z')
 
+/** Tras esto, solo recordatorio suave: no volver a exigir el formulario al entrar. */
+export const ONBOARDING_VENTANA_MS = 48 * 60 * 60 * 1000
+
 type PerfilOnboarding = {
   tipo_miembro?: string | null
   habilidad_empirica?: string | null
@@ -125,6 +128,7 @@ type PerfilOnboarding = {
   cedula?: string | null
   onboarding_completado_at?: string | null
   onboarding_pospuesto_hasta?: string | null
+  onboarding_pospuestos?: number | null
   fecha_registro?: string | null
 } | null
 
@@ -154,11 +158,19 @@ function perfilAnteriorAlOnboarding(profile: NonNullable<PerfilOnboarding>) {
   return registrado < ONBOARDING_OFICIO_DESDE_MS
 }
 
+/** Alta con más de 48 h: ya está «dentro»; no reabrir el formulario. */
+function perfilFueraDeVentanaNueva(profile: NonNullable<PerfilOnboarding>) {
+  const raw = textoPerfil(profile.fecha_registro)
+  if (!raw) return true
+  const registrado = Date.parse(raw)
+  if (!Number.isFinite(registrado)) return true
+  return Date.now() - registrado > ONBOARDING_VENTANA_MS
+}
+
 /**
- * El formulario de oficio/profesión es solo para un alta nueva que aún no lo contestó.
- * Cuentas previas a #87, o que ya tienen oficio/profesión/cédula/tipo, no vuelven al formulario
- * (correo o Google). `otrasCuentasMismoCorreo` cubre un inicio con Google que abrió otro id
- * para un correo que ya estaba registrado: no se escribe sobre el perfil viejo.
+ * El formulario de oficio/profesión es solo para un alta nueva reciente que aún no lo contestó.
+ * Nunca se reabre para quienes ya pospusieron, llevan >48 h dentro, son anteriores a #87,
+ * o ya tienen oficio/tipo/cédula. `otrasCuentasMismoCorreo` cubre Google con otro id.
  */
 export function perfilNecesitaOnboarding(
   profile: PerfilOnboarding,
@@ -166,11 +178,13 @@ export function perfilNecesitaOnboarding(
 ) {
   if (!profile) return false
   if (perfilYaTieneOficio(profile)) return false
+  if (Number(profile.onboarding_pospuestos || 0) >= 1) return false
   const until = profile.onboarding_pospuesto_hasta
     ? Date.parse(profile.onboarding_pospuesto_hasta)
     : 0
-  if (Number.isFinite(until) && until > Date.now()) return false
+  if (Number.isFinite(until) && until > 0) return false
   if (perfilAnteriorAlOnboarding(profile)) return false
+  if (perfilFueraDeVentanaNueva(profile)) return false
   const otras = ctx.otrasCuentasMismoCorreo || []
   if (otras.some((row) => row && !perfilNecesitaOnboarding(row))) return false
   return true

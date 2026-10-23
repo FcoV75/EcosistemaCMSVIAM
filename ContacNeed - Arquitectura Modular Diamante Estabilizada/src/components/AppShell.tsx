@@ -52,10 +52,9 @@ export function AppShell({
     required: false,
   })
 
+  // Soft gate: nunca bloquear la entrada con el modal. Solo banner + abrir a petición.
   useEffect(() => {
-    if (user && profile?.needs_onboarding) {
-      setShowMemberOnboarding(true)
-    } else {
+    if (!user || !profile?.needs_onboarding) {
       setShowMemberOnboarding(false)
     }
   }, [user, profile?.needs_onboarding])
