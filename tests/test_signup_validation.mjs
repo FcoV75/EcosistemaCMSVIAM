@@ -159,6 +159,29 @@ assert.equal(
   }),
   false,
 )
+// Ya pospuso una vez (o el plazo venció): no volver a exigir el formulario al entrar.
+assert.equal(
+  perfilNecesitaOnboarding({
+    tipo_miembro: null,
+    fecha_registro: despues,
+    onboarding_pospuestos: 1,
+  }),
+  false,
+)
+assert.equal(
+  perfilNecesitaOnboarding({
+    tipo_miembro: null,
+    fecha_registro: despues,
+    onboarding_pospuesto_hasta: new Date(Date.now() - 60_000).toISOString(),
+  }),
+  false,
+)
+// Alta con más de 48 h: ya está dentro.
+const haceTresDias = new Date(Date.now() - 3 * 86_400_000).toISOString()
+assert.equal(
+  perfilNecesitaOnboarding({ tipo_miembro: null, fecha_registro: haceTresDias }),
+  false,
+)
 // Google abrió otro id, pero el correo ya tenía perfil. No se pide otra vez ni se toca la fila vieja.
 assert.equal(
   perfilNecesitaOnboarding(
