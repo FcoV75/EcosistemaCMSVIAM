@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  Building2,
   Crown,
   MapPin,
   MessageSquare,
@@ -8,6 +9,7 @@ import {
   Sparkles,
   Store,
   UserPlus,
+  Users,
 } from 'lucide-react'
 import { storageGet, storageSet } from './safe-storage'
 
@@ -71,6 +73,22 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
       'Con PRO ganas visibilidad, publicas tu anuncio en el Espacio PRO lateral y amplías tu tienda. Botón "Subir a PRO" en el menú.',
     icon: Crown,
     accent: 'from-amber-400 to-yellow-500',
+  },
+  {
+    id: 'grupos-pro',
+    title: 'Grupos PRO',
+    description:
+      'Con PRO creas grupos privados (familia, equipo, proveedores) como WhatsApp/Messenger, solo con quienes invites, desde el menú Grupos.',
+    icon: Users,
+    accent: 'from-sky-500 to-indigo-500',
+  },
+  {
+    id: 'mi-proyecto-pro',
+    title: 'Mi Proyecto PRO',
+    description:
+      'Coordina obras grandes (edificio, escuela, hospital…) con grupos estratégicos por rol. Al concluir, dejas solo el equipo de mantenimiento. Exclusivo PRO.',
+    icon: Building2,
+    accent: 'from-orange-500 to-amber-600',
   },
   {
     id: 'community',

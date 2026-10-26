@@ -1,6 +1,21 @@
 import { Link } from '@tanstack/react-router'
-import { Bell, BookOpen, Crown, HelpCircle, Home, LogIn, LogOut, Mail, Sparkles, User, UserPlus } from 'lucide-react'
+import {
+  Bell,
+  BookOpen,
+  Building2,
+  Crown,
+  HelpCircle,
+  Home,
+  LogIn,
+  LogOut,
+  Mail,
+  Sparkles,
+  User,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import type { AuthTab } from './AuthModal'
+import { SectionHelpHint } from './SectionHelpHint'
 
 type SidebarNavProps = {
   onOpenStripe: () => void
@@ -77,6 +92,42 @@ export function SidebarNav({
                 <Mail size={18} className="text-amber-400" />
                 Mensajes
               </Link>
+            </li>
+            <li>
+              <div className="flex items-center gap-1 rounded-xl px-3 py-2.5 transition hover:bg-white/10">
+                <Link
+                  to="/grupos"
+                  className="flex flex-1 items-center gap-3 text-sm font-medium text-purple-100 [&.active]:text-amber-100"
+                >
+                  <Users size={18} className="text-amber-400" />
+                  Grupos
+                  <span className="rounded bg-amber-500/25 px-1.5 py-0.5 text-[9px] font-bold text-amber-200">
+                    PRO
+                  </span>
+                </Link>
+                <SectionHelpHint
+                  title="Grupos"
+                  text="Espacios tipo WhatsApp para familia, equipo o proveedores. Solo ContacNeed PRO."
+                />
+              </div>
+            </li>
+            <li>
+              <div className="flex items-center gap-1 rounded-xl px-3 py-2.5 transition hover:bg-white/10">
+                <Link
+                  to="/mi-proyecto"
+                  className="flex flex-1 items-center gap-3 text-sm font-medium text-purple-100 [&.active]:text-amber-100"
+                >
+                  <Building2 size={18} className="text-amber-400" />
+                  Mi Proyecto
+                  <span className="rounded bg-amber-500/25 px-1.5 py-0.5 text-[9px] font-bold text-amber-200">
+                    PRO
+                  </span>
+                </Link>
+                <SectionHelpHint
+                  title="Mi Proyecto"
+                  text="Proyectos serios con grupos estratégicos por rol. Quien inicia concluye la obra y elige el equipo de mantenimiento. PRO."
+                />
+              </div>
             </li>
             <li>
               <Link
