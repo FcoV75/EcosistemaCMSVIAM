@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AvisosRouteImport } from './routes/avisos'
 import { Route as EscuelaRouteImport } from './routes/escuela'
+import { Route as GruposRouteImport } from './routes/grupos'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MensajesRouteImport } from './routes/mensajes'
+import { Route as MiProyectoRouteImport } from './routes/mi-proyecto'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RadioRouteImport } from './routes/radio'
@@ -24,6 +26,8 @@ import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
 import { Route as EscuelaSlugRouteImport } from './routes/escuela.$slug'
+import { Route as GruposGroupIdRouteImport } from './routes/grupos.$groupId'
+import { Route as MiProyectoProjectIdRouteImport } from './routes/mi-proyecto.$projectId'
 import { Route as UUserIdRouteImport } from './routes/u/$userId'
 import { Route as MensajesChatPeerIdRouteImport } from './routes/mensajes/chat/$peerId'
 
@@ -47,6 +51,11 @@ const EscuelaRoute = EscuelaRouteImport.update({
   path: '/escuela',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GruposRoute = GruposRouteImport.update({
+  id: '/grupos',
+  path: '/grupos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -55,6 +64,11 @@ const LoginRoute = LoginRouteImport.update({
 const MensajesRoute = MensajesRouteImport.update({
   id: '/mensajes',
   path: '/mensajes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MiProyectoRoute = MiProyectoRouteImport.update({
+  id: '/mi-proyecto',
+  path: '/mi-proyecto',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadRoute = PrivacidadRouteImport.update({
@@ -102,6 +116,16 @@ const EscuelaSlugRoute = EscuelaSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => EscuelaRoute,
 } as any)
+const GruposGroupIdRoute = GruposGroupIdRouteImport.update({
+  id: '/$groupId',
+  path: '/$groupId',
+  getParentRoute: () => GruposRoute,
+} as any)
+const MiProyectoProjectIdRoute = MiProyectoProjectIdRouteImport.update({
+  id: '/$projectId',
+  path: '/$projectId',
+  getParentRoute: () => MiProyectoRoute,
+} as any)
 const UUserIdRoute = UUserIdRouteImport.update({
   id: '/u/$userId',
   path: '/u/$userId',
@@ -118,8 +142,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/avisos': typeof AvisosRoute
   '/escuela': typeof EscuelaRouteWithChildren
+  '/grupos': typeof GruposRouteWithChildren
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
+  '/mi-proyecto': typeof MiProyectoRouteWithChildren
   '/privacidad': typeof PrivacidadRoute
   '/profile': typeof ProfileRoute
   '/radio': typeof RadioRoute
@@ -129,6 +155,8 @@ export interface FileRoutesByFullPath {
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
   '/escuela/$slug': typeof EscuelaSlugRoute
+  '/grupos/$groupId': typeof GruposGroupIdRoute
+  '/mi-proyecto/$projectId': typeof MiProyectoProjectIdRoute
   '/u/$userId': typeof UUserIdRoute
   '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
@@ -137,8 +165,10 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/avisos': typeof AvisosRoute
   '/escuela': typeof EscuelaRouteWithChildren
+  '/grupos': typeof GruposRouteWithChildren
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
+  '/mi-proyecto': typeof MiProyectoRouteWithChildren
   '/privacidad': typeof PrivacidadRoute
   '/profile': typeof ProfileRoute
   '/radio': typeof RadioRoute
@@ -148,6 +178,8 @@ export interface FileRoutesByTo {
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
   '/escuela/$slug': typeof EscuelaSlugRoute
+  '/grupos/$groupId': typeof GruposGroupIdRoute
+  '/mi-proyecto/$projectId': typeof MiProyectoProjectIdRoute
   '/u/$userId': typeof UUserIdRoute
   '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
@@ -157,8 +189,10 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/avisos': typeof AvisosRoute
   '/escuela': typeof EscuelaRouteWithChildren
+  '/grupos': typeof GruposRouteWithChildren
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRouteWithChildren
+  '/mi-proyecto': typeof MiProyectoRouteWithChildren
   '/privacidad': typeof PrivacidadRoute
   '/profile': typeof ProfileRoute
   '/radio': typeof RadioRoute
@@ -168,6 +202,8 @@ export interface FileRoutesById {
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
   '/escuela/$slug': typeof EscuelaSlugRoute
+  '/grupos/$groupId': typeof GruposGroupIdRoute
+  '/mi-proyecto/$projectId': typeof MiProyectoProjectIdRoute
   '/u/$userId': typeof UUserIdRoute
   '/mensajes/chat/$peerId': typeof MensajesChatPeerIdRoute
 }
@@ -178,8 +214,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/avisos'
     | '/escuela'
+    | '/grupos'
     | '/login'
     | '/mensajes'
+    | '/mi-proyecto'
     | '/privacidad'
     | '/profile'
     | '/radio'
@@ -189,6 +227,8 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/auth/reset'
     | '/escuela/$slug'
+    | '/grupos/$groupId'
+    | '/mi-proyecto/$projectId'
     | '/u/$userId'
     | '/mensajes/chat/$peerId'
   fileRoutesByTo: FileRoutesByTo
@@ -197,8 +237,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/avisos'
     | '/escuela'
+    | '/grupos'
     | '/login'
     | '/mensajes'
+    | '/mi-proyecto'
     | '/privacidad'
     | '/profile'
     | '/radio'
@@ -208,6 +250,8 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/auth/reset'
     | '/escuela/$slug'
+    | '/grupos/$groupId'
+    | '/mi-proyecto/$projectId'
     | '/u/$userId'
     | '/mensajes/chat/$peerId'
   id:
@@ -216,8 +260,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/avisos'
     | '/escuela'
+    | '/grupos'
     | '/login'
     | '/mensajes'
+    | '/mi-proyecto'
     | '/privacidad'
     | '/profile'
     | '/radio'
@@ -227,6 +273,8 @@ export interface FileRouteTypes {
     | '/auth/confirm'
     | '/auth/reset'
     | '/escuela/$slug'
+    | '/grupos/$groupId'
+    | '/mi-proyecto/$projectId'
     | '/u/$userId'
     | '/mensajes/chat/$peerId'
   fileRoutesById: FileRoutesById
@@ -236,8 +284,10 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AvisosRoute: typeof AvisosRoute
   EscuelaRoute: typeof EscuelaRouteWithChildren
+  GruposRoute: typeof GruposRouteWithChildren
   LoginRoute: typeof LoginRoute
   MensajesRoute: typeof MensajesRouteWithChildren
+  MiProyectoRoute: typeof MiProyectoRouteWithChildren
   PrivacidadRoute: typeof PrivacidadRoute
   ProfileRoute: typeof ProfileRoute
   RadioRoute: typeof RadioRoute
@@ -279,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EscuelaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/grupos': {
+      id: '/grupos'
+      path: '/grupos'
+      fullPath: '/grupos'
+      preLoaderRoute: typeof GruposRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -291,6 +348,13 @@ declare module '@tanstack/react-router' {
       path: '/mensajes'
       fullPath: '/mensajes'
       preLoaderRoute: typeof MensajesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mi-proyecto': {
+      id: '/mi-proyecto'
+      path: '/mi-proyecto'
+      fullPath: '/mi-proyecto'
+      preLoaderRoute: typeof MiProyectoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidad': {
@@ -356,6 +420,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EscuelaSlugRouteImport
       parentRoute: typeof EscuelaRoute
     }
+    '/grupos/$groupId': {
+      id: '/grupos/$groupId'
+      path: '/$groupId'
+      fullPath: '/grupos/$groupId'
+      preLoaderRoute: typeof GruposGroupIdRouteImport
+      parentRoute: typeof GruposRoute
+    }
+    '/mi-proyecto/$projectId': {
+      id: '/mi-proyecto/$projectId'
+      path: '/$projectId'
+      fullPath: '/mi-proyecto/$projectId'
+      preLoaderRoute: typeof MiProyectoProjectIdRouteImport
+      parentRoute: typeof MiProyectoRoute
+    }
     '/u/$userId': {
       id: '/u/$userId'
       path: '/u/$userId'
@@ -384,6 +462,17 @@ const EscuelaRouteChildren: EscuelaRouteChildren = {
 const EscuelaRouteWithChildren =
   EscuelaRoute._addFileChildren(EscuelaRouteChildren)
 
+interface GruposRouteChildren {
+  GruposGroupIdRoute: typeof GruposGroupIdRoute
+}
+
+const GruposRouteChildren: GruposRouteChildren = {
+  GruposGroupIdRoute: GruposGroupIdRoute,
+}
+
+const GruposRouteWithChildren =
+  GruposRoute._addFileChildren(GruposRouteChildren)
+
 interface MensajesRouteChildren {
   MensajesChatPeerIdRoute: typeof MensajesChatPeerIdRoute
 }
@@ -396,13 +485,27 @@ const MensajesRouteWithChildren = MensajesRoute._addFileChildren(
   MensajesRouteChildren,
 )
 
+interface MiProyectoRouteChildren {
+  MiProyectoProjectIdRoute: typeof MiProyectoProjectIdRoute
+}
+
+const MiProyectoRouteChildren: MiProyectoRouteChildren = {
+  MiProyectoProjectIdRoute: MiProyectoProjectIdRoute,
+}
+
+const MiProyectoRouteWithChildren = MiProyectoRoute._addFileChildren(
+  MiProyectoRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AvisosRoute: AvisosRoute,
   EscuelaRoute: EscuelaRouteWithChildren,
+  GruposRoute: GruposRouteWithChildren,
   LoginRoute: LoginRoute,
   MensajesRoute: MensajesRouteWithChildren,
+  MiProyectoRoute: MiProyectoRouteWithChildren,
   PrivacidadRoute: PrivacidadRoute,
   ProfileRoute: ProfileRoute,
   RadioRoute: RadioRoute,
