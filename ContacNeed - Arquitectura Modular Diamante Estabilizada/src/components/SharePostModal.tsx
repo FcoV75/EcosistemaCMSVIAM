@@ -1,6 +1,6 @@
 import { Copy, Share2, X } from 'lucide-react'
 import { useState } from 'react'
-import { buildSharePayload, SHARE_CHANNELS } from '../lib/share-post'
+import { buildSharePayload, SHARE_CHANNELS, type ShareChannel } from '../lib/share-post'
 import { registerShareFn } from '../server/posts.functions'
 
 type SharePostModalProps = {
@@ -13,6 +13,7 @@ type SharePostModalProps = {
 
 export function SharePostModal({ open, onClose, postId, excerpt, onShared }: SharePostModalProps) {
   const [copied, setCopied] = useState(false)
+  const [hint, setHint] = useState<string | null>(null)
 
   if (!open) return null
 
@@ -27,14 +28,31 @@ export function SharePostModal({ open, onClose, postId, excerpt, onShared }: Sha
     }
   }
 
-  const copyLink = async () => {
+  const copyLink = async (canal = 'copy') => {
     try {
       await navigator.clipboard.writeText(full)
       setCopied(true)
-      await trackShare('copy')
+      await trackShare(canal)
       setTimeout(() => setCopied(false), 2000)
+      return true
     } catch {
-      alert('No se pudo copiar el enlace')
+      alert('No se pudo copiar el enlace. Selecciónalo manualmente.')
+      return false
+    }
+  }
+
+  const openChannel = async (channel: ShareChannel) => {
+    setHint(channel.hint || null)
+    if (channel.buildUrl) {
+      const href = channel.buildUrl(url, text)
+      await trackShare(channel.id)
+      window.open(href, '_blank', 'noopener,noreferrer')
+      onClose()
+      return
+    }
+    const ok = await copyLink(channel.id)
+    if (ok && channel.openAfterCopy) {
+      window.open(channel.openAfterCopy, '_blank', 'noopener,noreferrer')
     }
   }
 
@@ -49,7 +67,7 @@ export function SharePostModal({ open, onClose, postId, excerpt, onShared }: Sha
         /* user cancelled */
       }
     }
-    await copyLink()
+    await copyLink('native_fallback')
   }
 
   return (
@@ -67,30 +85,32 @@ export function SharePostModal({ open, onClose, postId, excerpt, onShared }: Sha
 
         <div className="space-y-4 px-5 py-4">
           <p className="text-sm text-purple-200/80">
-            Elige dónde compartir. Se abrirá la red seleccionada con el enlace listo para publicar.
+            Elige la red. Se abre con el enlace de ContacNeed listo. En Instagram y TikTok copiamos el
+            enlace para que lo pegues al instante.
           </p>
 
-          <div className="grid grid-cols-2 gap-2">
+          {hint && (
+            <p className="rounded-lg border border-amber-400/25 bg-amber-950/30 px-3 py-2 text-xs text-amber-100">
+              {hint}
+            </p>
+          )}
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {SHARE_CHANNELS.map((channel) => (
-              <a
+              <button
                 key={channel.id}
-                href={channel.buildUrl(url, text)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  void trackShare(channel.id)
-                  onClose()
-                }}
+                type="button"
+                onClick={() => void openChannel(channel)}
                 className={`rounded-xl ${channel.color} px-3 py-3 text-center text-sm font-bold text-white transition hover:opacity-90`}
               >
                 {channel.label}
-              </a>
+              </button>
             ))}
           </div>
 
           <button
             type="button"
-            onClick={copyLink}
+            onClick={() => void copyLink()}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500/30 bg-slate-900/60 py-3 text-sm font-semibold text-purple-100"
           >
             <Copy size={16} />
@@ -99,7 +119,7 @@ export function SharePostModal({ open, onClose, postId, excerpt, onShared }: Sha
 
           <button
             type="button"
-            onClick={nativeShare}
+            onClick={() => void nativeShare()}
             className="cn-btn-metallic w-full rounded-xl py-3 text-sm font-bold text-slate-950"
           >
             Compartir desde este dispositivo
