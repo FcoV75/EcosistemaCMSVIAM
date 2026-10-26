@@ -10,21 +10,27 @@ export const PRO_EXTRA_ADS_PACK_SIZE = 5
 export const PRO_EXTRA_ADS_PACK_PRICE_MXN = 500
 
 export const FREE_PLAN_FEATURES = [
-  'Mensajes en bandeja y solicitudes de amistad/servicio',
+  'Registro gratis (correo o Google) y perfil de oficio/profesión',
+  'Pizarra nacional: publica, comenta, reacciona y comparte',
+  'Hasta 15 publicaciones diarias en la pizarra',
+  'Mensajes, solicitudes de amistad/servicio y avisos',
   'Tienda básica: 1 banner + hasta 5 imágenes de productos',
   'Asistente IA de tienda con sugerencias',
-  'Hasta 15 publicaciones diarias en la pizarra',
+  'Escuela de principios, Radio VIAM y búsqueda de personas',
   'Comentarios ilimitados en publicaciones ajenas',
 ] as const
 
 export const PRO_PLAN_FEATURES = [
+  'Todo lo del plan gratuito, ampliado',
   'Hasta 30 publicaciones diarias en la pizarra',
   'Chat en vivo ilimitado',
+  'Grupos privados (familia, equipo, proveedores)',
+  'Mi Proyecto: obras serias con grupos estratégicos y cierre con mantenimiento',
   'Ubicación GPS en Google Maps para tu negocio',
   '1 anuncio PRO incluido en el Espacio PRO',
   'Paquete extra: +5 anuncios por $500 MXN',
   'Informe mensual de tendencias y productos top (en Mensajes)',
-  'Tienda ampliada y visibilidad PRO',
+  'Tienda ampliada (hasta 100 ítems) y visibilidad PRO',
 ] as const
 
 export function getDailyPostLimit(isPro: boolean) {
