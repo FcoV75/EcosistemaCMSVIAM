@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Users } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
+import { MemberInvitePicker } from '../components/MemberInvitePicker'
 import { SectionHelpHint } from '../components/SectionHelpHint'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { useIdentity } from '../lib/identity-context'
@@ -22,18 +23,25 @@ export const Route = createFileRoute('/grupos')({
   component: GruposPage,
 })
 
+type Persona = {
+  id: string
+  nombre?: string | null
+  habilidad_empirica?: string | null
+}
+
 function GruposPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   if (pathname !== '/grupos' && pathname.startsWith('/grupos/')) {
     return <Outlet />
   }
 
-  const { isPro } = useIdentity()
+  const { isPro, user } = useIdentity()
   const queryClient = useQueryClient()
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
   const [nombre, setNombre] = useState('')
   const [desc, setDesc] = useState('')
+  const [invitados, setInvitados] = useState<Persona[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const gruposQuery = useQuery({
@@ -43,10 +51,18 @@ function GruposPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: () => createGrupoComunFn({ data: { nombre, descripcion: desc } }),
+    mutationFn: () =>
+      createGrupoComunFn({
+        data: {
+          nombre,
+          descripcion: desc,
+          miembroIds: invitados.map((p) => p.id),
+        },
+      }),
     onSuccess: () => {
       setNombre('')
       setDesc('')
+      setInvitados([])
       setError(null)
       queryClient.invalidateQueries({ queryKey: ['grupos-comunes'] })
     },
@@ -56,7 +72,10 @@ function GruposPage() {
   const inviteMutation = useMutation({
     mutationFn: (payload: { grupoId: string; accept: boolean }) =>
       responderInvitacionGrupoFn({ data: payload }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['grupos-comunes'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['grupos-comunes'] })
+      queryClient.invalidateQueries({ queryKey: ['notificaciones'] })
+    },
   })
 
   return (
@@ -121,13 +140,22 @@ function GruposPage() {
                   className="w-full rounded-xl border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-white"
                 />
               </label>
+              <MemberInvitePicker
+                selected={invitados}
+                onChange={setInvitados}
+                excludeIds={user?.id ? [user.id] : []}
+              />
               {error && <p className="text-sm text-red-300 sm:col-span-2">{error}</p>}
               <button
                 type="submit"
                 disabled={createMutation.isPending}
                 className="cn-btn-metallic rounded-xl px-4 py-2 text-sm font-bold text-slate-950 sm:col-span-2"
               >
-                {createMutation.isPending ? 'Creando…' : 'Crear grupo'}
+                {createMutation.isPending
+                  ? 'Creando…'
+                  : invitados.length
+                    ? `Crear grupo e invitar (${invitados.length})`
+                    : 'Crear grupo'}
               </button>
             </form>
 

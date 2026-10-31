@@ -52,6 +52,20 @@ export function EnlaceAviso({ enlace }: { enlace?: string | null }) {
       </Link>
     )
   }
+  if (dest.to === '/grupos') {
+    return (
+      <Link to="/grupos" className={className}>
+        {dest.label}
+      </Link>
+    )
+  }
+  if (dest.to === '/mi-proyecto') {
+    return (
+      <Link to="/mi-proyecto" className={className}>
+        {dest.label}
+      </Link>
+    )
+  }
   return (
     <Link to="/avisos" className={className}>
       {dest.label}
