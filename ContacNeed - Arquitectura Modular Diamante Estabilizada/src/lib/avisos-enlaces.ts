@@ -1,5 +1,13 @@
 export type DestinoAviso = {
-  to: '/escuela' | '/escuela/$slug' | '/admin' | '/mensajes' | '/u/$userId' | '/avisos'
+  to:
+    | '/escuela'
+    | '/escuela/$slug'
+    | '/admin'
+    | '/mensajes'
+    | '/u/$userId'
+    | '/avisos'
+    | '/grupos'
+    | '/mi-proyecto'
   params?: { slug: string } | { userId: string }
   label: string
 }
@@ -10,6 +18,12 @@ export function destinoAvisoSeguro(enlace?: string | null): DestinoAviso | null 
 
   if (raw === '/avisos' || raw.startsWith('/avisos?')) {
     return { to: '/avisos', label: 'Ver avisos' }
+  }
+  if (raw === '/grupos' || raw.startsWith('/grupos?') || raw.startsWith('/grupos/')) {
+    return { to: '/grupos', label: 'Abrir Grupos' }
+  }
+  if (raw === '/mi-proyecto' || raw.startsWith('/mi-proyecto?') || raw.startsWith('/mi-proyecto/')) {
+    return { to: '/mi-proyecto', label: 'Abrir Mi Proyecto' }
   }
   if (raw === '/escuela' || raw.startsWith('/escuela?')) {
     return { to: '/escuela', label: 'Ir a la escuela' }

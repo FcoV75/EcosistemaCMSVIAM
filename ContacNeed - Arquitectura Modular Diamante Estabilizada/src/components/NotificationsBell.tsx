@@ -7,6 +7,7 @@ import {
   getNotificacionesFn,
   markNotificacionReadFn,
 } from '../server/notificaciones.functions'
+import { responderInvitacionGrupoFn } from '../server/grupos-proyectos.functions'
 
 export function NotificationsBell() {
   const queryClient = useQueryClient()
@@ -25,6 +26,15 @@ export function NotificationsBell() {
     mutationFn: (payload: { id?: string; all?: boolean }) =>
       markNotificacionReadFn({ data: payload }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notificaciones'] }),
+  })
+
+  const inviteMutation = useMutation({
+    mutationFn: (payload: { grupoId: string; accept: boolean; notificacionId: string }) =>
+      responderInvitacionGrupoFn({ data: payload }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificaciones'] })
+      queryClient.invalidateQueries({ queryKey: ['grupos-comunes'] })
+    },
   })
 
   useEffect(() => {
@@ -83,6 +93,9 @@ export function NotificationsBell() {
             )}
             {items.map((item) => {
               const expandida = abierta === item.id
+              const meta = (item.metadata || {}) as { grupoId?: string }
+              const esInvitacion =
+                item.tipo === 'grupo_invitacion' && Boolean(meta.grupoId) && !item.leida
               return (
                 <article
                   key={item.id}
@@ -95,7 +108,7 @@ export function NotificationsBell() {
                     className="w-full text-left"
                     onClick={() => {
                       setAbierta(expandida ? null : item.id)
-                      if (!item.leida) markMutation.mutate({ id: item.id })
+                      if (!item.leida && !esInvitacion) markMutation.mutate({ id: item.id })
                     }}
                   >
                     <p className="text-sm font-semibold text-white">{item.titulo}</p>
@@ -109,7 +122,39 @@ export function NotificationsBell() {
                       {expandida ? '' : ' · Ver aviso'}
                     </p>
                   </button>
-                  {expandida && <EnlaceAviso enlace={item.enlace} />}
+                  {expandida && esInvitacion && (
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        disabled={inviteMutation.isPending}
+                        className="rounded-lg bg-emerald-600/80 px-2.5 py-1 text-[11px] font-bold text-white"
+                        onClick={() =>
+                          inviteMutation.mutate({
+                            grupoId: String(meta.grupoId),
+                            accept: true,
+                            notificacionId: item.id,
+                          })
+                        }
+                      >
+                        Aceptar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={inviteMutation.isPending}
+                        className="rounded-lg bg-red-900/60 px-2.5 py-1 text-[11px] font-bold text-red-100"
+                        onClick={() =>
+                          inviteMutation.mutate({
+                            grupoId: String(meta.grupoId),
+                            accept: false,
+                            notificacionId: item.id,
+                          })
+                        }
+                      >
+                        Rechazar
+                      </button>
+                    </div>
+                  )}
+                  {expandida && !esInvitacion && <EnlaceAviso enlace={item.enlace} />}
                 </article>
               )
             })}

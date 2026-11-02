@@ -41,6 +41,8 @@ function MiProyectoPage() {
   const [nombre, setNombre] = useState('')
   const [desc, setDesc] = useState('')
   const [tipo, setTipo] = useState('edificio')
+  const [fechaInicio, setFechaInicio] = useState('')
+  const [fechaTermino, setFechaTermino] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const listQuery = useQuery({
@@ -51,10 +53,20 @@ function MiProyectoPage() {
 
   const createMutation = useMutation({
     mutationFn: () =>
-      createProyectoFn({ data: { nombre, descripcion: desc, tipo_obra: tipo } }),
+      createProyectoFn({
+        data: {
+          nombre,
+          descripcion: desc,
+          tipo_obra: tipo,
+          fecha_inicio: fechaInicio || undefined,
+          fecha_probable_termino: fechaTermino || undefined,
+        },
+      }),
     onSuccess: () => {
       setNombre('')
       setDesc('')
+      setFechaInicio('')
+      setFechaTermino('')
       setError(null)
       queryClient.invalidateQueries({ queryKey: ['mis-proyectos'] })
     },
@@ -78,7 +90,7 @@ function MiProyectoPage() {
           </span>
           <SectionHelpHint
             title="¿Cómo usar Mi Proyecto?"
-            text="Crea un proyecto serio (edificio, escuela, hospital…). Dentro arma grupos estratégicos (arquitectos, albañiles, abogados, proveedores). Tú lo concluyes y eliges qué grupos quedan para mantenimiento."
+            text="Crea un proyecto serio (edificio, escuela, hospital…). Dentro arma grupos estratégicos, lleva finanzas e imprevistos. Tú lo concluyes y eliges qué grupos quedan para mantenimiento."
           />
         </div>
 
@@ -86,8 +98,8 @@ function MiProyectoPage() {
           <div className="rounded-xl border border-amber-400/30 bg-amber-950/30 p-5 text-sm text-amber-50">
             <p className="font-semibold">Mi Proyecto es ContacNeed PRO</p>
             <p className="mt-2 text-amber-100/80">
-              Coordina obras grandes con grupos por oficio hasta concluir y dejar solo el equipo de
-              mantenimiento.
+              Coordina obras grandes con grupos por oficio, presupuesto y bitácora hasta concluir y
+              dejar solo el equipo de mantenimiento.
             </p>
             <button
               type="button"
@@ -130,6 +142,24 @@ function MiProyectoPage() {
                   ))}
                 </select>
               </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-purple-200/80">Fecha de inicio</span>
+                <input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(e) => setFechaInicio(e.target.value)}
+                  className="w-full rounded-xl border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-white"
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-purple-200/80">Término probable</span>
+                <input
+                  type="date"
+                  value={fechaTermino}
+                  onChange={(e) => setFechaTermino(e.target.value)}
+                  className="w-full rounded-xl border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-white"
+                />
+              </label>
               <label className="text-sm sm:col-span-2">
                 <span className="mb-1 block text-purple-200/80">Descripción</span>
                 <textarea
@@ -151,6 +181,13 @@ function MiProyectoPage() {
 
             <SectionList title="Tus proyectos" items={listQuery.data?.propios || []} />
             <SectionList title="Colaboras en" items={listQuery.data?.colaborando || []} />
+            {!listQuery.isLoading &&
+              !(listQuery.data?.propios || []).length &&
+              !(listQuery.data?.colaborando || []).length && (
+                <p className="text-sm text-purple-200/60">
+                  Aún no tienes proyectos. Crea el primero arriba y luego arma grupos estratégicos.
+                </p>
+              )}
           </>
         )}
       </div>
@@ -175,6 +212,7 @@ function SectionList({ title, items }: { title: string; items: any[] }) {
                 <p className="font-semibold text-white">{p.nombre}</p>
                 <p className="text-xs text-purple-200/60">
                   {p.tipo_obra} · {p.estatus}
+                  {p.fecha_inicio ? ` · inicio ${p.fecha_inicio}` : ''}
                 </p>
               </div>
               <span className="text-xs font-bold text-amber-300">Abrir →</span>
