@@ -6,6 +6,16 @@ function admin() {
   return createSupabaseAdminClient()
 }
 
+function isMissingSchemaError(message?: string | null) {
+  const m = String(message || '').toLowerCase()
+  return (
+    m.includes('does not exist') ||
+    m.includes('could not find the table') ||
+    m.includes('schema cache') ||
+    (m.includes('column') && m.includes('not exist'))
+  )
+}
+
 async function notify(
   usuarioId: string,
   payload: { tipo: string; titulo: string; cuerpo: string; enlace?: string; metadata?: Record<string, unknown> },
@@ -34,6 +44,32 @@ async function assertMiembroActivo(grupoId: string, userId: string) {
   return data
 }
 
+async function assertGrupoOwner(grupoId: string, userId: string) {
+  const db = admin()
+  const full = await db
+    .from('grupos')
+    .select(
+      'id, owner_id, nombre, tipo, proyecto_id, activo, descripcion, rol_etiqueta, presupuesto_asignado',
+    )
+    .eq('id', grupoId)
+    .maybeSingle()
+  let grupo = full.data
+  if (full.error && isMissingSchemaError(full.error.message)) {
+    const legacy = await db
+      .from('grupos')
+      .select('id, owner_id, nombre, tipo, proyecto_id, activo, descripcion, rol_etiqueta')
+      .eq('id', grupoId)
+      .maybeSingle()
+    if (legacy.error) throw new Error(legacy.error.message)
+    grupo = legacy.data ? { ...legacy.data, presupuesto_asignado: 0 } : null
+  } else if (full.error) {
+    throw new Error(full.error.message)
+  }
+  if (!grupo) throw new Error('Grupo no encontrado')
+  if (grupo.owner_id !== userId) throw new Error('Solo el dueño del grupo puede hacer esto.')
+  return grupo
+}
+
 async function assertProyectoOwner(proyectoId: string, userId: string) {
   const { data } = await admin()
     .from('proyectos')
@@ -45,20 +81,40 @@ async function assertProyectoOwner(proyectoId: string, userId: string) {
   return data
 }
 
-async function assertProyectoAcceso(proyectoId: string, userId: string) {
+async function loadProyectoRow(proyectoId: string) {
   const db = admin()
-  const { data: proyecto } = await db
+  const full = await db
     .from('proyectos')
-    .select('id, owner_id, estatus, nombre, descripcion, tipo_obra, fecha_inicio, fecha_probable_termino, created_at, concluido_at')
+    .select(
+      'id, owner_id, estatus, nombre, descripcion, tipo_obra, fecha_inicio, fecha_probable_termino, created_at, concluido_at',
+    )
     .eq('id', proyectoId)
     .maybeSingle()
+  if (!full.error) return full.data
+  if (!isMissingSchemaError(full.error.message)) throw new Error(full.error.message)
+
+  const legacy = await db
+    .from('proyectos')
+    .select('id, owner_id, estatus, nombre, descripcion, tipo_obra, created_at, concluido_at')
+    .eq('id', proyectoId)
+    .maybeSingle()
+  if (legacy.error) throw new Error(legacy.error.message)
+  return legacy.data
+    ? {
+        ...legacy.data,
+        fecha_inicio: null as string | null,
+        fecha_probable_termino: null as string | null,
+      }
+    : null
+}
+
+async function assertProyectoAcceso(proyectoId: string, userId: string) {
+  const db = admin()
+  const proyecto = await loadProyectoRow(proyectoId)
   if (!proyecto) throw new Error('Proyecto no encontrado')
   if (proyecto.owner_id === userId) return { proyecto, esOwner: true }
 
-  const { data: grupos } = await db
-    .from('grupos')
-    .select('id')
-    .eq('proyecto_id', proyectoId)
+  const { data: grupos } = await db.from('grupos').select('id').eq('proyecto_id', proyectoId)
   const gIds = (grupos || []).map((g) => g.id)
   if (!gIds.length) throw new Error('No tienes acceso a este proyecto.')
   const { data: memb } = await db
@@ -70,6 +126,31 @@ async function assertProyectoAcceso(proyectoId: string, userId: string) {
     .limit(1)
   if (!memb?.length) throw new Error('No tienes acceso a este proyecto.')
   return { proyecto, esOwner: false }
+}
+
+async function loadGrupoMiembros(grupoId: string) {
+  const db = admin()
+  // Sin embed: evita PGRST201 por FKs dobles (usuario_id + invited_by → perfiles).
+  const { data: miembros, error } = await db
+    .from('grupo_miembros')
+    .select('usuario_id, rol, estatus')
+    .eq('grupo_id', grupoId)
+    .in('estatus', ['activo', 'invitado'])
+  if (error) throw new Error(error.message)
+  const rows = miembros || []
+  const ids = [...new Set(rows.map((m) => m.usuario_id).filter(Boolean))]
+  let perfilesById = new Map<string, any>()
+  if (ids.length) {
+    const { data: perfiles } = await db
+      .from('perfiles')
+      .select('id, nombre, avatar_url, habilidad_empirica')
+      .in('id', ids)
+    perfilesById = new Map((perfiles || []).map((p) => [p.id, p]))
+  }
+  return rows.map((m) => ({
+    ...m,
+    perfiles: perfilesById.get(m.usuario_id) || null,
+  }))
 }
 
 async function inviteUsersToGrupo(
@@ -173,6 +254,66 @@ export const createGrupoComunFn = createServerFn({ method: 'POST' })
     return { success: true, grupo, invitados }
   })
 
+export const updateGrupoFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (d: {
+      grupoId: string
+      nombre?: string
+      descripcion?: string
+      rol_etiqueta?: string
+      presupuesto_asignado?: number
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireProUser()
+    const grupo = await assertGrupoOwner(data.grupoId, user.id)
+    if (!grupo.activo) throw new Error('Este grupo ya no está activo.')
+
+    const patch: Record<string, unknown> = {}
+    if (data.nombre !== undefined) {
+      const nombre = String(data.nombre || '').trim()
+      if (nombre.length < 2) throw new Error('Nombre: mínimo 2 caracteres.')
+      patch.nombre = nombre
+    }
+    if (data.descripcion !== undefined) {
+      patch.descripcion = String(data.descripcion || '').trim() || null
+    }
+    if (data.rol_etiqueta !== undefined && grupo.tipo === 'proyecto') {
+      patch.rol_etiqueta = String(data.rol_etiqueta || '').trim() || null
+    }
+    if (data.presupuesto_asignado !== undefined && grupo.tipo === 'proyecto') {
+      patch.presupuesto_asignado = Math.max(0, Number(data.presupuesto_asignado || 0))
+    }
+    if (!Object.keys(patch).length) return { success: true }
+
+    const { error } = await admin().from('grupos').update(patch).eq('id', data.grupoId)
+    if (error) {
+      if (isMissingSchemaError(error.message) && 'presupuesto_asignado' in patch) {
+        delete patch.presupuesto_asignado
+        if (!Object.keys(patch).length) return { success: true }
+        const retry = await admin().from('grupos').update(patch).eq('id', data.grupoId)
+        if (retry.error) throw new Error(retry.error.message)
+        return { success: true }
+      }
+      throw new Error(error.message)
+    }
+    return { success: true }
+  })
+
+export const deleteGrupoFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { grupoId: string }) => d)
+  .handler(async ({ data }) => {
+    const { user } = await requireProUser()
+    const grupo = await assertGrupoOwner(data.grupoId, user.id)
+    if (grupo.tipo === 'proyecto' && grupo.proyecto_id) {
+      await assertProyectoOwner(grupo.proyecto_id, user.id)
+    }
+    // Soft-delete: conserva historial de mensajes; deja de listarse.
+    const { error } = await admin().from('grupos').update({ activo: false }).eq('id', data.grupoId)
+    if (error) throw new Error(error.message)
+    return { success: true }
+  })
+
 export const buscarMiembrosParaInvitarFn = createServerFn({ method: 'GET' })
   .inputValidator((d: { q: string }) => d)
   .handler(async ({ data }) => {
@@ -252,24 +393,40 @@ export const getGrupoDetalleFn = createServerFn({ method: 'GET' })
   .inputValidator((d: { grupoId: string }) => d)
   .handler(async ({ data }) => {
     const { user } = await requireProUser()
-    await assertMiembroActivo(data.grupoId, user.id)
+    const memb = await assertMiembroActivo(data.grupoId, user.id)
     const db = admin()
-    const { data: grupo, error } = await db
+
+    let grupo: any = null
+    const withBudget = await db
       .from('grupos')
       .select(
         'id, nombre, descripcion, tipo, proyecto_id, owner_id, rol_etiqueta, mantenimiento, activo, presupuesto_asignado',
       )
       .eq('id', data.grupoId)
       .maybeSingle()
-    if (error || !grupo) throw new Error(error?.message || 'Grupo no encontrado')
+    if (withBudget.error && isMissingSchemaError(withBudget.error.message)) {
+      const legacy = await db
+        .from('grupos')
+        .select(
+          'id, nombre, descripcion, tipo, proyecto_id, owner_id, rol_etiqueta, mantenimiento, activo',
+        )
+        .eq('id', data.grupoId)
+        .maybeSingle()
+      if (legacy.error || !legacy.data) throw new Error(legacy.error?.message || 'Grupo no encontrado')
+      grupo = { ...legacy.data, presupuesto_asignado: 0 }
+    } else if (withBudget.error || !withBudget.data) {
+      throw new Error(withBudget.error?.message || 'Grupo no encontrado')
+    } else {
+      grupo = withBudget.data
+    }
 
-    const { data: miembros } = await db
-      .from('grupo_miembros')
-      .select('usuario_id, rol, estatus, perfiles:usuario_id(id, nombre, avatar_url, habilidad_empirica)')
-      .eq('grupo_id', data.grupoId)
-      .in('estatus', ['activo', 'invitado'])
-
-    return { grupo, miembros: miembros || [] }
+    const miembros = await loadGrupoMiembros(data.grupoId)
+    return {
+      grupo,
+      miembros,
+      mi_rol: memb.rol,
+      esOwner: memb.rol === 'owner' || grupo.owner_id === user.id,
+    }
   })
 
 export const getGrupoMensajesFn = createServerFn({ method: 'GET' })
@@ -277,14 +434,30 @@ export const getGrupoMensajesFn = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     const { user } = await requireProUser()
     await assertMiembroActivo(data.grupoId, user.id)
-    const { data: rows, error } = await admin()
+    const db = admin()
+    const { data: rows, error } = await db
       .from('grupo_mensajes')
-      .select('id, cuerpo, created_at, autor_id, perfiles:autor_id(id, nombre, avatar_url)')
+      .select('id, cuerpo, created_at, autor_id')
       .eq('grupo_id', data.grupoId)
       .order('created_at', { ascending: true })
       .limit(200)
     if (error) throw new Error(error.message)
-    return { items: rows || [] }
+    const items = rows || []
+    const autorIds = [...new Set(items.map((r) => r.autor_id).filter(Boolean))]
+    let perfilesById = new Map<string, any>()
+    if (autorIds.length) {
+      const { data: perfiles } = await db
+        .from('perfiles')
+        .select('id, nombre, avatar_url')
+        .in('id', autorIds)
+      perfilesById = new Map((perfiles || []).map((p) => [p.id, p]))
+    }
+    return {
+      items: items.map((r) => ({
+        ...r,
+        perfiles: perfilesById.get(r.autor_id) || null,
+      })),
+    }
   })
 
 export const enviarMensajeGrupoFn = createServerFn({ method: 'POST' })
@@ -306,14 +479,31 @@ export const enviarMensajeGrupoFn = createServerFn({ method: 'POST' })
 export const listMisProyectosFn = createServerFn({ method: 'GET' }).handler(async () => {
   const { user } = await requireProUser()
   const db = admin()
-  const { data: propios, error } = await db
-    .from('proyectos')
-    .select(
-      'id, nombre, descripcion, tipo_obra, estatus, created_at, concluido_at, owner_id, fecha_inicio, fecha_probable_termino',
-    )
-    .eq('owner_id', user.id)
-    .order('created_at', { ascending: false })
-  if (error) throw new Error(error.message)
+
+  async function loadPropios() {
+    const full = await db
+      .from('proyectos')
+      .select(
+        'id, nombre, descripcion, tipo_obra, estatus, created_at, concluido_at, owner_id, fecha_inicio, fecha_probable_termino',
+      )
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false })
+    if (!full.error) return full.data || []
+    if (!isMissingSchemaError(full.error.message)) throw new Error(full.error.message)
+    const legacy = await db
+      .from('proyectos')
+      .select('id, nombre, descripcion, tipo_obra, estatus, created_at, concluido_at, owner_id')
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false })
+    if (legacy.error) throw new Error(legacy.error.message)
+    return (legacy.data || []).map((p) => ({
+      ...p,
+      fecha_inicio: null as string | null,
+      fecha_probable_termino: null as string | null,
+    }))
+  }
+
+  const propios = await loadPropios()
 
   const { data: memb } = await db
     .from('grupo_miembros')
@@ -333,13 +523,25 @@ export const listMisProyectosFn = createServerFn({ method: 'GET' }).handler(asyn
     const ownIds = new Set((propios || []).map((p) => p.id))
     const extra = pIds.filter((id) => !ownIds.has(id as string))
     if (extra.length) {
-      const { data } = await db
+      const full = await db
         .from('proyectos')
         .select(
           'id, nombre, descripcion, tipo_obra, estatus, created_at, concluido_at, owner_id, fecha_inicio, fecha_probable_termino',
         )
         .in('id', extra)
-      colaborando = data || []
+      if (full.error && isMissingSchemaError(full.error.message)) {
+        const legacy = await db
+          .from('proyectos')
+          .select('id, nombre, descripcion, tipo_obra, estatus, created_at, concluido_at, owner_id')
+          .in('id', extra)
+        colaborando = (legacy.data || []).map((p) => ({
+          ...p,
+          fecha_inicio: null,
+          fecha_probable_termino: null,
+        }))
+      } else {
+        colaborando = full.data || []
+      }
     }
   }
 
@@ -360,26 +562,98 @@ export const createProyectoFn = createServerFn({ method: 'POST' })
     const { user } = await requireProUser()
     const nombre = String(data.nombre || '').trim()
     if (nombre.length < 3) throw new Error('Nombre del proyecto: mínimo 3 caracteres.')
-    const { data: proyecto, error } = await admin()
-      .from('proyectos')
-      .insert({
-        owner_id: user.id,
-        nombre,
-        descripcion: String(data.descripcion || '').trim() || null,
-        tipo_obra: String(data.tipo_obra || 'otro').trim() || 'otro',
-        fecha_inicio: data.fecha_inicio || null,
-        fecha_probable_termino: data.fecha_probable_termino || null,
-      })
-      .select('id, nombre')
-      .single()
+    const base = {
+      owner_id: user.id,
+      nombre,
+      descripcion: String(data.descripcion || '').trim() || null,
+      tipo_obra: String(data.tipo_obra || 'otro').trim() || 'otro',
+    }
+    const withDates = {
+      ...base,
+      fecha_inicio: data.fecha_inicio || null,
+      fecha_probable_termino: data.fecha_probable_termino || null,
+    }
+    const first = await admin().from('proyectos').insert(withDates).select('id, nombre').single()
+    if (first.error && isMissingSchemaError(first.error.message)) {
+      const legacy = await admin().from('proyectos').insert(base).select('id, nombre').single()
+      if (legacy.error) throw new Error(legacy.error.message)
+      return { success: true, proyecto: legacy.data }
+    }
+    if (first.error) throw new Error(first.error.message)
+    return { success: true, proyecto: first.data }
+  })
+
+export const updateProyectoFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (d: {
+      proyectoId: string
+      nombre?: string
+      descripcion?: string
+      tipo_obra?: string
+      fecha_inicio?: string
+      fecha_probable_termino?: string
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const { user } = await requireProUser()
+    const proyecto = await assertProyectoOwner(data.proyectoId, user.id)
+    if (proyecto.estatus === 'concluido') {
+      throw new Error('El proyecto ya está concluido. No se puede editar.')
+    }
+    const patch: Record<string, unknown> = {}
+    if (data.nombre !== undefined) {
+      const nombre = String(data.nombre || '').trim()
+      if (nombre.length < 3) throw new Error('Nombre: mínimo 3 caracteres.')
+      patch.nombre = nombre
+    }
+    if (data.descripcion !== undefined) {
+      patch.descripcion = String(data.descripcion || '').trim() || null
+    }
+    if (data.tipo_obra !== undefined) {
+      patch.tipo_obra = String(data.tipo_obra || 'otro').trim() || 'otro'
+    }
+    if (data.fecha_inicio !== undefined) patch.fecha_inicio = data.fecha_inicio || null
+    if (data.fecha_probable_termino !== undefined) {
+      patch.fecha_probable_termino = data.fecha_probable_termino || null
+    }
+    if (!Object.keys(patch).length) return { success: true }
+
+    const { error } = await admin().from('proyectos').update(patch).eq('id', data.proyectoId)
+    if (error) {
+      if (
+        isMissingSchemaError(error.message) &&
+        ('fecha_inicio' in patch || 'fecha_probable_termino' in patch)
+      ) {
+        delete patch.fecha_inicio
+        delete patch.fecha_probable_termino
+        if (!Object.keys(patch).length) return { success: true }
+        const retry = await admin().from('proyectos').update(patch).eq('id', data.proyectoId)
+        if (retry.error) throw new Error(retry.error.message)
+        return { success: true }
+      }
+      throw new Error(error.message)
+    }
+    return { success: true }
+  })
+
+export const deleteProyectoFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { proyectoId: string }) => d)
+  .handler(async ({ data }) => {
+    const { user } = await requireProUser()
+    await assertProyectoOwner(data.proyectoId, user.id)
+    const { error } = await admin().from('proyectos').delete().eq('id', data.proyectoId)
     if (error) throw new Error(error.message)
-    return { success: true, proyecto }
+    return { success: true }
   })
 
 export const updateProyectoFechasFn = createServerFn({ method: 'POST' })
   .inputValidator(
-    (d: { proyectoId: string; fecha_inicio?: string; fecha_probable_termino?: string; descripcion?: string }) =>
-      d,
+    (d: {
+      proyectoId: string
+      fecha_inicio?: string
+      fecha_probable_termino?: string
+      descripcion?: string
+    }) => d,
   )
   .handler(async ({ data }) => {
     const { user } = await requireProUser()
@@ -401,7 +675,8 @@ export const getProyectoDetalleFn = createServerFn({ method: 'GET' })
     const { proyecto, esOwner } = await assertProyectoAcceso(data.proyectoId, user.id)
     const db = admin()
 
-    const { data: grupos } = await db
+    let grupos: any[] = []
+    const gFull = await db
       .from('grupos')
       .select(
         'id, nombre, descripcion, rol_etiqueta, activo, mantenimiento, owner_id, created_at, presupuesto_asignado',
@@ -409,24 +684,52 @@ export const getProyectoDetalleFn = createServerFn({ method: 'GET' })
       .eq('proyecto_id', data.proyectoId)
       .eq('activo', true)
       .order('created_at', { ascending: true })
+    if (gFull.error && isMissingSchemaError(gFull.error.message)) {
+      const gLegacy = await db
+        .from('grupos')
+        .select('id, nombre, descripcion, rol_etiqueta, activo, mantenimiento, owner_id, created_at')
+        .eq('proyecto_id', data.proyectoId)
+        .eq('activo', true)
+        .order('created_at', { ascending: true })
+      if (gLegacy.error) throw new Error(gLegacy.error.message)
+      grupos = (gLegacy.data || []).map((g) => ({ ...g, presupuesto_asignado: 0 }))
+    } else if (gFull.error) {
+      throw new Error(gFull.error.message)
+    } else {
+      grupos = gFull.data || []
+    }
 
-    const { data: movimientos } = await db
+    let movimientos: any[] = []
+    const movRes = await db
       .from('proyecto_movimientos')
-      .select(
-        'id, tipo, categoria, monto, fecha, concepto, referencia, notas, grupo_id, created_at',
-      )
+      .select('id, tipo, categoria, monto, fecha, concepto, referencia, notas, grupo_id, created_at')
       .eq('proyecto_id', data.proyectoId)
       .order('fecha', { ascending: false })
       .limit(200)
+    if (movRes.error) {
+      if (!isMissingSchemaError(movRes.error.message)) {
+        console.warn('proyecto_movimientos:', movRes.error.message)
+      }
+    } else {
+      movimientos = movRes.data || []
+    }
 
-    const { data: imprevistos } = await db
+    let imprevistos: any[] = []
+    const impRes = await db
       .from('proyecto_imprevistos')
       .select('id, titulo, descripcion, fecha, impacto, monto, movimiento_id, created_at')
       .eq('proyecto_id', data.proyectoId)
       .order('fecha', { ascending: false })
       .limit(100)
+    if (impRes.error) {
+      if (!isMissingSchemaError(impRes.error.message)) {
+        console.warn('proyecto_imprevistos:', impRes.error.message)
+      }
+    } else {
+      imprevistos = impRes.data || []
+    }
 
-    const movs = movimientos || []
+    const movs = movimientos
     const ingresos = movs.filter((m) => m.tipo === 'ingreso').reduce((s, m) => s + Number(m.monto || 0), 0)
     const egresos = movs.filter((m) => m.tipo === 'egreso').reduce((s, m) => s + Number(m.monto || 0), 0)
 
@@ -454,9 +757,9 @@ export const getProyectoDetalleFn = createServerFn({ method: 'GET' })
 
     return {
       proyecto,
-      grupos: grupos || [],
+      grupos,
       movimientos: movs,
-      imprevistos: imprevistos || [],
+      imprevistos,
       esOwner,
       finanzas: {
         ingresos,
@@ -486,20 +789,29 @@ export const createGrupoProyectoFn = createServerFn({ method: 'POST' })
     const nombre = String(data.nombre || '').trim()
     if (nombre.length < 2) throw new Error('Nombre del grupo requerido.')
     const presupuesto = Math.max(0, Number(data.presupuesto_asignado || 0))
-    const { data: grupo, error } = await admin()
+    const base = {
+      nombre,
+      descripcion: String(data.descripcion || '').trim() || null,
+      tipo: 'proyecto' as const,
+      proyecto_id: data.proyectoId,
+      owner_id: user.id,
+      rol_etiqueta: String(data.rol_etiqueta || '').trim() || null,
+    }
+    let grupo: { id: string; nombre: string }
+    const withBudget = await admin()
       .from('grupos')
-      .insert({
-        nombre,
-        descripcion: String(data.descripcion || '').trim() || null,
-        tipo: 'proyecto',
-        proyecto_id: data.proyectoId,
-        owner_id: user.id,
-        rol_etiqueta: String(data.rol_etiqueta || '').trim() || null,
-        presupuesto_asignado: presupuesto,
-      })
+      .insert({ ...base, presupuesto_asignado: presupuesto })
       .select('id, nombre')
       .single()
-    if (error) throw new Error(error.message)
+    if (withBudget.error && isMissingSchemaError(withBudget.error.message)) {
+      const legacy = await admin().from('grupos').insert(base).select('id, nombre').single()
+      if (legacy.error) throw new Error(legacy.error.message)
+      grupo = legacy.data
+    } else if (withBudget.error || !withBudget.data) {
+      throw new Error(withBudget.error?.message || 'No se pudo crear el grupo')
+    } else {
+      grupo = withBudget.data
+    }
     await admin().from('grupo_miembros').insert({
       grupo_id: grupo.id,
       usuario_id: user.id,
@@ -571,7 +883,14 @@ export const addProyectoMovimientoFn = createServerFn({ method: 'POST' })
       grupo_id: data.grupoId || null,
       creado_por: user.id,
     })
-    if (error) throw new Error(error.message)
+    if (error) {
+      if (isMissingSchemaError(error.message)) {
+        throw new Error(
+          'Falta aplicar el SQL 017 en Supabase (tabla proyecto_movimientos). Pégalo en el SQL Editor y reintenta.',
+        )
+      }
+      throw new Error(error.message)
+    }
     return { success: true }
   })
 
@@ -603,7 +922,14 @@ export const addProyectoImprevistoFn = createServerFn({ method: 'POST' })
       monto: data.monto != null && Number.isFinite(Number(data.monto)) ? Number(data.monto) : null,
       creado_por: user.id,
     })
-    if (error) throw new Error(error.message)
+    if (error) {
+      if (isMissingSchemaError(error.message)) {
+        throw new Error(
+          'Falta aplicar el SQL 017 en Supabase (tabla proyecto_imprevistos). Pégalo en el SQL Editor y reintenta.',
+        )
+      }
+      throw new Error(error.message)
+    }
     return { success: true }
   })
 

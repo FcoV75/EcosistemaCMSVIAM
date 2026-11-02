@@ -7,7 +7,12 @@ import { SectionHelpHint } from '../components/SectionHelpHint'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { useIdentity } from '../lib/identity-context'
 import { getServerUserFn } from '../server/auth.functions'
-import { createProyectoFn, listMisProyectosFn } from '../server/grupos-proyectos.functions'
+import {
+  createProyectoFn,
+  deleteProyectoFn,
+  listMisProyectosFn,
+  updateProyectoFn,
+} from '../server/grupos-proyectos.functions'
 
 export const Route = createFileRoute('/mi-proyecto')({
   beforeLoad: async () => {
@@ -44,6 +49,10 @@ function MiProyectoPage() {
   const [fechaInicio, setFechaInicio] = useState('')
   const [fechaTermino, setFechaTermino] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editNombre, setEditNombre] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editTipo, setEditTipo] = useState('edificio')
 
   const listQuery = useQuery({
     queryKey: ['mis-proyectos'],
@@ -71,6 +80,33 @@ function MiProyectoPage() {
       queryClient.invalidateQueries({ queryKey: ['mis-proyectos'] })
     },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      updateProyectoFn({
+        data: {
+          proyectoId: editingId!,
+          nombre: editNombre,
+          descripcion: editDesc,
+          tipo_obra: editTipo,
+        },
+      }),
+    onSuccess: () => {
+      setEditingId(null)
+      setError(null)
+      queryClient.invalidateQueries({ queryKey: ['mis-proyectos'] })
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo editar'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (proyectoId: string) => deleteProyectoFn({ data: { proyectoId } }),
+    onSuccess: () => {
+      setError(null)
+      queryClient.invalidateQueries({ queryKey: ['mis-proyectos'] })
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo borrar'),
   })
 
   return (
@@ -170,6 +206,14 @@ function MiProyectoPage() {
                 />
               </label>
               {error && <p className="text-sm text-red-300 sm:col-span-2">{error}</p>}
+              {listQuery.isError && (
+                <p className="text-sm text-red-300 sm:col-span-2">
+                  No se pudieron cargar proyectos:{' '}
+                  {listQuery.error instanceof Error
+                    ? listQuery.error.message
+                    : 'error desconocido'}
+                </p>
+              )}
               <button
                 type="submit"
                 disabled={createMutation.isPending}
@@ -179,11 +223,41 @@ function MiProyectoPage() {
               </button>
             </form>
 
-            <SectionList title="Tus proyectos" items={listQuery.data?.propios || []} />
+            <SectionList
+              title="Tus proyectos"
+              items={listQuery.data?.propios || []}
+              canManage
+              editingId={editingId}
+              editNombre={editNombre}
+              editDesc={editDesc}
+              editTipo={editTipo}
+              tipos={TIPOS}
+              onStartEdit={(p) => {
+                setEditingId(p.id)
+                setEditNombre(p.nombre || '')
+                setEditDesc(p.descripcion || '')
+                setEditTipo(p.tipo_obra || 'otro')
+              }}
+              onCancelEdit={() => setEditingId(null)}
+              onChangeEditNombre={setEditNombre}
+              onChangeEditDesc={setEditDesc}
+              onChangeEditTipo={setEditTipo}
+              onSaveEdit={() => updateMutation.mutate()}
+              onDelete={(p) => {
+                if (
+                  !window.confirm(
+                    `¿Borrar el proyecto «${p.nombre}» y sus grupos? Esta acción no se puede deshacer.`,
+                  )
+                )
+                  return
+                deleteMutation.mutate(p.id)
+              }}
+            />
             <SectionList title="Colaboras en" items={listQuery.data?.colaborando || []} />
             {!listQuery.isLoading &&
               !(listQuery.data?.propios || []).length &&
-              !(listQuery.data?.colaborando || []).length && (
+              !(listQuery.data?.colaborando || []).length &&
+              !listQuery.isError && (
                 <p className="text-sm text-purple-200/60">
                   Aún no tienes proyectos. Crea el primero arriba y luego arma grupos estratégicos.
                 </p>
@@ -195,28 +269,135 @@ function MiProyectoPage() {
   )
 }
 
-function SectionList({ title, items }: { title: string; items: any[] }) {
+function SectionList({
+  title,
+  items,
+  canManage = false,
+  editingId,
+  editNombre = '',
+  editDesc = '',
+  editTipo = 'otro',
+  tipos = [],
+  onStartEdit,
+  onCancelEdit,
+  onChangeEditNombre,
+  onChangeEditDesc,
+  onChangeEditTipo,
+  onSaveEdit,
+  onDelete,
+}: {
+  title: string
+  items: any[]
+  canManage?: boolean
+  editingId?: string | null
+  editNombre?: string
+  editDesc?: string
+  editTipo?: string
+  tipos?: string[]
+  onStartEdit?: (p: any) => void
+  onCancelEdit?: () => void
+  onChangeEditNombre?: (v: string) => void
+  onChangeEditDesc?: (v: string) => void
+  onChangeEditTipo?: (v: string) => void
+  onSaveEdit?: () => void
+  onDelete?: (p: any) => void
+}) {
   if (!items.length) return null
   return (
     <div className="mb-6">
       <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-amber-300/70">{title}</h2>
       <ul className="space-y-2">
         {items.map((p) => (
-          <li key={p.id}>
-            <Link
-              to="/mi-proyecto/$projectId"
-              params={{ projectId: p.id }}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition hover:bg-white/10"
-            >
-              <div>
-                <p className="font-semibold text-white">{p.nombre}</p>
-                <p className="text-xs text-purple-200/60">
-                  {p.tipo_obra} · {p.estatus}
-                  {p.fecha_inicio ? ` · inicio ${p.fecha_inicio}` : ''}
-                </p>
+          <li key={p.id} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            {canManage && editingId === p.id ? (
+              <form
+                className="grid gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  onSaveEdit?.()
+                }}
+              >
+                <input
+                  value={editNombre}
+                  onChange={(e) => onChangeEditNombre?.(e.target.value)}
+                  className="w-full rounded-lg border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-sm text-white"
+                  required
+                />
+                <select
+                  value={editTipo}
+                  onChange={(e) => onChangeEditTipo?.(e.target.value)}
+                  className="w-full rounded-lg border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-sm text-white"
+                >
+                  {tipos.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <textarea
+                  value={editDesc}
+                  onChange={(e) => onChangeEditDesc?.(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-sm text-white"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="rounded-lg bg-emerald-600/80 px-3 py-1.5 text-xs font-bold text-white"
+                  >
+                    Guardar
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-purple-100"
+                    onClick={() => onCancelEdit?.()}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Link
+                  to="/mi-proyecto/$projectId"
+                  params={{ projectId: p.id }}
+                  className="min-w-0 flex-1 transition hover:opacity-90"
+                >
+                  <p className="font-semibold text-white">{p.nombre}</p>
+                  <p className="text-xs text-purple-200/60">
+                    {p.tipo_obra} · {p.estatus}
+                    {p.fecha_inicio ? ` · inicio ${p.fecha_inicio}` : ''}
+                  </p>
+                </Link>
+                <div className="flex items-center gap-2">
+                  {canManage && p.estatus !== 'concluido' && (
+                    <>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-white/15 px-2 py-1 text-[11px] font-bold text-purple-100 hover:bg-white/10"
+                        onClick={() => onStartEdit?.(p)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-red-400/30 px-2 py-1 text-[11px] font-bold text-red-200 hover:bg-red-950/40"
+                        onClick={() => onDelete?.(p)}
+                      >
+                        Borrar
+                      </button>
+                    </>
+                  )}
+                  <Link
+                    to="/mi-proyecto/$projectId"
+                    params={{ projectId: p.id }}
+                    className="text-xs font-bold text-amber-300"
+                  >
+                    Abrir →
+                  </Link>
+                </div>
               </div>
-              <span className="text-xs font-bold text-amber-300">Abrir →</span>
-            </Link>
+            )}
           </li>
         ))}
       </ul>

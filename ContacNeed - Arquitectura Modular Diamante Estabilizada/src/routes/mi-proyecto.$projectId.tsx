@@ -1,6 +1,7 @@
-import { Link, createFileRoute, redirect } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { MemberInvitePicker } from '../components/MemberInvitePicker'
 import { SectionHelpHint } from '../components/SectionHelpHint'
@@ -12,9 +13,13 @@ import {
   addProyectoMovimientoFn,
   concluirProyectoFn,
   createGrupoProyectoFn,
+  deleteGrupoFn,
+  deleteProyectoFn,
   getProyectoDetalleFn,
+  updateGrupoFn,
   updateGrupoPresupuestoFn,
   updateProyectoFechasFn,
+  updateProyectoFn,
 } from '../server/grupos-proyectos.functions'
 
 export const Route = createFileRoute('/mi-proyecto/$projectId')({
@@ -52,12 +57,20 @@ function money(n: number) {
 
 function ProyectoDetallePage() {
   const { projectId } = Route.useParams()
+  const navigate = useNavigate()
   const { user } = useIdentity()
   const queryClient = useQueryClient()
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
   const [tab, setTab] = useState<Tab>('resumen')
   const [error, setError] = useState<string | null>(null)
+  const [editingProyecto, setEditingProyecto] = useState(false)
+  const [editNombre, setEditNombre] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editTipo, setEditTipo] = useState('otro')
+  const [editingGrupoId, setEditingGrupoId] = useState<string | null>(null)
+  const [editGrupoNombre, setEditGrupoNombre] = useState('')
+  const [editGrupoRol, setEditGrupoRol] = useState('')
 
   // Grupos form
   const [nombre, setNombre] = useState('')
@@ -144,6 +157,59 @@ function ProyectoDetallePage() {
       invalidate()
     },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
+  })
+
+  const updateProyectoMutation = useMutation({
+    mutationFn: () =>
+      updateProyectoFn({
+        data: {
+          proyectoId: projectId,
+          nombre: editNombre,
+          descripcion: editDesc,
+          tipo_obra: editTipo,
+        },
+      }),
+    onSuccess: () => {
+      setEditingProyecto(false)
+      setError(null)
+      invalidate()
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo editar'),
+  })
+
+  const deleteProyectoMutation = useMutation({
+    mutationFn: () => deleteProyectoFn({ data: { proyectoId: projectId } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mis-proyectos'] })
+      navigate({ to: '/mi-proyecto' })
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo borrar'),
+  })
+
+  const updateGrupoMutation = useMutation({
+    mutationFn: () =>
+      updateGrupoFn({
+        data: {
+          grupoId: editingGrupoId!,
+          nombre: editGrupoNombre,
+          rol_etiqueta: editGrupoRol,
+        },
+      }),
+    onSuccess: () => {
+      setEditingGrupoId(null)
+      setError(null)
+      invalidate()
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo editar el grupo'),
+  })
+
+  const deleteGrupoMutation = useMutation({
+    mutationFn: (grupoId: string) => deleteGrupoFn({ data: { grupoId } }),
+    onSuccess: () => {
+      setError(null)
+      invalidate()
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo borrar el grupo'),
   })
 
   const presupuestoMutation = useMutation({
@@ -237,13 +303,109 @@ function ProyectoDetallePage() {
           </span>
           <SectionHelpHint
             title="Panel del proyecto"
-            text="Resumen de tiempo y dinero, grupos estratégicos con presupuesto, finanzas, imprevistos y conclusión con grupos de mantenimiento."
+            text="Resumen de tiempo y dinero, grupos estratégicos con presupuesto, finanzas, imprevistos y conclusión con grupos de mantenimiento. Puedes editar o borrar si eres el dueño."
           />
+          {esOwner && !concluido && (
+            <div className="ml-auto flex gap-2">
+              <button
+                type="button"
+                title="Editar proyecto"
+                className="rounded-lg border border-white/15 p-2 text-purple-100 hover:bg-white/10"
+                onClick={() => {
+                  setEditNombre(detalle.data?.proyecto?.nombre || '')
+                  setEditDesc(detalle.data?.proyecto?.descripcion || '')
+                  setEditTipo(detalle.data?.proyecto?.tipo_obra || 'otro')
+                  setEditingProyecto(true)
+                  setTab('resumen')
+                }}
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                type="button"
+                title="Borrar proyecto"
+                className="rounded-lg border border-red-400/30 p-2 text-red-200 hover:bg-red-950/40"
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      `¿Borrar «${detalle.data?.proyecto?.nombre}» y todos sus grupos? No se puede deshacer.`,
+                    )
+                  )
+                    return
+                  deleteProyectoMutation.mutate()
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          )}
         </div>
         <p className="mb-4 text-sm text-purple-200/70">
           {detalle.data?.proyecto?.descripcion || 'Sin descripción'} ·{' '}
           {detalle.data?.proyecto?.tipo_obra}
         </p>
+
+        {detalle.isError && (
+          <p className="mb-4 rounded-xl border border-red-400/30 bg-red-950/30 px-3 py-2 text-sm text-red-100">
+            No se pudo cargar el proyecto:{' '}
+            {detalle.error instanceof Error ? detalle.error.message : 'error desconocido'}
+          </p>
+        )}
+
+        {editingProyecto && esOwner && (
+          <form
+            className="mb-4 grid gap-3 rounded-xl border border-white/10 bg-black/20 p-4 sm:grid-cols-2"
+            onSubmit={(e) => {
+              e.preventDefault()
+              updateProyectoMutation.mutate()
+            }}
+          >
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-300/70 sm:col-span-2">
+              Editar proyecto
+            </p>
+            <label className="text-sm sm:col-span-2">
+              <span className="mb-1 block text-purple-200/80">Nombre</span>
+              <input
+                value={editNombre}
+                onChange={(e) => setEditNombre(e.target.value)}
+                className="w-full rounded-xl border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-white"
+                required
+              />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block text-purple-200/80">Tipo</span>
+              <input
+                value={editTipo}
+                onChange={(e) => setEditTipo(e.target.value)}
+                className="w-full rounded-xl border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-white"
+              />
+            </label>
+            <label className="text-sm sm:col-span-2">
+              <span className="mb-1 block text-purple-200/80">Descripción</span>
+              <textarea
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                rows={2}
+                className="w-full rounded-xl border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-white"
+              />
+            </label>
+            <div className="flex gap-2 sm:col-span-2">
+              <button
+                type="submit"
+                className="cn-btn-metallic rounded-xl px-4 py-2 text-sm font-bold text-slate-950"
+              >
+                Guardar cambios
+              </button>
+              <button
+                type="button"
+                className="rounded-xl border border-white/20 px-4 py-2 text-sm text-purple-100"
+                onClick={() => setEditingProyecto(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
 
         <nav className="mb-5 flex flex-wrap gap-1 border-b border-white/10 pb-2">
           {TABS.map((t) => (
@@ -446,49 +608,121 @@ function ProyectoDetallePage() {
                   key={g.id}
                   className="rounded-xl border border-white/10 bg-white/5 px-4 py-3"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-white">{g.nombre}</p>
-                      <p className="text-xs text-purple-200/60">
-                        {g.rol_etiqueta || 'grupo'}
-                        {g.mantenimiento ? ' · mantenimiento' : ''}
-                        {' · '}
-                        presupuesto {money(Number(g.presupuesto_asignado || 0))}
-                      </p>
-                    </div>
-                    <Link
-                      to="/grupos/$groupId"
-                      params={{ groupId: g.id }}
-                      className="rounded-lg border border-amber-400/40 px-3 py-1.5 text-xs font-bold text-amber-200"
+                  {editingGrupoId === g.id ? (
+                    <form
+                      className="grid gap-2"
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        updateGrupoMutation.mutate()
+                      }}
                     >
-                      Abrir chat
-                    </Link>
-                  </div>
-                  {esOwner && !concluido && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
                       <input
-                        type="number"
-                        min="0"
-                        defaultValue={Number(g.presupuesto_asignado || 0)}
-                        id={`presu-${g.id}`}
-                        className="w-36 rounded-lg border border-purple-500/25 bg-slate-900/60 px-2 py-1 text-xs text-white"
+                        value={editGrupoNombre}
+                        onChange={(e) => setEditGrupoNombre(e.target.value)}
+                        className="w-full rounded-lg border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-sm text-white"
+                        required
                       />
-                      <button
-                        type="button"
-                        className="text-xs font-bold text-amber-300 hover:underline"
-                        onClick={() => {
-                          const el = document.getElementById(
-                            `presu-${g.id}`,
-                          ) as HTMLInputElement | null
-                          presupuestoMutation.mutate({
-                            grupoId: g.id,
-                            presupuesto_asignado: Number(el?.value || 0),
-                          })
-                        }}
-                      >
-                        Actualizar presupuesto
-                      </button>
-                    </div>
+                      <input
+                        value={editGrupoRol}
+                        onChange={(e) => setEditGrupoRol(e.target.value)}
+                        placeholder="Rol / etiqueta"
+                        className="w-full rounded-lg border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-sm text-white"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          className="rounded-lg bg-emerald-600/80 px-3 py-1.5 text-xs font-bold text-white"
+                        >
+                          Guardar
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-purple-100"
+                          onClick={() => setEditingGrupoId(null)}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-white">{g.nombre}</p>
+                          <p className="text-xs text-purple-200/60">
+                            {g.rol_etiqueta || 'grupo'}
+                            {g.mantenimiento ? ' · mantenimiento' : ''}
+                            {' · '}
+                            presupuesto {money(Number(g.presupuesto_asignado || 0))}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {esOwner && !concluido && (
+                            <>
+                              <button
+                                type="button"
+                                className="rounded-lg border border-white/15 px-2 py-1 text-[11px] font-bold text-purple-100"
+                                onClick={() => {
+                                  setEditingGrupoId(g.id)
+                                  setEditGrupoNombre(g.nombre || '')
+                                  setEditGrupoRol(g.rol_etiqueta || '')
+                                }}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded-lg border border-red-400/30 px-2 py-1 text-[11px] font-bold text-red-200"
+                                onClick={() => {
+                                  if (
+                                    !window.confirm(
+                                      `¿Borrar el grupo «${g.nombre}» de este proyecto?`,
+                                    )
+                                  )
+                                    return
+                                  deleteGrupoMutation.mutate(g.id)
+                                }}
+                              >
+                                Borrar
+                              </button>
+                            </>
+                          )}
+                          <Link
+                            to="/grupos/$groupId"
+                            params={{ groupId: g.id }}
+                            className="rounded-lg border border-amber-400/40 px-3 py-1.5 text-xs font-bold text-amber-200"
+                          >
+                            Abrir chat
+                          </Link>
+                        </div>
+                      </div>
+                      {esOwner && !concluido && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            defaultValue={Number(g.presupuesto_asignado || 0)}
+                            id={`presu-${g.id}`}
+                            className="w-36 rounded-lg border border-purple-500/25 bg-slate-900/60 px-2 py-1 text-xs text-white"
+                          />
+                          <button
+                            type="button"
+                            className="text-xs font-bold text-amber-300 hover:underline"
+                            onClick={() => {
+                              const el = document.getElementById(
+                                `presu-${g.id}`,
+                              ) as HTMLInputElement | null
+                              presupuestoMutation.mutate({
+                                grupoId: g.id,
+                                presupuesto_asignado: Number(el?.value || 0),
+                              })
+                            }}
+                          >
+                            Actualizar presupuesto
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </li>
               ))}
