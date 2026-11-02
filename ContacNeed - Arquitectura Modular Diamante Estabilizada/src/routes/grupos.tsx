@@ -1,7 +1,7 @@
 import { Link, Outlet, createFileRoute, redirect, useRouterState } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Users } from 'lucide-react'
+import { Pencil, Trash2, Users } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { MemberInvitePicker } from '../components/MemberInvitePicker'
 import { SectionHelpHint } from '../components/SectionHelpHint'
@@ -10,8 +10,10 @@ import { useIdentity } from '../lib/identity-context'
 import { getServerUserFn } from '../server/auth.functions'
 import {
   createGrupoComunFn,
+  deleteGrupoFn,
   listMisGruposComunesFn,
   responderInvitacionGrupoFn,
+  updateGrupoFn,
 } from '../server/grupos-proyectos.functions'
 
 export const Route = createFileRoute('/grupos')({
@@ -43,6 +45,9 @@ function GruposPage() {
   const [desc, setDesc] = useState('')
   const [invitados, setInvitados] = useState<Persona[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editNombre, setEditNombre] = useState('')
+  const [editDesc, setEditDesc] = useState('')
 
   const gruposQuery = useQuery({
     queryKey: ['grupos-comunes'],
@@ -76,6 +81,29 @@ function GruposPage() {
       queryClient.invalidateQueries({ queryKey: ['grupos-comunes'] })
       queryClient.invalidateQueries({ queryKey: ['notificaciones'] })
     },
+    onError: (err) => setError(err instanceof Error ? err.message : 'No se pudo responder'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      updateGrupoFn({
+        data: { grupoId: editingId!, nombre: editNombre, descripcion: editDesc },
+      }),
+    onSuccess: () => {
+      setEditingId(null)
+      setError(null)
+      queryClient.invalidateQueries({ queryKey: ['grupos-comunes'] })
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : 'No se pudo editar'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (grupoId: string) => deleteGrupoFn({ data: { grupoId } }),
+    onSuccess: () => {
+      setError(null)
+      queryClient.invalidateQueries({ queryKey: ['grupos-comunes'] })
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : 'No se pudo borrar'),
   })
 
   return (
@@ -95,7 +123,7 @@ function GruposPage() {
           </span>
           <SectionHelpHint
             title="¿Cómo usar Grupos?"
-            text="Crea grupos tipo WhatsApp/Messenger: familia, compañeros o proveedores. Invita personas de ContacNeed y chatea solo entre miembros. Es beneficio PRO."
+            text="Crea grupos tipo WhatsApp/Messenger: familia, compañeros o proveedores. Invita personas de ContacNeed y chatea solo entre miembros. Puedes editar o borrar tus grupos."
           />
         </div>
 
@@ -146,6 +174,14 @@ function GruposPage() {
                 excludeIds={user?.id ? [user.id] : []}
               />
               {error && <p className="text-sm text-red-300 sm:col-span-2">{error}</p>}
+              {gruposQuery.isError && (
+                <p className="text-sm text-red-300 sm:col-span-2">
+                  No se pudieron cargar tus grupos:{' '}
+                  {gruposQuery.error instanceof Error
+                    ? gruposQuery.error.message
+                    : 'error desconocido'}
+                </p>
+              )}
               <button
                 type="submit"
                 disabled={createMutation.isPending}
@@ -163,43 +199,120 @@ function GruposPage() {
               {(gruposQuery.data?.items || []).map((g: any) => (
                 <li
                   key={g.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-3"
                 >
-                  <div>
-                    <p className="font-semibold text-white">{g.nombre}</p>
-                    <p className="text-xs text-purple-200/60">
-                      {g.mi_estatus === 'invitado' ? 'Invitación pendiente' : `Rol: ${g.mi_rol}`}
-                    </p>
-                  </div>
-                  {g.mi_estatus === 'invitado' ? (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="rounded-lg bg-emerald-600/80 px-3 py-1.5 text-xs font-bold text-white"
-                        onClick={() => inviteMutation.mutate({ grupoId: g.id, accept: true })}
-                      >
-                        Aceptar
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-lg bg-red-900/60 px-3 py-1.5 text-xs font-bold text-red-100"
-                        onClick={() => inviteMutation.mutate({ grupoId: g.id, accept: false })}
-                      >
-                        Rechazar
-                      </button>
-                    </div>
-                  ) : (
-                    <Link
-                      to="/grupos/$groupId"
-                      params={{ groupId: g.id }}
-                      className="rounded-lg border border-amber-400/40 px-3 py-1.5 text-xs font-bold text-amber-200 hover:bg-amber-500/10"
+                  {editingId === g.id ? (
+                    <form
+                      className="grid gap-2"
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        updateMutation.mutate()
+                      }}
                     >
-                      Abrir chat
-                    </Link>
+                      <input
+                        value={editNombre}
+                        onChange={(e) => setEditNombre(e.target.value)}
+                        className="w-full rounded-lg border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-sm text-white"
+                        required
+                      />
+                      <input
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        placeholder="Descripción"
+                        className="w-full rounded-lg border border-purple-500/25 bg-slate-900/60 px-3 py-2 text-sm text-white"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="submit"
+                          className="rounded-lg bg-emerald-600/80 px-3 py-1.5 text-xs font-bold text-white"
+                        >
+                          Guardar
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-purple-100"
+                          onClick={() => setEditingId(null)}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-white">{g.nombre}</p>
+                        <p className="text-xs text-purple-200/60">
+                          {g.mi_estatus === 'invitado'
+                            ? 'Invitación pendiente'
+                            : `Rol: ${g.mi_rol}`}
+                          {g.descripcion ? ` · ${g.descripcion}` : ''}
+                        </p>
+                      </div>
+                      {g.mi_estatus === 'invitado' ? (
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            className="rounded-lg bg-emerald-600/80 px-3 py-1.5 text-xs font-bold text-white"
+                            onClick={() => inviteMutation.mutate({ grupoId: g.id, accept: true })}
+                          >
+                            Aceptar
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-lg bg-red-900/60 px-3 py-1.5 text-xs font-bold text-red-100"
+                            onClick={() => inviteMutation.mutate({ grupoId: g.id, accept: false })}
+                          >
+                            Rechazar
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {g.owner_id === user?.id && (
+                            <>
+                              <button
+                                type="button"
+                                title="Editar"
+                                className="rounded-lg border border-white/15 p-1.5 text-purple-100 hover:bg-white/10"
+                                onClick={() => {
+                                  setEditingId(g.id)
+                                  setEditNombre(g.nombre || '')
+                                  setEditDesc(g.descripcion || '')
+                                }}
+                              >
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                title="Borrar"
+                                className="rounded-lg border border-red-400/30 p-1.5 text-red-200 hover:bg-red-950/40"
+                                onClick={() => {
+                                  if (
+                                    !window.confirm(
+                                      `¿Borrar el grupo «${g.nombre}»? Dejará de aparecer para todos.`,
+                                    )
+                                  )
+                                    return
+                                  deleteMutation.mutate(g.id)
+                                }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
+                          <Link
+                            to="/grupos/$groupId"
+                            params={{ groupId: g.id }}
+                            className="rounded-lg border border-amber-400/40 px-3 py-1.5 text-xs font-bold text-amber-200 hover:bg-amber-500/10"
+                          >
+                            Abrir chat
+                          </Link>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </li>
               ))}
-              {!gruposQuery.isLoading && !(gruposQuery.data?.items || []).length && (
+              {!gruposQuery.isLoading && !(gruposQuery.data?.items || []).length && !gruposQuery.isError && (
                 <p className="text-sm text-purple-200/60">Aún no tienes grupos. Crea el primero arriba.</p>
               )}
             </ul>
