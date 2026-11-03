@@ -26,9 +26,7 @@ export const Route = createFileRoute('/mensajes')({
 
 function MessagesPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  if (pathname.startsWith('/mensajes/chat/')) {
-    return <Outlet />
-  }
+  const isChildRoute = pathname.startsWith('/mensajes/chat/')
 
   const queryClient = useQueryClient()
   const { isPro } = useIdentity()
@@ -39,26 +37,30 @@ function MessagesPage() {
   const inboxQuery = useQuery({
     queryKey: ['inbox'],
     queryFn: () => getInboxFn(),
-    refetchInterval: 10_000,
-    refetchOnWindowFocus: true,
+    refetchInterval: isChildRoute ? false : 10_000,
+    refetchOnWindowFocus: !isChildRoute,
+    enabled: !isChildRoute,
   })
   const chatsQuery = useQuery({
     queryKey: ['conversations'],
     queryFn: () => getConversationsSummaryFn(),
-    refetchInterval: 8_000,
-    refetchOnWindowFocus: true,
+    refetchInterval: isChildRoute ? false : 8_000,
+    refetchOnWindowFocus: !isChildRoute,
+    enabled: !isChildRoute,
   })
   const requestsQuery = useQuery({
     queryKey: ['contact-requests'],
     queryFn: () => getContactRequestsFn(),
-    refetchInterval: 8_000,
-    refetchOnWindowFocus: true,
+    refetchInterval: isChildRoute ? false : 8_000,
+    refetchOnWindowFocus: !isChildRoute,
+    enabled: !isChildRoute,
   })
   const onlineQuery = useQuery({
     queryKey: ['online-users'],
     queryFn: () => getOnlineUsersFn(),
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
+    refetchInterval: isChildRoute ? false : 15_000,
+    refetchOnWindowFocus: !isChildRoute,
+    enabled: !isChildRoute,
   })
 
   const respondMutation = useMutation({
@@ -72,6 +74,9 @@ function MessagesPage() {
     mutationFn: (id: string) => markMessageReadFn({ data: { id } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inbox'] }),
   })
+
+  // Hooks deben correr siempre: return temprano rompe al abrir un chat.
+  if (isChildRoute) return <Outlet />
 
   return (
     <AppShell

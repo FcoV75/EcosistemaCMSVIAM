@@ -35,9 +35,7 @@ const TIPOS = [
 
 function MiProyectoPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  if (pathname !== '/mi-proyecto' && pathname.startsWith('/mi-proyecto/')) {
-    return <Outlet />
-  }
+  const isChildRoute = pathname !== '/mi-proyecto' && pathname.startsWith('/mi-proyecto/')
 
   const { isPro } = useIdentity()
   const queryClient = useQueryClient()
@@ -57,7 +55,7 @@ function MiProyectoPage() {
   const listQuery = useQuery({
     queryKey: ['mis-proyectos'],
     queryFn: () => listMisProyectosFn(),
-    enabled: isPro,
+    enabled: isPro && !isChildRoute,
   })
 
   const createMutation = useMutation({
@@ -108,6 +106,9 @@ function MiProyectoPage() {
     },
     onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo borrar'),
   })
+
+  // Hooks deben correr siempre: si se hace return antes, React rompe al abrir el proyecto.
+  if (isChildRoute) return <Outlet />
 
   return (
     <AppShell

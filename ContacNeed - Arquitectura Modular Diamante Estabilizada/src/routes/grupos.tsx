@@ -33,9 +33,7 @@ type Persona = {
 
 function GruposPage() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  if (pathname !== '/grupos' && pathname.startsWith('/grupos/')) {
-    return <Outlet />
-  }
+  const isChildRoute = pathname !== '/grupos' && pathname.startsWith('/grupos/')
 
   const { isPro, user } = useIdentity()
   const queryClient = useQueryClient()
@@ -52,7 +50,7 @@ function GruposPage() {
   const gruposQuery = useQuery({
     queryKey: ['grupos-comunes'],
     queryFn: () => listMisGruposComunesFn(),
-    enabled: isPro,
+    enabled: isPro && !isChildRoute,
   })
 
   const createMutation = useMutation({
@@ -105,6 +103,9 @@ function GruposPage() {
     },
     onError: (err) => setError(err instanceof Error ? err.message : 'No se pudo borrar'),
   })
+
+  // Hooks deben correr siempre: si se hace return antes, React rompe al entrar al chat.
+  if (isChildRoute) return <Outlet />
 
   return (
     <AppShell
