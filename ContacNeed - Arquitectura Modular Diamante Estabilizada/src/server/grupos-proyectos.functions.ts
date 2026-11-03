@@ -237,13 +237,14 @@ export const createGrupoComunFn = createServerFn({ method: 'POST' })
       .select('id, nombre')
       .single()
     if (error) throw new Error(error.message)
-    await db.from('grupo_miembros').insert({
+    const { error: membErr } = await db.from('grupo_miembros').insert({
       grupo_id: grupo.id,
       usuario_id: user.id,
       rol: 'owner',
       estatus: 'activo',
       invited_by: user.id,
     })
+    if (membErr) throw new Error(membErr.message)
     const invitados = await inviteUsersToGrupo(
       grupo.id,
       user.id,
@@ -812,13 +813,14 @@ export const createGrupoProyectoFn = createServerFn({ method: 'POST' })
     } else {
       grupo = withBudget.data
     }
-    await admin().from('grupo_miembros').insert({
+    const { error: membErr } = await admin().from('grupo_miembros').insert({
       grupo_id: grupo.id,
       usuario_id: user.id,
       rol: 'owner',
       estatus: 'activo',
       invited_by: user.id,
     })
+    if (membErr) throw new Error(membErr.message)
     const invitados = await inviteUsersToGrupo(
       grupo.id,
       user.id,
