@@ -89,9 +89,15 @@ Supabase **no envía correos a usuarios externos** con el email por defecto. Nec
 2. Supabase → **Authentication → Providers → Google**: pega Client ID y Secret; activa el proveedor.
 3. Supabase → **Authentication → URL Configuration**: agrega `https://contacneed.com/auth/callback` a Redirect URLs.
 4. Ejecuta en SQL Editor: `supabase/migrations/015_google_onboarding.sql`
-5. (Recomendado) Authentication → Providers → **Enable automatic linking** si quieres vincular el mismo correo Google con una cuenta email/contraseña ya existente.
+5. (Recomendado — hazlo ya) Supabase → **Authentication → Providers** (o **Sign In / Providers**): activa **Automatic linking** / vinculación automática. Une la misma dirección de correo cuando alguien entra con Google y ya tenía cuenta email/contraseña (o al revés). Sin esto, el usuario ve errores de “cuenta ya existe”.
+6. Google Cloud → **Auth Platform → Branding**: App name `ContacNeed`, homepage `https://contacneed.com`, privacidad `/privacidad`, términos `/terminos`, dominios autorizados `contacneed.com` + `supabase.co`. Dominio verificado en Search Console. Estado de publicación **En producción** (no solo Prueba). Luego **Verify Branding**.
+7. (Opcional, plan de pago Supabase) Dominio custom `auth.contacneed.com` para que Google no muestre `….supabase.co` en el permiso.
 
 Flujo: el usuario entra con Google → llega a `/auth/callback` → si aún no eligió Observador/Oficio/Profesión/Especialidad, aparece el modal de onboarding (posponible 1–2 veces). Estudiantes sin cédula usan **Oficio** y reciben recordatorio de cédula.
+
+Links legales en prod:
+- https://contacneed.com/privacidad
+- https://contacneed.com/terminos
 
 ### Opción B — SMTP en Supabase
 
