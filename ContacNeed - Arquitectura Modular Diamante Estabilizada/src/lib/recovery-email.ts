@@ -7,6 +7,29 @@ type SendRecoveryEmailInput = {
   actionLink: string
 }
 
+/** Traduce errores de Resend/Supabase a mensajes claros en español. */
+export function mapResendSendError(message: string) {
+  const normalized = message.toLowerCase()
+
+  if (
+    normalized.includes('domain is not verified') ||
+    normalized.includes('contacneed.com domain is not verified') ||
+    (normalized.includes('validation_error') && normalized.includes('domain'))
+  ) {
+    return 'El dominio contacneed.com aún no está verificado en Resend. Entra a https://resend.com/domains, agrega contacneed.com, configura los DNS (SPF/DKIM) y espera a que diga Verified. Luego usa RESEND_FROM como: ContacNeed <noreply@contacneed.com>.'
+  }
+
+  if (normalized.includes('from') && (normalized.includes('not allowed') || normalized.includes('invalid'))) {
+    return 'RESEND_FROM no es válido. Usa un correo del dominio verificado, por ejemplo: ContacNeed <noreply@contacneed.com>.'
+  }
+
+  if (normalized.includes('api key') || normalized.includes('unauthorized') || normalized.includes('"statuscode":401')) {
+    return 'RESEND_API_KEY inválida o faltante en Netlify. Revisa Environment variables.'
+  }
+
+  return message
+}
+
 export function mapRecoveryEmailError(message: string) {
   const normalized = message.toLowerCase()
 
@@ -19,10 +42,10 @@ export function mapRecoveryEmailError(message: string) {
   }
 
   if (normalized.includes('rate limit')) {
-    return 'Límite de correos alcanzado. Espera unos minutos e inténtalo de nuevo.'
+    return 'Límite de correos alcanzados. Espera unos minutos e inténtalo de nuevo.'
   }
 
-  return message
+  return mapResendSendError(message)
 }
 
 /** Errores que no deben revelar si el correo existe. */
