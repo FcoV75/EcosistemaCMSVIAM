@@ -142,7 +142,7 @@ export async function requireProUser() {
   const supabase = createSupabaseAdminClient()
   const pro = await getContacNeedProStatus(supabase, session.user.id)
   if (!pro.active && !session.profile?.es_pro) {
-    throw new Error('Esta función requiere membresía ContacNeed PRO')
+    throw new Error('Esta función requiere ContacNeed PRO o Círculo CMS-Plus')
   }
   return session
 }

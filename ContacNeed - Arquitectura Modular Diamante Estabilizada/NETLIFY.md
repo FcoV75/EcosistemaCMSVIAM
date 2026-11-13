@@ -36,6 +36,11 @@ SUPABASE_ANON_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_PRICE_MONTHLY=          # price_... ContacNeed PRO mensual
 STRIPE_PRICE_ANNUAL=           # price_... ContacNeed PRO anual
+# Opcional Círculo CMS-Plus (si faltan, Checkout usa price_data MXN):
+# STRIPE_PRICE_CMS_PLUS_PLATA_MONTHLY / _ANNUAL
+# STRIPE_PRICE_CMS_PLUS_ORO_MONTHLY / _ANNUAL
+# STRIPE_PRICE_CMS_PLUS_PLATINO_MONTHLY / _ANNUAL
+# STRIPE_PRICE_CMS_PLUS_DIAMANTE_MONTHLY / _ANNUAL
 STRIPE_WEBHOOK_SECRET=         # whsec_... del endpoint stripe-webhook (distinto al de VIAM)
 GEMINI_API_KEY=
 GEMINI_TEXT_MODELS=gemini-3.8-flash,gemini-3.7-flash,gemini-flash-latest,gemini-3.6-flash
@@ -59,6 +64,10 @@ VITE_GOOGLE_MAPS_API_KEY=      # opcional, misma key si la usas en el cliente
 Para likes/comentarios/compartidos/solicitudes/notificaciones en tiempo real, ejecuta en el SQL Editor:
 
 `ContacNeed - Arquitectura Modular Diamante Estabilizada/supabase/migrations/011_realtime_social.sql`
+
+Para **Círculo CMS-Plus Membresías** (créditos, círculo de cuidado y PRO desde `cms_plus`), ejecuta:
+
+`ContacNeed - Arquitectura Modular Diamante Estabilizada/supabase/migrations/016_cms_plus_membresias.sql`
 
 ## Correos (registro, recuperación y privilegios)
 

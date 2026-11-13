@@ -37,18 +37,31 @@ function header(req, name) {
   return req.headers.get(name) || req.headers.get(name.toLowerCase()) || ''
 }
 
-async function upsertContacNeedPro(supabase, userId, planType, sessionId) {
-  const plan = planType === 'annual' ? 'anual' : 'mensual'
-  const expiresAt =
-    planType === 'annual'
-      ? new Date(Date.now() + 365 * 86400000).toISOString()
-      : new Date(Date.now() + 30 * 86400000).toISOString()
+const CMS_PLUS_CREDITOS = {
+  plata: 3,
+  oro: 6,
+  platino: 10,
+  diamante: 16,
+}
 
+const CMS_PLUS_ANUNCIOS = {
+  plata: 2,
+  oro: 3,
+  platino: 6,
+  diamante: 12,
+}
+
+function periodoActual() {
+  const d = new Date()
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+async function upsertEntitlementRow(supabase, { userId, producto, plan, expiresAt, sessionId, metadata }) {
   const { data: existente, error: findError } = await supabase
     .from('ecosistema_entitlements')
     .select('id')
     .eq('user_id', userId)
-    .eq('producto', 'contacneed_pro')
+    .eq('producto', producto)
     .eq('status', 'active')
     .maybeSingle()
 
@@ -56,12 +69,12 @@ async function upsertContacNeedPro(supabase, userId, planType, sessionId) {
 
   const row = {
     user_id: userId,
-    producto: 'contacneed_pro',
+    producto,
     plan,
     status: 'active',
     expires_at: expiresAt,
     stripe_session_id: sessionId || null,
-    metadata: { source: 'contacneed_webhook' },
+    metadata: metadata || {},
     updated_at: new Date().toISOString(),
   }
 
@@ -69,9 +82,126 @@ async function upsertContacNeedPro(supabase, userId, planType, sessionId) {
     const { error } = await supabase.from('ecosistema_entitlements').update(row).eq('id', existente.id)
     if (error) throw error
   } else {
-    const { error } = await supabase.from('ecosistema_entitlements').insert(row)
+    const { error } = await supabase
+      .from('ecosistema_entitlements')
+      .insert({ ...row, starts_at: new Date().toISOString() })
     if (error) throw error
   }
+}
+
+async function upsertContacNeedPro(supabase, userId, planType, sessionId, metadata = {}) {
+  const plan = planType === 'annual' ? 'anual' : 'mensual'
+  const expiresAt =
+    planType === 'annual'
+      ? new Date(Date.now() + 365 * 86400000).toISOString()
+      : new Date(Date.now() + 30 * 86400000).toISOString()
+
+  await upsertEntitlementRow(supabase, {
+    userId,
+    producto: 'contacneed_pro',
+    plan,
+    expiresAt,
+    sessionId,
+    metadata: { source: 'contacneed_webhook', ...metadata },
+  })
+}
+
+async function ensureCmsPlusCreditos(supabase, userId, nivel) {
+  const periodo = periodoActual()
+  const allotment = CMS_PLUS_CREDITOS[nivel] || 3
+  const { data: existing } = await supabase
+    .from('cms_plus_creditos')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('periodo', periodo)
+    .maybeSingle()
+
+  if (existing?.id) {
+    await supabase
+      .from('cms_plus_creditos')
+      .update({ nivel, allotment, updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
+    return
+  }
+
+  await supabase.from('cms_plus_creditos').insert({
+    user_id: userId,
+    periodo,
+    allotment,
+    usados: 0,
+    compartidos_enviados: 0,
+    nivel,
+  })
+}
+
+async function activateCmsPlusFromCheckout(supabase, session) {
+  const userId = session.metadata?.userId
+  if (!userId) {
+    return {
+      warning: 'cms_plus checkout sin userId; use confirmStripeSessionFn en el cliente.',
+    }
+  }
+
+  const nivel = ['plata', 'oro', 'platino', 'diamante'].includes(session.metadata?.nivel)
+    ? session.metadata.nivel
+    : 'plata'
+  const billing =
+    session.metadata?.billing === 'anual' || session.metadata?.plan === 'annual' ? 'anual' : 'mensual'
+  const planType = billing === 'anual' ? 'annual' : 'monthly'
+  const expiresAt =
+    billing === 'anual'
+      ? new Date(Date.now() + 365 * 86400000).toISOString()
+      : new Date(Date.now() + 30 * 86400000).toISOString()
+  const billingPlan = billing === 'anual' ? 'anual' : 'mensual'
+  const meta = {
+    source: 'contacneed_webhook',
+    nivel,
+    billing,
+    bundle: 'cms_plus',
+  }
+
+  await upsertEntitlementRow(supabase, {
+    userId,
+    producto: 'cms_plus',
+    plan: nivel,
+    expiresAt,
+    sessionId: session.id,
+    metadata: meta,
+  })
+  await upsertContacNeedPro(supabase, userId, planType, session.id, { via: 'cms_plus', nivel })
+  await upsertEntitlementRow(supabase, {
+    userId,
+    producto: 'sincronia_nexus',
+    plan: billingPlan,
+    expiresAt,
+    sessionId: session.id,
+    metadata: { ...meta, via: 'cms_plus' },
+  })
+  await upsertEntitlementRow(supabase, {
+    userId,
+    producto: 'video_diamante_premium',
+    plan: billingPlan,
+    expiresAt,
+    sessionId: session.id,
+    metadata: { ...meta, via: 'cms_plus' },
+  })
+
+  await supabase
+    .from('perfiles')
+    .update({
+      es_pro: true,
+      pro_plan_type: planType,
+      pro_extra_ad_slots: Math.max(0, (CMS_PLUS_ANUNCIOS[nivel] || 2) - 1),
+    })
+    .eq('id', userId)
+
+  try {
+    await ensureCmsPlusCreditos(supabase, userId, nivel)
+  } catch (err) {
+    console.warn('cms_plus creditos webhook:', err?.message || err)
+  }
+
+  return { activated: true, producto: 'cms_plus', userId, nivel, billing }
 }
 
 async function activateEscuelaFromCheckout(supabase, session) {
@@ -116,14 +246,18 @@ async function activateEscuelaFromCheckout(supabase, session) {
 
 async function activateProFromCheckout(session) {
   const producto = session.metadata?.producto || 'contacneed_pro'
+  const supabaseUrl = supabaseUrlFromEnv()
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase no configurado para ContacNeed.')
+  }
+  const supabase = createClient(supabaseUrl, supabaseKey)
+
   if (producto === 'escuela_principios') {
-    const supabaseUrl = supabaseUrlFromEnv()
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase no configurado para ContacNeed.')
-    }
-    const supabase = createClient(supabaseUrl, supabaseKey)
     return activateEscuelaFromCheckout(supabase, session)
+  }
+  if (producto === 'cms_plus') {
+    return activateCmsPlusFromCheckout(supabase, session)
   }
   if (producto !== 'contacneed_pro') {
     return { ignored: true, producto }
@@ -136,13 +270,6 @@ async function activateProFromCheckout(session) {
     }
   }
 
-  const supabaseUrl = supabaseUrlFromEnv()
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase no configurado para ContacNeed.')
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey)
   const planType = session.metadata?.plan === 'annual' ? 'annual' : 'monthly'
   await upsertContacNeedPro(supabase, userId, planType, session.id)
   return { activated: true, userId, planType }

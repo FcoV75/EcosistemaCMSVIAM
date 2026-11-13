@@ -191,7 +191,7 @@ export const getAdminDashboardFn = createServerFn({ method: 'GET' }).handler(asy
   const { data: proEntitlementRows } = await supabase
     .from('ecosistema_entitlements')
     .select('user_id, expires_at, status, plan, metadata')
-    .eq('producto', 'contacneed_pro')
+    .in('producto', ['contacneed_pro', 'cms_plus'])
     .eq('status', 'active')
     .limit(500)
 

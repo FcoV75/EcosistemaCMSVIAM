@@ -4,6 +4,7 @@ import {
   BookOpen,
   Building2,
   Crown,
+  Gem,
   HelpCircle,
   Home,
   LogIn,
@@ -61,6 +62,15 @@ export function SidebarNav({
             <BookOpen size={18} className="text-amber-400" />
             Escuela de principios
           </Link>
+        </li>
+        <li>
+          <a
+            href="/circulo-cms-plus"
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-purple-100 transition hover:bg-white/10"
+          >
+            <Gem size={18} className="text-amber-400" />
+            Círculo CMS-Plus
+          </a>
         </li>
         <li>
           <a
@@ -195,13 +205,21 @@ export function SidebarNav({
           Mi anuncio PRO
         </button>
       ) : (
+        <a
+          href="/circulo-cms-plus"
+          className="cn-btn-metallic mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-950"
+        >
+          <Gem size={16} />
+          Unirme a CMS-Plus
+        </a>
+      )}
+      {!isPro && (
         <button
           type="button"
           onClick={onOpenStripe}
-          className="cn-btn-metallic mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-950"
+          className="mt-2 w-full text-center text-[11px] font-medium text-purple-200/70 underline-offset-2 hover:underline"
         >
-          <Crown size={16} />
-          Subir a PRO
+          o solo ContacNeed PRO
         </button>
       )}
     </nav>
