@@ -30,29 +30,37 @@ export async function getContacNeedProStatus(
   try {
     const { data, error } = await supabase
       .from('ecosistema_entitlements')
-      .select('plan, expires_at, status, metadata')
+      .select('producto, plan, expires_at, status, metadata')
       .eq('user_id', userId)
-      .eq('producto', 'contacneed_pro')
+      .in('producto', ['contacneed_pro', 'cms_plus'])
       .eq('status', 'active')
-      .limit(1)
-      .maybeSingle()
+      .limit(5)
 
     if (error) {
       console.warn('ContacNeed PRO entitlement:', error.message)
       return { active: false, plan: null, expiresAt: null, permanent: false }
     }
-    if (!data || !entitlementVigente(data)) {
+
+    const vigentes = (data || []).filter(entitlementVigente)
+    if (!vigentes.length) {
       return { active: false, plan: null, expiresAt: null, permanent: false }
     }
 
-    const meta = (data.metadata || {}) as Record<string, unknown>
+    const pro =
+      vigentes.find((r) => r.producto === 'contacneed_pro') ||
+      vigentes.find((r) => r.producto === 'cms_plus') ||
+      vigentes[0]
+
+    const meta = (pro.metadata || {}) as Record<string, unknown>
     const permanent =
-      meta.permanent === true || data.plan === 'propietario' || !data.expires_at
+      meta.permanent === true || pro.plan === 'propietario' || !pro.expires_at
+    const billingFromMeta =
+      meta.billing === 'anual' ? 'anual' : meta.billing === 'mensual' ? 'mensual' : null
 
     return {
       active: true,
-      plan: planToProfile(data.plan),
-      expiresAt: data.expires_at,
+      plan: planToProfile(billingFromMeta || pro.plan),
+      expiresAt: pro.expires_at,
       permanent,
     }
   } catch (err) {

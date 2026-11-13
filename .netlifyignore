@@ -1,0 +1,7 @@
+# ContacNeed sources/scripts must not ship with the static Nexus/CMS publish root.
+ContacNeed - Arquitectura Modular Diamante Estabilizada/scripts/
+ContacNeed - Arquitectura Modular Diamante Estabilizada/node_modules/
+ContacNeed - Arquitectura Modular Diamante Estabilizada/.output/
+ContacNeed - Arquitectura Modular Diamante Estabilizada/src/
+artifacts/
+.git/

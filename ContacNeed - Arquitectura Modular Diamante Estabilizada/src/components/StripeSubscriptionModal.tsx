@@ -234,6 +234,14 @@ export function StripeSubscriptionModal({ open, onClose, onOpenAuth }: StripeSub
             Desbloquea chat en vivo, Google Maps GPS, 30 publicaciones diarias, informes de mercado y anuncio PRO.
           </p>
 
+          <a
+            href="/circulo-cms-plus"
+            className="block rounded-xl border border-amber-400/35 bg-amber-950/25 px-3 py-2 text-sm text-amber-100 transition hover:bg-amber-900/30"
+          >
+            ¿Quieres el club completo (salud + Nexus + IA VIAM + Video Diamante)? Mira{' '}
+            <span className="font-bold underline">Círculo CMS-Plus</span> desde $499.
+          </a>
+
           <PlanComparison compact />
 
 

@@ -32,6 +32,31 @@ export const PRODUCTOS = {
     successPath: '/?payment_success=true&session_id={CHECKOUT_SESSION_ID}',
     cancelPath: '/?payment_cancelled=true',
   },
+  cms_plus: {
+    etiqueta: 'Círculo CMS-Plus Membresías',
+    paginas: ['contacneed.com/circulo-cms-plus'],
+    tipo: 'subscription',
+    niveles: {
+      plata: {
+        mensual: { centavos: 49900, nombre: 'Círculo CMS-Plus Plata — Mensual', envPrice: 'STRIPE_PRICE_CMS_PLUS_PLATA_MONTHLY' },
+        anual: { centavos: 499000, nombre: 'Círculo CMS-Plus Plata — Anual', envPrice: 'STRIPE_PRICE_CMS_PLUS_PLATA_ANNUAL' },
+      },
+      oro: {
+        mensual: { centavos: 89900, nombre: 'Círculo CMS-Plus Oro — Mensual', envPrice: 'STRIPE_PRICE_CMS_PLUS_ORO_MONTHLY' },
+        anual: { centavos: 899000, nombre: 'Círculo CMS-Plus Oro — Anual', envPrice: 'STRIPE_PRICE_CMS_PLUS_ORO_ANNUAL' },
+      },
+      platino: {
+        mensual: { centavos: 149900, nombre: 'Círculo CMS-Plus Platino — Mensual', envPrice: 'STRIPE_PRICE_CMS_PLUS_PLATINO_MONTHLY' },
+        anual: { centavos: 1499000, nombre: 'Círculo CMS-Plus Platino — Anual', envPrice: 'STRIPE_PRICE_CMS_PLUS_PLATINO_ANNUAL' },
+      },
+      diamante: {
+        mensual: { centavos: 249900, nombre: 'Círculo CMS-Plus Diamante — Mensual', envPrice: 'STRIPE_PRICE_CMS_PLUS_DIAMANTE_MONTHLY' },
+        anual: { centavos: 2499000, nombre: 'Círculo CMS-Plus Diamante — Anual', envPrice: 'STRIPE_PRICE_CMS_PLUS_DIAMANTE_ANNUAL' },
+      },
+    },
+    successPath: '/circulo-cms-plus?payment_success=true&session_id={CHECKOUT_SESSION_ID}',
+    cancelPath: '/circulo-cms-plus?payment_cancelled=true',
+  },
 };
 
 export function resolverProducto(producto, planTipo) {
@@ -59,6 +84,21 @@ export function catalogoPublico() {
                 ? { nombre: cfg.anual.nombre, centavos: cfg.anual.centavos }
                 : null,
             }
+          : null,
+        niveles: cfg.niveles
+          ? Object.fromEntries(
+              Object.entries(cfg.niveles).map(([nivel, planes]) => [
+                nivel,
+                {
+                  mensual: planes.mensual
+                    ? { nombre: planes.mensual.nombre, centavos: planes.mensual.centavos }
+                    : null,
+                  anual: planes.anual
+                    ? { nombre: planes.anual.nombre, centavos: planes.anual.centavos }
+                    : null,
+                },
+              ]),
+            )
           : null,
       },
     ]),

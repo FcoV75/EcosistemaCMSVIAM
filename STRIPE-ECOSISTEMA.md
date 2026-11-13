@@ -13,6 +13,7 @@
 | **Sincronía NEXUS** | Membresía $400/mes o $3,600/año | `sincronia_nexus` | CMS (solo membresía) o enlace desde `/nexus` |
 | **Video Diamante / VIAM** | Premium $300/mes o $3,000/año | `video_diamante_premium` | Botones en `/video_diamante` |
 | **ContacNeed** | PRO $300/mes o $3,000/año | `contacneed_pro` | Modal Stripe en contacneed.com |
+| **Círculo CMS-Plus** | Plata $499 · Oro $899 · Platino $1,499 · Diamante $2,499 (mensual; anual ×10) | `cms_plus` | `/circulo-cms-plus` en ContacNeed (activa PRO + Nexus + Video Diamante) |
 
 ---
 
