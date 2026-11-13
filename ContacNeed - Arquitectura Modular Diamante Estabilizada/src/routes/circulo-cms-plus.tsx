@@ -51,37 +51,6 @@ const TIER_ACCENT: Record<CmsPlusNivel, string> = {
   diamante: 'border-violet-300/45 from-violet-950/50 to-slate-950/90',
 }
 
-/** Misma foto de cierre/agradecimiento del ecosistema CMS · Nexus · Obras · Diamante */
-const GRACIAS_PAGO_IMG = '/Assets/Images/Gracias_Pago_CMS.png'
-
-function GraciasPagoVisual({
-  caption = 'Ecosistema CMS VIAM · ContacNeed · Nexus · IA VIAM · Video Diamante',
-  compact = false,
-}: {
-  caption?: string
-  compact?: boolean
-}) {
-  return (
-    <figure
-      className={`overflow-hidden rounded-xl border-2 border-amber-400/55 bg-black/30 shadow-[0_10px_28px_rgba(0,0,0,0.35)] ${
-        compact ? 'mt-3' : 'mt-4'
-      }`}
-    >
-      <img
-        src={GRACIAS_PAGO_IMG}
-        alt="Muchas gracias — CMS, VIAM Music, Sincronía Nexus y ContacNeed"
-        loading="lazy"
-        className={`mx-auto block w-full bg-black/25 object-contain object-center ${
-          compact ? 'max-h-36' : 'max-h-48 sm:max-h-56'
-        }`}
-      />
-      <figcaption className="bg-black/55 px-3 py-2 text-center text-[11px] leading-snug text-amber-50/90 sm:text-xs">
-        {caption}
-      </figcaption>
-    </figure>
-  )
-}
-
 function CirculoCmsPlusPage() {
   const [selectedState, setSelectedState] = useState<MexicoState | ''>(DEFAULT_BROWSE_FILTER)
   const [showStripeModal, setShowStripeModal] = useState(false)
@@ -226,12 +195,7 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
 
       {msg && (
         <div className="rounded-2xl border border-amber-400/30 bg-amber-950/30 px-4 py-3 text-sm text-amber-50">
-          <p>{msg}</p>
-          {(search.payment_success === 'true' || msg.toLowerCase().includes('bienvenido')) && (
-            <GraciasPagoVisual
-              caption="¡Gracias por tu confianza! Tu Círculo CMS-Plus ya está activándose."
-            />
-          )}
+          {msg}
         </div>
       )}
 
@@ -287,11 +251,6 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
                     </p>
                   </div>
                 </div>
-
-                <GraciasPagoVisual
-                  compact
-                  caption="Más que un precio: un círculo de cuidado y expansión"
-                />
 
                 <ul className="mt-4 space-y-1.5">
                   <li className="flex gap-2 text-sm text-slate-100">
@@ -404,10 +363,6 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
           </div>
         </section>
       )}
-
-      <section className="overflow-hidden rounded-2xl border border-amber-400/30 bg-slate-950/70 p-4 sm:p-5">
-        <GraciasPagoVisual caption="Gracias por confiar en el Ecosistema CMS VIAM — la misma imagen de cierre de CMS, Nexus, Obras y Video Diamante." />
-      </section>
 
       <section className="rounded-2xl border border-amber-400/20 bg-slate-950/60 p-5">
         <h2 className="text-lg font-bold text-amber-100">Qué incluye el Plus</h2>
