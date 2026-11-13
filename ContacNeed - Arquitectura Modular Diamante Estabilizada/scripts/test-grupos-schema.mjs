@@ -2,9 +2,24 @@
  * Prueba en vivo contra PostgREST público de ContacNeed:
  * valida columnas 017 y que el embed ambiguo de perfiles falla
  * (la causa del error al abrir un grupo con miembros).
+ *
+ * Requiere env:
+ *   SUPABASE_URL o VITE_SUPABASE_URL
+ *   SUPABASE_ANON_KEY o VITE_SUPABASE_ANON_KEY
  */
-const URL = 'https://ioknnnpgyqfafewnksup.supabase.co'
-const KEY = 'sb_publishable_ymfz0iNgs0pPuw0rWwuoeQ_PCmymdxw'
+const URL = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '')
+  .trim()
+  .replace(/\/+$/, '')
+const KEY = String(
+  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '',
+).trim()
+
+if (!URL || !KEY) {
+  console.error(
+    'Faltan SUPABASE_URL/VITE_SUPABASE_URL y SUPABASE_ANON_KEY/VITE_SUPABASE_ANON_KEY',
+  )
+  process.exit(1)
+}
 
 async function api(path) {
   const res = await fetch(`${URL}/rest/v1/${path}`, {
