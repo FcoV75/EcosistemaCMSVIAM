@@ -239,7 +239,46 @@ async function activateEscuelaFromCheckout(supabase, session) {
     if (error) throw error
   } else {
     const { error } = await supabase.from('ecosistema_entitlements').insert({ ...row, starts_at: now })
-    if (error) throw error
+    if (error) {
+      const msg = `${error.message || ''} ${error.code || ''} ${error.details || ''}`.toLowerCase()
+      const uniqueHit =
+        msg.includes('idx_eco_ent_user_producto') ||
+        msg.includes('duplicate') ||
+        msg.includes('unique') ||
+        error.code === '23505'
+      if (uniqueHit && userId) {
+        const { data: existente } = await supabase
+          .from('ecosistema_entitlements')
+          .select('id, metadata')
+          .eq('user_id', userId)
+          .eq('producto', 'escuela_principios')
+          .eq('status', 'active')
+          .maybeSingle()
+        if (existente?.id) {
+          const prev = existente.metadata || {}
+          const slugs = new Set([
+            ...(Array.isArray(prev.curso_slugs) ? prev.curso_slugs : []),
+            ...(prev.curso_slug ? [prev.curso_slug] : []),
+            slug,
+          ])
+          const { error: upErr } = await supabase
+            .from('ecosistema_entitlements')
+            .update({
+              ...row,
+              metadata: {
+                ...prev,
+                ...row.metadata,
+                curso_slug: slug,
+                curso_slugs: [...slugs],
+              },
+            })
+            .eq('id', existente.id)
+          if (upErr) throw upErr
+          return { activated: true, producto: 'escuela_principios', slug, userId, merged: true }
+        }
+      }
+      throw error
+    }
   }
   return { activated: true, producto: 'escuela_principios', slug, userId }
 }

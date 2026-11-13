@@ -21,6 +21,10 @@ export default async (req) => {
     const { planTipo, successUrl, cancelUrl } = await req.json()
     const esAnual = planTipo === 'anual'
 
+    const graciasImg =
+      process.env.CMS_CHECKOUT_IMAGE_URL ||
+      'https://centromultidisciplinarioags.com/Assets/Images/Gracias_Pago_CMS.png'
+
     const session = await stripe.checkout.sessions.create({
       line_items: [
         {
@@ -29,6 +33,7 @@ export default async (req) => {
             product_data: {
               name: esAnual ? 'ContacNeed PRO — Anual' : 'ContacNeed PRO — Mensual',
               description: esAnual ? '12 meses · 2 meses de regalo' : 'Membresía mensual PRO',
+              images: [graciasImg],
             },
             unit_amount: esAnual ? 300000 : 30000,
             recurring: { interval: esAnual ? 'year' : 'month' },

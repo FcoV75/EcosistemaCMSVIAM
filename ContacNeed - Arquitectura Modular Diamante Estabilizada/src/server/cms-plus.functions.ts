@@ -176,6 +176,68 @@ export const revocarCmsPlusAdminFn = createServerFn({ method: 'POST' })
     return { ok: true }
   })
 
+export const suspenderCmsPlusAdminFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { userId: string; motivo?: string }) => d)
+  .handler(async ({ data }) => {
+    const admin = await requireAdminUser()
+    if (!admin) throw new Error('Acceso denegado: se requiere administrador')
+    const supabase = createSupabaseAdminClient()
+    const { data: row, error: findError } = await supabase
+      .from('ecosistema_entitlements')
+      .select('id, metadata')
+      .eq('user_id', data.userId)
+      .eq('producto', 'cms_plus')
+      .eq('status', 'active')
+      .maybeSingle()
+    if (findError) throw findError
+    if (!row?.id) throw new Error('No hay membresía CMS-Plus activa para suspender.')
+    const meta = (row.metadata || {}) as Record<string, unknown>
+    const { error } = await supabase
+      .from('ecosistema_entitlements')
+      .update({
+        status: 'cancelled',
+        metadata: {
+          ...meta,
+          suspendido: true,
+          suspendido_at: new Date().toISOString(),
+          suspendido_motivo: data.motivo || 'suspendido_admin',
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', row.id)
+    if (error) throw error
+    return { ok: true }
+  })
+
+export const reactivarCmsPlusAdminFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    const admin = await requireAdminUser()
+    if (!admin) throw new Error('Acceso denegado: se requiere administrador')
+    const supabase = createSupabaseAdminClient()
+    const { data: row, error: findError } = await supabase
+      .from('ecosistema_entitlements')
+      .select('id, user_id, plan, metadata, expires_at')
+      .eq('id', data.id)
+      .eq('producto', 'cms_plus')
+      .maybeSingle()
+    if (findError) throw findError
+    if (!row?.id) throw new Error('Membresía no encontrada')
+    if (!row.user_id || !isCmsPlusNivel(row.plan || '')) {
+      throw new Error('No se puede reactivar: faltan usuario o nivel')
+    }
+    const meta = (row.metadata || {}) as { billing?: string; email?: string; permanent?: boolean }
+    const result = await activateCmsPlus(supabase, {
+      userId: row.user_id,
+      nivel: row.plan as CmsPlusNivel,
+      billing: meta.billing === 'anual' ? 'anual' : 'mensual',
+      email: meta.email || null,
+      source: 'admin_reactivar',
+      permanent: Boolean(meta.permanent) || !row.expires_at,
+    })
+    return { ok: true, nivel: result.nivel }
+  })
+
 export const listCmsPlusAdminFn = createServerFn({ method: 'GET' }).handler(async () => {
   const admin = await requireAdminUser()
   if (!admin) throw new Error('Acceso denegado: se requiere administrador')
@@ -185,26 +247,41 @@ export const listCmsPlusAdminFn = createServerFn({ method: 'GET' }).handler(asyn
     .select('id, user_id, plan, status, expires_at, metadata, legacy_code, created_at')
     .eq('producto', 'cms_plus')
     .order('created_at', { ascending: false })
-    .limit(300)
+    .limit(500)
   if (error) throw error
 
-  return {
-    membresias: (data || []).map((row) => {
-      const meta = (row.metadata || {}) as { email?: string; billing?: string; permanent?: boolean }
-      return {
-        id: row.id,
-        user_id: row.user_id,
-        nivel: row.plan,
-        status: row.status,
-        billing: meta.billing || 'mensual',
-        email: meta.email || null,
-        permanent: Boolean(meta.permanent) || !row.expires_at,
-        expires_at: row.expires_at,
-        legacy_code: row.legacy_code,
-        created_at: row.created_at,
-      }
-    }),
+  const membresias = (data || []).map((row) => {
+    const meta = (row.metadata || {}) as {
+      email?: string
+      billing?: string
+      permanent?: boolean
+      suspendido?: boolean
+    }
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      nivel: row.plan,
+      status: row.status,
+      billing: meta.billing || 'mensual',
+      email: meta.email || null,
+      permanent: Boolean(meta.permanent) || !row.expires_at,
+      suspendido: Boolean(meta.suspendido) && row.status !== 'active',
+      expires_at: row.expires_at,
+      legacy_code: row.legacy_code,
+      created_at: row.created_at,
+    }
+  })
+
+  const conteos = {
+    plata: membresias.filter((m) => m.nivel === 'plata' && m.status === 'active').length,
+    oro: membresias.filter((m) => m.nivel === 'oro' && m.status === 'active').length,
+    platino: membresias.filter((m) => m.nivel === 'platino' && m.status === 'active').length,
+    diamante: membresias.filter((m) => m.nivel === 'diamante' && m.status === 'active').length,
+    suspendidos: membresias.filter((m) => m.suspendido || m.status === 'cancelled').length,
+    totalActivos: membresias.filter((m) => m.status === 'active').length,
   }
+
+  return { membresias, conteos }
 })
 
 export const registrarConversionCirculoFn = createServerFn({ method: 'POST' })

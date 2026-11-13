@@ -53,6 +53,12 @@ export function esPreguntaEscuela(question: string) {
     q.includes('recuperación') ||
     q.includes('recuperacion') ||
     q.includes('impartici') ||
+    q.includes('cms-plus') ||
+    q.includes('cms plus') ||
+    q.includes('membresía') ||
+    q.includes('membresia') ||
+    (q.includes('plata') && (q.includes('oro') || q.includes('nivel') || q.includes('círculo') || q.includes('circulo'))) ||
+    (q.includes('diamante') && (q.includes('círculo') || q.includes('circulo') || q.includes('cms'))) ||
     (q.includes('zoom') &&
       (q.includes('sesión') || q.includes('sesion') || q.includes('vivo') || q.includes('clase'))) ||
     (q.includes('cuota') &&
