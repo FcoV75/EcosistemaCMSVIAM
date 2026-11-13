@@ -41,6 +41,7 @@ STRIPE_PRICE_ANNUAL=           # price_... ContacNeed PRO anual
 # STRIPE_PRICE_CMS_PLUS_ORO_MONTHLY / _ANNUAL
 # STRIPE_PRICE_CMS_PLUS_PLATINO_MONTHLY / _ANNUAL
 # STRIPE_PRICE_CMS_PLUS_DIAMANTE_MONTHLY / _ANNUAL
+# CMS_PLUS_CHECKOUT_IMAGE_URL=https://.../Gracias_Pago_CMS.png  # imagen en panel izquierdo de Stripe Checkout
 STRIPE_WEBHOOK_SECRET=         # whsec_... del endpoint stripe-webhook (distinto al de VIAM)
 GEMINI_API_KEY=
 GEMINI_TEXT_MODELS=gemini-3.8-flash,gemini-3.7-flash,gemini-flash-latest,gemini-3.6-flash

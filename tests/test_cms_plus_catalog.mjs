@@ -23,7 +23,19 @@ const stripeFn = fs.readFileSync(
 )
 assert.match(stripeFn, /createCmsPlusCheckoutFn/)
 assert.match(stripeFn, /producto: 'cms_plus'/)
+assert.match(stripeFn, /images: \[imageUrl\]/)
+assert.match(stripeFn, /Gracias_Pago_CMS\.png/)
 assert.equal(stripeFn.includes('payment_method_types'), false)
+
+const circuloUi = fs.readFileSync(
+  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/routes/circulo-cms-plus.tsx',
+  'utf8',
+)
+assert.equal(
+  circuloUi.includes('GraciasPagoVisual'),
+  false,
+  'La foto Gracias no debe ir en ContacNeed; va en Stripe Checkout',
+)
 
 const cmsPlus = fs.readFileSync(
   'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/lib/cms-plus.ts',

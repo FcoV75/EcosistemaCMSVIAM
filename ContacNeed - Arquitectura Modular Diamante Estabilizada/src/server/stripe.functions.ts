@@ -23,11 +23,35 @@ function siteBaseUrl() {
   return process.env.URL ?? process.env.VITE_SITE_URL ?? 'https://contacneed.com'
 }
 
+/** Foto de cierre del ecosistema: aparece en el panel izquierdo de Stripe Checkout. */
+function cmsPlusCheckoutImageUrl() {
+  return (
+    process.env.CMS_PLUS_CHECKOUT_IMAGE_URL ||
+    process.env.VITE_CMS_PLUS_CHECKOUT_IMAGE_URL ||
+    'https://centromultidisciplinarioags.com/Assets/Images/Gracias_Pago_CMS.png'
+  )
+}
+
 function cmsPlusPriceId(nivel: CmsPlusNivel, billing: CmsPlusBilling): string | undefined {
   const tier = getCmsPlusTier(nivel)
   if (!tier) return undefined
   const envName = billing === 'anual' ? tier.envPriceAnnual : tier.envPriceMonthly
   return process.env[envName] || undefined
+}
+
+async function syncCheckoutProductImage(stripe: Stripe, priceId: string, imageUrl: string) {
+  try {
+    const price = await stripe.prices.retrieve(priceId, { expand: ['product'] })
+    const product = price.product
+    if (!product || typeof product === 'string' || ('deleted' in product && product.deleted)) {
+      return
+    }
+    const images = Array.isArray(product.images) ? product.images : []
+    if (images[0] === imageUrl) return
+    await stripe.products.update(product.id, { images: [imageUrl] })
+  } catch (err) {
+    console.warn('CMS-Plus: no se pudo sincronizar imagen del producto Stripe:', err)
+  }
 }
 
 export const createCheckoutSessionFn = createServerFn({ method: 'POST' })
@@ -90,6 +114,7 @@ export const createCmsPlusCheckoutFn = createServerFn({ method: 'POST' })
     const siteUrl = siteBaseUrl()
     const esAnual = data.billing === 'anual'
     const priceId = cmsPlusPriceId(data.nivel, data.billing)
+    const imageUrl = cmsPlusCheckoutImageUrl()
     const metadata = {
       userId: user.id,
       producto: 'cms_plus',
@@ -98,15 +123,20 @@ export const createCmsPlusCheckoutFn = createServerFn({ method: 'POST' })
       plan: esAnual ? 'annual' : 'monthly',
     }
 
+    // Stripe Checkout muestra product_data.images (o images del Product) en el
+    // espacio en blanco bajo el precio, a la izquierda del formulario de pago.
     const session = priceId
-      ? await stripe.checkout.sessions.create({
-          mode: 'subscription',
-          customer_email: user.email,
-          line_items: [{ price: priceId, quantity: 1 }],
-          success_url: `${siteUrl}/circulo-cms-plus?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${siteUrl}/circulo-cms-plus?payment_cancelled=true`,
-          metadata,
-        })
+      ? await (async () => {
+          await syncCheckoutProductImage(stripe, priceId, imageUrl)
+          return stripe.checkout.sessions.create({
+            mode: 'subscription',
+            customer_email: user.email,
+            line_items: [{ price: priceId, quantity: 1 }],
+            success_url: `${siteUrl}/circulo-cms-plus?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${siteUrl}/circulo-cms-plus?payment_cancelled=true`,
+            metadata,
+          })
+        })()
       : await stripe.checkout.sessions.create({
           mode: 'subscription',
           customer_email: user.email,
@@ -118,6 +148,7 @@ export const createCmsPlusCheckoutFn = createServerFn({ method: 'POST' })
                   name: nombreProductoStripe(data.nivel, data.billing),
                   description:
                     'Círculo CMS-Plus: salud + ContacNeed + Sincronía Nexus + IA VIAM + Video Diamante',
+                  images: [imageUrl],
                 },
                 unit_amount: precioCentavos(data.nivel, data.billing),
                 recurring: { interval: esAnual ? 'year' : 'month' },
