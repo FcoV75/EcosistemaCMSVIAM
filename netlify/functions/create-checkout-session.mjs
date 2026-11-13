@@ -2,6 +2,10 @@ import Stripe from 'stripe';
 import { PRODUCTOS, resolverProducto } from './lib/stripe-catalog.mjs';
 import { getUserFromBearer } from './lib/supabase-admin.mjs';
 
+const GRACIAS_PAGO_IMG =
+  process.env.CMS_CHECKOUT_IMAGE_URL ||
+  'https://centromultidisciplinarioags.com/Assets/Images/Gracias_Pago_CMS.png';
+
 function metadataBase(req, extra = {}) {
   const meta = { ...extra };
   return getUserFromBearer(req).then((user) => {
@@ -13,15 +17,47 @@ function metadataBase(req, extra = {}) {
   });
 }
 
+async function syncProductImage(stripe, priceId) {
+  try {
+    const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
+    const product = price.product;
+    if (!product || typeof product === 'string' || product.deleted) return;
+    if (Array.isArray(product.images) && product.images[0] === GRACIAS_PAGO_IMG) return;
+    await stripe.products.update(product.id, { images: [GRACIAS_PAGO_IMG] });
+  } catch (err) {
+    console.warn('checkout image sync:', err?.message || err);
+  }
+}
+
 function lineaSuscripcion(stripe, cfg, planTipo) {
   const esAnual = planTipo === 'anual';
   const plan = esAnual ? cfg.anual : cfg.mensual;
   const priceId = process.env[plan.envPrice];
-  if (priceId) return { price: priceId, quantity: 1 };
+  // Preferimos price_data con imagen para que Checkout nunca muestre el hueco
+  // en blanco (consultas/libros/Nexus). Si hay Price ID, sincronizamos la imagen
+  // del Product y aún así usamos price_data con el mismo monto/nombre.
+  if (priceId) {
+    return {
+      price_data: {
+        currency: 'mxn',
+        product_data: {
+          name: plan.nombre,
+          images: [GRACIAS_PAGO_IMG],
+        },
+        unit_amount: plan.centavos,
+        recurring: { interval: esAnual ? 'year' : 'month' },
+      },
+      quantity: 1,
+      _priceId: priceId,
+    };
+  }
   return {
     price_data: {
       currency: 'mxn',
-      product_data: { name: plan.nombre },
+      product_data: {
+        name: plan.nombre,
+        images: [GRACIAS_PAGO_IMG],
+      },
       unit_amount: plan.centavos,
       recurring: { interval: esAnual ? 'year' : 'month' },
     },
@@ -65,8 +101,13 @@ export default async (req) => {
 
     if (cfg.tipo === 'subscription' && (planTipo === 'mensual' || planTipo === 'anual')) {
       const metadata = await metadataBase(req, { producto, plan: planTipo, detalle: detalle || producto });
+      const lineItem = lineaSuscripcion(stripe, cfg, planTipo);
+      if (lineItem._priceId) {
+        await syncProductImage(stripe, lineItem._priceId);
+        delete lineItem._priceId;
+      }
       session = await stripe.checkout.sessions.create({
-        line_items: [lineaSuscripcion(stripe, cfg, planTipo)],
+        line_items: [lineItem],
         mode: 'subscription',
         success_url: successUrl || `${origin}${cfg.successPath}`,
         cancel_url: cancelUrl || `${origin}${cfg.cancelPath}`,
@@ -87,7 +128,10 @@ export default async (req) => {
         line_items: [{
           price_data: {
             currency: 'mxn',
-            product_data: { name: nombreProducto || cfg.etiqueta || 'Ecosistema CMS VIAM' },
+            product_data: {
+              name: nombreProducto || cfg.etiqueta || 'Ecosistema CMS VIAM',
+              images: [GRACIAS_PAGO_IMG],
+            },
             unit_amount: Math.round(montoTotal * 100),
           },
           quantity: 1,

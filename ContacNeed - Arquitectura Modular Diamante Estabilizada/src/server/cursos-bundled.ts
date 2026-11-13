@@ -14,6 +14,10 @@ import leccionesPalabra from '../../content/cursos/la-palabra-que-no-obliga/inde
 import diapositivasPalabra from '../../content/cursos/la-palabra-que-no-obliga/diapositivas.html?raw'
 import slidesPalabra from '../../content/cursos/la-palabra-que-no-obliga/slides.js?raw'
 import guiaPalabra from '../../content/cursos/la-palabra-que-no-obliga/guia-docente.md?raw'
+import leccionesCmsPlus from '../../content/cursos/circulo-cms-plus-membresias/index.html?raw'
+import diapositivasCmsPlus from '../../content/cursos/circulo-cms-plus-membresias/diapositivas.html?raw'
+import slidesCmsPlus from '../../content/cursos/circulo-cms-plus-membresias/slides.js?raw'
+import guiaCmsPlus from '../../content/cursos/circulo-cms-plus-membresias/guia-docente.md?raw'
 
 export const CURSOS_BUNDLED: Record<
   string,
@@ -46,5 +50,12 @@ export const CURSOS_BUNDLED: Record<
     slides: slidesPalabra,
     guia: guiaPalabra,
     zipPublicUrl: '/cursos-assets/la-palabra-que-no-obliga/paquete-recuperacion-p4k7m2s9.zip',
+  },
+  'circulo-cms-plus-membresias': {
+    lecciones: leccionesCmsPlus,
+    diapositivas: diapositivasCmsPlus,
+    slides: slidesCmsPlus,
+    guia: guiaCmsPlus,
+    zipPublicUrl: '/cursos-assets/circulo-cms-plus-membresias/paquete-recuperacion-cmsplus-z3m9k2w7.zip',
   },
 }

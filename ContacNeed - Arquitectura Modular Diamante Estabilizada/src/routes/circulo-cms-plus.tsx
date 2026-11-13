@@ -2,6 +2,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
+  Calendar,
   Check,
   Copy,
   Crown,
@@ -11,9 +12,12 @@ import {
   Users,
 } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
+import { CmsPlusBadge } from '../components/CmsPlusBadge'
 import { useIdentity } from '../lib/identity-context'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
-import type { CmsPlusBilling, CmsPlusNivel } from '../lib/cms-plus'
+import { CMS_PLUS_NIVELES, type CmsPlusBilling, type CmsPlusNivel } from '../lib/cms-plus'
+
+const CALENDLY_CMS = 'https://calendly.com/multidisciplinarioags'
 import {
   aceptarCirculoCmsPlusFn,
   getCmsPlusCatalogoFn,
@@ -156,6 +160,22 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
     return `${membership.tier.nombre} · ${membership.billing === 'anual' ? 'Anual' : 'Mensual'}`
   }, [membership])
 
+  const renovacion = useMemo(() => {
+    if (!membership?.active || membership.permanent || !membership.expiresAt) return null
+    const ms = new Date(membership.expiresAt).getTime() - Date.now()
+    const dias = Math.ceil(ms / 86400000)
+    if (Number.isNaN(dias)) return null
+    return { dias, fecha: new Date(membership.expiresAt).toLocaleDateString('es-MX') }
+  }, [membership])
+
+  const upgradeSugerido = useMemo(() => {
+    if (!membership?.active || !membership.nivel) return null
+    const orden: CmsPlusNivel[] = ['plata', 'oro', 'platino', 'diamante']
+    const idx = orden.indexOf(membership.nivel)
+    if (idx < 0 || idx >= orden.length - 1) return null
+    return CMS_PLUS_NIVELES.find((t) => t.id === orden[idx + 1]) || null
+  }, [membership])
+
   const startCheckout = (nivel: CmsPlusNivel) => {
     if (!user) {
       setMsg('Inicia sesión para unirte al Círculo CMS-Plus.')
@@ -185,11 +205,14 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
           <Badge icon={<Users size={14} />} text="Círculo de cuidado" />
           <Badge icon={<Shield size={14} />} text="No es pirámide" />
         </div>
-        {activeTierLabel && (
-          <p className="mt-5 inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-950/40 px-3 py-2 text-sm font-semibold text-emerald-100">
-            <Crown size={16} />
-            Tu membresía activa: {activeTierLabel}
-          </p>
+        {activeTierLabel && membership?.nivel && (
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <CmsPlusBadge nivel={membership.nivel} />
+            <p className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-950/40 px-3 py-2 text-sm font-semibold text-emerald-100">
+              <Crown size={16} />
+              Tu membresía activa: {activeTierLabel}
+            </p>
+          </div>
         )}
       </header>
 
@@ -197,6 +220,57 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
         <div className="rounded-2xl border border-amber-400/30 bg-amber-950/30 px-4 py-3 text-sm text-amber-50">
           {msg}
         </div>
+      )}
+
+      {membership?.active && renovacion && renovacion.dias <= 7 && (
+        <section className="rounded-2xl border border-rose-400/35 bg-rose-950/25 p-5">
+          <h2 className="text-lg font-bold text-rose-100">
+            {renovacion.dias <= 0
+              ? 'Tu periodo de pago venció o vence hoy'
+              : `Tu periodo de pago se acerca · ${renovacion.dias} día${renovacion.dias === 1 ? '' : 's'}`}
+          </h2>
+          <p className="mt-1 text-sm text-slate-300">
+            Fecha de renovación: {renovacion.fecha}. Renueva para no interrumpir créditos, círculo ni Plus
+            digital.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => membership.nivel && startCheckout(membership.nivel)}
+              className="rounded-xl bg-rose-500 px-4 py-2 text-sm font-bold text-white"
+            >
+              Renovar {membership.tier?.nombre || 'mi nivel'}
+            </button>
+            {upgradeSugerido && (
+              <button
+                type="button"
+                onClick={() => startCheckout(upgradeSugerido.id)}
+                className="rounded-xl border border-amber-400/50 bg-amber-950/40 px-4 py-2 text-sm font-semibold text-amber-100"
+              >
+                Subir a {upgradeSugerido.nombre} (${upgradeSugerido.precioMensualMxn}/mes)
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {membership?.active && upgradeSugerido && (!renovacion || renovacion.dias > 7) && (
+        <section className="rounded-2xl border border-violet-400/30 bg-violet-950/20 p-5">
+          <h2 className="text-lg font-bold text-violet-100">Oferta al renovar: sube de nivel</h2>
+          <p className="mt-1 text-sm text-slate-300">
+            Estás en {membership.tier?.nombre}. Al pagar tu mensualidad puedes pasar a{' '}
+            <strong className="text-violet-100">{upgradeSugerido.nombre}</strong> (
+            {upgradeSugerido.creditosSalud} créditos · {upgradeSugerido.beneficiariosMax} beneficiarios ·{' '}
+            {upgradeSugerido.descuentoCirculoPct}% dto).
+          </p>
+          <button
+            type="button"
+            onClick={() => startCheckout(upgradeSugerido.id)}
+            className="mt-3 rounded-xl bg-violet-500 px-4 py-2 text-sm font-bold text-white"
+          >
+            Conocer {upgradeSugerido.nombre}
+          </button>
+        </section>
       )}
 
       <section className="rounded-2xl border border-white/10 bg-slate-950/50 p-4 sm:p-5">
@@ -293,75 +367,99 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
       </section>
 
       {membership?.active && membership.nivel && (
-        <section className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-emerald-400/25 bg-emerald-950/20 p-5">
-            <h2 className="text-lg font-bold text-emerald-100">Tus créditos de salud</h2>
-            {miQuery.data?.creditos ? (
-              <div className="mt-3 grid grid-cols-3 gap-3">
-                <Stat label="Disponibles" value={String(miQuery.data.creditos.disponibles)} />
-                <Stat label="Asignados" value={String(miQuery.data.creditos.allotment)} />
-                <Stat label="Usados" value={String(miQuery.data.creditos.usados)} />
+        <>
+          <section className="grid gap-4 lg:grid-cols-3">
+            <div className="rounded-2xl border border-emerald-400/25 bg-emerald-950/20 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-bold text-emerald-100">Tus créditos de salud</h2>
+                <CmsPlusBadge nivel={membership.nivel} size="sm" />
               </div>
-            ) : (
-              <p className="mt-2 text-sm text-slate-300">Cargando créditos del periodo…</p>
-            )}
-            <p className="mt-3 text-xs text-slate-400">
-              Periodo {miQuery.data?.creditos?.periodo || '—'}. Los créditos se renuevan cada mes y
-              puedes acumular hasta 2 periodos.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-cyan-400/25 bg-cyan-950/20 p-5">
-            <h2 className="text-lg font-bold text-cyan-100">Tu círculo de cuidado</h2>
-            <p className="mt-1 text-sm text-slate-300">
-              Invita familiares o amigos. Ellos reciben descuento; no “trabajan una red”.
-            </p>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-              <input
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="Correo opcional del invitado"
-                className="flex-1 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
-              />
-              <button
-                type="button"
-                onClick={() => inviteMutation.mutate()}
-                disabled={inviteMutation.isPending}
-                className="rounded-xl border border-cyan-300/40 bg-cyan-900/40 px-4 py-2 text-sm font-semibold text-cyan-50 disabled:opacity-60"
-              >
-                {inviteMutation.isPending ? 'Creando…' : copied ? '¡Enlace copiado!' : 'Crear invitación'}
-              </button>
-            </div>
-            <ul className="mt-4 space-y-2">
-              {(miQuery.data?.circulo || []).length === 0 && (
-                <li className="text-sm text-slate-400">Aún no hay invitaciones.</li>
+              {miQuery.data?.creditos ? (
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  <Stat label="Disponibles" value={String(miQuery.data.creditos.disponibles)} />
+                  <Stat label="Asignados" value={String(miQuery.data.creditos.allotment)} />
+                  <Stat label="Usados" value={String(miQuery.data.creditos.usados)} />
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-slate-300">Cargando créditos del periodo…</p>
               )}
-              {(miQuery.data?.circulo || []).map((item) => (
-                <li
-                  key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-sm"
+              <p className="mt-3 text-xs text-slate-400">
+                Periodo {miQuery.data?.creditos?.periodo || '—'}. Los créditos se renuevan cada mes y
+                puedes acumular hasta 2 periodos.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-cyan-400/25 bg-cyan-950/20 p-5 lg:col-span-1">
+              <h2 className="text-lg font-bold text-cyan-100">Tu círculo de cuidado</h2>
+              <p className="mt-1 text-sm text-slate-300">
+                Invita hasta {membership.tier?.beneficiariosMax ?? '—'} personas. Descuento{' '}
+                {membership.tier?.descuentoCirculoPct ?? '—'}% en consultas. No es pirámide.
+              </p>
+              <div className="mt-3 flex flex-col gap-2">
+                <input
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="Correo opcional del invitado"
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => inviteMutation.mutate()}
+                  disabled={inviteMutation.isPending}
+                  className="rounded-xl border border-cyan-300/40 bg-cyan-900/40 px-4 py-2 text-sm font-semibold text-cyan-50 disabled:opacity-60"
                 >
-                  <span className="text-purple-100">
-                    {item.email_invitado || 'Sin correo'} · {item.status}
-                  </span>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 text-xs text-cyan-200"
-                    onClick={async () => {
-                      const url = `${window.location.origin}/circulo-cms-plus?invite=${item.token}`
-                      await navigator.clipboard.writeText(url)
-                      setCopied(true)
-                      setTimeout(() => setCopied(false), 1500)
-                    }}
+                  {inviteMutation.isPending ? 'Creando…' : copied ? '¡Enlace copiado!' : 'Crear invitación'}
+                </button>
+              </div>
+              <ul className="mt-4 max-h-48 space-y-2 overflow-y-auto">
+                {(miQuery.data?.circulo || []).length === 0 && (
+                  <li className="text-sm text-slate-400">Aún no hay invitaciones.</li>
+                )}
+                {(miQuery.data?.circulo || []).map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-sm"
                   >
-                    <Copy size={12} />
-                    Copiar enlace
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+                    <span className="text-purple-100">
+                      {item.email_invitado || 'Sin correo'} · {item.status}
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-xs text-cyan-200"
+                      onClick={async () => {
+                        const url = `${window.location.origin}/circulo-cms-plus?invite=${item.token}`
+                        await navigator.clipboard.writeText(url)
+                        setCopied(true)
+                        setTimeout(() => setCopied(false), 1500)
+                      }}
+                    >
+                      <Copy size={12} />
+                      Copiar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-amber-400/25 bg-amber-950/20 p-5">
+              <h2 className="text-lg font-bold text-amber-100">Citas CMS · Calendly</h2>
+              <p className="mt-1 text-sm text-slate-300">
+                Programa tus consultas o las de tus beneficiarios con la misma app de citas de la
+                página principal del CMS.
+              </p>
+              <a
+                href={CALENDLY_CMS}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950"
+              >
+                <Calendar size={16} />
+                Abrir app de citas
+              </a>
+              <p className="mt-2 break-all text-xs text-slate-400">{CALENDLY_CMS}</p>
+            </div>
+          </section>
+        </>
       )}
 
       <section className="rounded-2xl border border-amber-400/20 bg-slate-950/60 p-5">

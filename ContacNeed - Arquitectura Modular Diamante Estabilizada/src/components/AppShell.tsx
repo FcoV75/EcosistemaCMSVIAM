@@ -1,7 +1,9 @@
 import { Link } from '@tanstack/react-router'
 import { LogOut, Mail } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { AuthModal, type AuthTab } from './AuthModal'
+import { CmsPlusBadge } from './CmsPlusBadge'
 import { ContacNeedLogo } from './ContacNeedLogo'
 import { GuestBrowseGate } from './GuestBrowseGate'
 import { HeaderSearchBar } from './HeaderSearchBar'
@@ -20,6 +22,7 @@ import { SupportBot } from './SupportBot'
 import { TopBannerBar } from './TopBannerBar'
 import { StripeSubscriptionModal } from './StripeSubscriptionModal'
 import { useIdentity } from '../lib/identity-context'
+import { getMiCmsPlusFn } from '../server/cms-plus.functions'
 import { signOutFn } from '../server/auth.functions'
 import type { MexicoState } from '../lib/mexico-states'
 
@@ -41,6 +44,16 @@ export function AppShell({
   onCloseStripe,
 }: AppShellProps) {
   const { user, profile, isAdmin, isPro } = useIdentity()
+  const cmsPlusQuery = useQuery({
+    queryKey: ['mi-cms-plus-badge'],
+    queryFn: () => getMiCmsPlusFn(),
+    enabled: Boolean(user),
+    staleTime: 60_000,
+  })
+  const cmsPlusNivel =
+    cmsPlusQuery.data?.membership?.active && cmsPlusQuery.data.membership.nivel
+      ? cmsPlusQuery.data.membership.nivel
+      : null
   const [signingOut, setSigningOut] = useState(false)
   const [showProAdModal, setShowProAdModal] = useState(false)
   const [showMemberOnboarding, setShowMemberOnboarding] = useState(false)
@@ -103,6 +116,15 @@ export function AppShell({
               <div className="flex flex-wrap items-center justify-end gap-2">
                 {user ? (
                   <>
+                    {cmsPlusNivel && (
+                      <a
+                        href="/circulo-cms-plus"
+                        className="hidden sm:inline-flex"
+                        title="Tu membresía CMS-Plus"
+                      >
+                        <CmsPlusBadge nivel={cmsPlusNivel} size="sm" />
+                      </a>
+                    )}
                     <span className="hidden max-w-[160px] truncate text-xs text-purple-200/70 xl:inline">
                       {user.email}
                     </span>

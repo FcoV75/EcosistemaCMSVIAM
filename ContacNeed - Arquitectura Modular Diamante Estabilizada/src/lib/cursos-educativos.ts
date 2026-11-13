@@ -73,6 +73,18 @@ export const CURSOS_EDUCATIVOS: CursoEducativo[] = [
     portada: '/cursos-assets/la-palabra-que-no-obliga/01-portada-palabra-no-obliga.jpg',
   },
   {
+    slug: 'circulo-cms-plus-membresias',
+    titulo: 'Círculo CMS-Plus Membresías',
+    estado: 'dado',
+    resumen:
+      'Diapositivas listas para Zoom: utilidad y beneficios de Plata, Oro, Platino y Diamante. Insignia, créditos, círculo de beneficiarios, Calendly y renovación con upgrade.',
+    etapas: 4,
+    modalidad: 'Zoom',
+    fechaDado: '2026-11-13',
+    cuotaImparticion: 'Material de recuperación para presentar el Círculo CMS-Plus en vivo o en pantalla compartida.',
+    portada: '/cursos-assets/circulo-cms-plus-membresias/01-portada-cms-plus.png',
+  },
+  {
     slug: 'proximo-itinerario',
     titulo: 'Próximo itinerario',
     estado: 'programado',

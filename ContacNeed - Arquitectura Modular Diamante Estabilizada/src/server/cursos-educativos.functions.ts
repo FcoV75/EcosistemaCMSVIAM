@@ -19,6 +19,7 @@ import {
   PRECIO_RECUPERACION_MXN,
   PRODUCTO_ESCUELA,
   cursosPublicos,
+  etiquetaCuota,
   getCursoBySlug,
   randomIntegrationSuffix,
   tituloDeCurso,
@@ -74,8 +75,11 @@ async function usuarioTieneCurso(
   if (error) throw error
   return (data ?? []).some((row) => {
     if (!vigente(row)) return false
-    const meta = (row.metadata || {}) as { curso_slug?: string }
-    return meta.curso_slug === slug || row.plan === 'propietario'
+    const meta = (row.metadata || {}) as { curso_slug?: string; curso_slugs?: string[] }
+    if (row.plan === 'propietario') return true
+    if (meta.curso_slug === slug) return true
+    if (Array.isArray(meta.curso_slugs) && meta.curso_slugs.includes(slug)) return true
+    return false
   })
 }
 
@@ -140,7 +144,53 @@ async function upsertAccesoCurso(
     .insert({ ...row, starts_at: now })
     .select('id')
     .single()
-  if (error) throw error
+
+  // Si el índice único antiguo (user_id+producto) aún no se migró (017),
+  // fusionamos el nuevo curso_slug en la fila existente.
+  if (error) {
+    const msg = `${error.message || ''} ${error.code || ''} ${error.details || ''}`.toLowerCase()
+    const uniqueHit =
+      msg.includes('idx_eco_ent_user_producto') ||
+      msg.includes('duplicate') ||
+      msg.includes('unique') ||
+      error.code === '23505'
+    if (uniqueHit && userId) {
+      const { data: existente } = await supabase
+        .from('ecosistema_entitlements')
+        .select('id, metadata')
+        .eq('user_id', userId)
+        .eq('producto', PRODUCTO_ESCUELA)
+        .eq('status', 'active')
+        .maybeSingle()
+      if (existente?.id) {
+        const prev = (existente.metadata || {}) as {
+          curso_slug?: string
+          curso_slugs?: string[]
+          email?: string
+        }
+        const slugs = new Set<string>([
+          ...(Array.isArray(prev.curso_slugs) ? prev.curso_slugs : []),
+          ...(prev.curso_slug ? [prev.curso_slug] : []),
+          slug,
+        ])
+        const { error: upErr } = await supabase
+          .from('ecosistema_entitlements')
+          .update({
+            ...row,
+            metadata: {
+              ...prev,
+              ...metadata,
+              curso_slug: slug,
+              curso_slugs: [...slugs],
+            },
+          })
+          .eq('id', existente.id)
+        if (upErr) throw upErr
+        return { id: existente.id, updated: true, merged: true }
+      }
+    }
+    throw error
+  }
   return { id: data?.id, created: true }
 }
 
@@ -349,6 +399,10 @@ export const createEscuelaCheckoutFn = createServerFn({ method: 'POST' })
             product_data: {
               name: `${curso.titulo} — recuperación`,
               description: `${ESCUELA_TITULO}. Ver y descargar el curso ya impartido.`,
+              images: [
+                process.env.CMS_CHECKOUT_IMAGE_URL ||
+                  'https://centromultidisciplinarioags.com/Assets/Images/Gracias_Pago_CMS.png',
+              ],
             },
           },
           quantity: 1,
