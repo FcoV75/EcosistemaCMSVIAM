@@ -449,6 +449,93 @@ export const confirmEscuelaCheckoutFn = createServerFn({ method: 'POST' })
     return { success: true, slug }
   })
 
+export const listSolicitudesCursosFn = createServerFn({ method: 'GET' }).handler(async () => {
+  const supabase = createSupabaseAdminClient()
+  try {
+    const { data, error } = await supabase
+      .from('ecosistema_entitlements')
+      .select('id, metadata, created_at')
+      .eq('producto', 'escuela_solicitud_curso')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(40)
+    if (error) throw error
+    return {
+      solicitudes: (data || []).map((row) => {
+        const meta = (row.metadata || {}) as {
+          tema?: string
+          para_que?: string
+          nombre_publico?: string
+        }
+        return {
+          id: row.id,
+          tema: meta.tema || 'Solicitud',
+          paraQue: meta.para_que || null,
+          nombrePublico: meta.nombre_publico || null,
+          created_at: row.created_at,
+        }
+      }),
+    }
+  } catch {
+    return { solicitudes: [] as Array<{ id: string; tema: string; paraQue: string | null; nombrePublico: string | null; created_at: string }> }
+  }
+})
+
+export const crearSolicitudCursoFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { tema: string; paraQue?: string; nombrePublico?: string }) => d)
+  .handler(async ({ data }) => {
+    const { user, profile } = await requireActiveUser()
+    const tema = (data.tema || '').trim().slice(0, 160)
+    if (tema.length < 8) throw new Error('Describe el tema con un poco más de detalle (mín. 8 caracteres).')
+    const paraQue = (data.paraQue || '').trim().slice(0, 400) || null
+    const nombrePublico =
+      (data.nombrePublico || '').trim().slice(0, 40) ||
+      (profile?.nombre || '').trim().slice(0, 40) ||
+      null
+
+    const supabase = createSupabaseAdminClient()
+    const ahora = new Date().toISOString()
+    const { error } = await supabase.from('ecosistema_entitlements').insert({
+      user_id: user.id,
+      producto: 'escuela_solicitud_curso',
+      plan: 'solicitud',
+      status: 'active',
+      expires_at: null,
+      starts_at: ahora,
+      metadata: {
+        tema,
+        para_que: paraQue,
+        nombre_publico: nombrePublico,
+        email: user.email || profile?.correo || null,
+        source: 'escuela_muro',
+        at: ahora,
+      },
+      updated_at: ahora,
+    })
+    if (error) throw error
+
+    try {
+      const docentes = await idsDocentesParaAvisos(supabase)
+      for (const docenteId of docentes) {
+        await crearNotificacion(supabase, {
+          usuarioId: docenteId,
+          tipo: 'general',
+          titulo: `Solicitud de curso: ${tema.slice(0, 60)}`,
+          cuerpo: `${nombrePublico || user.email} pidió un curso nuevo en Escuela. Revisa Cursos Educativos.`,
+          enlace: '/admin',
+          metadata: { tema, email: user.email },
+        })
+      }
+    } catch {
+      /* aviso no bloquea */
+    }
+
+    return {
+      ok: true,
+      nota: 'Solicitud publicada en el muro. Gracias por ayudar a llenar la Escuela.',
+    }
+  })
+
 export const listEscuelaAdminFn = createServerFn({ method: 'GET' }).handler(async () => {
   const admin = await requireAdminUser()
   if (!admin) throw new Error('Acceso denegado')
@@ -471,6 +558,14 @@ export const listEscuelaAdminFn = createServerFn({ method: 'GET' }).handler(asyn
     .order('created_at', { ascending: false })
     .limit(80)
 
+  const { data: solicitudes } = await supabase
+    .from('ecosistema_entitlements')
+    .select('id, user_id, plan, metadata, created_at')
+    .eq('producto', 'escuela_solicitud_curso')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
   return {
     titulo: ESCUELA_TITULO,
     lema: ESCUELA_LEMA,
@@ -481,6 +576,7 @@ export const listEscuelaAdminFn = createServerFn({ method: 'GET' }).handler(asyn
     })),
     compras: data ?? [],
     intereses: intereses ?? [],
+    solicitudes: solicitudes ?? [],
     precioRecuperacion: PRECIO_RECUPERACION_MXN,
     slugsEmpaquetados: Object.keys(CURSOS_BUNDLED),
   }

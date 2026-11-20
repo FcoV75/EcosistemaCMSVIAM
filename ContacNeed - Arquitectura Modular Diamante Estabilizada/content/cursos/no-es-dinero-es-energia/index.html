@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>No es dinero, es energía — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="Ocho etapas para dejar de pelear con el dinero como objeto y empezar a gobernar el flujo: valor, escasez heredada, circulación, gratitud y mayordomía práctica." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc; --muted: rgba(245,245,252,.78); --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16); --accent: #f1c96b; --accent-2: #86d6ff; --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: Montserrat, system-ui, sans-serif; color: var(--ink); background: var(--night); line-height: 1.65; }
+    a { color: var(--accent-2); }
+    .nav { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem; background: rgba(5,8,20,.92); border-bottom: 1px solid var(--edge); backdrop-filter: blur(10px); }
+    .nav a, .nav .btn { text-decoration: none; color: var(--ink); border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600; background: rgba(8,11,26,.55); }
+    .btn-gold { background: linear-gradient(135deg, var(--accent), #c9a24d); color: #111; border: 0; font-weight: 700; }
+    .hero { min-height: 72vh; display: grid; align-items: end;
+      background: linear-gradient(180deg, rgba(5,8,20,.28) 0%, rgba(5,8,20,.78) 55%, rgba(5,8,20,.97) 100%),
+        url("/cursos-assets/no-es-dinero-es-energia/01-portada-energia.jpg") center/cover no-repeat; padding: 2rem 1.25rem 2.5rem; }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 { font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso { margin: 1.4rem 0; padding: 1rem 1.1rem; border: 1px solid rgba(241,201,107,.4); background: rgba(241,201,107,.08); border-radius: 14px; }
+    .aviso strong { color: var(--accent); }
+    section.etapa { margin: 2.4rem 0; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px; padding: 1.35rem 1.25rem 1.5rem; }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio { border-left: 3px solid var(--accent); padding: .15rem 0 .15rem 1rem; color: #fff6cc; font-weight: 600; }
+    figure.relato { margin: 1.1rem 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--edge); background: #000; }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja { margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px; background: rgba(0,0,0,.28); border: 1px dashed rgba(255,255,255,.2); }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    .cta-seguir { margin: 2rem 0; padding: 1.2rem 1.25rem; border-radius: 16px; border: 1px solid rgba(134,214,255,.35);
+      background: linear-gradient(135deg, rgba(134,214,255,.12), rgba(241,201,107,.08)); }
+    footer { text-align: center; color: var(--muted); padding: 1.5rem 1rem 2.5rem; font-size: .86rem; }
+</style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="/">CMS</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a><a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>No es dinero, es energía</h1>
+      <p>El billete es un mensajero. La escasez suele ser un hábito. Este curso te enseña a leer el flujo, a circular valor y a administrar con claridad — sin magia, con decisiones.</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <p class="aviso"><strong>Regla de oro.</strong> Nada de este curso sustituye asesoría financiera formal, terapia de deudas ni tratamiento médico. Camina al lado del profesional. Si hay quiebra emocional o financiera activa, la primera parada es clínica y contable.</p>
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">El mensajero, no el dios</a> — el billete deja de ser ídolo y vuelve a ser señal</li>
+        <li><a href="#e2">La escasez que se hereda</a> — nombrar la herencia para no obedecerla a ciegas</li>
+        <li><a href="#e3">Frecuencia de valor</a> — coherencia entre oficio, precio y entrega</li>
+        <li><a href="#e4">Gratitud como contabilidad</a> — contar lo que hay sin negar lo que falta</li>
+        <li><a href="#e5">Circulación: dar y recibir</a> — mover valor sin martirio ni avaricia</li>
+        <li><a href="#e6">El cuerpo también cuenta</a> — el cuerpo entra al presupuesto</li>
+        <li><a href="#e7">Mayordomía, no superstición</a> — orden práctico con propósito</li>
+        <li><a href="#e8">Diseñar el flujo del día</a> — ritmo semanal que sostiene el cambio</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: audiolibro / enseñanza de abundancia energética («No Es Dinero, Es Energía»). Este material no es una transcripción: es pedagogía original de principios para el consultorio y la vida diaria.</p>
+    </section>
+
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · El mensajero, no el dios</h2>
+      <p class="principio">Principio: El dinero informa; no merece culto. Quien lo convierte en ídolo pierde el volante; quien lo trata como mensajero recupera el mapa.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/no-es-dinero-es-energia/01-portada-energia.jpg" alt="Manos con luz en vez de monedas" />
+        <figcaption>El valor se siente antes de contarse.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Hay quien mira el saldo y siente que le habla un juez. Hay quien mira el mismo número y ve solo una señal: cuánto valor ha circulado y cuánto falta por ordenar. La diferencia no está en la tipografía del banco. Está en la historia que le pusiste al papel.</p><p>Cuando el dinero se vuelve dios, cada gasto es culpa y cada ingreso es alivio falso. Cuando el dinero vuelve a ser mensajero, cada movimiento pregunta: ¿esto construye o solo tapa un agujero emocional?</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Elena escondía sobres “por si acaso” y vivía con miedo. Mateo anotaba cada peso y dormía. No tenía más dinero: tenía más claridad.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Porque donde esté vuestro tesoro, allí estará también vuestro corazón.» Mateo 6:21. El corazón elige el tesoro; el curso te pide mirar cuál elegiste.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Abre tu último estado de cuenta. Marca tres cargos: uno que construye, uno que tapa emoción, uno que no entiendes. Una línea por cada uno.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿A qué le estoy pidiendo al dinero que me salve?</p>
+    </section>
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · La escasez que se hereda</h2>
+      <p class="principio">Principio: La escasez no siempre nace en el bolsillo. A veces llega como frase de infancia que aún firma tus decisiones.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/no-es-dinero-es-energia/02-escasez-semilla.jpg" alt="Cartera vacía y semilla de luz" />
+        <figcaption>De la carencia al cultivo.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>“No alcanza”, “no somos de esos”, “mejor no gastes” — frases útiles en una crisis, tóxicas cuando se vuelven identidad. El cuerpo las memoriza. El gasto las obedece.</p><p>Separarte de esa herencia no es insultar a quienes te criaron. Es dejar de vivir con un mapa que ya no describe tu terreno.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Una madre guardaba pan “por si”. El hijo, adulto, guarda oportunidades sin abrirlas. Misma frase, otro siglo.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Porque no nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio.» 2 Timoteo 1:7.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Escribe tres frases de escasez que oíste de niño. Al lado, una frase adulta que las sustituya sin fantasía.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué frase heredada todavía decide por mí?</p>
+    </section>
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · Frecuencia de valor</h2>
+      <p class="principio">Principio: No es magia vibratoria: es coherencia. Lo que crees del valor se nota en cómo trabajas, cobras y te presentas.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/no-es-dinero-es-energia/03-circulacion-dar.jpg" alt="Intercambio cotidiano de valor" />
+        <figcaption>El valor circula en gestos simples.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La gente confunde “pensar positivo” con negar la factura. Aquí hablamos de otra cosa: alinear lo que ofreces con lo que cobras, y lo que cobras con lo que entregas.</p><p>Cuando tu oficio vale y tú te cobras como si no, el flujo se atasca. Cuando cobras de más sin entregar, también. El valor pide honestidad en ambas orillas.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Una artesana subió el precio al nivel de su cuidado. Perdió clientes apresurados. Ganó clientes que volvían.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «El obrero es digno de su salario.» Lucas 10:7.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige un servicio o producto tuyo. Escribe qué valor real entrega y qué precio hoy pide. Ajusta una sola cifra o una sola promesa.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Mi precio y mi entrega se miran a los ojos?</p>
+    </section>
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · Gratitud como contabilidad</h2>
+      <p class="principio">Principio: La gratitud no niega la falta. Nombra lo que ya circula para que el miedo no sea el único contador.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/no-es-dinero-es-energia/04-mayordomia-luz.jpg" alt="Libro abierto y planta" />
+        <figcaption>Contar es cuidar.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Sin gratitud, solo ves agujeros. Con gratitud ciega, niegas facturas. La gratitud útil es contable: qué entró, qué salió, qué se cuidó.</p><p>Tres líneas diarias bastan para cambiar el sesgo del cerebro hacia la amenaza.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Un padre anotaba “hoy alcanzamos comida y luz”. Sus hijos aprendieron a ver provisión antes de panicarse.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «En todo dad gracias.» 1 Tesalonicenses 5:18. No dice “por todo fingiendo”. Dice en todo, con ojos abiertos.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Antes de dormir: tres provisiones concretas de hoy (no abstractas). Mañana, una acción que las multiplique.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué provisión concreta estoy dejando de contar?</p>
+    </section>
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Circulación: dar y recibir</h2>
+      <p class="principio">Principio: El flujo enferma cuando se estanca. Dar sin vaciarte y recibir sin culpa mantienen la energía en movimiento.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/no-es-dinero-es-energia/03-circulacion-dar.jpg" alt="Manos que entregan y reciben" />
+        <figcaption>La circulación sana tiene dos direcciones.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Hay quien solo da para sentirse bueno y se quiebra. Hay quien solo recibe y se endurece. La salud del flujo pide ambos movimientos con límites.</p><p>Circular no es derroche. Es mover valor donde produce vida: familia, oficio, comunidad, ahorro con propósito.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Una vecina prestaba herramientas y pedía ayuda sin vergüenza. Su calle se volvió red.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Dad, y se os dará.» Lucas 6:38. El versículo no autoriza manipulación: describe una economía de reciprocidad.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Esta semana: un dar concreto (tiempo, objeto, conocimiento) y un recibir concreto (aceptar ayuda sin disculparte).</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Dónde estoy estancando el flujo: al dar de más o al recibir de menos?</p>
+    </section>
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · El cuerpo también cuenta</h2>
+      <p class="principio">Principio: La ansiedad financiera se sienta en el pecho y en el sueño. Cuidar el cuerpo es parte de administrar el flujo.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/no-es-dinero-es-energia/02-escasez-semilla.jpg" alt="Semilla de luz sobre la mesa" />
+        <figcaption>Primero calma, luego cifra.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>No hay “mente rica” en un cuerpo agotado que compra para calmarse. El gasto emocional es real. Por eso este curso toca respiración, sueño y pausa antes del swipe.</p><p>Si el cuerpo grita, no firmes. Primero tres respiraciones. Luego la cifra.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Luis compraba de madrugada cuando no dormía. Cambió la regla: ninguna compra después de las 10. Bajó la deuda y subió el descanso.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «¿No sabéis que sois templo de Dios?» 1 Corintios 3:16. El templo también se cuida con sueño y límites.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige una regla corporal-financiera (hora límite, lista de espera de 24h, caminata antes de comprar). Cúmplela siete días.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué compra mía es en realidad un grito del cuerpo?</p>
+    </section>
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · Mayordomía, no superstición</h2>
+      <p class="principio">Principio: Administrar es un acto espiritual práctico: ordenar, priorizar, rendir cuentas. No es atraer billetes con frases.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/no-es-dinero-es-energia/04-mayordomia-luz.jpg" alt="Libro y luz de mañana" />
+        <figcaption>La fidelidad empieza en lo pequeño.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La mayordomía mira lo que ya está bajo tu mano: tiempo, talento, ingreso, casa. Pregunta para qué se usa. Luego decide.</p><p>Sin números, la espiritualidad del dinero se vuelve humo. Con números y sin propósito, se vuelve tiranía. Juntos, sirven.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Una familia puso tres frascos: vivir, cuidar, sembrar. Discutían menos porque veían el propósito.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «El que es fiel en lo muy poco, también en lo más es fiel.» Lucas 16:10.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Haz un mapa de una página: ingresos, gastos fijos, variables, y un “sembrar” (ahorro u ofrenda) aunque sea simbólico.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué está hoy bajo mi mano y aún no administro?</p>
+    </section>
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Diseñar el flujo del día</h2>
+      <p class="principio">Principio: La energía del valor se construye con microdecisiones diarias, no con un golpe de suerte.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/no-es-dinero-es-energia/01-portada-energia.jpg" alt="Luz en las manos" />
+        <figcaption>El flujo se diseña.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Un día diseñado tiene hora de revisar números, hora de crear valor, hora de circular y hora de parar. Sin diseño, el impulso gasta.</p><p>Termina el curso eligiendo un ritmo sostenible. La Escuela te espera para el siguiente endurecimiento o la lectura de lo que decide sin ti.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Rosa puso 12 minutos cada domingo para mirar el flujo. En tres meses dejó de vivir en susto.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Enséñanos de tal modo a contar nuestros días, que traigamos al corazón sabiduría.» Salmo 90:12.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Agenda esta semana un bloque semanal de 15 minutos llamado “flujo”. No lo muevas. Anota una mejora mínima.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué microdecisión diaria construirá mi flujo este mes?</p>
+    </section>
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno · ocho ejercicios</h2>
+      <ol>
+        <li><strong>El mensajero, no el dios:</strong> Abre tu último estado de cuenta. Marca tres cargos: uno que construye, uno que tapa emoción, uno que no entiendes. Una línea por cada uno.</li>        <li><strong>La escasez que se hereda:</strong> Escribe tres frases de escasez que oíste de niño. Al lado, una frase adulta que las sustituya sin fantasía.</li>        <li><strong>Frecuencia de valor:</strong> Elige un servicio o producto tuyo. Escribe qué valor real entrega y qué precio hoy pide. Ajusta una sola cifra o una sola promesa.</li>        <li><strong>Gratitud como contabilidad:</strong> Antes de dormir: tres provisiones concretas de hoy (no abstractas). Mañana, una acción que las multiplique.</li>        <li><strong>Circulación: dar y recibir:</strong> Esta semana: un dar concreto (tiempo, objeto, conocimiento) y un recibir concreto (aceptar ayuda sin disculparte).</li>        <li><strong>El cuerpo también cuenta:</strong> Elige una regla corporal-financiera (hora límite, lista de espera de 24h, caminata antes de comprar). Cúmplela siete días.</li>        <li><strong>Mayordomía, no superstición:</strong> Haz un mapa de una página: ingresos, gastos fijos, variables, y un “sembrar” (ahorro u ofrenda) aunque sea simbólico.</li>        <li><strong>Diseñar el flujo del día:</strong> Agenda esta semana un bloque semanal de 15 minutos llamado “flujo”. No lo muevas. Anota una mejora mínima.</li>
+      </ol>
+    </section>
+    <div class="cta-seguir">
+      <h2 style="margin-top:0">Sigue estudiando. Sigue separándote.</h2>
+      <p>No te quedes en la idea. Elige un flujo concreto esta semana: una deuda vista, un gasto cortado, un acto de circulación limpia. Luego vuelve a la Escuela: el siguiente curso te espera para endurecer la mente o leer lo que decide sin ti.</p>
+      <p class="meta">Cuando termines este itinerario, vuelve a la Escuela ContacNeed y elige el siguiente curso. La educación continua no es un adorno: es el suelo donde crece tu salud física, mental y de oficio.</p>
+    </div>
+  </main>
+  <footer>CMS VIAM · Escuela de principios vitalicios · ContacNeed</footer>
+</body>
+</html>

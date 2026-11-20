@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { BookOpen, CalendarClock, CheckCircle2, Lock } from 'lucide-react'
 import { AccionesEscuela } from '../components/AccionesEscuela'
 import { LugarSesion } from '../components/LugarSesion'
+import { SolicitudesCursoPanel } from '../components/SolicitudesCursoPanel'
 import { AppShell } from '../components/AppShell'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { etiquetaCuota, PRECIO_RECUPERACION_MXN } from '../lib/cursos-educativos'
@@ -46,6 +47,8 @@ function EscuelaPage() {
             </p>
           </div>
         </header>
+
+        <SolicitudesCursoPanel loggedIn={data.loggedIn} />
 
         {misCursos.length > 0 && (
           <section className="rounded-2xl border border-emerald-400/35 bg-emerald-950/25 p-5">

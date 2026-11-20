@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>El salto que despierta — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="Ocho etapas para habitar el otro lado del cambio: umbral, identidad nueva, soltar la versión pequeña, responsabilidad de nivel y práctica diaria del maestro callado." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc; --muted: rgba(245,245,252,.78); --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16); --accent: #f1c96b; --accent-2: #86d6ff; --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: Montserrat, system-ui, sans-serif; color: var(--ink); background: var(--night); line-height: 1.65; }
+    a { color: var(--accent-2); }
+    .nav { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem; background: rgba(5,8,20,.92); border-bottom: 1px solid var(--edge); backdrop-filter: blur(10px); }
+    .nav a, .nav .btn { text-decoration: none; color: var(--ink); border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600; background: rgba(8,11,26,.55); }
+    .btn-gold { background: linear-gradient(135deg, var(--accent), #c9a24d); color: #111; border: 0; font-weight: 700; }
+    .hero { min-height: 72vh; display: grid; align-items: end;
+      background: linear-gradient(180deg, rgba(5,8,20,.28) 0%, rgba(5,8,20,.78) 55%, rgba(5,8,20,.97) 100%),
+        url("/cursos-assets/el-salto-que-despierta/01-portada-salto.jpg") center/cover no-repeat; padding: 2rem 1.25rem 2.5rem; }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 { font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso { margin: 1.4rem 0; padding: 1rem 1.1rem; border: 1px solid rgba(241,201,107,.4); background: rgba(241,201,107,.08); border-radius: 14px; }
+    .aviso strong { color: var(--accent); }
+    section.etapa { margin: 2.4rem 0; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px; padding: 1.35rem 1.25rem 1.5rem; }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio { border-left: 3px solid var(--accent); padding: .15rem 0 .15rem 1rem; color: #fff6cc; font-weight: 600; }
+    figure.relato { margin: 1.1rem 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--edge); background: #000; }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja { margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px; background: rgba(0,0,0,.28); border: 1px dashed rgba(255,255,255,.2); }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    .cta-seguir { margin: 2rem 0; padding: 1.2rem 1.25rem; border-radius: 16px; border: 1px solid rgba(134,214,255,.35);
+      background: linear-gradient(135deg, rgba(134,214,255,.12), rgba(241,201,107,.08)); }
+    footer { text-align: center; color: var(--muted); padding: 1.5rem 1rem 2.5rem; font-size: .86rem; }
+</style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="/">CMS</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a><a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>El salto que despierta</h1>
+      <p>Hay un momento en que ya no cabe la vida anterior. Este curso no te empuja al vacío: te enseña a cruzar el umbral, vestir el nuevo nivel y quedarte ahí sin volver al disfraz chico.</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <p class="aviso"><strong>Regla de oro.</strong> Nada de este curso sustituye psicoterapia ni tratamiento. Si el “salto” esconde crisis, manía o fuga de responsabilidades, la primera parada es clínica. Aquí se trabaja identidad y práctica, no escapismo.</p>
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">El umbral que ya tocaste</a> — nombrar el umbral sin teatro</li>
+        <li><a href="#e2">Identidad del otro lado</a> — identidad con verbos practicables</li>
+        <li><a href="#e3">Soltar la versión pequeña</a> — dejar el disfraz sin drama</li>
+        <li><a href="#e4">Habitar el nuevo nivel</a> — el nivel se habita en lo invisible</li>
+        <li><a href="#e5">Responsabilidad del maestro</a> — el nivel trae cargo, no solo brillo</li>
+        <li><a href="#e6">Silencio después del salto</a> — integrar antes de exhibir</li>
+        <li><a href="#e7">Puente: transformación continua</a> — transformación como ritmo</li>
+        <li><a href="#e8">Práctica del nuevo día</a> — un día completo como evidencia</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: enseñanza de salto / nivel maestro («Desbloqueaste Tu Nivel Maestro… Salto Cuántico»). Este material no es una transcripción: es pedagogía original de principios para el consultorio y la vida diaria.</p>
+    </section>
+
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · El umbral que ya tocaste</h2>
+      <p class="principio">Principio: El salto no empieza cuando lo publicas. Empieza cuando la ropa vieja ya aprieta y lo sabes.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-salto-que-despierta/02-umbral-cruzado.jpg" alt="Pie cruzando un umbral de luz" />
+        <figcaption>El salto es un paso consciente.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Muchos esperan un rayo. El umbral suele ser más humilde: una conversación que ya no puedes fingir, un trabajo que ya no cabe, una oración que pide otra vida.</p><p>Reconocer el umbral es el primer acto de honestidad. Sin eso, todo “nuevo yo” es teatro.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Diego seguía en la misma oficina con un traje mental de hace diez años. El día que dijo “esto ya no soy” empezó el cruce, no el día del anuncio.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «He aquí, yo hago algo nuevo; ahora acontecerá.» Isaías 43:19.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Escribe en una línea el umbral que ya sientes. Sin adorno. Sin público.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué ropa vieja todavía finjo que me queda?</p>
+    </section>
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · Identidad del otro lado</h2>
+      <p class="principio">Principio: Cruzar pide una identidad nueva, no solo un escenario nuevo.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-salto-que-despierta/01-portada-salto.jpg" alt="Figura ante un horizonte de luz" />
+        <figcaption>El nivel se mira de frente.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Cambiar de ciudad sin cambiar de historia interna es mudanza, no salto. El nivel maestro se nota en cómo te hablas, qué aceptas y qué rechazas.</p><p>Define quién eres al otro lado con verbos: cuido, construyo, digo no, termino lo que empiezo.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Ana se mudó y llevó el mismo miedo. Solo cuando cambió la frase “soy la que abandona” por “soy la que termina”, el salto se volvió real.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «De modo que si alguno está en Cristo, nueva criatura es.» 2 Corintios 5:17.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Escribe cinco verbos del yo del otro lado. Táchalos si no estás dispuesto a practicarlos esta semana.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué verbo define mi nuevo nivel?</p>
+    </section>
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · Soltar la versión pequeña</h2>
+      <p class="principio">Principio: Para subir hay que dejar el disfraz que te hacía caerle bien a todo el mundo.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-salto-que-despierta/03-soltar-version.jpg" alt="Abrigo viejo junto a ropa nueva" />
+        <figcaption>Soltar es ordenar.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La versión pequeña busca aplauso fácil. La versión nueva tolera malentendidos. Eso duele. También libera.</p><p>Soltar no es odiar quién fuiste. Es agradecer y no volver a firmar con esa pluma.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> El abrigo viejo seguía en la silla “por si frío”. Nunca hacía frío: hacía miedo. El día que lo donó, respiró distinto.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Dejando lo que queda atrás… prosigo a la meta.» Filipenses 3:13-14.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige un hábito, frase o relación de la versión pequeña. Declara un límite o un cierre esta semana.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué versión pequeña todavía me pide volver?</p>
+    </section>
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · Habitar el nuevo nivel</h2>
+      <p class="principio">Principio: El salto se prueba en la mañana siguiente: horarios, tono, prioridades.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-salto-que-despierta/04-habitar-nivel.jpg" alt="Persona en azotea al anochecer" />
+        <figcaption>Habitar es quedarse.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Habitar es aburrido y santo. Es responder correos como quien ya cruzó. Es dormir a la hora del nivel nuevo. Es no mendigar permiso.</p><p>Si solo “saltas” en redes y vives igual en la cocina, no saltaste.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Un maestro nuevo preparaba la clase con la misma seriedad que el concierto. El nivel se notaba en lo invisible.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Andad como es digno de la vocación.» Efesios 4:1.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige tres microhábitos del nivel nuevo (sueño, escritorio, tono). Cumplelos tres mañanas seguidas.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Mi mañana confirma el salto o lo desmiente?</p>
+    </section>
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Responsabilidad del maestro</h2>
+      <p class="principio">Principio: Subir de nivel aumenta el peso: cuidas más, decides más, contagias más.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-salto-que-despierta/04-habitar-nivel.jpg" alt="Mirada serena sobre la ciudad" />
+        <figcaption>El maestro cuida el clima.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>El nivel maestro no es corona. Es cargo. Tus palabras pesan más. Tus silencios también.</p><p>Si pediste el salto, acepta el peso o baja con honestidad. No hay nivel sin cuenta.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Cuando Lucía fue promovida, dejó de chismear “por desahogo”. Entendió que su boca ya movía clima.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «A quien se dio mucho, mucho se le demandará.» Lucas 12:48.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Lista tres responsabilidades nuevas de tu nivel (aunque sea informal). Asume una acción concreta por cada una.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué peso del nuevo nivel estoy evitando?</p>
+    </section>
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · Silencio después del salto</h2>
+      <p class="principio">Principio: Después del ruido del cambio viene un silencio útil: integrar, no exhibir.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-salto-que-despierta/02-umbral-cruzado.jpg" alt="Umbral en silencio" />
+        <figcaption>El silencio también es cruce.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Muchos pierden el salto contándolo demasiado pronto. El silencio no es secreto tóxico: es incubación.</p><p>Integra. Luego habla. El orden importa.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Un atleta no celebró en la calle la noche del récord. Durmió. Al día siguiente entrenó como siempre.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Jehová peleará por vosotros, y vosotros estaréis tranquilos.» Éxodo 14:14.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> 24 horas sin anunciar tu salto en redes. Usa ese tiempo en una práctica concreta del nivel.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Estoy integrando o solo anunciando?</p>
+    </section>
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · Puente: transformación continua</h2>
+      <p class="principio">Principio: El salto no es un evento único. Es una serie de fidelidades que parecen pequeñas.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-salto-que-despierta/03-soltar-version.jpg" alt="Dejar lo viejo con orden" />
+        <figcaption>La renovación se repite.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La Escritura habla de renovación. El curso te pide no romantizar un solo instante. El maestro se hace en repetición.</p><p>Vuelve al umbral cada vez que la ropa vieja intente volver.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Cada lunes, Marcos revisaba: “¿sigo en el nivel o volví al disfraz?”. Esa pregunta lo sostuvo años.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Renovaos en el espíritu de vuestra mente.» Efesios 4:23.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Agenda un “chequeo de nivel” semanal de diez minutos. Tres preguntas: ¿qué sostuve?, ¿qué solté?, ¿qué fingí?</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué fidelidad pequeña sostiene mi salto este mes?</p>
+    </section>
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Práctica del nuevo día</h2>
+      <p class="principio">Principio: Cierra el curso con un día completo vivido desde el otro lado.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-salto-que-despierta/01-portada-salto.jpg" alt="Horizonte después del umbral" />
+        <figcaption>El salto se prueba en un día.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>No hace falta un retiro en la montaña. Hace falta un martes ordinario habitado como maestro callado.</p><p>Luego vuelve a la Escuela. El salto pide mente endurecida y lectura de lo que decide sin ti.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Sofía vivió un solo día sin quejarse ni mendigar validación. Descubrió que el nivel ya estaba disponible.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Todo lo puedo en Cristo que me fortalece.» Filipenses 4:13. Fortaleza para el día, no para el ego.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige una fecha. Vive 24 horas con los verbos del nivel nuevo. Escribe al final qué fue difícil y qué fue verdad.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué día concreto será mi prueba de nivel?</p>
+    </section>
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno · ocho ejercicios</h2>
+      <ol>
+        <li><strong>El umbral que ya tocaste:</strong> Escribe en una línea el umbral que ya sientes. Sin adorno. Sin público.</li>        <li><strong>Identidad del otro lado:</strong> Escribe cinco verbos del yo del otro lado. Táchalos si no estás dispuesto a practicarlos esta semana.</li>        <li><strong>Soltar la versión pequeña:</strong> Elige un hábito, frase o relación de la versión pequeña. Declara un límite o un cierre esta semana.</li>        <li><strong>Habitar el nuevo nivel:</strong> Elige tres microhábitos del nivel nuevo (sueño, escritorio, tono). Cumplelos tres mañanas seguidas.</li>        <li><strong>Responsabilidad del maestro:</strong> Lista tres responsabilidades nuevas de tu nivel (aunque sea informal). Asume una acción concreta por cada una.</li>        <li><strong>Silencio después del salto:</strong> 24 horas sin anunciar tu salto en redes. Usa ese tiempo en una práctica concreta del nivel.</li>        <li><strong>Puente: transformación continua:</strong> Agenda un “chequeo de nivel” semanal de diez minutos. Tres preguntas: ¿qué sostuve?, ¿qué solté?, ¿qué fingí?</li>        <li><strong>Práctica del nuevo día:</strong> Elige una fecha. Vive 24 horas con los verbos del nivel nuevo. Escribe al final qué fue difícil y qué fue verdad.</li>
+      </ol>
+    </section>
+    <div class="cta-seguir">
+      <h2 style="margin-top:0">Sigue estudiando. Sigue separándote.</h2>
+      <p>No bajes de nivel por nostalgia del disfraz viejo. Practica un día completo como quien ya cruzó. Luego vuelve a la Escuela: endurece la mente o lee lo que decide sin ti.</p>
+      <p class="meta">Cuando termines este itinerario, vuelve a la Escuela ContacNeed y elige el siguiente curso. La educación continua no es un adorno: es el suelo donde crece tu salud física, mental y de oficio.</p>
+    </div>
+  </main>
+  <footer>CMS VIAM · Escuela de principios vitalicios · ContacNeed</footer>
+</body>
+</html>
