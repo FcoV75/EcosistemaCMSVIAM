@@ -71,7 +71,7 @@ export async function sendPrivilegeEmailViaResend(input: PrivilegeEmailInput) {
           </a>
         </p>
         <p style="color:#555;font-size:13px;margin-top:20px">
-          Guarda este correo. El código te sirve para ContacNeed PRO, Sincronía Nexus, Video Diamante y el Curso de Promotores según lo que te hayan otorgado.
+          Guarda este correo. El código te sirve para ContacNeed PRO, Círculo CMS-Plus, Sincronía Nexus, Video Diamante y el Curso de Promotores según lo que te hayan otorgado.
         </p>
       </div>
     `,

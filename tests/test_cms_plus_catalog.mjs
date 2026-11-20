@@ -15,6 +15,9 @@ const webhook = fs.readFileSync(
 )
 assert.match(webhook, /producto === 'cms_plus'/)
 assert.match(webhook, /activateCmsPlusFromCheckout/)
+assert.match(webhook, /ensureLegacyCmsCode/)
+assert.match(webhook, /sendPrivilegeEmail/)
+assert.match(webhook, /renewFromInvoice/)
 assert.equal(webhook.includes('payment_method_types'), false)
 
 const stripeFn = fs.readFileSync(

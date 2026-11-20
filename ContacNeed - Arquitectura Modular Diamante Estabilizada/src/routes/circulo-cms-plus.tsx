@@ -23,6 +23,7 @@ import {
   getCmsPlusCatalogoFn,
   getMiCmsPlusFn,
   invitarCirculoCmsPlusFn,
+  usarCreditoCmsPlusFn,
 } from '../server/cms-plus.functions'
 import { confirmStripeSessionFn, createCmsPlusCheckoutFn } from '../server/stripe.functions'
 
@@ -95,8 +96,12 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
     const sessionId = search.session_id
     if (search.payment_success === 'true' && sessionId) {
       confirmStripeSessionFn({ data: { sessionId } })
-        .then(() => {
-          setMsg('¡Bienvenido al Círculo CMS-Plus! Tu membresía ya está activa.')
+        .then((result) => {
+          const codeHint = result?.legacyCode ? ` Código ${result.legacyCode}.` : ''
+          const mailHint = result?.emailed
+            ? ' Te enviamos el código CMS a tu correo.'
+            : ' Revisa tu correo; si no llega, pídelo al administrador.'
+          setMsg(`¡Bienvenido al Círculo CMS-Plus! Tu membresía ya está activa.${codeHint}${mailHint}`)
           queryClient.invalidateQueries({ queryKey: ['mi-cms-plus'] })
         })
         .catch((err) => {
@@ -150,6 +155,48 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
       setMsg(error instanceof Error ? error.message : 'No se pudo crear la invitación')
     },
   })
+
+  const usarCreditoMutation = useMutation({
+    mutationFn: (nota: string) => usarCreditoCmsPlusFn({ data: { cantidad: 1, nota } }),
+    onSuccess: () => {
+      setMsg('Crédito de salud descontado. Que la consulta te fortalezca.')
+      queryClient.invalidateQueries({ queryKey: ['mi-cms-plus'] })
+      queryClient.invalidateQueries({ queryKey: ['mi-cms-plus-badge'] })
+    },
+    onError: (error) => {
+      setMsg(error instanceof Error ? error.message : 'No se pudo descontar el crédito')
+    },
+  })
+
+  const registrarConsulta = (para: 'titular' | 'beneficiario') => {
+    const disponibles = miQuery.data?.creditos?.disponibles ?? 0
+    if (disponibles < 1) {
+      setMsg('No te quedan créditos este mes. Renueva o sube de nivel para seguir consultando.')
+      return
+    }
+    const ok = window.confirm(
+      para === 'beneficiario'
+        ? '¿Registrar 1 crédito por consulta de un beneficiario de tu círculo?'
+        : '¿Registrar 1 crédito por tu consulta de salud?',
+    )
+    if (!ok) return
+    usarCreditoMutation.mutate(
+      para === 'beneficiario' ? 'Consulta beneficiario círculo' : 'Consulta titular CMS-Plus',
+    )
+  }
+
+  const abrirCitasConCredito = () => {
+    const disponibles = miQuery.data?.creditos?.disponibles ?? 0
+    if (disponibles > 0) {
+      const ok = window.confirm(
+        `Tienes ${disponibles} crédito(s) disponible(s). ¿Descontar 1 al abrir la agenda de citas?`,
+      )
+      if (ok) {
+        usarCreditoMutation.mutate('Consulta vía Calendly CMS')
+      }
+    }
+    window.open(CALENDLY_CMS, '_blank', 'noopener,noreferrer')
+  }
 
   const membership = miQuery.data?.membership
   const niveles = catalogoQuery.data?.niveles || []
@@ -387,6 +434,24 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
                 Periodo {miQuery.data?.creditos?.periodo || '—'}. Los créditos se renuevan cada mes y
                 puedes acumular hasta 2 periodos.
               </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => registrarConsulta('titular')}
+                  disabled={usarCreditoMutation.isPending || (miQuery.data?.creditos?.disponibles ?? 0) < 1}
+                  className="rounded-xl border border-emerald-300/40 bg-emerald-900/40 px-3 py-2 text-xs font-semibold text-emerald-50 disabled:opacity-50"
+                >
+                  {usarCreditoMutation.isPending ? 'Descontando…' : 'Usar 1 crédito (yo)'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => registrarConsulta('beneficiario')}
+                  disabled={usarCreditoMutation.isPending || (miQuery.data?.creditos?.disponibles ?? 0) < 1}
+                  className="rounded-xl border border-emerald-300/30 bg-emerald-950/50 px-3 py-2 text-xs font-semibold text-emerald-100 disabled:opacity-50"
+                >
+                  Usar 1 crédito (beneficiario)
+                </button>
+              </div>
             </div>
 
             <div className="rounded-2xl border border-cyan-400/25 bg-cyan-950/20 p-5 lg:col-span-1">
@@ -447,16 +512,18 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
                 Programa tus consultas o las de tus beneficiarios con la misma app de citas de la
                 página principal del CMS.
               </p>
-              <a
-                href={CALENDLY_CMS}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={abrirCitasConCredito}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950"
               >
                 <Calendar size={16} />
                 Abrir app de citas
-              </a>
-              <p className="mt-2 break-all text-xs text-slate-400">{CALENDLY_CMS}</p>
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Al abrir puedes descontar 1 crédito. También puedes registrar usos manuales arriba.
+              </p>
+              <p className="mt-1 break-all text-xs text-slate-500">{CALENDLY_CMS}</p>
             </div>
           </section>
         </>

@@ -1,0 +1,52 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+
+const entitlements = fs.readFileSync(
+  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/lib/cms-plus-entitlements.ts',
+  'utf8',
+)
+assert.match(entitlements, /notifyCmsPlusActivation/)
+assert.match(entitlements, /notifyPrivilegeGrant/)
+assert.match(entitlements, /codigo_notificado_at/)
+
+const cmsFns = fs.readFileSync(
+  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/server/cms-plus.functions.ts',
+  'utf8',
+)
+assert.match(cmsFns, /Correo enviado con el código CMS/)
+assert.match(cmsFns, /maybeSendRenewalReminder/)
+assert.match(cmsFns, /usarCreditoCmsPlusFn/)
+
+const stripeFns = fs.readFileSync(
+  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/server/stripe.functions.ts',
+  'utf8',
+)
+assert.match(stripeFns, /subscription_data: \{ metadata \}/)
+assert.match(stripeFns, /notifyPrivilegeGrant/)
+assert.match(stripeFns, /legacyCode: result\.legacyCode/)
+
+const webhook = fs.readFileSync(
+  'ContacNeed - Arquitectura Modular Diamante Estabilizada/netlify/functions/stripe-webhook.mjs',
+  'utf8',
+)
+assert.match(webhook, /legacyCode/)
+assert.match(webhook, /sendPrivilegeEmail/)
+assert.match(webhook, /renewFromInvoice/)
+assert.match(webhook, /subscription_create/)
+
+const ui = fs.readFileSync(
+  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/routes/circulo-cms-plus.tsx',
+  'utf8',
+)
+assert.match(ui, /usarCreditoCmsPlusFn/)
+assert.match(ui, /Usar 1 crédito \(beneficiario\)/)
+assert.match(ui, /abrirCitasConCredito/)
+
+const shell = fs.readFileSync(
+  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/components/AppShell.tsx',
+  'utf8',
+)
+assert.match(shell, /cmsPlusRenovacion/)
+assert.match(shell, /Renueva tu Círculo CMS-Plus/)
+
+console.log('test_cms_plus_codigo_email: ok')

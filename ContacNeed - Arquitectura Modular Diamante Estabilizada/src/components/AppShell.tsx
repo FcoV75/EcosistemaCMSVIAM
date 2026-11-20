@@ -54,7 +54,15 @@ export function AppShell({
     cmsPlusQuery.data?.membership?.active && cmsPlusQuery.data.membership.nivel
       ? cmsPlusQuery.data.membership.nivel
       : null
+  const cmsPlusRenovacion = (() => {
+    const m = cmsPlusQuery.data?.membership
+    if (!m?.active || m.permanent || !m.expiresAt) return null
+    const dias = Math.ceil((new Date(m.expiresAt).getTime() - Date.now()) / 86400000)
+    if (dias > 7) return null
+    return { dias, fecha: new Date(m.expiresAt).toLocaleDateString('es-MX') }
+  })()
   const [signingOut, setSigningOut] = useState(false)
+  const [renewBannerDismissed, setRenewBannerDismissed] = useState(false)
   const [showProAdModal, setShowProAdModal] = useState(false)
   const [showMemberOnboarding, setShowMemberOnboarding] = useState(false)
   const [cedulaBannerDismissed, setCedulaBannerDismissed] = useState(false)
@@ -249,6 +257,33 @@ export function AppShell({
                     type="button"
                     onClick={() => setCedulaBannerDismissed(true)}
                     className="text-xs font-semibold text-purple-200/70 hover:text-white"
+                  >
+                    Ahora no
+                  </button>
+                </div>
+              </div>
+            )}
+            {user && cmsPlusRenovacion && !renewBannerDismissed && (
+              <div className="mb-4 rounded-xl border border-amber-400/40 bg-amber-950/45 px-4 py-3 text-sm text-amber-50">
+                <p className="font-semibold">
+                  {cmsPlusRenovacion.dias <= 0
+                    ? 'Tu Círculo CMS-Plus venció o vence hoy'
+                    : `Renueva tu Círculo CMS-Plus · ${cmsPlusRenovacion.dias} día${cmsPlusRenovacion.dias === 1 ? '' : 's'}`}
+                </p>
+                <p className="mt-1 text-amber-100/85">
+                  Fecha: {cmsPlusRenovacion.fecha}. Renueva para no interrumpir créditos, círculo ni Plus.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  <a
+                    href="/circulo-cms-plus"
+                    className="text-xs font-bold text-amber-200 underline hover:text-white"
+                  >
+                    Renovar / subir de nivel
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setRenewBannerDismissed(true)}
+                    className="text-xs font-semibold text-amber-200/70 hover:text-white"
                   >
                     Ahora no
                   </button>

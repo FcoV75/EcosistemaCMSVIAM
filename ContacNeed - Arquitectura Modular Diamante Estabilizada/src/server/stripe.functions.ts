@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { getServerUser } from '../lib/auth'
 import { upsertContacNeedPro } from '../lib/ecosistema-entitlements'
 import { activateCmsPlus } from '../lib/cms-plus-entitlements'
+import { notifyPrivilegeGrant } from '../lib/notify-privileges'
 import {
   getCmsPlusTier,
   isCmsPlusNivel,
@@ -135,6 +136,7 @@ export const createCmsPlusCheckoutFn = createServerFn({ method: 'POST' })
             success_url: `${siteUrl}/circulo-cms-plus?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${siteUrl}/circulo-cms-plus?payment_cancelled=true`,
             metadata,
+            subscription_data: { metadata },
           })
         })()
       : await stripe.checkout.sessions.create({
@@ -159,6 +161,7 @@ export const createCmsPlusCheckoutFn = createServerFn({ method: 'POST' })
           success_url: `${siteUrl}/circulo-cms-plus?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${siteUrl}/circulo-cms-plus?payment_cancelled=true`,
           metadata,
+          subscription_data: { metadata },
         })
 
     if (!session.url) throw new Error('No se pudo crear la sesión de pago CMS-Plus')
@@ -205,11 +208,66 @@ export const confirmStripeSessionFn = createServerFn({ method: 'POST' })
         producto: 'cms_plus',
         nivel: result.nivel,
         es_pro: true,
+        legacyCode: result.legacyCode,
+        emailed: Boolean(result.emailed),
       }
     }
 
     const planType = session.metadata?.plan === 'annual' ? 'annual' : 'monthly'
-    await upsertContacNeedPro(supabase, user.id, planType, session.id)
+    const out = await upsertContacNeedPro(supabase, user.id, planType, session.id, {
+      email: user.email,
+      notifySource: 'contacneed_confirm',
+    })
+    let emailed = false
+    let emailWarning: string | undefined
+    if (user.email) {
+      const { data: proRow } = await supabase
+        .from('ecosistema_entitlements')
+        .select('id, metadata')
+        .eq('user_id', user.id)
+        .eq('producto', 'contacneed_pro')
+        .eq('status', 'active')
+        .maybeSingle()
+      const meta = (proRow?.metadata || {}) as Record<string, unknown>
+      const already =
+        Boolean(meta.codigo_notificado_at) &&
+        String(meta.codigo_cms || '').toUpperCase() === String(out.legacyCode).toUpperCase()
+      if (!already) {
+        const mail = await notifyPrivilegeGrant({
+          email: user.email,
+          nombre: null,
+          codigoCms: out.legacyCode,
+          privilegios: [
+            planType === 'annual' ? 'ContacNeed PRO — Anual' : 'ContacNeed PRO — Mensual',
+          ],
+        })
+        emailed = mail.emailed
+        if (!mail.emailed) emailWarning = mail.warning
+        if (mail.emailed && proRow?.id) {
+          await supabase
+            .from('ecosistema_entitlements')
+            .update({
+              metadata: {
+                ...meta,
+                codigo_cms: out.legacyCode,
+                email: user.email,
+                codigo_notificado_at: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', proRow.id)
+        }
+      } else {
+        emailed = true
+      }
+    }
 
-    return { success: true, es_pro: true, producto: 'contacneed_pro' }
+    return {
+      success: true,
+      es_pro: true,
+      producto: 'contacneed_pro',
+      legacyCode: out.legacyCode,
+      emailed,
+      emailWarning,
+    }
   })

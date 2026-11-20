@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ensureLegacyCmsCode } from './cms-legacy-code'
 import { upsertContacNeedPro } from './ecosistema-entitlements'
+import { notifyPrivilegeGrant } from './notify-privileges'
 import {
   CMS_PLUS_NIVELES,
   PRODUCTO_CMS_PLUS,
@@ -290,7 +291,106 @@ export async function activateCmsPlus(
     console.warn('cms-plus créditos (¿migración 016 aplicada?):', err)
   }
 
-  return { nivel, billing, expiresAt, legacyCode, tier }
+  const notify = await notifyCmsPlusActivation(supabase, {
+    userId,
+    email: email || null,
+    nivel,
+    billing,
+    legacyCode,
+    permanent,
+  })
+
+  return {
+    nivel,
+    billing,
+    expiresAt,
+    legacyCode,
+    tier,
+    emailed: notify.emailed,
+    emailWarning: 'warning' in notify ? notify.warning : undefined,
+  }
+}
+
+/** Envía el correo con CMS-xxxx una sola vez por código (compra Stripe o alta admin). */
+export async function notifyCmsPlusActivation(
+  supabase: SupabaseClient,
+  {
+    userId,
+    email,
+    nivel,
+    billing,
+    legacyCode,
+    permanent = false,
+    nombre,
+  }: {
+    userId: string
+    email?: string | null
+    nivel: CmsPlusNivel
+    billing: CmsPlusBilling
+    legacyCode: string
+    permanent?: boolean
+    nombre?: string | null
+  },
+) {
+  const mail = String(email || '')
+    .trim()
+    .toLowerCase()
+  if (!mail.includes('@')) {
+    return {
+      emailed: false as const,
+      warning: 'Privilegio guardado, pero no hay correo para enviar el código CMS.',
+    }
+  }
+
+  const { data: row } = await supabase
+    .from('ecosistema_entitlements')
+    .select('id, metadata')
+    .eq('user_id', userId)
+    .eq('producto', PRODUCTO_CMS_PLUS)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  const meta = (row?.metadata || {}) as Record<string, unknown>
+  if (
+    meta.codigo_notificado_at &&
+    String(meta.codigo_cms || '').toUpperCase() === legacyCode.toUpperCase()
+  ) {
+    return { emailed: true as const, skipped: true as const }
+  }
+
+  const tier = getCmsPlusTier(nivel)
+  const planLabel = permanent
+    ? 'Propietario / permanente'
+    : billing === 'anual'
+      ? 'Anual'
+      : 'Mensual'
+  const result = await notifyPrivilegeGrant({
+    email: mail,
+    nombre: nombre || null,
+    codigoCms: legacyCode,
+    privilegios: [
+      `Círculo CMS-Plus ${tier?.nombre || nivel} — ${planLabel}`,
+      'ContacNeed PRO + Sincronía Nexus + Video Diamante (bundle Plus)',
+      `${tier?.creditosSalud ?? 0} créditos de salud / mes y círculo de beneficiarios`,
+    ],
+  })
+
+  if (result.emailed && row?.id) {
+    await supabase
+      .from('ecosistema_entitlements')
+      .update({
+        metadata: {
+          ...meta,
+          codigo_cms: legacyCode,
+          email: mail,
+          codigo_notificado_at: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', row.id)
+  }
+
+  return result
 }
 
 export async function revokeCmsPlus(supabase: SupabaseClient, userId: string) {
