@@ -32,12 +32,12 @@ export function LiveSocialBridge() {
         }
         if (cancelled) return
 
-        const bumpPosts = () => {
+        const bumpPosts = (delayMs = 2_500) => {
           if (postsBumpTimer) return
           postsBumpTimer = setTimeout(() => {
             postsBumpTimer = null
             queryClient.invalidateQueries({ queryKey: ['posts'] })
-          }, 20_000)
+          }, delayMs)
         }
         const bumpSocial = () => {
           queryClient.invalidateQueries({ queryKey: ['inbox'] })
@@ -51,23 +51,33 @@ export function LiveSocialBridge() {
           .channel(`live-social:${user.id}`)
           .on(
             'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'publicaciones' },
+            () => bumpPosts(800),
+          )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'publicaciones' },
+            () => bumpPosts(1_500),
+          )
+          .on(
+            'postgres_changes',
             { event: '*', schema: 'public', table: 'reacciones' },
-            bumpPosts,
+            () => bumpPosts(2_500),
           )
           .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'comentarios' },
-            bumpPosts,
+            () => bumpPosts(2_500),
           )
           .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'reacciones_comentarios' },
-            bumpPosts,
+            () => bumpPosts(2_500),
           )
           .on(
             'postgres_changes',
             { event: 'INSERT', schema: 'public', table: 'compartidos' },
-            bumpPosts,
+            () => bumpPosts(2_500),
           )
           .on(
             'postgres_changes',

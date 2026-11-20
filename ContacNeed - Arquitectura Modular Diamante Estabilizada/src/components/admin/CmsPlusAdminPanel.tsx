@@ -76,8 +76,8 @@ export function CmsPlusAdminPanel() {
 
   const reactivarMutation = useMutation({
     mutationFn: (id: string) => reactivarCmsPlusAdminFn({ data: { id } }),
-    onSuccess: () => {
-      setMsg('Membresía reactivada.')
+    onSuccess: (result) => {
+      setMsg(result.nota || 'Membresía reactivada.')
       invalidate()
     },
     onError: (error) => {

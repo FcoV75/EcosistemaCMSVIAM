@@ -9,6 +9,7 @@ import {
   otorgarPuntos,
 } from '../lib/gamificacion'
 import { upsertContacNeedPro } from '../lib/ecosistema-entitlements'
+import { notifyPrivilegeGrant } from '../lib/notify-privileges'
 
 async function contarCanjesProAnioActual(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
@@ -155,12 +156,27 @@ export const canjearPuntosMensualidadFn = createServerFn({ method: 'POST' }).han
     metadata: { meses: 1, anio: new Date().getFullYear() },
   })
 
-  await upsertContacNeedPro(supabase, user.id, 'monthly')
+  const out = await upsertContacNeedPro(supabase, user.id, 'monthly', null, {
+    email: user.email,
+    notifySource: 'canje_puntos_referido',
+  })
+  let emailed = false
+  if (user.email) {
+    const mail = await notifyPrivilegeGrant({
+      email: user.email,
+      nombre: null,
+      codigoCms: out.legacyCode,
+      privilegios: ['ContacNeed PRO — Mensual (canje por puntos de referidos)'],
+    })
+    emailed = mail.emailed
+  }
 
   return {
     success: true,
     puntosRestantes: puntos - PUNTOS_MENSUALIDAD_GRATIS,
     canjesRestantesAnio: Math.max(0, MAX_MESES_PRO_CANJE_ANUAL - canjesUsadosAnio - 1),
+    legacyCode: out.legacyCode,
+    emailed,
   }
 })
 

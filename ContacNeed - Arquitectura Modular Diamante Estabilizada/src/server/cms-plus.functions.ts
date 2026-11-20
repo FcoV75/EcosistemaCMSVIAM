@@ -15,11 +15,14 @@ import {
 } from '../lib/cms-plus-entitlements'
 import {
   CMS_PLUS_MANIFIESTO,
+  PRODUCTO_CMS_PLUS,
   isCmsPlusNivel,
   type CmsPlusBilling,
   type CmsPlusNivel,
 } from '../lib/cms-plus'
 import { normalizarEmail } from '../lib/promotores-viam'
+import { getResendConfig, sendResendEmail } from '../lib/privilege-email'
+import { getSiteUrl } from '../lib/site-url'
 
 export const getCmsPlusCatalogoFn = createServerFn({ method: 'GET' }).handler(async () => {
   return {
@@ -28,6 +31,83 @@ export const getCmsPlusCatalogoFn = createServerFn({ method: 'GET' }).handler(as
     niveles: catalogoPublicoCmsPlus(),
   }
 })
+
+async function maybeSendRenewalReminder(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  {
+    userId,
+    email,
+    membership,
+  }: {
+    userId: string
+    email?: string | null
+    membership: Awaited<ReturnType<typeof getCmsPlusStatus>>
+  },
+) {
+  if (!membership.active || membership.permanent || !membership.expiresAt) return
+  const mail = String(email || '')
+    .trim()
+    .toLowerCase()
+  if (!mail.includes('@')) return
+
+  const dias = Math.ceil((new Date(membership.expiresAt).getTime() - Date.now()) / 86400000)
+  if (dias > 7 || dias < -3) return
+
+  const { data: row } = await supabase
+    .from('ecosistema_entitlements')
+    .select('id, metadata')
+    .eq('user_id', userId)
+    .eq('producto', PRODUCTO_CMS_PLUS)
+    .eq('status', 'active')
+    .maybeSingle()
+  if (!row?.id) return
+
+  const meta = (row.metadata || {}) as Record<string, unknown>
+  const marker = String(membership.expiresAt)
+  if (meta.renovacion_recordatorio_para === marker) return
+
+  const resend = getResendConfig()
+  if (!resend.enabled) return
+
+  const site = getSiteUrl()
+  const sent = await sendResendEmail({
+    apiKey: resend.apiKey,
+    from: resend.from,
+    to: mail,
+    subject:
+      dias <= 0
+        ? 'Tu Círculo CMS-Plus venció o vence hoy — renueva'
+        : `Renueva tu Círculo CMS-Plus · quedan ${dias} día${dias === 1 ? '' : 's'}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111;max-width:560px">
+        <h2 style="margin:0 0 12px">Recordatorio de renovación</h2>
+        <p>Tu membresía <strong>Círculo CMS-Plus ${membership.tier?.nombre || ''}</strong>
+          ${dias <= 0 ? 'ya venció o vence hoy' : `vence en ${dias} día${dias === 1 ? '' : 's'}`}
+          (${new Date(membership.expiresAt).toLocaleDateString('es-MX')}).</p>
+        <p>Renueva para no interrumpir créditos de salud, círculo de beneficiarios ni el bundle Plus.</p>
+        <p style="margin:18px 0">
+          <a href="${site}/circulo-cms-plus" style="display:inline-block;padding:12px 18px;background:#d4a017;color:#111;text-decoration:none;border-radius:8px;font-weight:700">
+            Renovar / subir de nivel
+          </a>
+        </p>
+      </div>
+    `,
+  })
+
+  if (sent.ok) {
+    await supabase
+      .from('ecosistema_entitlements')
+      .update({
+        metadata: {
+          ...meta,
+          renovacion_recordatorio_para: marker,
+          renovacion_recordatorio_at: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', row.id)
+  }
+}
 
 export const getMiCmsPlusFn = createServerFn({ method: 'GET' }).handler(async () => {
   const user = await getServerUser()
@@ -55,6 +135,15 @@ export const getMiCmsPlusFn = createServerFn({ method: 'GET' }).handler(async ()
       circulo = await listarCirculoTitular(supabase, user.id)
     } catch (err) {
       console.warn('cms-plus círculo:', err)
+    }
+    try {
+      await maybeSendRenewalReminder(supabase, {
+        userId: user.id,
+        email: user.email,
+        membership,
+      })
+    } catch (err) {
+      console.warn('cms-plus recordatorio renovación:', err)
     }
   }
 
@@ -157,12 +246,16 @@ export const otorgarCmsPlusAdminFn = createServerFn({ method: 'POST' })
       permanent: Boolean(data.permanent),
     })
 
+    const base = `CMS-Plus ${result.tier.nombre} otorgado a ${mail}. Código ${result.legacyCode}.`
     return {
       ok: true,
       userId,
       nivel: result.nivel,
       legacyCode: result.legacyCode,
-      nota: `CMS-Plus ${result.tier.nombre} otorgado a ${mail}`,
+      emailed: Boolean(result.emailed),
+      nota: result.emailed
+        ? `${base} Correo enviado con el código CMS.`
+        : `${base}${result.emailWarning ? ` ${result.emailWarning}` : ''}`,
     }
   })
 
@@ -235,7 +328,15 @@ export const reactivarCmsPlusAdminFn = createServerFn({ method: 'POST' })
       source: 'admin_reactivar',
       permanent: Boolean(meta.permanent) || !row.expires_at,
     })
-    return { ok: true, nivel: result.nivel }
+    return {
+      ok: true,
+      nivel: result.nivel,
+      legacyCode: result.legacyCode,
+      emailed: Boolean(result.emailed),
+      nota: result.emailed
+        ? `Reactivado. Código ${result.legacyCode} reenviado por correo.`
+        : `Reactivado. Código ${result.legacyCode}.${result.emailWarning ? ` ${result.emailWarning}` : ''}`,
+    }
   })
 
 export const listCmsPlusAdminFn = createServerFn({ method: 'GET' }).handler(async () => {

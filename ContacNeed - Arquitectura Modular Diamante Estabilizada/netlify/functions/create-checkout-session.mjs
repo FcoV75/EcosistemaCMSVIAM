@@ -18,8 +18,17 @@ export default async (req) => {
   const origin = process.env.URL ?? process.env.VITE_SITE_URL ?? url.origin
 
   try {
-    const { planTipo, successUrl, cancelUrl } = await req.json()
-    const esAnual = planTipo === 'anual'
+    const body = await req.json()
+    const planTipo = String(body.planTipo || body.plan || 'mensual').toLowerCase()
+    const esAnual = planTipo === 'anual' || planTipo === 'annual'
+    // Canonical metadata for confirm/webhook (always english keys used by ContacNeed).
+    const plan = esAnual ? 'annual' : 'monthly'
+    const userId = body.userId ? String(body.userId) : undefined
+    const metadata = {
+      producto: 'contacneed_pro',
+      plan,
+      ...(userId ? { userId } : {}),
+    }
 
     const graciasImg =
       process.env.CMS_CHECKOUT_IMAGE_URL ||
@@ -43,9 +52,10 @@ export default async (req) => {
       ],
       mode: 'subscription',
       success_url:
-        successUrl ?? `${origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl ?? `${origin}/?payment_cancelled=true`,
-      metadata: { plan: planTipo, producto: 'contacneed_pro' },
+        body.successUrl ?? `${origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: body.cancelUrl ?? `${origin}/?payment_cancelled=true`,
+      metadata,
+      subscription_data: { metadata },
     })
 
     return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {

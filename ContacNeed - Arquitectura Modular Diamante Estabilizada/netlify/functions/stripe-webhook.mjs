@@ -56,10 +56,105 @@ function periodoActual() {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
 }
 
-async function upsertEntitlementRow(supabase, { userId, producto, plan, expiresAt, sessionId, metadata }) {
+function generarCodigoCmsCandidate() {
+  return 'CMS-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+}
+
+async function ensureLegacyCmsCode(supabase, { userId, email }) {
+  const mail = String(email || '')
+    .trim()
+    .toLowerCase()
+
+  if (userId) {
+    const { data } = await supabase
+      .from('ecosistema_entitlements')
+      .select('legacy_code')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .not('legacy_code', 'is', null)
+      .limit(20)
+    const existing = (data || []).find((r) => r.legacy_code)?.legacy_code
+    if (existing) return String(existing).toUpperCase()
+  }
+
+  if (mail) {
+    const { data } = await supabase
+      .from('ecosistema_entitlements')
+      .select('legacy_code, metadata')
+      .eq('status', 'active')
+      .not('legacy_code', 'is', null)
+      .limit(300)
+    const match = (data || []).find(
+      (r) =>
+        String((r.metadata || {}).email || '')
+          .trim()
+          .toLowerCase() === mail,
+    )
+    if (match?.legacy_code) return String(match.legacy_code).toUpperCase()
+  }
+
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const code = generarCodigoCmsCandidate()
+    const { data: collision } = await supabase
+      .from('ecosistema_entitlements')
+      .select('id')
+      .eq('legacy_code', code)
+      .limit(1)
+      .maybeSingle()
+    if (!collision?.id) return code
+  }
+  throw new Error('No se pudo generar un código CMS único.')
+}
+
+async function sendPrivilegeEmail({ to, codigoCms, privilegios }) {
+  const apiKey = String(process.env.RESEND_API_KEY || '').trim()
+  if (!apiKey) {
+    return { emailed: false, warning: 'Sin RESEND_API_KEY: no se envió el correo con el código CMS.' }
+  }
+  const from = String(process.env.RESEND_FROM || 'ContacNeed <noreply@contacneed.com>').trim()
+  const lista = (privilegios || []).map((p) => `<li style="margin:0 0 6px">${p}</li>`).join('')
+  const site = process.env.URL || process.env.VITE_SITE_URL || 'https://contacneed.com'
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: `Tus accesos ContacNeed / Ecosistema VIAM — código ${codigoCms}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111;max-width:560px">
+          <h2 style="margin:0 0 12px">Accesos activados</h2>
+          <p>Se activaron privilegios en tu cuenta del ecosistema ContacNeed / VIAM:</p>
+          <ul style="padding-left:18px;margin:12px 0">${lista}</ul>
+          <p style="margin:18px 0 8px"><strong>Tu código unificado del ecosistema:</strong></p>
+          <p style="font-size:22px;font-weight:800;letter-spacing:1px;background:#111;color:#f5d76e;display:inline-block;padding:10px 16px;border-radius:10px;margin:0">${codigoCms}</p>
+          <p style="margin:18px 0 8px">
+            <a href="${site}/login" style="display:inline-block;padding:12px 18px;background:#d4a017;color:#111;text-decoration:none;border-radius:8px;font-weight:700">Entrar a ContacNeed</a>
+          </p>
+          <p style="color:#555;font-size:13px;margin-top:20px">
+            Guarda este correo. El código te sirve para ContacNeed PRO, Círculo CMS-Plus, Sincronía Nexus, Video Diamante y el Curso de Promotores según lo que te hayan otorgado.
+          </p>
+        </div>
+      `,
+    }),
+  })
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    return { emailed: false, warning: body || `Resend ${response.status}` }
+  }
+  return { emailed: true }
+}
+
+async function upsertEntitlementRow(
+  supabase,
+  { userId, producto, plan, expiresAt, sessionId, metadata, legacyCode },
+) {
   const { data: existente, error: findError } = await supabase
     .from('ecosistema_entitlements')
-    .select('id')
+    .select('id, legacy_code, metadata')
     .eq('user_id', userId)
     .eq('producto', producto)
     .eq('status', 'active')
@@ -67,6 +162,8 @@ async function upsertEntitlementRow(supabase, { userId, producto, plan, expiresA
 
   if (findError) throw findError
 
+  const prevMeta = (existente?.metadata || {})
+  const code = legacyCode || existente?.legacy_code || null
   const row = {
     user_id: userId,
     producto,
@@ -74,34 +171,40 @@ async function upsertEntitlementRow(supabase, { userId, producto, plan, expiresA
     status: 'active',
     expires_at: expiresAt,
     stripe_session_id: sessionId || null,
-    metadata: metadata || {},
+    legacy_code: code,
+    metadata: { ...prevMeta, ...(metadata || {}), ...(code ? { codigo_cms: code } : {}) },
     updated_at: new Date().toISOString(),
   }
 
   if (existente?.id) {
     const { error } = await supabase.from('ecosistema_entitlements').update(row).eq('id', existente.id)
     if (error) throw error
-  } else {
-    const { error } = await supabase
-      .from('ecosistema_entitlements')
-      .insert({ ...row, starts_at: new Date().toISOString() })
-    if (error) throw error
+    return { id: existente.id, legacyCode: code, metadata: row.metadata }
   }
+
+  const { data: inserted, error } = await supabase
+    .from('ecosistema_entitlements')
+    .insert({ ...row, starts_at: new Date().toISOString() })
+    .select('id')
+    .maybeSingle()
+  if (error) throw error
+  return { id: inserted?.id, legacyCode: code, metadata: row.metadata }
 }
 
-async function upsertContacNeedPro(supabase, userId, planType, sessionId, metadata = {}) {
+async function upsertContacNeedPro(supabase, userId, planType, sessionId, metadata = {}, legacyCode = null) {
   const plan = planType === 'annual' ? 'anual' : 'mensual'
   const expiresAt =
     planType === 'annual'
       ? new Date(Date.now() + 365 * 86400000).toISOString()
       : new Date(Date.now() + 30 * 86400000).toISOString()
 
-  await upsertEntitlementRow(supabase, {
+  return upsertEntitlementRow(supabase, {
     userId,
     producto: 'contacneed_pro',
     plan,
     expiresAt,
     sessionId,
+    legacyCode,
     metadata: { source: 'contacneed_webhook', ...metadata },
   })
 }
@@ -153,28 +256,44 @@ async function activateCmsPlusFromCheckout(supabase, session) {
       ? new Date(Date.now() + 365 * 86400000).toISOString()
       : new Date(Date.now() + 30 * 86400000).toISOString()
   const billingPlan = billing === 'anual' ? 'anual' : 'mensual'
+  const email =
+    String(session.customer_details?.email || session.customer_email || session.metadata?.email || '')
+      .trim()
+      .toLowerCase() || null
+  const legacyCode = await ensureLegacyCmsCode(supabase, { userId, email })
   const meta = {
     source: 'contacneed_webhook',
     nivel,
     billing,
     bundle: 'cms_plus',
+    codigo_cms: legacyCode,
+    email,
   }
 
-  await upsertEntitlementRow(supabase, {
+  const cmsRow = await upsertEntitlementRow(supabase, {
     userId,
     producto: 'cms_plus',
     plan: nivel,
     expiresAt,
     sessionId: session.id,
+    legacyCode,
     metadata: meta,
   })
-  await upsertContacNeedPro(supabase, userId, planType, session.id, { via: 'cms_plus', nivel })
+  await upsertContacNeedPro(
+    supabase,
+    userId,
+    planType,
+    session.id,
+    { via: 'cms_plus', nivel, email, codigo_cms: legacyCode },
+    legacyCode,
+  )
   await upsertEntitlementRow(supabase, {
     userId,
     producto: 'sincronia_nexus',
     plan: billingPlan,
     expiresAt,
     sessionId: session.id,
+    legacyCode,
     metadata: { ...meta, via: 'cms_plus' },
   })
   await upsertEntitlementRow(supabase, {
@@ -183,6 +302,7 @@ async function activateCmsPlusFromCheckout(supabase, session) {
     plan: billingPlan,
     expiresAt,
     sessionId: session.id,
+    legacyCode,
     metadata: { ...meta, via: 'cms_plus' },
   })
 
@@ -201,7 +321,50 @@ async function activateCmsPlusFromCheckout(supabase, session) {
     console.warn('cms_plus creditos webhook:', err?.message || err)
   }
 
-  return { activated: true, producto: 'cms_plus', userId, nivel, billing }
+  let emailed = false
+  let emailWarning
+  const alreadyNotified =
+    cmsRow?.metadata?.codigo_notificado_at &&
+    String(cmsRow.metadata.codigo_cms || '').toUpperCase() === legacyCode
+  if (email && !alreadyNotified) {
+    const nivelLabel = nivel.charAt(0).toUpperCase() + nivel.slice(1)
+    const mail = await sendPrivilegeEmail({
+      to: email,
+      codigoCms: legacyCode,
+      privilegios: [
+        `Círculo CMS-Plus ${nivelLabel} — ${billing === 'anual' ? 'Anual' : 'Mensual'}`,
+        'ContacNeed PRO + Sincronía Nexus + Video Diamante (bundle Plus)',
+        `${CMS_PLUS_CREDITOS[nivel] || 3} créditos de salud / mes y círculo de beneficiarios`,
+      ],
+    })
+    emailed = Boolean(mail.emailed)
+    emailWarning = mail.warning
+    if (emailed && cmsRow?.id) {
+      await supabase
+        .from('ecosistema_entitlements')
+        .update({
+          metadata: {
+            ...meta,
+            codigo_notificado_at: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', cmsRow.id)
+    }
+  } else if (!email) {
+    emailWarning = 'Activado sin correo de cliente para enviar el código CMS.'
+  }
+
+  return {
+    activated: true,
+    producto: 'cms_plus',
+    userId,
+    nivel,
+    billing,
+    legacyCode,
+    emailed,
+    emailWarning,
+  }
 }
 
 async function activateEscuelaFromCheckout(supabase, session) {
@@ -309,13 +472,158 @@ async function activateProFromCheckout(session) {
     }
   }
 
-  const planType = session.metadata?.plan === 'annual' ? 'annual' : 'monthly'
-  await upsertContacNeedPro(supabase, userId, planType, session.id)
-  return { activated: true, userId, planType }
+  const planRaw = String(session.metadata?.plan || '').toLowerCase()
+  const planType = planRaw === 'annual' || planRaw === 'anual' ? 'annual' : 'monthly'
+  const email =
+    String(session.customer_details?.email || session.customer_email || session.metadata?.email || '')
+      .trim()
+      .toLowerCase() || null
+  const legacyCode = await ensureLegacyCmsCode(supabase, { userId, email })
+  const proRow = await upsertContacNeedPro(
+    supabase,
+    userId,
+    planType,
+    session.id,
+    { email, codigo_cms: legacyCode },
+    legacyCode,
+  )
+
+  let emailed = false
+  let emailWarning
+  const alreadyNotified =
+    proRow?.metadata?.codigo_notificado_at &&
+    String(proRow.metadata.codigo_cms || '').toUpperCase() === legacyCode
+  if (email && !alreadyNotified) {
+    const mail = await sendPrivilegeEmail({
+      to: email,
+      codigoCms: legacyCode,
+      privilegios: [
+        planType === 'annual' ? 'ContacNeed PRO — Anual' : 'ContacNeed PRO — Mensual',
+      ],
+    })
+    emailed = Boolean(mail.emailed)
+    emailWarning = mail.warning
+    if (emailed && proRow?.id) {
+      await supabase
+        .from('ecosistema_entitlements')
+        .update({
+          metadata: {
+            ...(proRow.metadata || {}),
+            codigo_cms: legacyCode,
+            email,
+            codigo_notificado_at: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', proRow.id)
+    }
+  }
+
+  await supabase
+    .from('perfiles')
+    .update({
+      es_pro: true,
+      pro_plan_type: planType,
+    })
+    .eq('id', userId)
+
+  return { activated: true, userId, planType, legacyCode, emailed, emailWarning }
+}
+
+async function renewFromInvoice(stripe, invoice) {
+  const supabaseUrl = supabaseUrlFromEnv()
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase no configurado para ContacNeed.')
+  }
+  const supabase = createClient(supabaseUrl, supabaseKey)
+
+  const subscriptionId =
+    typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id
+  if (!subscriptionId) return { skipped: true, reason: 'sin_subscription' }
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  const meta = subscription.metadata || {}
+  const userId = meta.userId
+  if (!userId) return { skipped: true, reason: 'sin_userId_en_subscription' }
+
+  const producto = meta.producto || 'contacneed_pro'
+  const planRaw = String(meta.plan || meta.billing || '').toLowerCase()
+  const billing =
+    planRaw === 'anual' || planRaw === 'annual' || meta.billing === 'anual' ? 'anual' : 'mensual'
+  const planType = billing === 'anual' ? 'annual' : 'monthly'
+  const expiresAt =
+    billing === 'anual'
+      ? new Date(Date.now() + 365 * 86400000).toISOString()
+      : new Date(Date.now() + 30 * 86400000).toISOString()
+  const email =
+    String(invoice.customer_email || meta.email || '')
+      .trim()
+      .toLowerCase() || null
+  const legacyCode = await ensureLegacyCmsCode(supabase, { userId, email })
+
+  if (producto === 'cms_plus') {
+    const nivel = ['plata', 'oro', 'platino', 'diamante'].includes(meta.nivel) ? meta.nivel : 'plata'
+    const shared = {
+      source: 'contacneed_webhook_renewal',
+      nivel,
+      billing,
+      bundle: 'cms_plus',
+      codigo_cms: legacyCode,
+      email,
+    }
+    await upsertEntitlementRow(supabase, {
+      userId,
+      producto: 'cms_plus',
+      plan: nivel,
+      expiresAt,
+      sessionId: invoice.id,
+      legacyCode,
+      metadata: shared,
+    })
+    await upsertContacNeedPro(
+      supabase,
+      userId,
+      planType,
+      invoice.id,
+      { via: 'cms_plus_renewal', nivel, email, codigo_cms: legacyCode },
+      legacyCode,
+    )
+    await upsertEntitlementRow(supabase, {
+      userId,
+      producto: 'sincronia_nexus',
+      plan: billing,
+      expiresAt,
+      sessionId: invoice.id,
+      legacyCode,
+      metadata: { ...shared, via: 'cms_plus' },
+    })
+    await upsertEntitlementRow(supabase, {
+      userId,
+      producto: 'video_diamante_premium',
+      plan: billing,
+      expiresAt,
+      sessionId: invoice.id,
+      legacyCode,
+      metadata: { ...shared, via: 'cms_plus' },
+    })
+    await ensureCmsPlusCreditos(supabase, userId, nivel)
+    return { renewed: true, producto: 'cms_plus', userId, nivel, expiresAt, legacyCode }
+  }
+
+  await upsertContacNeedPro(
+    supabase,
+    userId,
+    planType,
+    invoice.id,
+    { email, codigo_cms: legacyCode, source: 'contacneed_webhook_renewal' },
+    legacyCode,
+  )
+  return { renewed: true, producto: 'contacneed_pro', userId, expiresAt, legacyCode }
 }
 
 /**
- * Webhook Stripe → ContacNeed PRO
+ * Webhook Stripe → ContacNeed PRO / CMS-Plus
  * Debe devolver 2xx para que Stripe marque el evento como entregado.
  */
 export default async (req) => {
@@ -355,11 +663,17 @@ export default async (req) => {
       return json(200, { received: true, type: stripeEvent.type, ...result })
     }
 
-    // Renovaciones / facturas: acusamos recibo para no saturar reintentos.
-    // La activación principal de PRO sigue en checkout.session.completed (+ confirm del cliente).
+    if (stripeEvent.type === 'invoice.paid' || stripeEvent.type === 'invoice.payment_succeeded') {
+      const invoice = stripeEvent.data.object
+      // Evita doble extensión en el primer pago (ya cubierto por checkout.session.completed).
+      if (invoice.billing_reason === 'subscription_create') {
+        return json(200, { received: true, type: stripeEvent.type, noted: 'first_invoice' })
+      }
+      const result = await renewFromInvoice(stripe, invoice)
+      return json(200, { received: true, type: stripeEvent.type, ...result })
+    }
+
     if (
-      stripeEvent.type === 'invoice.paid' ||
-      stripeEvent.type === 'invoice.payment_succeeded' ||
       stripeEvent.type === 'customer.subscription.updated' ||
       stripeEvent.type === 'customer.subscription.created' ||
       stripeEvent.type === 'customer.subscription.deleted'
