@@ -1,5 +1,6 @@
 import { Shield, UserPlus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { AuthLegalLinks } from './AuthLegalLinks'
 import { ContacNeedLogo } from './ContacNeedLogo'
 import { GoogleSignInButton } from './GoogleSignInButton'
 import { RegistroForm } from './RegistroForm'
@@ -125,6 +126,7 @@ export function AuthModal({ open, onClose, initialTab = 'login', required = fals
             ) : (
               <div className="space-y-4">
                 <GoogleSignInButton label="Registrarme con Google (más rápido)" />
+                <AuthLegalLinks />
                 <div className="relative py-1 text-center text-[11px] uppercase tracking-wider text-purple-300/50">
                   <span className="bg-transparent px-2">o formulario completo</span>
                 </div>
@@ -152,6 +154,7 @@ export function AuthModal({ open, onClose, initialTab = 'login', required = fals
               {tab === 'login' && (
                 <>
                   <GoogleSignInButton label="Entrar con Google" />
+                  <AuthLegalLinks />
                   <div className="relative py-1 text-center text-[11px] uppercase tracking-wider text-purple-300/50">
                     <span className="bg-transparent px-2">o con correo</span>
                   </div>
