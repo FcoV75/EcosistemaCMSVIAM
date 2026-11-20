@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La mente que endurece — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="Ocho etapas para callosar la voluntad: comodidad que engaña, práctica difícil, inventario de excusas, fracaso útil y disciplina sin espectáculo." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc; --muted: rgba(245,245,252,.78); --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16); --accent: #f1c96b; --accent-2: #86d6ff; --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: Montserrat, system-ui, sans-serif; color: var(--ink); background: var(--night); line-height: 1.65; }
+    a { color: var(--accent-2); }
+    .nav { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem; background: rgba(5,8,20,.92); border-bottom: 1px solid var(--edge); backdrop-filter: blur(10px); }
+    .nav a, .nav .btn { text-decoration: none; color: var(--ink); border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600; background: rgba(8,11,26,.55); }
+    .btn-gold { background: linear-gradient(135deg, var(--accent), #c9a24d); color: #111; border: 0; font-weight: 700; }
+    .hero { min-height: 72vh; display: grid; align-items: end;
+      background: linear-gradient(180deg, rgba(5,8,20,.28) 0%, rgba(5,8,20,.78) 55%, rgba(5,8,20,.97) 100%),
+        url("/cursos-assets/la-mente-que-endurece/01-portada-mente-endurece.jpg") center/cover no-repeat; padding: 2rem 1.25rem 2.5rem; }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 { font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso { margin: 1.4rem 0; padding: 1rem 1.1rem; border: 1px solid rgba(241,201,107,.4); background: rgba(241,201,107,.08); border-radius: 14px; }
+    .aviso strong { color: var(--accent); }
+    section.etapa { margin: 2.4rem 0; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px; padding: 1.35rem 1.25rem 1.5rem; }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio { border-left: 3px solid var(--accent); padding: .15rem 0 .15rem 1rem; color: #fff6cc; font-weight: 600; }
+    figure.relato { margin: 1.1rem 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--edge); background: #000; }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja { margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px; background: rgba(0,0,0,.28); border: 1px dashed rgba(255,255,255,.2); }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    .cta-seguir { margin: 2rem 0; padding: 1.2rem 1.25rem; border-radius: 16px; border: 1px solid rgba(134,214,255,.35);
+      background: linear-gradient(135deg, rgba(134,214,255,.12), rgba(241,201,107,.08)); }
+    footer { text-align: center; color: var(--muted); padding: 1.5rem 1rem 2.5rem; font-size: .86rem; }
+</style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="/">CMS</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a><a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>La mente que endurece</h1>
+      <p>Hacer lo difícil no es odio al cuerpo. Es amor a tu futuro. Este curso endurece la mente con práctica clara, sin romanticismo del sufrimiento y sin sustituir al profesional de la salud.</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <p class="aviso"><strong>Regla de oro.</strong> Nada de este curso sustituye atención médica ni psicológica. Si hay depresión, lesión o adicción, primero el plan clínico. Endurecer la mente nunca justifica castigarte.</p>
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">La comodidad engaña</a> — separar reposo de escape</li>
+        <li><a href="#e2">Callo mental</a> — repetición de lo incómodo útil</li>
+        <li><a href="#e3">Más capacidad de la que crees</a> — leer el margen con prudencia</li>
+        <li><a href="#e4">Inventario de excusas</a> — sacar la excusa a la luz</li>
+        <li><a href="#e5">Fracaso como entrenamiento</a> — convertir el fallo en clase</li>
+        <li><a href="#e6">Disciplina sin espectáculo</a> — constancia sin cámara</li>
+        <li><a href="#e7">Límites santos del endurecimiento</a> — dureza con límites sanos</li>
+        <li><a href="#e8">Un día difícil a propósito</a> — laboratorio de un día</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: audiolibro de fortaleza mental («Cómo endurecer tu mente para hacer lo difícil»). Este material no es una transcripción: es pedagogía original de principios para el consultorio y la vida diaria.</p>
+    </section>
+
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · La comodidad engaña</h2>
+      <p class="principio">Principio: La zona cómoda no es paz. A menudo es anestesia con buena prensa.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-endurece/01-portada-mente-endurece.jpg" alt="Ascenso al amanecer" />
+        <figcaption>El camino difícil también ilumina.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La comodidad vende descanso y a veces entrega estancamiento. Distinguir reposo santo de escape cobarde es el primer corte.</p><p>Si todo lo que eliges evita fricción, tu vida se vuelve blanda y frágil.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> El sofá ganaba todas las noches. El proyecto esperaba “el momento”. El momento nunca llegó.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «¿Hasta cuándo dormiréis, oh perezoso?» Proverbios 6:9. El verso no niega el descanso; confronta la demora crónica.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Nombra una comodidad que te está costando futuro. Sustitúyela 20 minutos hoy por una acción difícil útil.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué comodidad me está cobrando interés?</p>
+    </section>
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · Callo mental</h2>
+      <p class="principio">Principio: La mente se endurece como la mano: con repetición de lo incómodo útil.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-endurece/02-callo-mental.jpg" alt="Agua fría al amanecer" />
+        <figcaption>El callo nace en lo pequeño.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>No busques dolor por dolor. Busca fricción con propósito: frío controlado, conversación pendiente, entrenamiento, estudio.</p><p>El callo aparece cuando vuelves mañana aunque ayer haya molestado.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Cada mañana agua fría en la cara. No lo amaba. Sí amaba lo que hizo con su día después.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Pero los que esperan a Jehová tendrán nuevas fuerzas.» Isaías 40:31.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige una práctica difícil de 5–10 minutos diarios por siete días. Mide solo la constancia.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué fricción útil voy a repetir hasta que deje de asustarme?</p>
+    </section>
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · Más capacidad de la que crees</h2>
+      <p class="principio">Principio: Cuando quieres parar, suele quedar margen. Aprende a leer la diferencia entre peligro y incomodidad.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-endurece/04-disciplina-silenciosa.jpg" alt="Corredor solo en la pista" />
+        <figcaption>Queda margen después del primer no.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>El cuerpo avisa peligro real: escúchalo. La mente a veces grita incomodidad y la disfraza de peligro. Entrenar esa lectura es madurez.</p><p>Un poco más —con seguridad— construye confianza. Forzar una lesión la destruye.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> En la carrera quería abandonar al kilómetro 8. Siguió hasta 10 caminando. Descubrió que el muro era historia, no hueso.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Todo lo puedo en Cristo que me fortalece.» Filipenses 4:13 — fuerza para perseverar con sabiduría.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> En tu práctica de hoy, agrega un 10% más solo si no hay dolor de lesión. Anota qué pasó en la cabeza.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Estoy ante peligro o ante incomodidad?</p>
+    </section>
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · Inventario de excusas</h2>
+      <p class="principio">Principio: Las excusas son creativas. Por eso hay que anotarlas y desarmarlas a la luz.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-endurece/03-inventario-excusas.jpg" alt="Cuaderno de excusas tachadas" />
+        <figcaption>Lo escrito se puede cortar.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Mientras la excusa viva en la sombra, manda. Escrita, se vuelve negociable.</p><p>No pelees con todas. Elige la más frecuente y quítale el disfraz.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> “No tengo tiempo” se cayó cuando vio dos horas de pantalla. El tiempo estaba; la prioridad no.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «El perezoso dice: El león está fuera.» Proverbios 22:13. A veces el león es inventado.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Lista diez excusas tuyas. Marca la campeona. Diseña una contra-regla de una frase.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Cuál es mi excusa más elegante?</p>
+    </section>
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Fracaso como entrenamiento</h2>
+      <p class="principio">Principio: Fallar no es el final del endurecimiento. Es el material.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-endurece/02-callo-mental.jpg" alt="Rostro determinado" />
+        <figcaption>El fallo también entrena.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Si evitas fallar, evitas aprender el peso real. El maestro revisa el fallo como el deportista revisa la cinta.</p><p>Vergüenza útil: mirar el error. Vergüenza tóxica: abandonar el camino.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Quemó la primera cena del negocio. La segunda salió mejor porque midió el fuego. El fallo fue clase.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Porque aunque caiga siete veces, vuelve a levantarse.» Proverbios 24:16.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige un fallo reciente. Escribe: qué pasó, qué controlaba, qué haré distinto una sola vez.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué fallo estoy desperdiciando por vergüenza?</p>
+    </section>
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · Disciplina sin espectáculo</h2>
+      <p class="principio">Principio: La mente dura no necesita público. Se forja cuando nadie aplaude.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-endurece/04-disciplina-silenciosa.jpg" alt="Pista vacía bajo focos" />
+        <figcaption>Nadie aplaude. Sigues.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>El espectáculo agota. La disciplina silenciosa acumula. Entrena donde no hay cámara.</p><p>Si solo rindes con testigos, aún no endureciste: solo actuaste.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Entrenaba a las 5 sin story. A los meses, el cambio habló por él.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Y tu Padre que ve en lo secreto te recompensará.» Mateo 6:4.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Haz hoy la práctica difícil sin contarlo a nadie en 48 horas.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Rindo igual sin público?</p>
+    </section>
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · Límites santos del endurecimiento</h2>
+      <p class="principio">Principio: Endurecer no es destrozarte. Incluye sueño, comida, ayuda y descanso ciclado.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-endurece/03-inventario-excusas.jpg" alt="Escritorio ordenado" />
+        <figcaption>El orden también endurece.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La mente dura que desprecia el cuerpo termina rota. El curso exige límites: sueño, hidratación, no entrenar lesionado, pedir ayuda.</p><p>Fortaleza sin sabiduría es bravuconería.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Un hombre “duro” no dormía. Quebró. Aprendió que el colchón también es disciplina.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Mi yugo es fácil, y ligera mi carga.» Mateo 11:30. Hay un ritmo que fortalece sin aplastar.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Escribe tus tres límites no negociables (sueño, dolor, días de descanso). Pégalos donde entrenas.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué límite santo estoy violando en nombre de la dureza?</p>
+    </section>
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Un día difícil a propósito</h2>
+      <p class="principio">Principio: Cierra con un día diseñado para practicar lo difícil útil — y celebrar en silencio.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-endurece/01-portada-mente-endurece.jpg" alt="Sendero empinado al amanecer" />
+        <figcaption>Lo difícil elegido forma carácter.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Elige fricciones que construyan oficio, salud o carácter. No elijas daño.</p><p>Luego vuelve a la Escuela. La mente dura necesita también leer lo subconsciente y cuidar el flujo.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Un sábado: frío, estudio, conversación pendiente, entrenamiento. Al final, té. Sin publicar. Con orgullo quieto.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Fortaleceos en el Señor, y en el poder de su fuerza.» Efesios 6:10.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Agenda un “día difícil útil” esta semana con 3 fricciones y 1 cuidado. Cumple y anota.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué día será mi laboratorio de dureza sana?</p>
+    </section>
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno · ocho ejercicios</h2>
+      <ol>
+        <li><strong>La comodidad engaña:</strong> Nombra una comodidad que te está costando futuro. Sustitúyela 20 minutos hoy por una acción difícil útil.</li>        <li><strong>Callo mental:</strong> Elige una práctica difícil de 5–10 minutos diarios por siete días. Mide solo la constancia.</li>        <li><strong>Más capacidad de la que crees:</strong> En tu práctica de hoy, agrega un 10% más solo si no hay dolor de lesión. Anota qué pasó en la cabeza.</li>        <li><strong>Inventario de excusas:</strong> Lista diez excusas tuyas. Marca la campeona. Diseña una contra-regla de una frase.</li>        <li><strong>Fracaso como entrenamiento:</strong> Elige un fallo reciente. Escribe: qué pasó, qué controlaba, qué haré distinto una sola vez.</li>        <li><strong>Disciplina sin espectáculo:</strong> Haz hoy la práctica difícil sin contarlo a nadie en 48 horas.</li>        <li><strong>Límites santos del endurecimiento:</strong> Escribe tus tres límites no negociables (sueño, dolor, días de descanso). Pégalos donde entrenas.</li>        <li><strong>Un día difícil a propósito:</strong> Agenda un “día difícil útil” esta semana con 3 fricciones y 1 cuidado. Cumple y anota.</li>
+      </ol>
+    </section>
+    <div class="cta-seguir">
+      <h2 style="margin-top:0">Sigue estudiando. Sigue separándote.</h2>
+      <p>Elige un difícil pequeño y cumplo hoy. La mente se callosa con repetición. Luego vuelve a la Escuela: lee lo que decide sin ti o revisa el flujo de tu energía.</p>
+      <p class="meta">Cuando termines este itinerario, vuelve a la Escuela ContacNeed y elige el siguiente curso. La educación continua no es un adorno: es el suelo donde crece tu salud física, mental y de oficio.</p>
+    </div>
+  </main>
+  <footer>CMS VIAM · Escuela de principios vitalicios · ContacNeed</footer>
+</body>
+</html>

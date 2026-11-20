@@ -461,6 +461,37 @@ export function CursosEducativosAdminPanel() {
         </ul>
       </section>
 
+      <section className="rounded-2xl border border-violet-500/25 bg-slate-900/80 p-4">
+        <h3 className="text-base font-bold text-violet-200">Muro · cursos que piden generar</h3>
+        <p className="mt-1 text-sm text-slate-400">
+          Opiniones del botón «¿Qué curso necesitas?» en /escuela. Cuando se llene, eliges cuáles
+          convertir en itinerarios nuevos.
+        </p>
+        <ul className="mt-3 space-y-2 text-sm">
+          {(listQuery.data?.solicitudes ?? []).length === 0 && (
+            <li className="text-slate-500">Aún no hay pedidos de cursos nuevos.</li>
+          )}
+          {(listQuery.data?.solicitudes ?? []).map((row) => {
+            const meta = (row.metadata || {}) as {
+              tema?: string
+              para_que?: string
+              nombre_publico?: string
+              email?: string
+            }
+            return (
+              <li key={row.id} className="rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2">
+                <p className="font-semibold text-violet-100">{meta.tema || 'Solicitud'}</p>
+                {meta.para_que ? <p className="mt-1 text-xs text-slate-400">{meta.para_que}</p> : null}
+                <p className="mt-1 text-xs text-slate-500">
+                  {meta.nombre_publico || 'Alumno'} · {meta.email || 'sin correo'}
+                  {row.created_at ? ` · ${new Date(row.created_at).toLocaleDateString('es-MX')}` : ''}
+                </p>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+
       <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
         <h3 className="text-base font-bold">Compras de recuperación</h3>
         <div className="mt-3 overflow-x-auto">

@@ -18,6 +18,22 @@ import leccionesCmsPlus from '../../content/cursos/circulo-cms-plus-membresias/i
 import diapositivasCmsPlus from '../../content/cursos/circulo-cms-plus-membresias/diapositivas.html?raw'
 import slidesCmsPlus from '../../content/cursos/circulo-cms-plus-membresias/slides.js?raw'
 import guiaCmsPlus from '../../content/cursos/circulo-cms-plus-membresias/guia-docente.md?raw'
+import leccionesEnergia from '../../content/cursos/no-es-dinero-es-energia/index.html?raw'
+import diapositivasEnergia from '../../content/cursos/no-es-dinero-es-energia/diapositivas.html?raw'
+import slidesEnergia from '../../content/cursos/no-es-dinero-es-energia/slides.js?raw'
+import guiaEnergia from '../../content/cursos/no-es-dinero-es-energia/guia-docente.md?raw'
+import leccionesSalto from '../../content/cursos/el-salto-que-despierta/index.html?raw'
+import diapositivasSalto from '../../content/cursos/el-salto-que-despierta/diapositivas.html?raw'
+import slidesSalto from '../../content/cursos/el-salto-que-despierta/slides.js?raw'
+import guiaSalto from '../../content/cursos/el-salto-que-despierta/guia-docente.md?raw'
+import leccionesEndurece from '../../content/cursos/la-mente-que-endurece/index.html?raw'
+import diapositivasEndurece from '../../content/cursos/la-mente-que-endurece/diapositivas.html?raw'
+import slidesEndurece from '../../content/cursos/la-mente-que-endurece/slides.js?raw'
+import guiaEndurece from '../../content/cursos/la-mente-que-endurece/guia-docente.md?raw'
+import leccionesDecide from '../../content/cursos/lo-que-decide-sin-ti/index.html?raw'
+import diapositivasDecide from '../../content/cursos/lo-que-decide-sin-ti/diapositivas.html?raw'
+import slidesDecide from '../../content/cursos/lo-que-decide-sin-ti/slides.js?raw'
+import guiaDecide from '../../content/cursos/lo-que-decide-sin-ti/guia-docente.md?raw'
 
 export const CURSOS_BUNDLED: Record<
   string,
@@ -57,5 +73,33 @@ export const CURSOS_BUNDLED: Record<
     slides: slidesCmsPlus,
     guia: guiaCmsPlus,
     zipPublicUrl: '/cursos-assets/circulo-cms-plus-membresias/paquete-recuperacion-cmsplus-z3m9k2w7.zip',
+  },
+  'no-es-dinero-es-energia': {
+    lecciones: leccionesEnergia,
+    diapositivas: diapositivasEnergia,
+    slides: slidesEnergia,
+    guia: guiaEnergia,
+    zipPublicUrl: '/cursos-assets/no-es-dinero-es-energia/paquete-recuperacion-energia-m8q2k5n1.zip',
+  },
+  'el-salto-que-despierta': {
+    lecciones: leccionesSalto,
+    diapositivas: diapositivasSalto,
+    slides: slidesSalto,
+    guia: guiaSalto,
+    zipPublicUrl: '/cursos-assets/el-salto-que-despierta/paquete-recuperacion-salto-r4t7w2p9.zip',
+  },
+  'la-mente-que-endurece': {
+    lecciones: leccionesEndurece,
+    diapositivas: diapositivasEndurece,
+    slides: slidesEndurece,
+    guia: guiaEndurece,
+    zipPublicUrl: '/cursos-assets/la-mente-que-endurece/paquete-recuperacion-endurece-h3n6v8c2.zip',
+  },
+  'lo-que-decide-sin-ti': {
+    lecciones: leccionesDecide,
+    diapositivas: diapositivasDecide,
+    slides: slidesDecide,
+    guia: guiaDecide,
+    zipPublicUrl: '/cursos-assets/lo-que-decide-sin-ti/paquete-recuperacion-decide-j5k9m1x4.zip',
   },
 }

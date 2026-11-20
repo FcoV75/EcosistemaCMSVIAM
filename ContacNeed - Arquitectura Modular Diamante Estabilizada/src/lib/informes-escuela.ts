@@ -50,6 +50,16 @@ export function esPreguntaEscuela(question: string) {
     (q.includes('pausa') && q.includes('decide')) ||
     q.includes('palabra que no obliga') ||
     (q.includes('palabra') && q.includes('obliga')) ||
+    q.includes('no es dinero') ||
+    q.includes('es energía') ||
+    q.includes('es energia') ||
+    q.includes('salto que despierta') ||
+    q.includes('mente que endurece') ||
+    q.includes('decide sin ti') ||
+    q.includes('subconsciente') ||
+    q.includes('solicitud') ||
+    q.includes('qué curso') ||
+    q.includes('que curso') ||
     q.includes('recuperación') ||
     q.includes('recuperacion') ||
     q.includes('impartici') ||

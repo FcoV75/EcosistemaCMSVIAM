@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lo que decide sin ti — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="Ocho etapas para ver el piloto automático: creencias bajo el suelo, filtro magnético, historia narrada, reescritura, emoción que sella y decidir con los dos niveles de la mente." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc; --muted: rgba(245,245,252,.78); --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16); --accent: #f1c96b; --accent-2: #86d6ff; --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: Montserrat, system-ui, sans-serif; color: var(--ink); background: var(--night); line-height: 1.65; }
+    a { color: var(--accent-2); }
+    .nav { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem; background: rgba(5,8,20,.92); border-bottom: 1px solid var(--edge); backdrop-filter: blur(10px); }
+    .nav a, .nav .btn { text-decoration: none; color: var(--ink); border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600; background: rgba(8,11,26,.55); }
+    .btn-gold { background: linear-gradient(135deg, var(--accent), #c9a24d); color: #111; border: 0; font-weight: 700; }
+    .hero { min-height: 72vh; display: grid; align-items: end;
+      background: linear-gradient(180deg, rgba(5,8,20,.28) 0%, rgba(5,8,20,.78) 55%, rgba(5,8,20,.97) 100%),
+        url("/cursos-assets/lo-que-decide-sin-ti/01-portada-decide-sin-ti.jpg") center/cover no-repeat; padding: 2rem 1.25rem 2.5rem; }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 { font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso { margin: 1.4rem 0; padding: 1rem 1.1rem; border: 1px solid rgba(241,201,107,.4); background: rgba(241,201,107,.08); border-radius: 14px; }
+    .aviso strong { color: var(--accent); }
+    section.etapa { margin: 2.4rem 0; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px; padding: 1.35rem 1.25rem 1.5rem; }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio { border-left: 3px solid var(--accent); padding: .15rem 0 .15rem 1rem; color: #fff6cc; font-weight: 600; }
+    figure.relato { margin: 1.1rem 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--edge); background: #000; }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja { margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px; background: rgba(0,0,0,.28); border: 1px dashed rgba(255,255,255,.2); }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    .cta-seguir { margin: 2rem 0; padding: 1.2rem 1.25rem; border-radius: 16px; border: 1px solid rgba(134,214,255,.35);
+      background: linear-gradient(135deg, rgba(134,214,255,.12), rgba(241,201,107,.08)); }
+    footer { text-align: center; color: var(--muted); padding: 1.5rem 1rem 2.5rem; font-size: .86rem; }
+</style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="/">CMS</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a><a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>Lo que decide sin ti</h1>
+      <p>Gran parte de tu día lo firma un piloto que no ves. Este curso enciende la luz del sótano: creencias, filtros, historias y una forma práctica de reescribir sin magia ni culpa tóxica.</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <p class="aviso"><strong>Regla de oro.</strong> Nada de este curso sustituye psicoterapia. Si hay trauma, TOC o crisis, la primera parada es clínica. Aquí se trabaja observación y reescritura consciente con respeto al profesional.</p>
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">El piloto automático</a> — admitir el sótano</li>
+        <li><a href="#e2">Creencias bajo el suelo</a> — sacar creencias a la luz</li>
+        <li><a href="#e3">El filtro magnético</a> — entrenar el filtro</li>
+        <li><a href="#e4">La historia que te narraste</a> — reescritura creíble</li>
+        <li><a href="#e5">Reescribir el programa</a> — ritual corto y constante</li>
+        <li><a href="#e6">Emoción que sella</a> — emoción como sello</li>
+        <li><a href="#e7">Decidir con los dos niveles</a> — alinear deseo y creencia</li>
+        <li><a href="#e8">Luz diaria en el sótano</a> — hábito mínimo de inspección</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: audiolibro sobre mente subconsciente («Los secretos de tu mente subconsciente»). Este material no es una transcripción: es pedagogía original de principios para el consultorio y la vida diaria.</p>
+    </section>
+
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · El piloto automático</h2>
+      <p class="principio">Principio: No logras solo lo que deseas despierto. Te alineas con lo que crees dormido.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/lo-que-decide-sin-ti/02-iceberg-mente.jpg" alt="Iceberg con raíces de luz" />
+        <figcaption>Lo visible es poco.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La mente consciente propone. La subconsciente dispone hábitos, atracciones y rechazos. Ignorarla es dejar que un copiloote no elegido maneje.</p><p>El primer paso no es controlarlo todo. Es admitir que hay un sótano.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Quería ahorrar “en serio”. Cada noche pedía comida por ansiedad. El sótano tenía otro plan.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Sobre toda cosa guardada, guarda tu corazón; porque de él mana la vida.» Proverbios 4:23.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Hoy observa tres decisiones automáticas (ruta, snack, tono). Anótalas sin juzgar.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué está firmando mi piloto sin consultarme?</p>
+    </section>
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · Creencias bajo el suelo</h2>
+      <p class="principio">Principio: Las creencias subconscientes son reglas viejas que aún pasan lista.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/lo-que-decide-sin-ti/01-portada-decide-sin-ti.jpg" alt="Rostro entre luz y sombra" />
+        <figcaption>Lo oculto también decide.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>“No merezco”, “siempre me dejan”, “el dinero se va” — si viven abajo, organizan arriba.</p><p>Sacarlas a la luz no las mata al instante. Las vuelve editables.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Creía “soy un estorbo”. Por eso pedía permiso para existir. Al escribirlo, por fin pudo discutirlo.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Como un hombre piensa en su corazón, tal es él.» Proverbios 23:7 (sentido práctico: lo interior forma lo exterior).</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Escribe tres creencias que sospechas operan abajo. Marca cuál pesa más hoy.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Cuál creencia invisible me está gobernando?</p>
+    </section>
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · El filtro magnético</h2>
+      <p class="principio">Principio: Atención es imán. Lo que miras de más, lo amplificas en tu mapa.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/lo-que-decide-sin-ti/04-dos-niveles.jpg" alt="Dos siluetas de la misma persona" />
+        <figcaption>Dos mentes, un día.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>No es que “el universo te castigue”. Es que tu filtro encuentra pruebas de lo que ya crees.</p><p>Cambiar el filtro empieza por cambiar a qué le das minutos.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Solo veía rechazos. Cuando contó también los “sí” pequeños, el mapa se equilibró.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Todo lo que es verdadero… en esto pensad.» Filipenses 4:8.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige un tema (dinero, amor, oficio). Lista 5 pruebas a favor de tu creencia oscura y 5 contra. Obliga al filtro a trabajar.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué está magnificando mi atención?</p>
+    </section>
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · La historia que te narraste</h2>
+      <p class="principio">Principio: Tu autobiografía interna decide qué escenas permites.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/lo-que-decide-sin-ti/03-reescribir-programa.jpg" alt="Cuaderno que se reescribe" />
+        <figcaption>La historia se puede editar.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Si la historia dice “siempre fracaso”, editas la realidad para que cuadre. Reescribir la historia es acto de valentía, no de mentira.</p><p>Nueva historia debe ser creíble y practicada, no solo bonita.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Pasó de “soy el que abandona” a “soy el que vuelve y termina”. Empezó a terminar.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Olvidando lo que queda atrás…» Filipenses 3:13 — no amnesia; reorientación.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Escribe tu historia vieja en 4 líneas. Reescribe una versión nueva creíble en 4 líneas.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué novela mía ya no quiero protagonizar?</p>
+    </section>
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Reescribir el programa</h2>
+      <p class="principio">Principio: La reescritura pide repetición emocionalmente sentida, no solo frases en el espejo.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/lo-que-decide-sin-ti/03-reescribir-programa.jpg" alt="Lámpara y página nueva" />
+        <figcaption>El programa se entrena.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Diario, visualización breve, acción alineada. Los tres juntos mueven el sótano. Uno solo suele fallar.</p><p>Pequeño y diario vence a intenso y raro.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Cada mañana: 2 minutos imaginando la escena nueva y una acción de 5 minutos. En semanas, el automático aflojó.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Transformaos por medio de la renovación de vuestro entendimiento.» Romanos 12:2.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Diseña un ritual de 5 minutos: frase nueva + imagen mental + microacción. Hazlo 7 días.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué micro-ritual reescribirá mi sótano esta semana?</p>
+    </section>
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · Emoción que sella</h2>
+      <p class="principio">Principio: La emoción graba. Por eso el cambio pide sentir la escena nueva, no solo pensarla.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/lo-que-decide-sin-ti/04-dos-niveles.jpg" alt="Persona consciente y sombra" />
+        <figcaption>Sentir también programa.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>El miedo sella escasez. La gratitud sentida sella provisión. La vergüenza sella ocultamiento.</p><p>No manipules emociones: invítalas con escenas reales y seguras.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Al recordar un “sí” real, el pecho se abrió. Esa emoción acompañó la nueva frase y pegó mejor.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «El gozo de Jehová es vuestra fuerza.» Nehemías 8:10.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige una memoria verdadera de competencia o cuidado recibido. Siéntela 60 segundos antes de tu frase nueva.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué emoción estoy usando para sellar el programa viejo?</p>
+    </section>
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · Decidir con los dos niveles</h2>
+      <p class="principio">Principio: La madurez une deseo consciente y cooperación del sótano.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/lo-que-decide-sin-ti/02-iceberg-mente.jpg" alt="Profundidades iluminadas" />
+        <figcaption>Decidir con todo el iceberg.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Pregunta arriba: ¿qué quiero? Pregunta abajo: ¿qué creo que merezco? Si chocan, hay trabajo. Si alinean, hay potencia.</p><p>Decide en papel. Luego revisa si el cuerpo dice sí o se contrae.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Quería el puesto. El cuerpo se cerraba. Había una creencia de fraude. La trabajó. Luego el sí fue limpio.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Si alguno de vosotros tiene falta de sabiduría, pídala a Dios.» Santiago 1:5.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Toma una decisión pendiente. Escribe deseo consciente, creencia sospechada y una acción de alineación.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Mis dos niveles están de acuerdo en esta decisión?</p>
+    </section>
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Luz diaria en el sótano</h2>
+      <p class="principio">Principio: Cierra con un hábito mínimo: una inspección diaria del piloto.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/lo-que-decide-sin-ti/01-portada-decide-sin-ti.jpg" alt="Rostro en quietud" />
+        <figcaption>La luz diaria cambia el sótano.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Tres minutos al día: ¿qué firmó el automático? ¿qué reescribo mañana?</p><p>Vuelve a la Escuela. Sigue estudiando. Sigue separándote de lo que ya no te conduce.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Cada noche, tres líneas. En un mes, se reconoció antes de recaer.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Lámpara es a mis pies tu palabra.» Salmo 119:105.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Agenda 3 minutos nocturnos “sótano”. Cumple 7 noches. No falles por perfeccionismo: cumple corto.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿A qué hora concreta inspeccionaré mi piloto?</p>
+    </section>
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno · ocho ejercicios</h2>
+      <ol>
+        <li><strong>El piloto automático:</strong> Hoy observa tres decisiones automáticas (ruta, snack, tono). Anótalas sin juzgar.</li>        <li><strong>Creencias bajo el suelo:</strong> Escribe tres creencias que sospechas operan abajo. Marca cuál pesa más hoy.</li>        <li><strong>El filtro magnético:</strong> Elige un tema (dinero, amor, oficio). Lista 5 pruebas a favor de tu creencia oscura y 5 contra. Obliga al filtro a trabajar.</li>        <li><strong>La historia que te narraste:</strong> Escribe tu historia vieja en 4 líneas. Reescribe una versión nueva creíble en 4 líneas.</li>        <li><strong>Reescribir el programa:</strong> Diseña un ritual de 5 minutos: frase nueva + imagen mental + microacción. Hazlo 7 días.</li>        <li><strong>Emoción que sella:</strong> Elige una memoria verdadera de competencia o cuidado recibido. Siéntela 60 segundos antes de tu frase nueva.</li>        <li><strong>Decidir con los dos niveles:</strong> Toma una decisión pendiente. Escribe deseo consciente, creencia sospechada y una acción de alineación.</li>        <li><strong>Luz diaria en el sótano:</strong> Agenda 3 minutos nocturnos “sótano”. Cumple 7 noches. No falles por perfeccionismo: cumple corto.</li>
+      </ol>
+    </section>
+    <div class="cta-seguir">
+      <h2 style="margin-top:0">Sigue estudiando. Sigue separándote.</h2>
+      <p>Hoy enciende una sola luz en el sótano: una creencia, un filtro, una historia. Reescribe una línea. Luego vuelve a la Escuela — hay más itinerarios esperándote.</p>
+      <p class="meta">Cuando termines este itinerario, vuelve a la Escuela ContacNeed y elige el siguiente curso. La educación continua no es un adorno: es el suelo donde crece tu salud física, mental y de oficio.</p>
+    </div>
+  </main>
+  <footer>CMS VIAM · Escuela de principios vitalicios · ContacNeed</footer>
+</body>
+</html>
