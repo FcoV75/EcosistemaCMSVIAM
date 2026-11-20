@@ -472,7 +472,8 @@ async function activateProFromCheckout(session) {
     }
   }
 
-  const planType = session.metadata?.plan === 'annual' ? 'annual' : 'monthly'
+  const planRaw = String(session.metadata?.plan || '').toLowerCase()
+  const planType = planRaw === 'annual' || planRaw === 'anual' ? 'annual' : 'monthly'
   const email =
     String(session.customer_details?.email || session.customer_email || session.metadata?.email || '')
       .trim()
@@ -547,8 +548,9 @@ async function renewFromInvoice(stripe, invoice) {
   if (!userId) return { skipped: true, reason: 'sin_userId_en_subscription' }
 
   const producto = meta.producto || 'contacneed_pro'
+  const planRaw = String(meta.plan || meta.billing || '').toLowerCase()
   const billing =
-    meta.billing === 'anual' || meta.plan === 'annual' ? 'anual' : 'mensual'
+    planRaw === 'anual' || planRaw === 'annual' || meta.billing === 'anual' ? 'anual' : 'mensual'
   const planType = billing === 'anual' ? 'annual' : 'monthly'
   const expiresAt =
     billing === 'anual'

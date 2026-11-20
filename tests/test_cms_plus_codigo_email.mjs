@@ -49,4 +49,17 @@ const shell = fs.readFileSync(
 assert.match(shell, /cmsPlusRenovacion/)
 assert.match(shell, /Renueva tu Círculo CMS-Plus/)
 
+const fallbackCheckout = fs.readFileSync(
+  'ContacNeed - Arquitectura Modular Diamante Estabilizada/netlify/functions/create-checkout-session.mjs',
+  'utf8',
+)
+assert.match(fallbackCheckout, /plan = esAnual \? 'annual' : 'monthly'/)
+assert.match(fallbackCheckout, /subscription_data/)
+
+const bridge = fs.readFileSync(
+  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/components/LiveSocialBridge.tsx',
+  'utf8',
+)
+assert.match(bridge, /table: 'publicaciones'/)
+
 console.log('test_cms_plus_codigo_email: ok')

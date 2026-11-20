@@ -67,6 +67,7 @@ export const createCheckoutSessionFn = createServerFn({ method: 'POST' })
 
     const priceId = esAnual ? process.env.STRIPE_PRICE_ANNUAL : process.env.STRIPE_PRICE_MONTHLY
 
+    const metadata = { userId: user.id, plan: data.plan, producto: 'contacneed_pro' }
     const session = priceId
       ? await stripe.checkout.sessions.create({
           mode: 'subscription',
@@ -74,7 +75,8 @@ export const createCheckoutSessionFn = createServerFn({ method: 'POST' })
           line_items: [{ price: priceId, quantity: 1 }],
           success_url: `${siteUrl}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${siteUrl}/?payment_cancelled=true`,
-          metadata: { userId: user.id, plan: data.plan, producto: 'contacneed_pro' },
+          metadata,
+          subscription_data: { metadata },
         })
       : await stripe.checkout.sessions.create({
           mode: 'subscription',
@@ -94,7 +96,8 @@ export const createCheckoutSessionFn = createServerFn({ method: 'POST' })
           ],
           success_url: `${siteUrl}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${siteUrl}/?payment_cancelled=true`,
-          metadata: { userId: user.id, plan: data.plan, producto: 'contacneed_pro' },
+          metadata,
+          subscription_data: { metadata },
         })
 
     if (!session.url) throw new Error('No se pudo crear la sesión de pago')
@@ -213,7 +216,8 @@ export const confirmStripeSessionFn = createServerFn({ method: 'POST' })
       }
     }
 
-    const planType = session.metadata?.plan === 'annual' ? 'annual' : 'monthly'
+    const planRaw = String(session.metadata?.plan || '').toLowerCase()
+    const planType = planRaw === 'annual' || planRaw === 'anual' ? 'annual' : 'monthly'
     const out = await upsertContacNeedPro(supabase, user.id, planType, session.id, {
       email: user.email,
       notifySource: 'contacneed_confirm',

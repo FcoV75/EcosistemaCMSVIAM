@@ -291,6 +291,31 @@ export async function activateCmsPlus(
     console.warn('cms-plus créditos (¿migración 016 aplicada?):', err)
   }
 
+  // Si el nuevo miembro venía de un círculo, bonifica al titular.
+  try {
+    const { data: asBeneficiary } = await supabase
+      .from('cms_plus_circulo')
+      .select('id, titular_id')
+      .eq('beneficiario_id', userId)
+      .eq('status', 'active')
+      .maybeSingle()
+    if (asBeneficiary?.titular_id) {
+      await supabase
+        .from('cms_plus_circulo')
+        .update({ status: 'converted', updated_at: new Date().toISOString() })
+        .eq('id', asBeneficiary.id)
+      const titularStatus = await getCmsPlusStatus(supabase, asBeneficiary.titular_id)
+      if (titularStatus.active && titularStatus.nivel) {
+        await otorgarBonoFidelidad(supabase, {
+          titularId: asBeneficiary.titular_id,
+          nivel: titularStatus.nivel,
+        })
+      }
+    }
+  } catch (err) {
+    console.warn('cms-plus bono círculo (conversión):', err)
+  }
+
   const notify = await notifyCmsPlusActivation(supabase, {
     userId,
     email: email || null,

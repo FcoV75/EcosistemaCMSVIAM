@@ -90,13 +90,11 @@ export function StripeSubscriptionModal({ open, onClose, onOpenAuth }: StripeSub
           headers: { 'Content-Type': 'application/json' },
 
           body: JSON.stringify({
-
             planTipo: plan === 'annual' ? 'anual' : 'mensual',
-
+            plan,
+            userId: user.id,
             successUrl: `${window.location.origin}/?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
-
             cancelUrl: `${window.location.origin}/?payment_cancelled=true`,
-
           }),
 
         })

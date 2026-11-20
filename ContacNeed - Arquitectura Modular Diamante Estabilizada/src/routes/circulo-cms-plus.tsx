@@ -431,8 +431,8 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
                 <p className="mt-2 text-sm text-slate-300">Cargando créditos del periodo…</p>
               )}
               <p className="mt-3 text-xs text-slate-400">
-                Periodo {miQuery.data?.creditos?.periodo || '—'}. Los créditos se renuevan cada mes y
-                puedes acumular hasta 2 periodos.
+                Periodo {miQuery.data?.creditos?.periodo || '—'}. Los créditos se renuevan cada mes
+                (periodo calendario).
               </p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <button
