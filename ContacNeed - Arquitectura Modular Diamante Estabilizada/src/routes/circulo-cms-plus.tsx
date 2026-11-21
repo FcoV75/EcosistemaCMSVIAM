@@ -157,9 +157,29 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
   })
 
   const usarCreditoMutation = useMutation({
-    mutationFn: (nota: string) => usarCreditoCmsPlusFn({ data: { cantidad: 1, nota } }),
-    onSuccess: () => {
-      setMsg('Crédito de salud descontado. Que la consulta te fortalezca.')
+    mutationFn: () => {
+      const idempotencyKey =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? `uso-${crypto.randomUUID()}`
+          : `uso-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+      return usarCreditoCmsPlusFn({
+        data: {
+          cantidad: 1,
+          nota: 'Consulta titular CMS-Plus',
+          idempotencyKey,
+        },
+      })
+    },
+    onSuccess: (result) => {
+      const usados = result.resumen?.usados
+      const disponibles = result.resumen?.disponibles
+      setMsg(
+        `Se descontó 1 crédito de tu consulta.${
+          typeof usados === 'number' && typeof disponibles === 'number'
+            ? ` Usados: ${usados}. Disponibles: ${disponibles}.`
+            : ''
+        }`,
+      )
       queryClient.invalidateQueries({ queryKey: ['mi-cms-plus'] })
       queryClient.invalidateQueries({ queryKey: ['mi-cms-plus-badge'] })
     },
@@ -168,34 +188,18 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
     },
   })
 
-  const registrarConsulta = (para: 'titular' | 'beneficiario') => {
+  const registrarConsultaTitular = () => {
+    if (usarCreditoMutation.isPending) return
     const disponibles = miQuery.data?.creditos?.disponibles ?? 0
     if (disponibles < 1) {
       setMsg('No te quedan créditos este mes. Renueva o sube de nivel para seguir consultando.')
       return
     }
     const ok = window.confirm(
-      para === 'beneficiario'
-        ? '¿Registrar 1 crédito por consulta de un beneficiario de tu círculo?'
-        : '¿Registrar 1 crédito por tu consulta de salud?',
+      '¿Registrar 1 crédito por TU consulta de salud? (Los beneficiarios no usan créditos; solo tienen descuento en precio.)',
     )
     if (!ok) return
-    usarCreditoMutation.mutate(
-      para === 'beneficiario' ? 'Consulta beneficiario círculo' : 'Consulta titular CMS-Plus',
-    )
-  }
-
-  const abrirCitasConCredito = () => {
-    const disponibles = miQuery.data?.creditos?.disponibles ?? 0
-    if (disponibles > 0) {
-      const ok = window.confirm(
-        `Tienes ${disponibles} crédito(s) disponible(s). ¿Descontar 1 al abrir la agenda de citas?`,
-      )
-      if (ok) {
-        usarCreditoMutation.mutate('Consulta vía Calendly CMS')
-      }
-    }
-    window.open(CALENDLY_CMS, '_blank', 'noopener,noreferrer')
+    usarCreditoMutation.mutate()
   }
 
   const membership = miQuery.data?.membership
@@ -431,34 +435,25 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
                 <p className="mt-2 text-sm text-slate-300">Cargando créditos del periodo…</p>
               )}
               <p className="mt-3 text-xs text-slate-400">
-                Periodo {miQuery.data?.creditos?.periodo || '—'}. Los créditos se renuevan cada mes
-                (periodo calendario).
+                Periodo {miQuery.data?.creditos?.periodo || '—'}. Los créditos gratuitos son solo para
+                el titular de la membresía. Se renuevan cada mes.
               </p>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={() => registrarConsulta('titular')}
-                  disabled={usarCreditoMutation.isPending || (miQuery.data?.creditos?.disponibles ?? 0) < 1}
-                  className="rounded-xl border border-emerald-300/40 bg-emerald-900/40 px-3 py-2 text-xs font-semibold text-emerald-50 disabled:opacity-50"
-                >
-                  {usarCreditoMutation.isPending ? 'Descontando…' : 'Usar 1 crédito (yo)'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => registrarConsulta('beneficiario')}
-                  disabled={usarCreditoMutation.isPending || (miQuery.data?.creditos?.disponibles ?? 0) < 1}
-                  className="rounded-xl border border-emerald-300/30 bg-emerald-950/50 px-3 py-2 text-xs font-semibold text-emerald-100 disabled:opacity-50"
-                >
-                  Usar 1 crédito (beneficiario)
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={registrarConsultaTitular}
+                disabled={usarCreditoMutation.isPending || (miQuery.data?.creditos?.disponibles ?? 0) < 1}
+                className="mt-3 w-full rounded-xl border border-emerald-300/40 bg-emerald-900/40 px-3 py-2 text-xs font-semibold text-emerald-50 disabled:opacity-50"
+              >
+                {usarCreditoMutation.isPending ? 'Descontando 1 crédito…' : 'Registrar 1 crédito de mi consulta'}
+              </button>
             </div>
 
             <div className="rounded-2xl border border-cyan-400/25 bg-cyan-950/20 p-5 lg:col-span-1">
               <h2 className="text-lg font-bold text-cyan-100">Tu círculo de cuidado</h2>
               <p className="mt-1 text-sm text-slate-300">
-                Invita hasta {membership.tier?.beneficiariosMax ?? '—'} personas. Descuento{' '}
-                {membership.tier?.descuentoCirculoPct ?? '—'}% en consultas. No es pirámide.
+                Invita hasta {membership.tier?.beneficiariosMax ?? '—'} personas. Ellos no gastan tus
+                créditos: reciben {membership.tier?.descuentoCirculoPct ?? '—'}% de descuento en su
+                consulta. No es pirámide.
               </p>
               <div className="mt-3 flex flex-col gap-2">
                 <input
@@ -509,21 +504,20 @@ function CirculoCmsPlusContent({ onOpenStripe }: { onOpenStripe: () => void }) {
             <div className="rounded-2xl border border-amber-400/25 bg-amber-950/20 p-5">
               <h2 className="text-lg font-bold text-amber-100">Citas CMS · Calendly</h2>
               <p className="mt-1 text-sm text-slate-300">
-                Programa tus consultas o las de tus beneficiarios con la misma app de citas de la
-                página principal del CMS.
+                Agenda tu consulta (titular) o la de un beneficiario. El descuento del círculo lo
+                aplica el CMS en mostrador; el crédito gratuito solo se descuenta con el botón de
+                arriba, una vez por tu consulta.
               </p>
-              <button
-                type="button"
-                onClick={abrirCitasConCredito}
+              <a
+                href={CALENDLY_CMS}
+                target="_blank"
+                rel="noreferrer"
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950"
               >
                 <Calendar size={16} />
                 Abrir app de citas
-              </button>
-              <p className="mt-2 text-xs text-slate-400">
-                Al abrir puedes descontar 1 crédito. También puedes registrar usos manuales arriba.
-              </p>
-              <p className="mt-1 break-all text-xs text-slate-500">{CALENDLY_CMS}</p>
+              </a>
+              <p className="mt-2 break-all text-xs text-slate-500">{CALENDLY_CMS}</p>
             </div>
           </section>
         </>

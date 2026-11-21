@@ -450,17 +450,140 @@ export async function registrarUsoCredito(
     nivel,
     cantidad = 1,
     nota,
-  }: { userId: string; nivel: CmsPlusNivel; cantidad?: number; nota?: string },
+    idempotencyKey,
+  }: {
+    userId: string
+    nivel: CmsPlusNivel
+    cantidad?: number
+    nota?: string
+    /** Evita descuentos repetidos si el cliente reintenta el mismo clic. */
+    idempotencyKey?: string | null
+  },
 ) {
+  const n = Math.max(1, Math.floor(Number(cantidad) || 1))
+  if (n !== 1) {
+    throw new Error('Solo se puede descontar 1 crédito de consulta a la vez.')
+  }
+
   const resumen = await getCreditosResumen(supabase, userId, nivel)
-  if (resumen.disponibles < cantidad) {
+  const key = String(idempotencyKey || '')
+    .trim()
+    .slice(0, 80)
+
+  if (key) {
+    const { data: recientes } = await supabase
+      .from('cms_plus_creditos_movimientos')
+      .select('id, metadata')
+      .eq('user_id', userId)
+      .eq('periodo', resumen.periodo)
+      .eq('tipo', 'uso')
+      .order('created_at', { ascending: false })
+      .limit(30)
+    const prev = (recientes || []).find(
+      (m) => String((m.metadata as { idempotency_key?: string } | null)?.idempotency_key || '') === key,
+    )
+    if (prev?.id) {
+      const { data: current } = await supabase
+        .from('cms_plus_creditos')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('periodo', resumen.periodo)
+        .maybeSingle()
+      return current || { ...resumen, id: prev.id }
+    }
+  }
+
+  if (resumen.disponibles < n) {
     throw new Error('No tienes créditos suficientes este mes.')
   }
+
+  // Primero intenta RPC atómica (migración 019). Fallback con bloqueo optimista.
+  let data: Record<string, unknown> | null = null
+  const { data: rpcRow, error: rpcError } = await supabase.rpc('cms_plus_consumir_credito', {
+    p_user_id: userId,
+    p_periodo: resumen.periodo,
+    p_cantidad: n,
+  })
+
+  if (!rpcError && rpcRow) {
+    data = Array.isArray(rpcRow) ? rpcRow[0] : rpcRow
+  } else {
+    const msg = `${rpcError?.message || ''} ${rpcError?.code || ''}`.toLowerCase()
+    const missingFn =
+      msg.includes('could not find') ||
+      msg.includes('function') ||
+      msg.includes('schema cache') ||
+      rpcError?.code === 'PGRST202'
+    if (!missingFn && msg.includes('creditos_insuficientes')) {
+      throw new Error('No tienes créditos suficientes este mes.')
+    }
+    if (!missingFn && rpcError && !msg.includes('creditos_insuficientes')) {
+      console.warn('cms_plus_consumir_credito RPC:', rpcError.message)
+    }
+
+    // Fallback: UPDATE solo si `usados` no cambió (anti-carrera).
+    let updated: Record<string, unknown> | null = null
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const snap = await getCreditosResumen(supabase, userId, nivel)
+      if (snap.disponibles < n) {
+        throw new Error('No tienes créditos suficientes este mes.')
+      }
+      const { data: row, error } = await supabase
+        .from('cms_plus_creditos')
+        .update({
+          usados: snap.usados + n,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('periodo', snap.periodo)
+        .eq('usados', snap.usados)
+        .select('*')
+        .maybeSingle()
+      if (error) throw error
+      if (row?.id) {
+        updated = row
+        break
+      }
+    }
+    if (!updated) {
+      throw new Error('No se pudo descontar el crédito. Intenta de nuevo.')
+    }
+    data = updated
+  }
+
+  await supabase.from('cms_plus_creditos_movimientos').insert({
+    user_id: userId,
+    periodo: resumen.periodo,
+    tipo: 'uso',
+    cantidad: -n,
+    nota: nota || 'Consulta titular CMS-Plus',
+    metadata: {
+      solo_titular: true,
+      ...(key ? { idempotency_key: key } : {}),
+    },
+  })
+
+  return data
+}
+
+/** Ajuste manual de créditos (admin): corrige cobros erróneos sin tocar allotment. */
+export async function ajustarUsadosCredito(
+  supabase: SupabaseClient,
+  {
+    userId,
+    nivel,
+    usados,
+    nota,
+  }: { userId: string; nivel: CmsPlusNivel; usados: number; nota?: string },
+) {
+  const resumen = await getCreditosResumen(supabase, userId, nivel)
+  const next = Math.max(0, Math.min(Math.floor(Number(usados) || 0), resumen.allotment))
+  const delta = next - resumen.usados
 
   const { data, error } = await supabase
     .from('cms_plus_creditos')
     .update({
-      usados: resumen.usados + cantidad,
+      usados: next,
       updated_at: new Date().toISOString(),
     })
     .eq('user_id', userId)
@@ -469,15 +592,21 @@ export async function registrarUsoCredito(
     .single()
   if (error) throw error
 
-  await supabase.from('cms_plus_creditos_movimientos').insert({
-    user_id: userId,
-    periodo: resumen.periodo,
-    tipo: 'uso',
-    cantidad: -cantidad,
-    nota: nota || 'Uso de crédito de salud',
-  })
+  if (delta !== 0) {
+    await supabase.from('cms_plus_creditos_movimientos').insert({
+      user_id: userId,
+      periodo: resumen.periodo,
+      tipo: 'ajuste',
+      cantidad: -delta,
+      nota: nota || `Ajuste admin: usados ${resumen.usados} → ${next}`,
+      metadata: { admin: true, previos: resumen.usados, nuevos: next },
+    })
+  }
 
-  return data
+  return {
+    ...data,
+    disponibles: Math.max(0, (data.allotment || 0) - (data.usados || 0)),
+  }
 }
 
 function randomToken() {

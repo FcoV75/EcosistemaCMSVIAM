@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import {
+  ajustarCreditosCmsPlusAdminFn,
+  consultarMiembroCmsPlusAdminFn,
   listCmsPlusAdminFn,
   otorgarCmsPlusAdminFn,
   revocarCmsPlusAdminFn,
@@ -8,6 +10,8 @@ import {
   reactivarCmsPlusAdminFn,
 } from '../../server/cms-plus.functions'
 import { CMS_PLUS_NIVELES, type CmsPlusBilling, type CmsPlusNivel } from '../../lib/cms-plus'
+
+type ConsultaMatch = Awaited<ReturnType<typeof consultarMiembroCmsPlusAdminFn>>['matches'][number]
 
 type TabId = CmsPlusNivel | 'todos' | 'suspendidos'
 
@@ -28,6 +32,10 @@ export function CmsPlusAdminPanel() {
   const [permanent, setPermanent] = useState(false)
   const [tab, setTab] = useState<TabId>('todos')
   const [msg, setMsg] = useState<string | null>(null)
+  const [lookupQ, setLookupQ] = useState('')
+  const [lookupMatches, setLookupMatches] = useState<ConsultaMatch[]>([])
+  const [lookupMsg, setLookupMsg] = useState<string | null>(null)
+  const [ajusteUsados, setAjusteUsados] = useState<Record<string, string>>({})
 
   const listQuery = useQuery({
     queryKey: ['admin-cms-plus'],
@@ -35,6 +43,48 @@ export function CmsPlusAdminPanel() {
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['admin-cms-plus'] })
+
+  const lookupMutation = useMutation({
+    mutationFn: () => consultarMiembroCmsPlusAdminFn({ data: { q: lookupQ } }),
+    onSuccess: (result) => {
+      setLookupMatches(result.matches || [])
+      setLookupMsg(
+        result.found
+          ? `Encontré ${result.matches.length} miembro${result.matches.length === 1 ? '' : 's'}.`
+          : 'Sin coincidencias. Prueba correo, código CMS-XXXXXX o nombre.',
+      )
+      const next: Record<string, string> = {}
+      for (const m of result.matches || []) {
+        if (m.userId && m.creditos) next[m.userId] = String(m.creditos.usados)
+      }
+      setAjusteUsados(next)
+    },
+    onError: (error) => {
+      setLookupMatches([])
+      setLookupMsg(error instanceof Error ? error.message : 'No se pudo consultar')
+    },
+  })
+
+  const ajusteMutation = useMutation({
+    mutationFn: (payload: { userId: string; usados: number }) =>
+      ajustarCreditosCmsPlusAdminFn({
+        data: {
+          userId: payload.userId,
+          usados: payload.usados,
+          nota: 'Corrección admin de créditos usados',
+        },
+      }),
+    onSuccess: (result, vars) => {
+      setLookupMsg(
+        `Créditos corregidos. Usados: ${result.creditos.usados}. Disponibles: ${result.creditos.disponibles}.`,
+      )
+      setAjusteUsados((prev) => ({ ...prev, [vars.userId]: String(result.creditos.usados) }))
+      if (lookupQ.trim()) lookupMutation.mutate()
+    },
+    onError: (error) => {
+      setLookupMsg(error instanceof Error ? error.message : 'No se pudo ajustar')
+    },
+  })
 
   const otorgarMutation = useMutation({
     mutationFn: () =>
@@ -111,6 +161,136 @@ export function CmsPlusAdminPanel() {
 
   return (
     <div className="space-y-6">
+      <section className="rounded-2xl border border-cyan-400/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-950/40 p-4">
+        <h2 className="text-lg font-bold text-cyan-200">Consulta de créditos · un miembro a la vez</h2>
+        <p className="mt-1 text-sm text-slate-300">
+          Busca por correo, código CMS o nombre. Verás nivel, créditos y beneficiarios (solo
+          descuento en consulta; no gastan créditos del titular).
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={lookupQ}
+            onChange={(e) => setLookupQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && lookupQ.trim().length >= 2) lookupMutation.mutate()
+            }}
+            placeholder="correo, CMS-XXXXXX o nombre"
+            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white sm:flex-1"
+          />
+          <button
+            type="button"
+            disabled={lookupMutation.isPending || lookupQ.trim().length < 2}
+            onClick={() => lookupMutation.mutate()}
+            className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950 disabled:opacity-50"
+          >
+            {lookupMutation.isPending ? 'Buscando…' : 'Consultar'}
+          </button>
+        </div>
+        {lookupMsg && (
+          <p className="mt-3 rounded-xl border border-cyan-400/25 bg-cyan-950/30 px-3 py-2 text-sm text-cyan-50">
+            {lookupMsg}
+          </p>
+        )}
+        <div className="mt-4 space-y-4">
+          {lookupMatches.map((m) => (
+            <article
+              key={m.entitlementId}
+              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-slate-200"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-base font-bold text-amber-100">
+                    {m.nombre || 'Sin nombre'} · <span className="capitalize">{m.nivel}</span>
+                  </p>
+                  <p className="mt-1 font-mono text-xs text-slate-400">
+                    {m.email || '—'} · {m.legacyCode || 'sin código'} · {m.status}
+                    {m.permanent ? ' · permanente' : ''}
+                  </p>
+                </div>
+                {m.creditos ? (
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-lg border border-emerald-400/20 bg-emerald-950/30 px-3 py-2">
+                      <p className="text-lg font-black text-emerald-200">{m.creditos.disponibles}</p>
+                      <p className="text-[10px] uppercase text-slate-400">Quedan</p>
+                    </div>
+                    <div className="rounded-lg border border-amber-400/20 bg-amber-950/30 px-3 py-2">
+                      <p className="text-lg font-black text-amber-200">{m.creditos.usados}</p>
+                      <p className="text-[10px] uppercase text-slate-400">Usados</p>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-slate-950/50 px-3 py-2">
+                      <p className="text-lg font-black text-slate-100">{m.creditos.allotment}</p>
+                      <p className="text-[10px] uppercase text-slate-400">Asignados</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">Sin fila de créditos este periodo.</p>
+                )}
+              </div>
+
+              {m.status === 'active' && m.creditos && (
+                <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-white/5 pt-3">
+                  <label className="text-xs text-slate-400">
+                    Corregir usados
+                    <input
+                      type="number"
+                      min={0}
+                      max={m.creditos.allotment}
+                      value={ajusteUsados[m.userId] ?? String(m.creditos.usados)}
+                      onChange={(e) =>
+                        setAjusteUsados((prev) => ({ ...prev, [m.userId]: e.target.value }))
+                      }
+                      className="mt-1 w-24 rounded-lg border border-white/10 bg-slate-950 px-2 py-1.5 text-sm text-white"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={ajusteMutation.isPending}
+                    onClick={() => {
+                      const usados = Number(ajusteUsados[m.userId] ?? m.creditos?.usados ?? 0)
+                      if (!confirm(`¿Dejar créditos usados en ${usados} para ${m.email || m.nombre}?`)) {
+                        return
+                      }
+                      ajusteMutation.mutate({ userId: m.userId, usados })
+                    }}
+                    className="rounded-lg border border-amber-400/40 bg-amber-900/40 px-3 py-1.5 text-xs font-semibold text-amber-100 disabled:opacity-50"
+                  >
+                    Guardar corrección
+                  </button>
+                  <p className="text-[11px] text-slate-500">
+                    Úsalo si se cobró de más (ej. 3 en lugar de 1).
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-cyan-200/90">
+                  Beneficiarios del círculo
+                </p>
+                {m.beneficiarios.length === 0 ? (
+                  <p className="mt-1 text-xs text-slate-500">Sin invitaciones aún.</p>
+                ) : (
+                  <ul className="mt-2 space-y-1.5">
+                    {m.beneficiarios.map((b) => (
+                      <li
+                        key={b.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2 text-xs"
+                      >
+                        <span>
+                          {b.nombre || 'Sin nombre'} · {b.email || 'sin correo'} · {b.status}
+                        </span>
+                        <span className="font-semibold text-cyan-200">
+                          −{b.descuento_pct}% en consulta
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-950/40 via-slate-900/80 to-violet-950/30 p-4">
         <h2 className="text-lg font-bold text-amber-300">Círculo CMS-Plus · Control de membresías</h2>
         <p className="mt-1 text-sm text-slate-300">

@@ -39,8 +39,9 @@ const ui = fs.readFileSync(
   'utf8',
 )
 assert.match(ui, /usarCreditoCmsPlusFn/)
-assert.match(ui, /Usar 1 crédito \(beneficiario\)/)
-assert.match(ui, /abrirCitasConCredito/)
+assert.match(ui, /Registrar 1 crédito de mi consulta/)
+assert.equal(ui.includes('Usar 1 crédito (beneficiario)'), false)
+assert.equal(ui.includes('abrirCitasConCredito'), false)
 
 const shell = fs.readFileSync(
   'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/components/AppShell.tsx',
