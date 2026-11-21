@@ -4,6 +4,7 @@ import { getServerUser, requireActiveUser, requireAdminUser } from '../lib/auth'
 import {
   aceptarInvitacionCirculo,
   activateCmsPlus,
+  ajustarUsadosCredito,
   catalogoPublicoCmsPlus,
   getCmsPlusStatus,
   getCreditosResumen,
@@ -16,6 +17,7 @@ import {
 import {
   CMS_PLUS_MANIFIESTO,
   PRODUCTO_CMS_PLUS,
+  getCmsPlusTier,
   isCmsPlusNivel,
   type CmsPlusBilling,
   type CmsPlusNivel,
@@ -188,7 +190,7 @@ export const aceptarCirculoCmsPlusFn = createServerFn({ method: 'POST' })
   })
 
 export const usarCreditoCmsPlusFn = createServerFn({ method: 'POST' })
-  .inputValidator((d: { cantidad?: number; nota?: string }) => d)
+  .inputValidator((d: { cantidad?: number; nota?: string; idempotencyKey?: string }) => d)
   .handler(async ({ data }) => {
     const { user } = await requireActiveUser()
     const supabase = createSupabaseAdminClient()
@@ -196,11 +198,166 @@ export const usarCreditoCmsPlusFn = createServerFn({ method: 'POST' })
     if (!membership.active || !membership.nivel) {
       throw new Error('Necesitas CMS-Plus activo para usar créditos.')
     }
+    // Créditos gratuitos solo para el titular; beneficiarios usan descuento de círculo.
     const row = await registrarUsoCredito(supabase, {
       userId: user.id,
       nivel: membership.nivel,
-      cantidad: data.cantidad || 1,
-      nota: data.nota,
+      cantidad: 1,
+      nota: data.nota || 'Consulta titular CMS-Plus',
+      idempotencyKey: data.idempotencyKey,
+    })
+    const resumen = await getCreditosResumen(supabase, user.id, membership.nivel)
+    return { ok: true, creditos: row, resumen }
+  })
+
+export const consultarMiembroCmsPlusAdminFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { q: string }) => d)
+  .handler(async ({ data }) => {
+    const admin = await requireAdminUser()
+    if (!admin) throw new Error('Acceso denegado: se requiere administrador')
+
+    const q = String(data.q || '').trim()
+    if (q.length < 2) throw new Error('Escribe correo, código CMS o nombre (mín. 2 caracteres).')
+
+    const supabase = createSupabaseAdminClient()
+    const qLower = q.toLowerCase()
+    const qCode = q.toUpperCase()
+
+    const safe = q.replace(/[%_,]/g, '').slice(0, 80)
+    const { data: perfilesHit } = await supabase
+      .from('perfiles')
+      .select('id, nombre, correo')
+      .or(`nombre.ilike.%${safe}%,correo.ilike.%${safe}%`)
+      .limit(25)
+
+    const { data: byCode } = await supabase
+      .from('ecosistema_entitlements')
+      .select('id, user_id, plan, status, expires_at, metadata, legacy_code, created_at')
+      .eq('producto', PRODUCTO_CMS_PLUS)
+      .ilike('legacy_code', `%${qCode}%`)
+      .limit(25)
+
+    const { data: byMetaEmail } = await supabase
+      .from('ecosistema_entitlements')
+      .select('id, user_id, plan, status, expires_at, metadata, legacy_code, created_at')
+      .eq('producto', PRODUCTO_CMS_PLUS)
+      .order('created_at', { ascending: false })
+      .limit(300)
+
+    const metaHits = (byMetaEmail || []).filter((row) => {
+      const meta = (row.metadata || {}) as { email?: string }
+      return String(meta.email || '')
+        .toLowerCase()
+        .includes(qLower)
+    })
+
+    const userIds = [
+      ...new Set(
+        [
+          ...(perfilesHit || []).map((p) => p.id),
+          ...(byCode || []).map((r) => r.user_id),
+          ...metaHits.map((r) => r.user_id),
+        ].filter(Boolean) as string[],
+      ),
+    ].slice(0, 8)
+
+    if (!userIds.length) {
+      return { found: false as const, matches: [] }
+    }
+
+    const { data: entitlements } = await supabase
+      .from('ecosistema_entitlements')
+      .select('id, user_id, plan, status, expires_at, metadata, legacy_code, created_at')
+      .eq('producto', PRODUCTO_CMS_PLUS)
+      .in('user_id', userIds)
+      .order('created_at', { ascending: false })
+
+    async function buildMatch(userId: string) {
+      const row =
+        (entitlements || []).find((e) => e.user_id === userId && e.status === 'active') ||
+        (entitlements || []).find((e) => e.user_id === userId)
+      if (!row || !isCmsPlusNivel(row.plan || '')) return null
+
+      const meta = (row.metadata || {}) as { email?: string; billing?: string; permanent?: boolean }
+      const perfil =
+        (perfilesHit || []).find((p) => p.id === userId) ||
+        (
+          await supabase.from('perfiles').select('id, nombre, correo').eq('id', userId).maybeSingle()
+        ).data
+
+      let creditos = null
+      try {
+        creditos = await getCreditosResumen(supabase, userId, row.plan as CmsPlusNivel)
+      } catch {
+        creditos = null
+      }
+
+      const circuloRaw = await listarCirculoTitular(supabase, userId)
+      const beneficiarios = []
+      for (const inv of circuloRaw) {
+        let nombre: string | null = null
+        let correo = inv.email_invitado || null
+        if (inv.beneficiario_id) {
+          const { data: bp } = await supabase
+            .from('perfiles')
+            .select('nombre, correo')
+            .eq('id', inv.beneficiario_id)
+            .maybeSingle()
+          nombre = bp?.nombre || null
+          correo = bp?.correo || correo
+        }
+        beneficiarios.push({
+          id: inv.id,
+          status: inv.status,
+          email: correo,
+          nombre,
+          descuento_pct: inv.descuento_pct,
+          token: inv.token,
+        })
+      }
+
+      const tier = getCmsPlusTier(row.plan)
+      return {
+        entitlementId: row.id,
+        userId,
+        nombre: perfil?.nombre || null,
+        email: perfil?.correo || meta.email || null,
+        nivel: row.plan,
+        status: row.status,
+        billing: meta.billing || 'mensual',
+        permanent: Boolean(meta.permanent) || !row.expires_at,
+        expiresAt: row.expires_at,
+        legacyCode: row.legacy_code,
+        creditos,
+        beneficiarios,
+        descuentoCirculoPct: tier?.descuentoCirculoPct ?? null,
+      }
+    }
+
+    const matches = []
+    for (const userId of userIds) {
+      const match = await buildMatch(userId)
+      if (match) matches.push(match)
+    }
+
+    return { found: matches.length > 0, matches }
+  })
+
+export const ajustarCreditosCmsPlusAdminFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { userId: string; usados: number; nota?: string }) => d)
+  .handler(async ({ data }) => {
+    const admin = await requireAdminUser()
+    if (!admin) throw new Error('Acceso denegado: se requiere administrador')
+    const supabase = createSupabaseAdminClient()
+    const membership = await getCmsPlusStatus(supabase, data.userId)
+    if (!membership.active || !membership.nivel) {
+      throw new Error('Ese usuario no tiene CMS-Plus activo.')
+    }
+    const row = await ajustarUsadosCredito(supabase, {
+      userId: data.userId,
+      nivel: membership.nivel,
+      usados: data.usados,
+      nota: data.nota || `Ajuste por admin ${admin.user.email || admin.user.id}`,
     })
     return { ok: true, creditos: row }
   })
