@@ -7,7 +7,7 @@ import {
   perfilNecesitaOnboarding,
   validateOnboardingInput,
   validateSignUpInput,
-} from '../ContacNeed - Arquitectura Modular Diamante Estabilizada/src/lib/signup-validation.ts'
+} from '../contacneed/src/lib/signup-validation.ts'
 
 assert.equal(normalizeTipoMiembro('observador'), 'Observador')
 assert.equal(normalizeTipoMiembro('OFICIO'), 'Oficio')

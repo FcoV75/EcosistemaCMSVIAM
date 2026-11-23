@@ -16,3 +16,5 @@
   directory = "netlify/functions"
 
 # force production rebuild 2026-08-13T22:10:00Z (promotora UX #13)
+
+# force production rebuild after base dir rename to contacneed (no spaces)

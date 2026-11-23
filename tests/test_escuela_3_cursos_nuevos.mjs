@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 
 const catalog = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/lib/cursos-educativos.ts',
+  'contacneed/src/lib/cursos-educativos.ts',
   'utf8',
 )
 for (const slug of [
@@ -14,7 +14,7 @@ for (const slug of [
 }
 
 const bundled = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/server/cursos-bundled.ts',
+  'contacneed/src/server/cursos-bundled.ts',
   'utf8',
 )
 assert.match(bundled, /la-mente-que-crea-fortuna/)
@@ -26,7 +26,7 @@ for (const [slug, zip] of [
   ['la-multiplicacion-silenciosa', 'paquete-recuperacion-multiplica-t7v3m9q2.zip'],
   ['el-codigo-de-la-realidad', 'paquete-recuperacion-codigo-r5w8n3k7.zip'],
 ]) {
-  const base = `ContacNeed - Arquitectura Modular Diamante Estabilizada`
+  const base = `contacneed`
   assert.ok(fs.existsSync(`${base}/content/cursos/${slug}/index.html`))
   assert.ok(fs.existsSync(`${base}/content/cursos/${slug}/slides.js`))
   assert.ok(fs.existsSync(`${base}/content/cursos/${slug}/diapositivas.html`))
@@ -38,7 +38,7 @@ for (const [slug, zip] of [
 }
 
 const support = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/server/support.functions.ts',
+  'contacneed/src/server/support.functions.ts',
   'utf8',
 )
 assert.match(support, /La mente que crea fortuna/)

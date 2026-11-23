@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { requireActiveUser } from '../lib/auth'
 
-const CLOUDINARY_CLOUD_NAME = 'dgkruw6n7'
+const CLOUDINARY_CLOUD_NAME = 'dgkruw6n7'  // pragma: allowlist secret
 const CLOUDINARY_UPLOAD_PRESET = 'contacneed_uploads'
 const MAX_SERVER_DOC_BYTES = 4 * 1024 * 1024
 

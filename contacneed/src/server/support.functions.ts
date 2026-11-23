@@ -26,7 +26,7 @@ const SYSTEM_CONTEXT = `ContacNeed es una red social mexicana que conecta oficio
 Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin, órgano de encuentro (voz con faro; nunca presenta personas sin veto humano).
 Escuela de principios vitalicios (/escuela): educación contínua de vida y salud física y mental. Cursos ya impartidos: «El cuerpo escucha», «Léete y lee», «La pausa que decide», «La palabra que no obliga», «Círculo CMS-Plus Membresías», «No es dinero, es energía», «El salto que despierta», «La mente que endurece», «Lo que decide sin ti», «La mente que crea fortuna», «La multiplicación silenciosa» y «El código de la realidad». Recuperación: 200 MXN por curso (no es ContacNeed PRO). En /escuela hay un muro «¿Qué curso necesitas?» para solicitar temas nuevos. Las sesiones en vivo tienen su propia cuota y Zoom solo si el docente los publicó. NUNCA inventes precios, fechas, cupos ni ligas de Zoom. Si no están en los hechos, di que no están publicados. No sustituye médico ni psicoterapia.
 Círculo CMS-Plus: Plata $499, Oro $899, Platino $1,499, Diamante $2,499 MXN/mes. Incluye Plus (Nexus+ContacNeed+IA VIAM+Video Diamante), créditos de salud, círculo de beneficiarios y citas en https://calendly.com/multidisciplinarioags.
-Cloudinary sube fotos/videos con preset contacneed_uploads. Soporte técnico: pedir correo, navegador y captura del error.`
+Cloudinary sube fotos/videos con preset contacneed_uploads. Soporte técnico: pedir correo, navegador y captura del error.`  // pragma: allowlist secret
 
 const PIZARRA_SKILL = `Cuando pidan qué publicar, ideas de contenido o cómo usar la pizarra, da sugerencias PRÁCTICAS según su oficio/profesión/especialidad:
 - Foto propia: antes/después, producto en uso, herramienta, resultado, local o equipo.
@@ -43,7 +43,7 @@ const FAQ_ENTRIES: Record<string, string> = {
   estados:
     'Al entrar ves publicaciones de todos los estados. Usa el selector lateral "Filtrar por estado" para ver solo tu entidad.',
   cloudinary:
-    'Si falla la subida de imagen, verifica conexión y vuelve a intentar. El preset correcto es contacneed_uploads en Cloudinary dgkruw6n7.',
+    'Si falla la subida de imagen, verifica conexión y vuelve a intentar. El preset correcto es contacneed_uploads en Cloudinary dgkruw6n7.',  // pragma: allowlist secret
   soporte:
     'Para ayuda humana, envía tu correo de cuenta, descripción del problema y captura de pantalla al equipo de ContacNeed.',
   escuela:
