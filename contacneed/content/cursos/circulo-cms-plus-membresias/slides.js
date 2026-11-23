@@ -36,6 +36,42 @@ window.CURSO_SLIDES = [
     alt: "ContacNeed y ecosistema"
   },
   {
+    etapa: "ContacNeed",
+    kicker: "Ventaja estrella",
+    title: "ContacNeed: red de oficios que vende confianza",
+    text: "Pizarra nacional, filtro por 32 estados, tienda, estrellas, chat PRO, Maps y compartir a WhatsApp. No son likes vacíos: son clientes cercanos.",
+    note: "Mensaje Zoom: ‘Gratis te deja existir. PRO (incluido en CMS-Plus) te deja cerrar’.",
+    image: "/cursos-assets/circulo-cms-plus-membresias/tour-contacneed-red.jpg",
+    alt: "Profesional mexicano en ContacNeed"
+  },
+  {
+    etapa: "ContacNeed",
+    kicker: "Oficios con tienda",
+    title: "Tu Contador Privado",
+    text: "Ingresos, egresos y saldo mes a mes, con checklist SAT educativo. Ordena el negocio aunque no tengas contador a diario. Fotos de tickets y exportación anual.",
+    note: "Ideal para plomeros, estilistas, talleres y cualquier oficio con flujo de caja.",
+    image: "/cursos-assets/circulo-cms-plus-membresias/tour-contador-privado.jpg",
+    alt: "Contador privado para oficios"
+  },
+  {
+    etapa: "ContacNeed",
+    kicker: "Salud profesional",
+    title: "Expediente clínico normativo",
+    text: "Médicos y paramédicos: historia clínica NOM-004, notas selladas, audio de consulta y separación Miembros / No miembros. Cada profesional en su cuenta.",
+    note: "Cuota según nivel CMS-Plus. No sustituye criterio clínico: ordena el expediente.",
+    image: "/cursos-assets/circulo-cms-plus-membresias/tour-expediente-clinico.jpg",
+    alt: "Expediente clínico profesional"
+  },
+  {
+    etapa: "ContacNeed",
+    kicker: "Equipo y obra",
+    title: "Grupos PRO + Mi Proyecto",
+    text: "Grupos privados para familia o equipo. Mi Proyecto: obras serias con roles por oficio, presupuesto e imprevistos. Cierras la obra y dejas mantenimiento.",
+    note: "Solo PRO / CMS-Plus. Coordinación clara sin perder mensajes en el celular personal.",
+    image: "/cursos-assets/circulo-cms-plus-membresias/tour-grupos-proyecto.jpg",
+    alt: "Equipos y proyectos ContacNeed"
+  },
+  {
     etapa: "1",
     kicker: "Nivel Plata · $499/mes",
     title: "La puerta holgada",
@@ -68,7 +104,7 @@ window.CURSO_SLIDES = [
     title: "Para quién es Oro",
     text: "Quien ya consultó y quiere no soltar el hilo: más créditos, más clips, cursos de la escuela y un círculo más amplio para cuidar a los suyos.",
     note: "Ofrece upgrade al pagar la mensualidad: de Plata a Oro sin drama.",
-    image: "/cursos-assets/circulo-cms-plus-membresias/04-contacneed.jpg",
+    image: "/cursos-assets/circulo-cms-plus-membresias/tour-contacneed-red.jpg",
     alt: "Red y oficio"
   },
   {
@@ -139,7 +175,7 @@ window.CURSO_SLIDES = [
     kicker: "Invitación",
     title: "Entra al Círculo",
     text: "Elige tu nivel en ContacNeed → Círculo CMS-Plus. Activa insignia, créditos, beneficiarios y citas. El club crece cuidando, no reclutando.",
-    note: "Cierra Zoom con Q&A: precios, qué incluye el Plus, cómo invitar al círculo, cómo agendar en Calendly.",
+    note: "Cierra Zoom con Q&A: precios, ContacNeed (tienda, Contador, Expediente, Grupos), Plus digital y Calendly.",
     image: "/cursos-assets/circulo-cms-plus-membresias/01-portada-cms-plus.png",
     alt: "Cierre CMS-Plus"
   }

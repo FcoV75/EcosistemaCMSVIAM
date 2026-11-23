@@ -23,9 +23,9 @@ async function cargarHechosEscuela() {
 }
 
 const SYSTEM_CONTEXT = `ContacNeed es una red social mexicana que conecta oficios, profesiones y especialidades por estado.
-Funciones clave: Pizarra de publicaciones, filtro por 32 estados, Radio IA VIAM, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin, órgano de encuentro (voz con faro; nunca presenta personas sin veto humano).
+Funciones clave: Pizarra de publicaciones, filtro por 32 estados, buscador de personas, Radio IA VIAM, tienda/perfil, membresía PRO (Stripe o PayPal: $300 MXN/mes, $3,000 MXN/año), Grupos PRO, Mi Proyecto (obras), Tu Contador Privado (ingresos/egresos para oficios), expediente clínico NOM-004 (profesionales de salud; cuota según CMS-Plus), registro con oficio/profesión/especialidad, perfil verificado, panel admin solo tras login con is_admin, órgano de encuentro (voz con faro; nunca presenta personas sin veto humano).
 Escuela de principios vitalicios (/escuela): educación contínua de vida y salud física y mental. Cursos ya impartidos: «El cuerpo escucha», «Léete y lee», «La pausa que decide», «La palabra que no obliga», «Círculo CMS-Plus Membresías», «No es dinero, es energía», «El salto que despierta», «La mente que endurece», «Lo que decide sin ti», «La mente que crea fortuna», «La multiplicación silenciosa» y «El código de la realidad». Recuperación: 200 MXN por curso (no es ContacNeed PRO). En /escuela hay un muro «¿Qué curso necesitas?» para solicitar temas nuevos. Las sesiones en vivo tienen su propia cuota y Zoom solo si el docente los publicó. NUNCA inventes precios, fechas, cupos ni ligas de Zoom. Si no están en los hechos, di que no están publicados. No sustituye médico ni psicoterapia.
-Círculo CMS-Plus: Plata $499, Oro $899, Platino $1,499, Diamante $2,499 MXN/mes. Incluye Plus (Nexus+ContacNeed+IA VIAM+Video Diamante), créditos de salud, círculo de beneficiarios y citas en https://calendly.com/multidisciplinarioags.
+Círculo CMS-Plus (/circulo-cms-plus): Plata $499, Oro $899, Platino $1,499, Diamante $2,499 MXN/mes. Incluye Plus (Nexus+ContacNeed PRO+IA VIAM+Video Diamante), créditos de salud, círculo de beneficiarios y citas en https://calendly.com/multidisciplinarioags. Para entender niveles y ventajas, orienta al curso «Círculo CMS-Plus Membresías» en /escuela.
 Cloudinary sube fotos/videos con preset contacneed_uploads. Soporte técnico: pedir correo, navegador y captura del error.`  // pragma: allowlist secret
 
 const PIZARRA_SKILL = `Cuando pidan qué publicar, ideas de contenido o cómo usar la pizarra, da sugerencias PRÁCTICAS según su oficio/profesión/especialidad:
@@ -47,7 +47,11 @@ const FAQ_ENTRIES: Record<string, string> = {
   soporte:
     'Para ayuda humana, envía tu correo de cuenta, descripción del problema y captura de pantalla al equipo de ContacNeed.',
   escuela:
-    'La Escuela de principios vitalicios está en /escuela. Cursos ya dados incluyen El cuerpo escucha, Léete y lee, La pausa que decide, La palabra que no obliga, Círculo CMS-Plus, No es dinero es energía, El salto que despierta, La mente que endurece, Lo que decide sin ti, La mente que crea fortuna, La multiplicación silenciosa y El código de la realidad (200 MXN de recuperación por curso). En la escuela también hay un muro «¿Qué curso necesitas?» para pedir temas nuevos. Pulsa «Pedir informes» o «Quiero inscribirme» para orientación concreta. Nada de esto sustituye al médico ni al psicoterapeuta.',
+    'La Escuela de principios vitalicios está en /escuela. Cursos ya dados incluyen El cuerpo escucha, Léete y lee, La pausa que decide, La palabra que no obliga, Círculo CMS-Plus Membresías, No es dinero es energía, El salto que despierta, La mente que endurece, Lo que decide sin ti, La mente que crea fortuna, La multiplicación silenciosa y El código de la realidad (200 MXN de recuperación por curso). En la escuela también hay un muro «¿Qué curso necesitas?» para pedir temas nuevos. Pulsa «Pedir informes» o «Quiero inscribirme» para orientación concreta. Nada de esto sustituye al médico ni al psicoterapeuta.',
+  cmsPlus:
+    'El Círculo CMS-Plus une salud + ContacNeed PRO + Nexus + IA VIAM + Video Diamante. Niveles: Plata $499, Oro $899, Platino $1,499, Diamante $2,499 MXN/mes (créditos de consulta, beneficiarios con descuento y Plus digital). Actívalo en /circulo-cms-plus. Para ver utilidades y diapositivas, entra a /escuela y abre el curso «Círculo CMS-Plus Membresías» (recuperación 200 MXN si ya se dio; en vivo tiene su propia cuota).',
+  contacneed:
+    'ContacNeed es la red de oficios por estado: pizarra, tienda, chat PRO, Grupos, Mi Proyecto, Tu Contador Privado, expediente clínico (salud) y Escuela. Regístrate gratis en /registro. PRO cuesta $300 MXN/mes o $3,000/año. Si te interesa el paquete de salud + Plus, ve a /circulo-cms-plus o al curso «Círculo CMS-Plus Membresías» en /escuela.',
 }
 
 function matchFaq(question: string) {
@@ -55,6 +59,29 @@ function matchFaq(question: string) {
 
   if (esPreguntaEscuela(question)) {
     return redactarInformeEscuela(hechosDesdeCatalogo([]), question)
+  }
+  if (
+    normalized.includes('cms-plus') ||
+    normalized.includes('cms plus') ||
+    normalized.includes('círculo cms') ||
+    normalized.includes('circulo cms') ||
+    normalized.includes('membresía') ||
+    normalized.includes('membresia') ||
+    normalized.includes('nivel plata') ||
+    normalized.includes('nivel oro') ||
+    normalized.includes('nivel platino') ||
+    normalized.includes('nivel diamante')
+  ) {
+    return FAQ_ENTRIES.cmsPlus
+  }
+  if (
+    normalized.includes('contacneed') ||
+    normalized.includes('contador privado') ||
+    normalized.includes('expediente') ||
+    normalized.includes('qué es esta red') ||
+    normalized.includes('que es esta red')
+  ) {
+    return FAQ_ENTRIES.contacneed
   }
   if (normalized.includes('cloudinary') || normalized.includes('upload') || normalized.includes('subir')) {
     return FAQ_ENTRIES.cloudinary
@@ -119,7 +146,7 @@ export const getPersonalizedGuideFn = createServerFn({ method: 'GET' }).handler(
   const answer = await askLlm({
     system: `${SYSTEM_CONTEXT}
 
-Eres la guía de bienvenida de ContacNeed. Da UN consejo personalizado y accionable (máximo 3 oraciones) para que el usuario aproveche la red según su situación. Menciona funciones concretas: pizarra (fotos, YouTube o material propio de su oficio), filtro por estado, publicar, perfil, tienda, PRO o registro. Tono cercano en español mexicano.`,
+Eres la guía de bienvenida de ContacNeed. Da UN consejo personalizado y accionable (máximo 3 oraciones) para que el usuario aproveche la red según su situación. Menciona funciones concretas según aplique: pizarra (fotos, YouTube o material propio), filtro por estado, publicar, perfil, tienda, Contador Privado (oficios), expediente clínico (salud), Grupos/Mi Proyecto, PRO, CMS-Plus, Escuela o registro. Tono cercano en español mexicano.`,
     user: `Perfil del usuario:\n${context}\n\n¿Qué debería hacer primero en ContacNeed?`,
     maxSentences: 3,
   })

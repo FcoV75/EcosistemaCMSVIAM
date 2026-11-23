@@ -63,6 +63,19 @@ export function NewUserGuide({ open, onClose, autoOpened }: NewUserGuideProps) {
         <div className="space-y-4 px-6 py-5">
           <p className="text-sm leading-relaxed text-purple-100/90">{step.description}</p>
 
+          {step.highlights && step.highlights.length > 0 && (
+            <ul className="grid gap-2 sm:grid-cols-1">
+              {step.highlights.map((item) => (
+                <li
+                  key={item}
+                  className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-100"
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
+          )}
+
           {stepIndex === 0 && (
             <div className="rounded-xl border border-purple-500/20 bg-slate-900/50 p-4">
               <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-amber-300">
@@ -145,7 +158,7 @@ export function NewUserGuide({ open, onClose, autoOpened }: NewUserGuideProps) {
   )
 }
 
-/** Panel reutilizable para la pestaña Guía del perfil */
+/** Panel reutilizable para la pestaña Guía del perfil / pizarra */
 export function SmartGuidePanel() {
   const guideQuery = useQuery({
     queryKey: ['personalized-guide'],
@@ -158,12 +171,17 @@ export function SmartGuidePanel() {
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
         <div className="mb-2 flex items-center gap-2 font-bold text-amber-900">
           <Sparkles size={18} />
-          Tu consejo del día
+          Guía de uso · ContacNeed
         </div>
         <p className="text-sm text-amber-950/90">
           {guideQuery.isLoading
             ? 'Generando recomendación...'
-            : guideQuery.data?.tip ?? 'Completa tu perfil y publica en la pizarra para ganar visibilidad.'}
+            : guideQuery.data?.tip ??
+              'Completa tu perfil, publica en la pizarra y usa tienda, chat PRO, Contador Privado o Expediente según tu oficio.'}
+        </p>
+        <p className="mt-2 text-xs text-amber-900/70">
+          Tip: en el menú lateral abre «Guía de uso» cuando quieras repasar. En Escuela de principios está el curso «Círculo
+          CMS-Plus Membresías».
         </p>
       </div>
 
@@ -180,6 +198,15 @@ export function SmartGuidePanel() {
               </div>
               <h3 className="font-bold text-slate-900">{item.title}</h3>
               <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+              {item.highlights && item.highlights.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {item.highlights.map((line) => (
+                    <li key={line} className="text-xs font-semibold text-slate-700">
+                      · {line}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )
         })}
