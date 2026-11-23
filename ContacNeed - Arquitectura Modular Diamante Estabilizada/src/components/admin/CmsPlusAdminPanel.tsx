@@ -10,6 +10,7 @@ import {
   reactivarCmsPlusAdminFn,
 } from '../../server/cms-plus.functions'
 import { CMS_PLUS_NIVELES, type CmsPlusBilling, type CmsPlusNivel } from '../../lib/cms-plus'
+import { ExpedienteClinicoApp } from '../expediente/ExpedienteClinicoApp'
 
 type ConsultaMatch = Awaited<ReturnType<typeof consultarMiembroCmsPlusAdminFn>>['matches'][number]
 
@@ -289,6 +290,24 @@ export function CmsPlusAdminPanel() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-950/35 via-slate-900/80 to-cyan-950/30 p-4">
+        <div className="mb-3">
+          <h2 className="text-lg font-bold text-emerald-200">
+            Expediente clínico · consulta y seguimiento (tu práctica)
+          </h2>
+          <p className="mt-1 text-sm text-slate-300">
+            Además de créditos y beneficiarios, lleva aquí el registro escrito y grabado de cada
+            caso (NOM-004 / NOM-024). Separa Miembros ContacNeed y No miembros. Como creador el
+            módulo es gratis; otros profesionistas lo activan en{' '}
+            <span className="font-mono text-cyan-200">/expediente-clinico</span>.
+          </p>
+        </div>
+        <ExpedienteClinicoApp
+          variant="embedded"
+          title="Expediente clínico normativo — control de pacientes"
+        />
       </section>
 
       <section className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-950/40 via-slate-900/80 to-violet-950/30 p-4">

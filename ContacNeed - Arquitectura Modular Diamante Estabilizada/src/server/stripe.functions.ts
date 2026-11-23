@@ -176,6 +176,69 @@ export const createCmsPlusCheckoutFn = createServerFn({ method: 'POST' })
     return { url: session.url, sessionId: session.id }
   })
 
+/** Checkout mensual del módulo Expediente clínico (precio según nivel CMS-Plus). */
+export const createExpedienteCheckoutFn = createServerFn({ method: 'POST' }).handler(async () => {
+  const sessionUser = await requireActiveUser()
+  const supabase = createSupabaseAdminClient()
+  const access = await getExpedienteAccess(supabase, sessionUser.user, sessionUser.profile)
+
+  if (access.ok) {
+    return { alreadyActive: true as const, precioLabel: access.precioLabel }
+  }
+
+  if (access.esOwner || access.precioMensualMxn === 0) {
+    await activateExpedienteClinico(supabase, {
+      userId: sessionUser.user.id,
+      email: sessionUser.user.email,
+      permanent: true,
+      precioMxn: 0,
+      source: 'owner_gratis_checkout',
+    })
+    return { alreadyActive: true as const, precioLabel: 'Gratis (creador)' }
+  }
+
+  const cms = await getCmsPlusStatus(supabase, sessionUser.user.id)
+  const cmsNivel = cms.active ? cms.nivel : null
+  const unitAmount = precioExpedienteCentavos({ esOwner: false, cmsNivel })
+  const stripe = getStripe()
+  const siteUrl = siteBaseUrl()
+  const metadata = {
+    userId: sessionUser.user.id,
+    producto: PRODUCTO_EXPEDIENTE,
+    cms_nivel: cmsNivel || '',
+    precio_mxn: String(access.precioMensualMxn),
+    plan: 'monthly',
+  }
+
+  // price_data dinámico: la cuota cambia por nivel CMS-Plus (300–800 MXN).
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer_email: sessionUser.user.email,
+    line_items: [
+      {
+        price_data: {
+          currency: 'mxn',
+          product_data: {
+            name: 'Expediente clínico normativo — ContacNeed',
+            description:
+              'Control de pacientes NOM-004/NOM-024: historia clínica, evolución y grabaciones. Precio según tu nivel CMS-Plus.',
+          },
+          unit_amount: unitAmount,
+          recurring: { interval: 'month' },
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: `${siteUrl}/expediente-clinico?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${siteUrl}/expediente-clinico?payment_cancelled=true`,
+    metadata,
+    subscription_data: { metadata },
+  })
+
+  if (!session.url) throw new Error('No se pudo crear la sesión de pago del expediente')
+  return { url: session.url, sessionId: session.id, precioLabel: access.precioLabel }
+})
+
 export const confirmStripeSessionFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { sessionId: string }) => d)
   .handler(async ({ data }) => {
@@ -195,6 +258,24 @@ export const confirmStripeSessionFn = createServerFn({ method: 'POST' })
 
     const supabase = createSupabaseAdminClient()
     const producto = session.metadata?.producto || 'contacneed_pro'
+
+    if (producto === PRODUCTO_EXPEDIENTE || producto === 'expediente_clinico') {
+      const cms = await getCmsPlusStatus(supabase, user.id)
+      const precioMxn = Number(session.metadata?.precio_mxn || 0) || undefined
+      await activateExpedienteClinico(supabase, {
+        userId: user.id,
+        stripeSessionId: session.id,
+        email: user.email,
+        cmsNivel: cms.active ? cms.nivel : null,
+        precioMxn,
+        source: 'contacneed_confirm',
+      })
+      return {
+        success: true,
+        producto: PRODUCTO_EXPEDIENTE,
+        es_pro: Boolean((await getCmsPlusStatus(supabase, user.id)).active),
+      }
+    }
 
     if (producto === 'cms_plus') {
       const nivelRaw = session.metadata?.nivel || 'plata'

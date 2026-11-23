@@ -23,6 +23,7 @@ import { Route as RadioRouteImport } from './routes/radio'
 import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as CirculoCmsPlusRouteImport } from './routes/circulo-cms-plus'
+import { Route as ExpedienteClinicoRouteImport } from './routes/expediente-clinico'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
@@ -102,6 +103,11 @@ const CirculoCmsPlusRoute = CirculoCmsPlusRouteImport.update({
   path: '/circulo-cms-plus',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExpedienteClinicoRoute = ExpedienteClinicoRouteImport.update({
+  id: '/expediente-clinico',
+  path: '/expediente-clinico',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/registro': typeof RegistroRoute
   '/terminos': typeof TerminosRoute
   '/circulo-cms-plus': typeof CirculoCmsPlusRoute
+  '/expediente-clinico': typeof ExpedienteClinicoRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
@@ -181,6 +188,8 @@ export interface FileRoutesByTo {
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
   '/terminos': typeof TerminosRoute
+  '/circulo-cms-plus': typeof CirculoCmsPlusRoute
+  '/expediente-clinico': typeof ExpedienteClinicoRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
@@ -205,6 +214,8 @@ export interface FileRoutesById {
   '/radio': typeof RadioRoute
   '/registro': typeof RegistroRoute
   '/terminos': typeof TerminosRoute
+  '/circulo-cms-plus': typeof CirculoCmsPlusRoute
+  '/expediente-clinico': typeof ExpedienteClinicoRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/terminos'
     | '/circulo-cms-plus'
+    | '/expediente-clinico'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
@@ -255,6 +267,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/terminos'
     | '/circulo-cms-plus'
+    | '/expediente-clinico'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
@@ -279,6 +292,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/terminos'
     | '/circulo-cms-plus'
+    | '/expediente-clinico'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
@@ -304,6 +318,7 @@ export interface RootRouteChildren {
   RegistroRoute: typeof RegistroRoute
   TerminosRoute: typeof TerminosRoute
   CirculoCmsPlusRoute: typeof CirculoCmsPlusRoute
+  ExpedienteClinicoRoute: typeof ExpedienteClinicoRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
   AuthResetRoute: typeof AuthResetRoute
@@ -408,6 +423,13 @@ declare module '@tanstack/react-router' {
       path: '/circulo-cms-plus'
       fullPath: '/circulo-cms-plus'
       preLoaderRoute: typeof CirculoCmsPlusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/expediente-clinico': {
+      id: '/expediente-clinico'
+      path: '/expediente-clinico'
+      fullPath: '/expediente-clinico'
+      preLoaderRoute: typeof ExpedienteClinicoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -530,6 +552,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegistroRoute: RegistroRoute,
   TerminosRoute: TerminosRoute,
   CirculoCmsPlusRoute: CirculoCmsPlusRoute,
+  ExpedienteClinicoRoute: ExpedienteClinicoRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthConfirmRoute: AuthConfirmRoute,
   AuthResetRoute: AuthResetRoute,

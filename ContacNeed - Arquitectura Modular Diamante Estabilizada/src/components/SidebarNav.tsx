@@ -11,6 +11,7 @@ import {
   LogOut,
   Mail,
   Sparkles,
+  Stethoscope,
   User,
   UserPlus,
   Users,
@@ -136,6 +137,24 @@ export function SidebarNav({
                 <SectionHelpHint
                   title="Mi Proyecto"
                   text="Proyectos serios con grupos estratégicos por rol. Quien inicia concluye la obra y elige el equipo de mantenimiento. PRO."
+                />
+              </div>
+            </li>
+            <li>
+              <div className="flex items-center gap-1 rounded-xl px-3 py-2.5 transition hover:bg-white/10">
+                <Link
+                  to="/expediente-clinico"
+                  className="flex flex-1 items-center gap-3 text-sm font-medium text-purple-100 [&.active]:text-amber-100"
+                >
+                  <Stethoscope size={18} className="text-cyan-400" />
+                  Expediente clínico
+                  <span className="rounded bg-cyan-500/25 px-1.5 py-0.5 text-[9px] font-bold text-cyan-100">
+                    NOM
+                  </span>
+                </Link>
+                <SectionHelpHint
+                  title="Expediente clínico"
+                  text="Para médicos y paramédicos: historia clínica NOM-004, evolución, audio de consulta y control Miembros/No miembros. Cuota mensual según nivel CMS-Plus."
                 />
               </div>
             </li>
