@@ -34,6 +34,18 @@ import leccionesDecide from '../../content/cursos/lo-que-decide-sin-ti/index.htm
 import diapositivasDecide from '../../content/cursos/lo-que-decide-sin-ti/diapositivas.html?raw'
 import slidesDecide from '../../content/cursos/lo-que-decide-sin-ti/slides.js?raw'
 import guiaDecide from '../../content/cursos/lo-que-decide-sin-ti/guia-docente.md?raw'
+import leccionesFortuna from '../../content/cursos/la-mente-que-crea-fortuna/index.html?raw'
+import diapositivasFortuna from '../../content/cursos/la-mente-que-crea-fortuna/diapositivas.html?raw'
+import slidesFortuna from '../../content/cursos/la-mente-que-crea-fortuna/slides.js?raw'
+import guiaFortuna from '../../content/cursos/la-mente-que-crea-fortuna/guia-docente.md?raw'
+import leccionesMultiplica from '../../content/cursos/la-multiplicacion-silenciosa/index.html?raw'
+import diapositivasMultiplica from '../../content/cursos/la-multiplicacion-silenciosa/diapositivas.html?raw'
+import slidesMultiplica from '../../content/cursos/la-multiplicacion-silenciosa/slides.js?raw'
+import guiaMultiplica from '../../content/cursos/la-multiplicacion-silenciosa/guia-docente.md?raw'
+import leccionesCodigo from '../../content/cursos/el-codigo-de-la-realidad/index.html?raw'
+import diapositivasCodigo from '../../content/cursos/el-codigo-de-la-realidad/diapositivas.html?raw'
+import slidesCodigo from '../../content/cursos/el-codigo-de-la-realidad/slides.js?raw'
+import guiaCodigo from '../../content/cursos/el-codigo-de-la-realidad/guia-docente.md?raw'
 
 export const CURSOS_BUNDLED: Record<
   string,
@@ -101,5 +113,26 @@ export const CURSOS_BUNDLED: Record<
     slides: slidesDecide,
     guia: guiaDecide,
     zipPublicUrl: '/cursos-assets/lo-que-decide-sin-ti/paquete-recuperacion-decide-j5k9m1x4.zip',
+  },
+  'la-mente-que-crea-fortuna': {
+    lecciones: leccionesFortuna,
+    diapositivas: diapositivasFortuna,
+    slides: slidesFortuna,
+    guia: guiaFortuna,
+    zipPublicUrl: '/cursos-assets/la-mente-que-crea-fortuna/paquete-recuperacion-fortuna-k4n8p2w6.zip',
+  },
+  'la-multiplicacion-silenciosa': {
+    lecciones: leccionesMultiplica,
+    diapositivas: diapositivasMultiplica,
+    slides: slidesMultiplica,
+    guia: guiaMultiplica,
+    zipPublicUrl: '/cursos-assets/la-multiplicacion-silenciosa/paquete-recuperacion-multiplica-t7v3m9q2.zip',
+  },
+  'el-codigo-de-la-realidad': {
+    lecciones: leccionesCodigo,
+    diapositivas: diapositivasCodigo,
+    slides: slidesCodigo,
+    guia: guiaCodigo,
+    zipPublicUrl: '/cursos-assets/el-codigo-de-la-realidad/paquete-recuperacion-codigo-r5w8n3k7.zip',
   },
 }

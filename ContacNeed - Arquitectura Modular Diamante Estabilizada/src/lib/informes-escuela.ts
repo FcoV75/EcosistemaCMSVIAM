@@ -56,6 +56,12 @@ export function esPreguntaEscuela(question: string) {
     q.includes('salto que despierta') ||
     q.includes('mente que endurece') ||
     q.includes('decide sin ti') ||
+    q.includes('mente que crea fortuna') ||
+    q.includes('crea fortuna') ||
+    q.includes('multiplicación silenciosa') ||
+    q.includes('multiplicacion silenciosa') ||
+    q.includes('código de la realidad') ||
+    q.includes('codigo de la realidad') ||
     q.includes('subconsciente') ||
     q.includes('solicitud') ||
     q.includes('qué curso') ||

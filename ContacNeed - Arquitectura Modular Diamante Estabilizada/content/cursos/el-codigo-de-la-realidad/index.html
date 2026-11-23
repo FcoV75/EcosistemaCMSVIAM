@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>El código de la realidad — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="Tu realidad corre sobre un código: creencias, atención y decisiones repetidas. Este curso te enseña a leer ese código y a reescribirlo con hechos, no con fantasía." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc; --muted: rgba(245,245,252,.78); --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16); --accent: #f1c96b; --accent-2: #86d6ff; --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: Montserrat, system-ui, sans-serif; color: var(--ink); background: var(--night); line-height: 1.65; }
+    a { color: var(--accent-2); }
+    .nav { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem; background: rgba(5,8,20,.92); border-bottom: 1px solid var(--edge); backdrop-filter: blur(10px); }
+    .nav a, .nav .btn { text-decoration: none; color: var(--ink); border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600; background: rgba(8,11,26,.55); }
+    .btn-gold { background: linear-gradient(135deg, var(--accent), #c9a24d); color: #111; border: 0; font-weight: 700; }
+    .hero { min-height: 72vh; display: grid; align-items: end;
+      background: linear-gradient(180deg, rgba(5,8,20,.28) 0%, rgba(5,8,20,.78) 55%, rgba(5,8,20,.97) 100%),
+        url("/cursos-assets/el-codigo-de-la-realidad/01-portada-codigo.jpg") center/cover no-repeat; padding: 2rem 1.25rem 2.5rem; }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 { font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso { margin: 1.4rem 0; padding: 1rem 1.1rem; border: 1px solid rgba(241,201,107,.4); background: rgba(241,201,107,.08); border-radius: 14px; }
+    .aviso strong { color: var(--accent); }
+    section.etapa { margin: 2.4rem 0; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px; padding: 1.35rem 1.25rem 1.5rem; }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio { border-left: 3px solid var(--accent); padding: .15rem 0 .15rem 1rem; color: #fff6cc; font-weight: 600; }
+    figure.relato { margin: 1.1rem 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--edge); background: #000; }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja { margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px; background: rgba(0,0,0,.28); border: 1px dashed rgba(255,255,255,.2); }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    .cta-seguir { margin: 2rem 0; padding: 1.2rem 1.25rem; border-radius: 16px; border: 1px solid rgba(134,214,255,.35);
+      background: linear-gradient(135deg, rgba(134,214,255,.12), rgba(241,201,107,.08)); }
+    footer { text-align: center; color: var(--muted); padding: 1.5rem 1rem 2.5rem; font-size: .86rem; }
+</style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="/">CMS</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a><a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>El código de la realidad</h1>
+      <p>Tu realidad corre sobre un código: creencias, atención y decisiones repetidas. Este curso te enseña a leer ese código y a reescribirlo con hechos, no con fantasía.</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <p class="aviso"><strong>Regla de oro.</strong> Nada de este curso sustituye psicoterapia ni tratamiento médico. Si hay crisis de ánimo, primero el plan clínico. Aquí trabajamos el código cotidiano de la mente al lado del profesional.</p>
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">La realidad tiene código</a> — no ves “el mundo”: ves el mundo filtrado por tu código mental</li>
+        <li><a href="#e2">Creencias como instrucciones</a> — las creencias son instrucciones que la conducta obedece aunque nadie las lea en voz alta</li>
+        <li><a href="#e3">El filtro de atención</a> — el código decide qué entra</li>
+        <li><a href="#e4">Emoción como señal</a> — la emoción no es el enemigo: es el aviso de que el código entró en conflicto</li>
+        <li><a href="#e5">Historativa dominante</a> — la historia que te cuentas se vuelve el guion que representas</li>
+        <li><a href="#e6">Reescribir con hechos</a> — el código nuevo se prueba con conducta</li>
+        <li><a href="#e7">Ambiente que compila</a> — el entorno también es código</li>
+        <li><a href="#e8">Vivir el código nuevo</a> — la realidad se reescribe en el ritmo diario</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: audiolibro / enseñanza («(Audiolibro) EL CODIGO DE LA REALIDAD»). Este material no es una transcripción: es pedagogía original de principios para el consultorio y la vida diaria.</p>
+    </section>
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · La realidad tiene código</h2>
+      <p class="principio">Principio: No ves “el mundo”: ves el mundo filtrado por tu código mental.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-codigo-de-la-realidad/01-portada-codigo.jpg" alt="Persona frente a un espejo con luz geométrica sutil" />
+        <figcaption>Hecho ≠ lectura.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Dos personas miran la misma calle. Una ve amenazas; otra, oportunidades. El código —creencias, memoria, atención— compila la experiencia.</p><p>Este curso no niega lo material. Te pide ver qué programa estás ejecutando encima de los hechos.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Tras un rechazo laboral, Leo leyó “nadie me quiere”. Sara leyó “falta ajustar el perfil”. El hecho era uno; el código, dos.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «No os conforméis a este siglo, sino transformaos por medio de la renovación de vuestro entendimiento.» Romanos 12:2.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige un hecho neutro de hoy. Escribe dos lecturas posibles: una de miedo y una de aprendizaje. Quédate con la segunda 24 horas.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué código estoy ejecutando encima de los hechos?</p>
+    </section>
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · Creencias como instrucciones</h2>
+      <p class="principio">Principio: Las creencias son instrucciones que la conducta obedece aunque nadie las lea en voz alta.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-codigo-de-la-realidad/01-portada-codigo.jpg" alt="Persona frente a un espejo con luz geométrica sutil" />
+        <figcaption>Instrucciones a la vista.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>“No soy de números”, “siempre me dejan”, “el dinero es sucio”: son líneas de código. Mientras no las nombres, te gobiernan.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Rita “odiaba” cobrar. Descubrió la instrucción: “pedir es grosero”. La reescribió: “cobrar es respetar el oficio”. Empezó a facturar.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Guardad vuestro corazón… porque de él mana la vida.» Proverbios 4:23.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Escribe tres creencias-instrucción que te limitan. Al lado, una instrucción nueva verificable con un acto esta semana.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué instrucción invisible todavía programa mi día?</p>
+    </section>
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · El filtro de atención</h2>
+      <p class="principio">Principio: El código decide qué entra. Lo que no atiendes, no existe para tu conducta.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-codigo-de-la-realidad/02-lentes-filtro.jpg" alt="Gafas sobre un mapa urbano al atardecer" />
+        <figcaption>Alimentación del filtro.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La atención es el compilador. Si solo buscas pruebas de fracaso, las encontrarás. Si entrenas atención a señales de progreso, el código cambia de alimentación.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Un coach pidió a Omar listar tres avances diarios. Al quinto día, Omar dejó de decir “nada cambia”.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Todo lo que es verdadero… en esto pensad.» Filipenses 4:8 — dieta mental deliberada.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Durante tres días, anota cada noche tres señales de progreso (aunque mínimas). Léelas al despertar.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué evidencias estoy entrenando a mi mente a ignorar?</p>
+    </section>
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · Emoción como señal</h2>
+      <p class="principio">Principio: La emoción no es el enemigo: es el aviso de que el código entró en conflicto.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-codigo-de-la-realidad/02-lentes-filtro.jpg" alt="Gafas sobre un mapa urbano al atardecer" />
+        <figcaption>Señal, no sentencia.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La ira, la vergüenza o la envidia señalan una línea de código golpeada. Escucharlas sin obedecerlas es madurez.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Cuando Vera envidiaba a una colega, descubría su propia instrucción: “si ella brilla, yo desaparezco”. Trabajó el oficio, no el chisme.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Irados, pero no pequéis.» Efesios 4:26 — sentir sin destruir.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> La próxima emoción fuerte: nómbrala, localízala en el cuerpo, escribe la creencia que la dispara. Una línea. Sin drama.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué emoción mía es en realidad un mensaje del código?</p>
+    </section>
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Historativa dominante</h2>
+      <p class="principio">Principio: La historia que te cuentas se vuelve el guion que representas.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-codigo-de-la-realidad/03-reescritura.jpg" alt="Manos reescribiendo un cuaderno con tinta clara" />
+        <figcaption>Guion editable.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>“Siempre me pasa lo mismo” es un guion. Cámbialo a “hasta ahora repetí este patrón; hoy pruebo otra línea”. El pasado informa; no dicta.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Héctor narraba su vida como tragedia. Empezó a narrar capítulos de aprendizaje. Las decisiones siguieron a la narración.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Olvidando ciertamente lo que queda atrás… prosigo a la meta.» Filipenses 3:13-14.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong>  Reescribe en 5 líneas tu “capítulo actual” sin victimismo ni soberbia. Léelo en voz alta una vez.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué guion viejo estoy ensayando todavía?</p>
+    </section>
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · Reescribir con hechos</h2>
+      <p class="principio">Principio: El código nuevo se prueba con conducta. Sin hechos, es solo comentario en el margen.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-codigo-de-la-realidad/03-reescritura.jpg" alt="Manos reescribiendo un cuaderno con tinta clara" />
+        <figcaption>Experimento de siete días.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Afirmar sin actuar es decorar el código. Una creencia nueva necesita un experimento pequeño y medible.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> “Soy disciplinado” no sirvió a Laura hasta que puso un despertador y lo cumplió siete días. Entonces sí era código.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «La fe sin obras está muerta.» Santiago 2:17.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige una creencia nueva. Diseña un experimento de 7 días con un solo indicador (sí/no). Empieza mañana.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué hecho pequeño probará mi código nuevo esta semana?</p>
+    </section>
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · Ambiente que compila</h2>
+      <p class="principio">Principio: El entorno también es código. Personas, pantallas y espacios compilan tu realidad.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-codigo-de-la-realidad/04-realidad-nueva.jpg" alt="Camino iluminado al amanecer entre árboles" />
+        <figcaption>Input nuevo.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Si tu ambiente premia la queja, el código de queja gana. Cambia un input: una conversación, una ruta, una hora sin pantalla.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Camilo dejó el grupo de chisme laboral. Su humor y su productividad subieron sin “afirmaciones”.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «No erréis; las malas compañías corrompen las buenas costumbres.» 1 Corintios 15:33.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Cambia un input ambiental 48 horas (ruta, mute, mesa). Observa qué cambia en tu humor y tu foco.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué input de mi ambiente está compilando mi peor versión?</p>
+    </section>
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Vivir el código nuevo</h2>
+      <p class="principio">Principio: La realidad se reescribe en el ritmo diario. Elige el código que quieres ejecutar mañana.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/el-codigo-de-la-realidad/04-realidad-nueva.jpg" alt="Camino iluminado al amanecer entre árboles" />
+        <figcaption>Ritual de actualización.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Cierra con un ritual breve: hecho → lectura → acto. Eso es el código vivo. Sigue en la Escuela: fortuna preparada, multiplicación silenciosa, mente endurecida. Separarte es actualizar el sistema.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Cada noche, Noa escribió: hecho, lectura, acto de mañana. En un mes, su “realidad” dejó de ser un monólogo de miedo.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Andad como hijos de luz.» Efesios 5:8.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Ritual de 5 minutos esta noche: 1 hecho, 1 lectura limpia, 1 acto de mañana. Repite siete días.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué código elegiré ejecutar mañana al despertar?</p>
+    </section>
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno · ocho ejercicios</h2>
+      <ol>
+        <li><strong>La realidad tiene código:</strong> Elige un hecho neutro de hoy. Escribe dos lecturas posibles: una de miedo y una de aprendizaje. Quédate con la segunda 24 horas.</li>        <li><strong>Creencias como instrucciones:</strong> Escribe tres creencias-instrucción que te limitan. Al lado, una instrucción nueva verificable con un acto esta semana.</li>        <li><strong>El filtro de atención:</strong> Durante tres días, anota cada noche tres señales de progreso (aunque mínimas). Léelas al despertar.</li>        <li><strong>Emoción como señal:</strong> La próxima emoción fuerte: nómbrala, localízala en el cuerpo, escribe la creencia que la dispara. Una línea. Sin drama.</li>        <li><strong>Historativa dominante:</strong>  Reescribe en 5 líneas tu “capítulo actual” sin victimismo ni soberbia. Léelo en voz alta una vez.</li>        <li><strong>Reescribir con hechos:</strong> Elige una creencia nueva. Diseña un experimento de 7 días con un solo indicador (sí/no). Empieza mañana.</li>        <li><strong>Ambiente que compila:</strong> Cambia un input ambiental 48 horas (ruta, mute, mesa). Observa qué cambia en tu humor y tu foco.</li>        <li><strong>Vivir el código nuevo:</strong> Ritual de 5 minutos esta noche: 1 hecho, 1 lectura limpia, 1 acto de mañana. Repite siete días.</li>
+      </ol>
+    </section>
+    <div class="cta-seguir">
+      <h2 style="margin-top:0">Sigue estudiando. Sigue separándote.</h2>
+      <p>Reescribe una línea de tu código esta semana con un hecho. Luego vuelve a /escuela y sigue actualizando tu sistema.</p>
+      <p class="meta">Cuando termines este itinerario, vuelve a la Escuela ContacNeed y elige el siguiente curso. La educación continua no es un adorno: es el suelo donde crece tu salud física, mental y de oficio.</p>
+    </div>
+  </main>
+  <footer>CMS VIAM · Escuela de principios vitalicios · ContacNeed</footer>
+</body>
+</html>

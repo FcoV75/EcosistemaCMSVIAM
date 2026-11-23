@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La multiplicación silenciosa — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="El dinero se multiplica en silencio cuando el carácter, el hábito y la mayordomía trabajan juntos. Este curso enseña la multiplicación sin espectáculo ni truco." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc; --muted: rgba(245,245,252,.78); --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16); --accent: #f1c96b; --accent-2: #86d6ff; --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: Montserrat, system-ui, sans-serif; color: var(--ink); background: var(--night); line-height: 1.65; }
+    a { color: var(--accent-2); }
+    .nav { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem; background: rgba(5,8,20,.92); border-bottom: 1px solid var(--edge); backdrop-filter: blur(10px); }
+    .nav a, .nav .btn { text-decoration: none; color: var(--ink); border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600; background: rgba(8,11,26,.55); }
+    .btn-gold { background: linear-gradient(135deg, var(--accent), #c9a24d); color: #111; border: 0; font-weight: 700; }
+    .hero { min-height: 72vh; display: grid; align-items: end;
+      background: linear-gradient(180deg, rgba(5,8,20,.28) 0%, rgba(5,8,20,.78) 55%, rgba(5,8,20,.97) 100%),
+        url("/cursos-assets/la-multiplicacion-silenciosa/01-portada-multiplica.jpg") center/cover no-repeat; padding: 2rem 1.25rem 2.5rem; }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 { font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso { margin: 1.4rem 0; padding: 1rem 1.1rem; border: 1px solid rgba(241,201,107,.4); background: rgba(241,201,107,.08); border-radius: 14px; }
+    .aviso strong { color: var(--accent); }
+    section.etapa { margin: 2.4rem 0; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px; padding: 1.35rem 1.25rem 1.5rem; }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio { border-left: 3px solid var(--accent); padding: .15rem 0 .15rem 1rem; color: #fff6cc; font-weight: 600; }
+    figure.relato { margin: 1.1rem 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--edge); background: #000; }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja { margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px; background: rgba(0,0,0,.28); border: 1px dashed rgba(255,255,255,.2); }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    .cta-seguir { margin: 2rem 0; padding: 1.2rem 1.25rem; border-radius: 16px; border: 1px solid rgba(134,214,255,.35);
+      background: linear-gradient(135deg, rgba(134,214,255,.12), rgba(241,201,107,.08)); }
+    footer { text-align: center; color: var(--muted); padding: 1.5rem 1rem 2.5rem; font-size: .86rem; }
+</style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="/">CMS</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a><a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>La multiplicación silenciosa</h1>
+      <p>El dinero se multiplica en silencio cuando el carácter, el hábito y la mayordomía trabajan juntos. Este curso enseña la multiplicación sin espectáculo ni truco.</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <p class="aviso"><strong>Regla de oro.</strong> Nada de este curso sustituye asesoría financiera formal ni promesas de enriquecimiento rápido. Multiplicar aquí significa sembrar, cuidar y cosechar con disciplina — al lado del profesional cuando haga falta.</p>
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">Sin ruido, con semilla</a> — la multiplicación verdadera es silenciosa</li>
+        <li><a href="#e2">Interés compuesto del carácter</a> — el carácter también tiene interés compuesto</li>
+        <li><a href="#e3">Guardar para sembrar</a> — sin guardar, no hay semilla</li>
+        <li><a href="#e4">El hábito que multiplica</a> — la multiplicación vive en el hábito diario, no en el golpe heroico de un mes</li>
+        <li><a href="#e5">Cortar fugas</a> — antes de multiplicar, tapa fugas</li>
+        <li><a href="#e6">Reinversión consciente</a> — multiplicar es reinvertir en lo que produce — no en lo que aplaude</li>
+        <li><a href="#e7">Compartir sin vaciar</a> — la multiplicación incluye circular</li>
+        <li><a href="#e8">Tablero de multiplicación</a> — lo que no se mide se dramatiza</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: audiolibro / enseñanza («Este Antiguo Libro Secreto Hará Que Tu Dinero Se Multiplique Sin Parar»). Este material no es una transcripción: es pedagogía original de principios para el consultorio y la vida diaria.</p>
+    </section>
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · Sin ruido, con semilla</h2>
+      <p class="principio">Principio: La multiplicación verdadera es silenciosa. El ruido suele ser publicidad; la semilla es trabajo.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-multiplicacion-silenciosa/01-portada-multiplica.jpg" alt="Manos plantando una semilla en tierra húmeda" />
+        <figcaption>Semilla sin altoparlante.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Los “secretos” que gritan rara vez multiplican. Lo que multiplica es repetible: un hábito, un oficio, un ahorro, una mejora. Este curso te quita el espectáculo y te deja la semilla.</p><p>Si tu plan de dinero necesita aplausos para funcionar, no es plan: es teatro.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Un influencer vendía “fórmulas”. Una panadera guardaba el 10% y mejoraba una receta al mes. A los dos años, solo una tenía panadería propia.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Y creced y multiplicaos…» Génesis 1:28 — mandato de vida ordenada, no de avaricia.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Nombra tu “semilla” actual (oficio, ahorro, producto). Escribe una sola acción semanal que la haga crecer sin publicarlo en redes.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Estoy buscando ruido o estoy cuidando una semilla?</p>
+    </section>
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · Interés compuesto del carácter</h2>
+      <p class="principio">Principio: El carácter también tiene interés compuesto. La puntualidad y la palabra se multiplican.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-multiplicacion-silenciosa/01-portada-multiplica.jpg" alt="Manos plantando una semilla en tierra húmeda" />
+        <figcaption>Nombre que capitaliza.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Antes que el dinero se multiplique, se multiplica la confianza. Llegar a tiempo, cumplir lo dicho, cobrar claro: eso es interés compuesto humano.</p><p>Quien rompe la palabra barata el precio de todo lo que toca.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Pedro bajó precios para conseguir clientes. Raúl mantuvo precio y palabra. Al año, Raúl tenía referidos; Pedro tenía quejas.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Mejor es el buen nombre que las muchas riquezas.» Proverbios 22:1.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige una promesa pendiente (cliente, familia, ti mismo). Cúmplela o renegocia con fecha esta semana. Cero fantasmas.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué promesa rota está frenando mi multiplicación?</p>
+    </section>
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · Guardar para sembrar</h2>
+      <p class="principio">Principio: Sin guardar, no hay semilla. El gasto total es esterilidad disfrazada de vida.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-multiplicacion-silenciosa/02-semilla-compuesta.jpg" alt="Hileras de plantas jóvenes bajo luz suave" />
+        <figcaption>Remanente sagrado.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Multiplicar exige un remanente. Aunque sea simbólico. Guardar no es tacañería: es respeto al futuro yo.</p><p>Empieza pequeño y visible. Lo invisible no se multiplica.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Clara “no podía” ahorrar. Separó $50 a la semana en un frasco. A los tres meses compró una herramienta que le dobló la productividad.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Prepara tus labores afuera… y edifica tu casa.» Proverbios 24:27 — primero el orden productivo.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Abre un “semillero” (cuenta, frasco o sobre). Mueve un monto mínimo fijo esta semana. Anótalo.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué gasto puedo convertir esta semana en semilla visible?</p>
+    </section>
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · El hábito que multiplica</h2>
+      <p class="principio">Principio: La multiplicación vive en el hábito diario, no en el golpe heroico de un mes.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-multiplicacion-silenciosa/02-semilla-compuesta.jpg" alt="Hileras de plantas jóvenes bajo luz suave" />
+        <figcaption>Diez minutos fieles.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Un día perfecto no multiplica. Treinta días imperfectos sí. Elige un hábito financiero o de oficio tan pequeño que te dé vergüenza saltártelo.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Iván hizo “maratonazos” de trabajo y luego desaparecía. Miriam hizo una hora diaria. Miriam multiplicó; Iván se quemó.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «No nos cansemos, pues, de hacer bien; porque a su tiempo segaremos.» Gálatas 6:9.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Define un hábito de 10 minutos (revisar caja, contactar, practicar). Marca 7 días en el calendario y cúmplelos.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué hábito mínimo, si lo repito 30 días, cambiaría mi cuenta?</p>
+    </section>
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Cortar fugas</h2>
+      <p class="principio">Principio: Antes de multiplicar, tapa fugas. Lo que se escurre no se siembra.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-multiplicacion-silenciosa/03-habito-diario.jpg" alt="Persona escribiendo un hábito en un cuaderno al alba" />
+        <figcaption>Cubo sin agujero.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Suscripciones olvidadas, compras emocionales, descuentos por miedo: son agujeros. Multiplicar con fugas es llenar un cubo roto.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Al revisar cargos, Elena encontró tres suscripciones muertas. Con ese dinero pagó un curso que sí usaba.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Andad como hijos de luz… comprobando lo que es agradable al Señor.» Efesios 5:8-10 — también en el gasto.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Revisa el último mes. Cancela o pausa una fuga. Escribe qué sembrarás con ese monto.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Cuál es mi fuga más silenciosa?</p>
+    </section>
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · Reinversión consciente</h2>
+      <p class="principio">Principio: Multiplicar es reinvertir en lo que produce — no en lo que aplaude.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-multiplicacion-silenciosa/03-habito-diario.jpg" alt="Persona escribiendo un hábito en un cuaderno al alba" />
+        <figcaption>Reinversión con propósito.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Cada peso puede comprar confort pasajero o capacidad futura. La mente multiplicadora pregunta: ¿esto me hace más capaz de crear valor?</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Un mecánico compró una herramienta cara en vez de un teléfono nuevo. En dos meses recuperó la herramienta; el teléfono solo habría brillado.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «La trama del diligente llega a abundancia.» Proverbios 21:5.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige una reinversión de capacidad (herramienta, curso, salud, tiempo). Pon fecha y monto. Ejecuta o agenda el primer paso.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Mi próximo gasto compra capacidad o solo alivio?</p>
+    </section>
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · Compartir sin vaciar</h2>
+      <p class="principio">Principio: La multiplicación incluye circular. Dar con medida mantiene el flujo vivo.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-multiplicacion-silenciosa/04-cosecha-discreta.jpg" alt="Canasta sencilla con fruto y cuaderno de cuentas" />
+        <figcaption>Dar con medida.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Guardar todo estanca. Darlo todo empobrece. Aprende el porcentaje o el acto concreto que puedes sostener sin resentimiento.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Jaime daba de más y luego pedía prestado. Aprendió a dar un diezmo de tiempo o dinero fijo. Su paz volvió.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Más bienaventurado es dar que recibir.» Hechos 20:35 — dar desde abundancia ordenada.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Define un “circular” semanal (dinero, tiempo o conocimiento) que no te vacíe. Hazlo una vez y anótalo.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Estoy dando desde orden o desde culpa?</p>
+    </section>
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Tablero de multiplicación</h2>
+      <p class="principio">Principio: Lo que no se mide se dramatiza. Un tablero simple multiplica la claridad.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-multiplicacion-silenciosa/04-cosecha-discreta.jpg" alt="Canasta sencilla con fruto y cuaderno de cuentas" />
+        <figcaption>Mapa en una página.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Cierra el curso con un tablero de una página: semilla, hábito, fugas tapadas, reinversión, circular. Revísalo cada semana. Sigue en la Escuela: el siguiente curso endurece o descifra el código de tu realidad.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Cuando Pablo puso números en una hoja, el miedo bajó. No tenía más dinero: tenía más mapa.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Porque ¿quién de vosotros… no se sienta primero y calcula…?» Lucas 14:28.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Dibuja tu tablero en una hoja. Tres números, tres acciones. Pégalo donde lo veas al despertar.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué número miraré cada semana para no vivir de cuentos?</p>
+    </section>
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno · ocho ejercicios</h2>
+      <ol>
+        <li><strong>Sin ruido, con semilla:</strong> Nombra tu “semilla” actual (oficio, ahorro, producto). Escribe una sola acción semanal que la haga crecer sin publicarlo en redes.</li>        <li><strong>Interés compuesto del carácter:</strong> Elige una promesa pendiente (cliente, familia, ti mismo). Cúmplela o renegocia con fecha esta semana. Cero fantasmas.</li>        <li><strong>Guardar para sembrar:</strong> Abre un “semillero” (cuenta, frasco o sobre). Mueve un monto mínimo fijo esta semana. Anótalo.</li>        <li><strong>El hábito que multiplica:</strong> Define un hábito de 10 minutos (revisar caja, contactar, practicar). Marca 7 días en el calendario y cúmplelos.</li>        <li><strong>Cortar fugas:</strong> Revisa el último mes. Cancela o pausa una fuga. Escribe qué sembrarás con ese monto.</li>        <li><strong>Reinversión consciente:</strong> Elige una reinversión de capacidad (herramienta, curso, salud, tiempo). Pon fecha y monto. Ejecuta o agenda el primer paso.</li>        <li><strong>Compartir sin vaciar:</strong> Define un “circular” semanal (dinero, tiempo o conocimiento) que no te vacíe. Hazlo una vez y anótalo.</li>        <li><strong>Tablero de multiplicación:</strong> Dibuja tu tablero en una hoja. Tres números, tres acciones. Pégalo donde lo veas al despertar.</li>
+      </ol>
+    </section>
+    <div class="cta-seguir">
+      <h2 style="margin-top:0">Sigue estudiando. Sigue separándote.</h2>
+      <p>Multiplica en silencio esta semana: una semilla, un hábito, una fuga tapada. Luego vuelve a /escuela y sigue elevándote.</p>
+      <p class="meta">Cuando termines este itinerario, vuelve a la Escuela ContacNeed y elige el siguiente curso. La educación continua no es un adorno: es el suelo donde crece tu salud física, mental y de oficio.</p>
+    </div>
+  </main>
+  <footer>CMS VIAM · Escuela de principios vitalicios · ContacNeed</footer>
+</body>
+</html>

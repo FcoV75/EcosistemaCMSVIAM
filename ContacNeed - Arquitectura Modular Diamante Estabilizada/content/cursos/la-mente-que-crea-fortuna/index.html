@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La mente que crea fortuna — Curso de principios | CMS VIAM</title>
+  <meta name="description" content="La fortuna no llega a quien la persigue con ansiedad: llega a la mente que se preparó. Este curso ordena el terreno interior para que el valor externo tenga dónde aterrizar." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f5f5fc; --muted: rgba(245,245,252,.78); --panel: rgba(8,11,26,.88);
+      --edge: rgba(255,255,255,.16); --accent: #f1c96b; --accent-2: #86d6ff; --night: #050814;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: Montserrat, system-ui, sans-serif; color: var(--ink); background: var(--night); line-height: 1.65; }
+    a { color: var(--accent-2); }
+    .nav { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center;
+      padding: .7rem 1rem; background: rgba(5,8,20,.92); border-bottom: 1px solid var(--edge); backdrop-filter: blur(10px); }
+    .nav a, .nav .btn { text-decoration: none; color: var(--ink); border: 1px solid var(--edge); border-radius: 999px;
+      padding: .45rem .85rem; font-size: .82rem; font-weight: 600; background: rgba(8,11,26,.55); }
+    .btn-gold { background: linear-gradient(135deg, var(--accent), #c9a24d); color: #111; border: 0; font-weight: 700; }
+    .hero { min-height: 72vh; display: grid; align-items: end;
+      background: linear-gradient(180deg, rgba(5,8,20,.28) 0%, rgba(5,8,20,.78) 55%, rgba(5,8,20,.97) 100%),
+        url("/cursos-assets/la-mente-que-crea-fortuna/01-portada-fortuna.jpg") center/cover no-repeat; padding: 2rem 1.25rem 2.5rem; }
+    .hero-inner { max-width: 880px; margin: 0 auto; width: 100%; }
+    .kicker { letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; color: var(--accent); }
+    h1 { font-family: Cinzel, serif; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.08; color: #fff2bf; margin: .35rem 0 .7rem; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 1.15rem 4rem; }
+    .aviso { margin: 1.4rem 0; padding: 1rem 1.1rem; border: 1px solid rgba(241,201,107,.4); background: rgba(241,201,107,.08); border-radius: 14px; }
+    .aviso strong { color: var(--accent); }
+    section.etapa { margin: 2.4rem 0; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px; padding: 1.35rem 1.25rem 1.5rem; }
+    h2 { font-family: Cinzel, serif; color: #fff1be; margin: 0 0 .4rem; font-size: 1.55rem; }
+    h3 { color: var(--accent-2); margin: 1.25rem 0 .4rem; font-size: 1.05rem; }
+    .meta { color: var(--muted); font-size: .92rem; }
+    .principio { border-left: 3px solid var(--accent); padding: .15rem 0 .15rem 1rem; color: #fff6cc; font-weight: 600; }
+    figure.relato { margin: 1.1rem 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--edge); background: #000; }
+    figure.relato img { width: 100%; display: block; max-height: 340px; object-fit: cover; }
+    figcaption { padding: .55rem .8rem .7rem; color: var(--muted); font-size: .85rem; }
+    .caja { margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px; background: rgba(0,0,0,.28); border: 1px dashed rgba(255,255,255,.2); }
+    .caja.biblia { border-color: rgba(134,214,255,.35); }
+    .caja.ejercicio { border-color: rgba(125,206,160,.4); }
+    .caja.cuento { border-color: rgba(241,201,107,.35); }
+    .cta-seguir { margin: 2rem 0; padding: 1.2rem 1.25rem; border-radius: 16px; border: 1px solid rgba(134,214,255,.35);
+      background: linear-gradient(135deg, rgba(134,214,255,.12), rgba(241,201,107,.08)); }
+    footer { text-align: center; color: var(--muted); padding: 1.5rem 1rem 2.5rem; font-size: .86rem; }
+</style>
+</head>
+<body>
+  <nav class="nav" aria-label="Curso">
+    <a href="/">CMS</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#e1">1</a><a href="#e2">2</a><a href="#e3">3</a><a href="#e4">4</a><a href="#e5">5</a><a href="#e6">6</a><a href="#e7">7</a><a href="#e8">8</a>
+    <a href="#cuaderno">Ejercicios</a>
+    <a class="btn-gold" href="diapositivas.html">Diapositivas</a>
+  </nav>
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="kicker">Centro Multidisciplinario para la Salud · Escuela de principios</p>
+      <h1>La mente que crea fortuna</h1>
+      <p>La fortuna no llega a quien la persigue con ansiedad: llega a la mente que se preparó. Este curso ordena el terreno interior para que el valor externo tenga dónde aterrizar.</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <p class="aviso"><strong>Regla de oro.</strong> Nada de este curso sustituye asesoría financiera formal, terapia de deudas ni tratamiento médico. Camina al lado del profesional. La «fortuna» aquí es fruto de carácter, oficio y orden — no de magia.</p>
+    <section class="etapa" id="mapa">
+      <h2>Mapa del curso</h2>
+      <p class="meta">Ocho etapas, de menor a mayor. Cada una deja un principio, una imagen, un ejercicio y una sola pregunta.</p>
+      <ol>
+        <li><a href="#e1">La preparación, no el milagro</a> — la fortuna aparece cuando la mente está lista: ordenada, atenta y dispuesta a sostener lo que pide</li>
+        <li><a href="#e2">El umbral de la disposición</a> — no todo llega a cualquiera</li>
+        <li><a href="#e3">Identidad de constructor</a> — la mente que crea fortuna se ve a sí misma como constructora, no como víctima de la suerte</li>
+        <li><a href="#e4">Atención = capital</a> — donde va tu atención, va tu capital</li>
+        <li><a href="#e5">Valor antes que billete</a> — el billete sigue al valor entregado</li>
+        <li><a href="#e6">Orden que invita</a> — el desorden repele oportunidades</li>
+        <li><a href="#e7">Gratitud operativa</a> — la gratitud no es perfume: es inventario</li>
+        <li><a href="#e8">Ritmo de cosecha</a> — la fortuna se sostiene con ritmo, no con un pico</li>
+      </ol>
+      <p class="meta">Fuente inspiradora: audiolibro / enseñanza («Este Libro Aparece Cuando Tu Mente Está Lista Para Crear Fortuna»). Este material no es una transcripción: es pedagogía original de principios para el consultorio y la vida diaria.</p>
+    </section>
+    <section class="etapa" id="e1">
+      <h2>Etapa 1 · La preparación, no el milagro</h2>
+      <p class="principio">Principio: La fortuna aparece cuando la mente está lista: ordenada, atenta y dispuesta a sostener lo que pide.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-crea-fortuna/01-portada-fortuna.jpg" alt="Persona serena ante un horizonte iluminado" />
+        <figcaption>Primero el terreno.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Hay quien espera un golpe de suerte y hay quien prepara el suelo. Este curso elige el segundo camino. La mente lista no es una mente mágica: es una mente que ya soltó el drama de la carencia y se entrenó en claridad, oficio y constancia.</p><p>Cuando el terreno interior está revuelto —culpa, prisa, comparación— incluso una oportunidad buena se desperdicia. Primero se prepara la mente; después se mide el fruto.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Tomás soñaba con «hacerse» de la noche a la mañana. Lucía preparó su oficio tres años en silencio. Cuando llegó el contrato grande, Lucía pudo sostenerlo; Tomás lo rompió en dos semanas.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «El que es fiel en lo muy poco, también en lo más es fiel.» Lucas 16:10. La fortuna crece donde ya hay fidelidad pequeña.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Escribe tres áreas de tu vida aún “revueltas” (sueño, dinero, oficio, relaciones). Marca una sola para ordenar esta semana con un acto concreto de 20 minutos.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Estoy pidiendo fortuna a una mente que aún no está lista para sostenerla?</p>
+    </section>
+    <section class="etapa" id="e2">
+      <h2>Etapa 2 · El umbral de la disposición</h2>
+      <p class="principio">Principio: No todo llega a cualquiera. Llega a quien ya está dispuesto a recibir sin sabotear.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-crea-fortuna/01-portada-fortuna.jpg" alt="Persona serena ante un horizonte iluminado" />
+        <figcaption>Capacidad antes que volumen.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La disposición no es deseo: es capacidad. Desear fortuna es fácil. Sostener horarios, clientes, impuestos y límites es otra cosa. El umbral se cruza cuando dejas de romanticizar el resultado y empiezas a amar el proceso.</p><p>Si hoy te llegara el doble de demanda, ¿aguantarías sin enfermarte? Esa pregunta mide tu umbral.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Ana rezaba por más clientes. Cuando llegaron ocho en una semana, canceló la mitad por agotamiento. Aprendió: primero capacidad, después volumen.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Porque ¿quién de vosotros, queriendo edificar una torre, no se sienta primero y calcula los gastos…?» Lucas 14:28.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Haz un cálculo honesto: si mañana tu ingreso se duplicara, qué tres sistemas (tiempo, salud, administración) se romperían. Elige uno y refuerza un tornillo.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué capacidad concreta me falta para sostener lo que digo querer?</p>
+    </section>
+    <section class="etapa" id="e3">
+      <h2>Etapa 3 · Identidad de constructor</h2>
+      <p class="principio">Principio: La mente que crea fortuna se ve a sí misma como constructora, no como víctima de la suerte.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-crea-fortuna/02-terreno-listo.jpg" alt="Terreno preparado al amanecer" />
+        <figcaption>Firma de constructor.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>El lenguaje revela la identidad. “A ver si me toca” es identidad de lotería. “Hoy construyo valor” es identidad de oficio. La fortuna sigue a la identidad que produce.</p><p>No se trata de afirmaciones vacías. Se trata de firmar cada día con hechos que coincidan con la persona que dices estar formando.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Diego decía “soy un fracasado con suerte a veces”. Cambió la frase a “soy un constructor lento”. En seis meses sus números dejaron de parecer accidentes.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Como él piensa en su corazón, así es él.» Proverbios 23:7 (sentido práctico: la identidad interior se traduce en conducta).</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Escribe en una línea tu identidad de constructor (oficio + virtud). Durante tres días, actúa una sola decisión coherente con esa línea.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué frase de víctima todavía firma mis decisiones de dinero y oficio?</p>
+    </section>
+    <section class="etapa" id="e4">
+      <h2>Etapa 4 · Atención = capital</h2>
+      <p class="principio">Principio: Donde va tu atención, va tu capital. La fortuna se filtra por las pantallas que eliges.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-crea-fortuna/02-terreno-listo.jpg" alt="Terreno preparado al amanecer" />
+        <figcaption>Atención guardada.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La mente lista protege su atención como tesoro. Cada hora de comparación en redes resta una hora de creación. La fortuna no compite con el scroll: pierde.</p><p>Este principio es brutalmente práctico: audita tu atención y verás el mapa de tu cuenta.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Marta “no tenía tiempo” para su negocio. Tenía 90 minutos diarios de scroll. Recuperó 45 y nacieron tres propuestas.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Mirad, pues, con diligencia cómo andéis… redimiendo el tiempo.» Efesios 5:15-16.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Durante 48 horas, anota cada bloque de atención >15 min. Marca: crea valor / distrae / repara. Corta un solo bloque de distracción mañana.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿A qué le estoy pagando mi atención como si fuera barata?</p>
+    </section>
+    <section class="etapa" id="e5">
+      <h2>Etapa 5 · Valor antes que billete</h2>
+      <p class="principio">Principio: El billete sigue al valor entregado. Quien solo persigue billetes se queda sin mapa.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-crea-fortuna/03-semilla-orden.jpg" alt="Semilla y herramientas de oficio sobre mesa" />
+        <figcaption>Valor visible.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Crear fortuna no empieza en la cuenta: empieza en el valor que alguien más reconoce. Precio, promesa y entrega deben mirarse a los ojos.</p><p>Si mejoras el valor real —claridad, puntualidad, resultado— el dinero deja de ser un misterio y vuelve a ser una consecuencia.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Un carpintero bajó el precio por miedo. Otro subió la calidad y explicó el porqué. El segundo llenó la agenda sin mendigar.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Todo lo que hagáis, hacedlo de corazón, como para el Señor.» Colosenses 3:23.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige un servicio tuyo. Escribe qué valor concreto recibe la otra persona en 7 días. Mejora una sola prueba de ese valor esta semana.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Estoy ofreciendo valor medible o solo pidiendo dinero?</p>
+    </section>
+    <section class="etapa" id="e6">
+      <h2>Etapa 6 · Orden que invita</h2>
+      <p class="principio">Principio: El desorden repele oportunidades. El orden discreto las invita a quedarse.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-crea-fortuna/03-semilla-orden.jpg" alt="Semilla y herramientas de oficio sobre mesa" />
+        <figcaption>Contenedor listo.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Mente lista = espacio listo: agenda, archivos, promesas y deudas visibles. El caos no es creatividad: es fuga de fortuna.</p><p>Ordenar no es estética: es hospitalidad para lo que quieres atraer.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Cuando Sofía limpió su bandeja de correos y su mesa, dejó de “perder” clientes. No cambió de talento: cambió de contenedor.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Porque Dios no es Dios de confusión, sino de paz.» 1 Corintios 14:33.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Elige un solo contenedor (bandeja, mesa, carpeta de clientes). Déjalo en estado “listo para recibir” en 25 minutos cronometrados.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué desorden mío está diciendo “aún no” a la oportunidad?</p>
+    </section>
+    <section class="etapa" id="e7">
+      <h2>Etapa 7 · Gratitud operativa</h2>
+      <p class="principio">Principio: La gratitud no es perfume: es inventario. Contar provisiones abre ojo para multiplicarlas.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-crea-fortuna/04-cosecha-serena.jpg" alt="Mesa ordenada con luz de mañana y cuaderno" />
+        <figcaption>Inventario vivo.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>La mente ansiosa solo ve faltantes. La mente lista cuenta lo que ya tiene y pregunta cómo hacerlo crecer. Gratitud sin acción es sentimentalismo; acción sin gratitud es avaricia.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Luis listó herramientas, contactos y habilidades. Descubrió que “no tenía nada” era mentira. Empezó a vender con lo que ya estaba en casa.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Dad gracias en todo.» 1 Tesalonicenses 5:18. Gracias con lista, no con pose.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Haz un inventario de 10 provisiones concretas (herramientas, contactos, skills). Marca dos que puedes activar esta semana.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué provisión concreta estoy dejando de operar por queja?</p>
+    </section>
+    <section class="etapa" id="e8">
+      <h2>Etapa 8 · Ritmo de cosecha</h2>
+      <p class="principio">Principio: La fortuna se sostiene con ritmo, no con un pico. Diseña la semana que cosecha.</p>
+      <figure class="relato">
+        <img src="/cursos-assets/la-mente-que-crea-fortuna/04-cosecha-serena.jpg" alt="Mesa ordenada con luz de mañana y cuaderno" />
+        <figcaption>Cosecha con calendario.</figcaption>
+      </figure>
+      <h3>Lección</h3>
+      <p>Termina el curso eligiendo un ritmo: revisar, crear, ofrecer, cobrar, descansar. Sin ritmo, la mente vuelve al milagro y se vacía.</p><p>Sigue estudiando en la Escuela. Separarte no es soberbia: es cuidarte para sostener más valor.</p>
+      <div class="caja cuento"><strong>Cuento.</strong> Nora puso cada viernes 20 minutos de “cosecha”: cuentas, agenda, un agradecimiento. En un trimestre dejó de vivir a trompicones.</div>
+      <div class="caja biblia"><strong>Puente bíblico.</strong> «Enséñanos de tal modo a contar nuestros días, que traigamos al corazón sabiduría.» Salmo 90:12.</div>
+      <div class="caja ejercicio"><strong>Ejercicio.</strong> Agenda un bloque semanal fijo llamado “cosecha” (15–20 min). No lo muevas. Anota una mejora mínima cada viernes.</div>
+      <p class="meta"><em>Pregunta de la etapa:</em> ¿Qué ritmo semanal sostendrá mi fortuna sin romper mi salud?</p>
+    </section>
+    <section class="etapa" id="cuaderno">
+      <h2>Cuaderno · ocho ejercicios</h2>
+      <ol>
+        <li><strong>La preparación, no el milagro:</strong> Escribe tres áreas de tu vida aún “revueltas” (sueño, dinero, oficio, relaciones). Marca una sola para ordenar esta semana con un acto concreto de 20 minutos.</li>        <li><strong>El umbral de la disposición:</strong> Haz un cálculo honesto: si mañana tu ingreso se duplicara, qué tres sistemas (tiempo, salud, administración) se romperían. Elige uno y refuerza un tornillo.</li>        <li><strong>Identidad de constructor:</strong> Escribe en una línea tu identidad de constructor (oficio + virtud). Durante tres días, actúa una sola decisión coherente con esa línea.</li>        <li><strong>Atención = capital:</strong> Durante 48 horas, anota cada bloque de atención >15 min. Marca: crea valor / distrae / repara. Corta un solo bloque de distracción mañana.</li>        <li><strong>Valor antes que billete:</strong> Elige un servicio tuyo. Escribe qué valor concreto recibe la otra persona en 7 días. Mejora una sola prueba de ese valor esta semana.</li>        <li><strong>Orden que invita:</strong> Elige un solo contenedor (bandeja, mesa, carpeta de clientes). Déjalo en estado “listo para recibir” en 25 minutos cronometrados.</li>        <li><strong>Gratitud operativa:</strong> Haz un inventario de 10 provisiones concretas (herramientas, contactos, skills). Marca dos que puedes activar esta semana.</li>        <li><strong>Ritmo de cosecha:</strong> Agenda un bloque semanal fijo llamado “cosecha” (15–20 min). No lo muevas. Anota una mejora mínima cada viernes.</li>
+      </ol>
+    </section>
+    <div class="cta-seguir">
+      <h2 style="margin-top:0">Sigue estudiando. Sigue separándote.</h2>
+      <p>No esperes el milagro: prepara el terreno esta semana. Luego vuelve a /escuela y sigue separándote con el siguiente itinerario.</p>
+      <p class="meta">Cuando termines este itinerario, vuelve a la Escuela ContacNeed y elige el siguiente curso. La educación continua no es un adorno: es el suelo donde crece tu salud física, mental y de oficio.</p>
+    </div>
+  </main>
+  <footer>CMS VIAM · Escuela de principios vitalicios · ContacNeed</footer>
+</body>
+</html>
