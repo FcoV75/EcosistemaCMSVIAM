@@ -24,6 +24,7 @@ import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as CirculoCmsPlusRouteImport } from './routes/circulo-cms-plus'
 import { Route as ExpedienteClinicoRouteImport } from './routes/expediente-clinico'
+import { Route as TuContadorPrivadoRouteImport } from './routes/tu-contador-privado'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
 import { Route as AuthResetRouteImport } from './routes/auth/reset'
@@ -108,6 +109,11 @@ const ExpedienteClinicoRoute = ExpedienteClinicoRouteImport.update({
   path: '/expediente-clinico',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TuContadorPrivadoRoute = TuContadorPrivadoRouteImport.update({
+  id: '/tu-contador-privado',
+  path: '/tu-contador-privado',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/terminos': typeof TerminosRoute
   '/circulo-cms-plus': typeof CirculoCmsPlusRoute
   '/expediente-clinico': typeof ExpedienteClinicoRoute
+  '/tu-contador-privado': typeof TuContadorPrivadoRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/terminos': typeof TerminosRoute
   '/circulo-cms-plus': typeof CirculoCmsPlusRoute
   '/expediente-clinico': typeof ExpedienteClinicoRoute
+  '/tu-contador-privado': typeof TuContadorPrivadoRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/terminos': typeof TerminosRoute
   '/circulo-cms-plus': typeof CirculoCmsPlusRoute
   '/expediente-clinico': typeof ExpedienteClinicoRoute
+  '/tu-contador-privado': typeof TuContadorPrivadoRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
     | '/terminos'
     | '/circulo-cms-plus'
     | '/expediente-clinico'
+    | '/tu-contador-privado'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
@@ -268,6 +278,7 @@ export interface FileRouteTypes {
     | '/terminos'
     | '/circulo-cms-plus'
     | '/expediente-clinico'
+    | '/tu-contador-privado'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
@@ -293,6 +304,7 @@ export interface FileRouteTypes {
     | '/terminos'
     | '/circulo-cms-plus'
     | '/expediente-clinico'
+    | '/tu-contador-privado'
     | '/auth/callback'
     | '/auth/confirm'
     | '/auth/reset'
@@ -319,6 +331,7 @@ export interface RootRouteChildren {
   TerminosRoute: typeof TerminosRoute
   CirculoCmsPlusRoute: typeof CirculoCmsPlusRoute
   ExpedienteClinicoRoute: typeof ExpedienteClinicoRoute
+  TuContadorPrivadoRoute: typeof TuContadorPrivadoRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthConfirmRoute: typeof AuthConfirmRoute
   AuthResetRoute: typeof AuthResetRoute
@@ -430,6 +443,13 @@ declare module '@tanstack/react-router' {
       path: '/expediente-clinico'
       fullPath: '/expediente-clinico'
       preLoaderRoute: typeof ExpedienteClinicoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tu-contador-privado': {
+      id: '/tu-contador-privado'
+      path: '/tu-contador-privado'
+      fullPath: '/tu-contador-privado'
+      preLoaderRoute: typeof TuContadorPrivadoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -553,6 +573,7 @@ const rootRouteChildren: RootRouteChildren = {
   TerminosRoute: TerminosRoute,
   CirculoCmsPlusRoute: CirculoCmsPlusRoute,
   ExpedienteClinicoRoute: ExpedienteClinicoRoute,
+  TuContadorPrivadoRoute: TuContadorPrivadoRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthConfirmRoute: AuthConfirmRoute,
   AuthResetRoute: AuthResetRoute,

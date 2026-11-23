@@ -367,6 +367,35 @@ async function activateCmsPlusFromCheckout(supabase, session) {
   }
 }
 
+async function activateContadorFromCheckout(supabase, session) {
+  const userId = session.metadata?.userId
+  if (!userId) {
+    return { warning: 'checkout contador_privado sin userId en metadata' }
+  }
+  const email =
+    String(session.customer_details?.email || session.customer_email || session.metadata?.email || '')
+      .trim()
+      .toLowerCase() || null
+  const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString()
+  const precioMxn = Number(session.metadata?.precio_mxn || 0) || null
+  const cmsNivel = session.metadata?.cms_nivel || null
+  await upsertEntitlementRow(supabase, {
+    userId,
+    producto: 'contador_privado',
+    plan: 'mensual',
+    expiresAt,
+    sessionId: session.id,
+    legacyCode: null,
+    metadata: {
+      source: 'contacneed_webhook',
+      cms_nivel: cmsNivel,
+      precio_mxn: precioMxn,
+      email,
+    },
+  })
+  return { activated: true, producto: 'contador_privado', userId, expiresAt, precioMxn }
+}
+
 async function activateExpedienteFromCheckout(supabase, session) {
   const userId = session.metadata?.userId
   if (!userId) {
@@ -493,6 +522,9 @@ async function activateProFromCheckout(session) {
   if (producto === 'expediente_clinico') {
     return activateExpedienteFromCheckout(supabase, session)
   }
+  if (producto === 'contador_privado') {
+    return activateContadorFromCheckout(supabase, session)
+  }
   if (producto !== 'contacneed_pro') {
     return { ignored: true, producto }
   }
@@ -610,6 +642,24 @@ async function renewFromInvoice(stripe, invoice) {
       },
     })
     return { renewed: true, producto: 'expediente_clinico', userId, expiresAt }
+  }
+
+  if (producto === 'contador_privado') {
+    await upsertEntitlementRow(supabase, {
+      userId,
+      producto: 'contador_privado',
+      plan: 'mensual',
+      expiresAt,
+      sessionId: invoice.id,
+      legacyCode,
+      metadata: {
+        source: 'contacneed_webhook_renewal',
+        cms_nivel: meta.cms_nivel || null,
+        precio_mxn: Number(meta.precio_mxn || 0) || null,
+        email,
+      },
+    })
+    return { renewed: true, producto: 'contador_privado', userId, expiresAt }
   }
 
   if (producto === 'cms_plus') {

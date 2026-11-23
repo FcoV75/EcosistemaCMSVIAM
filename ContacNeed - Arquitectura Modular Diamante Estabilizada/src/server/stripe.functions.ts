@@ -2,7 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import Stripe from 'stripe'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import { getServerUser, requireActiveUser } from '../lib/auth'
-import { upsertContacNeedPro } from '../lib/ecosistema-entitlements'
+import { getContacNeedProStatus, upsertContacNeedPro } from '../lib/ecosistema-entitlements'
 import { activateCmsPlus, getCmsPlusStatus } from '../lib/cms-plus-entitlements'
 import { notifyPrivilegeGrant } from '../lib/notify-privileges'
 import {
@@ -18,6 +18,11 @@ import {
   activateExpedienteClinico,
   getExpedienteAccess,
 } from '../lib/expediente-entitlements'
+import { PRODUCTO_CONTADOR, precioContadorCentavos } from '../lib/contador-privado'
+import {
+  activateContadorPrivado,
+  getContadorAccess,
+} from '../lib/contador-entitlements'
 
 function getStripe() {
   const secret = process.env.STRIPE_SECRET_KEY
@@ -239,6 +244,70 @@ export const createExpedienteCheckoutFn = createServerFn({ method: 'POST' }).han
   return { url: session.url, sessionId: session.id, precioLabel: access.precioLabel }
 })
 
+/** Checkout mensual Tu Contador Privado (precio según CMS-Plus / PRO). */
+export const createContadorCheckoutFn = createServerFn({ method: 'POST' }).handler(async () => {
+  const sessionUser = await requireActiveUser()
+  const supabase = createSupabaseAdminClient()
+  const access = await getContadorAccess(supabase, sessionUser.user, sessionUser.profile)
+
+  if (access.ok) {
+    return { alreadyActive: true as const, precioLabel: access.precioLabel }
+  }
+
+  if (access.esOwner || access.precioMensualMxn === 0) {
+    await activateContadorPrivado(supabase, {
+      userId: sessionUser.user.id,
+      email: sessionUser.user.email,
+      permanent: true,
+      precioMxn: 0,
+      source: 'owner_gratis_checkout',
+    })
+    return { alreadyActive: true as const, precioLabel: 'Gratis (creador)' }
+  }
+
+  const cms = await getCmsPlusStatus(supabase, sessionUser.user.id)
+  const pro = await getContacNeedProStatus(supabase, sessionUser.user.id)
+  const cmsNivel = cms.active ? cms.nivel : null
+  const esPro = Boolean(pro.active || sessionUser.profile?.es_pro)
+  const unitAmount = precioContadorCentavos({ esOwner: false, cmsNivel, esPro })
+  const stripe = getStripe()
+  const siteUrl = siteBaseUrl()
+  const metadata = {
+    userId: sessionUser.user.id,
+    producto: PRODUCTO_CONTADOR,
+    cms_nivel: cmsNivel || '',
+    precio_mxn: String(access.precioMensualMxn),
+    plan: 'monthly',
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer_email: sessionUser.user.email,
+    line_items: [
+      {
+        price_data: {
+          currency: 'mxn',
+          product_data: {
+            name: 'Tu Contador Privado — ContacNeed',
+            description:
+              'Control mensual de ingresos, egresos y checklist fiscal para oficios y PyME. Precio según tu nivel.',
+          },
+          unit_amount: unitAmount,
+          recurring: { interval: 'month' },
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: `${siteUrl}/tu-contador-privado?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${siteUrl}/tu-contador-privado?payment_cancelled=true`,
+    metadata,
+    subscription_data: { metadata },
+  })
+
+  if (!session.url) throw new Error('No se pudo crear la sesión de pago del Contador Privado')
+  return { url: session.url, sessionId: session.id, precioLabel: access.precioLabel }
+})
+
 export const confirmStripeSessionFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { sessionId: string }) => d)
   .handler(async ({ data }) => {
@@ -274,6 +343,24 @@ export const confirmStripeSessionFn = createServerFn({ method: 'POST' })
         success: true,
         producto: PRODUCTO_EXPEDIENTE,
         es_pro: Boolean((await getCmsPlusStatus(supabase, user.id)).active),
+      }
+    }
+
+    if (producto === PRODUCTO_CONTADOR || producto === 'contador_privado') {
+      const cms = await getCmsPlusStatus(supabase, user.id)
+      const precioMxn = Number(session.metadata?.precio_mxn || 0) || undefined
+      await activateContadorPrivado(supabase, {
+        userId: user.id,
+        stripeSessionId: session.id,
+        email: user.email,
+        cmsNivel: cms.active ? cms.nivel : null,
+        precioMxn,
+        source: 'contacneed_confirm',
+      })
+      return {
+        success: true,
+        producto: PRODUCTO_CONTADOR,
+        es_pro: Boolean((await getContacNeedProStatus(supabase, user.id)).active),
       }
     }
 

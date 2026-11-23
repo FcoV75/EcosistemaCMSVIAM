@@ -508,6 +508,19 @@ function ProfileContent({
               </div>
             )}
 
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-sm text-emerald-950">
+                ¿Ya tienes banner y productos? Activa <strong>Tu Contador Privado</strong> para llevar
+                ingresos, egresos y un checklist mensual hacia el SAT (herramienta educativa).
+              </p>
+              <a
+                href="/tu-contador-privado"
+                className="shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+              >
+                Ir a Contador Privado
+              </a>
+            </div>
+
             {planQuery.data && (
               <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                 <p>{planQuery.data.posts.label}</p>
