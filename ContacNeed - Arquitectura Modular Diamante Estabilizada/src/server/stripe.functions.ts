@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
 import Stripe from 'stripe'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
-import { getServerUser } from '../lib/auth'
+import { getServerUser, requireActiveUser } from '../lib/auth'
 import { upsertContacNeedPro } from '../lib/ecosistema-entitlements'
-import { activateCmsPlus } from '../lib/cms-plus-entitlements'
+import { activateCmsPlus, getCmsPlusStatus } from '../lib/cms-plus-entitlements'
 import { notifyPrivilegeGrant } from '../lib/notify-privileges'
 import {
   getCmsPlusTier,
@@ -13,6 +13,11 @@ import {
   type CmsPlusBilling,
   type CmsPlusNivel,
 } from '../lib/cms-plus'
+import { PRODUCTO_EXPEDIENTE, precioExpedienteCentavos } from '../lib/expediente-clinico'
+import {
+  activateExpedienteClinico,
+  getExpedienteAccess,
+} from '../lib/expediente-entitlements'
 
 function getStripe() {
   const secret = process.env.STRIPE_SECRET_KEY
