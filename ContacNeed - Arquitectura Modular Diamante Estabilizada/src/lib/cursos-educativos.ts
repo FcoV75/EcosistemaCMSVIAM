@@ -133,6 +133,42 @@ export const CURSOS_EDUCATIVOS: CursoEducativo[] = [
     portada: '/cursos-assets/lo-que-decide-sin-ti/01-portada-decide-sin-ti.jpg',
   },
   {
+    slug: 'la-mente-que-crea-fortuna',
+    titulo: 'La mente que crea fortuna',
+    estado: 'dado',
+    resumen:
+      'Ocho etapas para preparar el terreno interior: disposición, identidad de constructor, atención como capital, valor antes que billete y ritmo de cosecha.',
+    etapas: 8,
+    modalidad: 'Zoom y presencial',
+    fechaDado: '2026-11-23',
+    cuotaImparticion: 'Cuota de impartición en vivo (Zoom o presencial), a convenir con el docente.',
+    portada: '/cursos-assets/la-mente-que-crea-fortuna/01-portada-fortuna.jpg',
+  },
+  {
+    slug: 'la-multiplicacion-silenciosa',
+    titulo: 'La multiplicación silenciosa',
+    estado: 'dado',
+    resumen:
+      'Ocho etapas para multiplicar sin espectáculo: semilla, carácter, hábito, tapar fugas, reinversión consciente y tablero de mayordomía.',
+    etapas: 8,
+    modalidad: 'Zoom y presencial',
+    fechaDado: '2026-11-23',
+    cuotaImparticion: 'Cuota de impartición en vivo (Zoom o presencial), a convenir con el docente.',
+    portada: '/cursos-assets/la-multiplicacion-silenciosa/01-portada-multiplica.jpg',
+  },
+  {
+    slug: 'el-codigo-de-la-realidad',
+    titulo: 'El código de la realidad',
+    estado: 'dado',
+    resumen:
+      'Ocho etapas para leer y reescribir el código mental: creencias-instrucción, filtro de atención, narrativa dominante y experimentos con hechos.',
+    etapas: 8,
+    modalidad: 'Zoom y presencial',
+    fechaDado: '2026-11-23',
+    cuotaImparticion: 'Cuota de impartición en vivo (Zoom o presencial), a convenir con el docente.',
+    portada: '/cursos-assets/el-codigo-de-la-realidad/01-portada-codigo.jpg',
+  },
+  {
     slug: 'proximo-itinerario',
     titulo: 'Próximo itinerario',
     estado: 'programado',
