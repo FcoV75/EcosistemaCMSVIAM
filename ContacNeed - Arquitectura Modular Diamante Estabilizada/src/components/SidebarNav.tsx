@@ -15,6 +15,7 @@ import {
   User,
   UserPlus,
   Users,
+  Wallet,
 } from 'lucide-react'
 import type { AuthTab } from './AuthModal'
 import { SectionHelpHint } from './SectionHelpHint'
@@ -155,6 +156,24 @@ export function SidebarNav({
                 <SectionHelpHint
                   title="Expediente clínico"
                   text="Para médicos y paramédicos: historia clínica NOM-004, evolución, audio de consulta y control Miembros/No miembros. Cuota mensual según nivel CMS-Plus."
+                />
+              </div>
+            </li>
+            <li>
+              <div className="flex items-center gap-1 rounded-xl px-3 py-2.5 transition hover:bg-white/10">
+                <Link
+                  to="/tu-contador-privado"
+                  className="flex flex-1 items-center gap-3 text-sm font-medium text-purple-100 [&.active]:text-amber-100"
+                >
+                  <Wallet size={18} className="text-emerald-400" />
+                  Tu Contador Privado
+                  <span className="rounded bg-emerald-500/25 px-1.5 py-0.5 text-[9px] font-bold text-emerald-100">
+                    PyME
+                  </span>
+                </Link>
+                <SectionHelpHint
+                  title="Tu Contador Privado"
+                  text="Para oficios con tienda: ingresos, egresos, saldo mensual y checklist SAT educativo. Requiere perfil completo y tienda estructurada."
                 />
               </div>
             </li>

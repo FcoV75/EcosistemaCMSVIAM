@@ -11,6 +11,7 @@ import {
   Store,
   UserPlus,
   Users,
+  Wallet,
 } from 'lucide-react'
 import { storageGet, storageSet } from './safe-storage'
 
@@ -98,6 +99,14 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
       'Médicos y paramédicos: historia clínica, evolución sellada, audio de consulta y separación Miembros/No miembros. Cuota mensual según tu nivel CMS-Plus.',
     icon: Stethoscope,
     accent: 'from-cyan-500 to-emerald-500',
+  },
+  {
+    id: 'tu-contador-privado',
+    title: 'Tu Contador Privado',
+    description:
+      'Oficios con tienda: registra ingresos y egresos mes a mes, checklist SAT educativo y exportación anual. Primero completa perfil y tienda.',
+    icon: Wallet,
+    accent: 'from-emerald-500 to-lime-500',
   },
   {
     id: 'community',
