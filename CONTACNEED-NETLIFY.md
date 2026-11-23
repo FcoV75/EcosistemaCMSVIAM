@@ -4,17 +4,17 @@ El despliegue de **contacneed.com** usa una carpeta base dentro de este repo.
 
 ## Carpeta del proyecto
 
-`ContacNeed - Arquitectura Modular Diamante Estabilizada`
+`contacneed`
 
 ## Guía completa
 
 Lee el archivo:
 
-`ContacNeed - Arquitectura Modular Diamante Estabilizada/NETLIFY.md`
+`contacneed/NETLIFY.md`
 
 ## Resumen rápido (Netlify UI)
 
-- **Base directory:** `ContacNeed - Arquitectura Modular Diamante Estabilizada`
+- **Base directory:** `contacneed`
 - **Build command:** `npm run build`
 - **Publish directory:** `dist/client`
 - **Functions:** `netlify/functions`

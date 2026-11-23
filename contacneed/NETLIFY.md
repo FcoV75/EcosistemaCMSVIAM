@@ -10,10 +10,15 @@ En **Site configuration → Build & deploy → Continuous deployment → Build s
 |-------|-------|
 | **Repository** | `FcoV75/EcosistemaCMSVIAM` |
 | **Branch** | `main` |
-| **Base directory** | `ContacNeed - Arquitectura Modular Diamante Estabilizada` |
+| **Base directory** | `contacneed` |
 | **Build command** | `npm run build` |
 | **Publish directory** | `dist/client` |
 | **Functions directory** | `netlify/functions` |
+
+**Importante (nov 2026):** la carpeta del proyecto se renombró de  
+`ContacNeed - Arquitectura Modular Diamante Estabilizada` → `contacneed`  
+(sin espacios) porque Netlify fallaba al subir la función SSR `server` (HTTP 500).  
+Tras merge, en Netlify UI actualiza el **Base directory** a exactamente `contacneed` y vuelve a desplegar.
 
 Netlify leerá el `netlify.toml` de esta carpeta cuando el **Base directory** esté configurado.
 
@@ -64,11 +69,11 @@ VITE_GOOGLE_MAPS_API_KEY=      # opcional, misma key si la usas en el cliente
 
 Para likes/comentarios/compartidos/solicitudes/notificaciones en tiempo real, ejecuta en el SQL Editor:
 
-`ContacNeed - Arquitectura Modular Diamante Estabilizada/supabase/migrations/011_realtime_social.sql`
+`contacneed/supabase/migrations/011_realtime_social.sql`
 
 Para **Círculo CMS-Plus Membresías** (créditos, círculo de cuidado y PRO desde `cms_plus`), ejecuta:
 
-`ContacNeed - Arquitectura Modular Diamante Estabilizada/supabase/migrations/016_cms_plus_membresias.sql`
+`contacneed/supabase/migrations/016_cms_plus_membresias.sql`
 
 ## Correos (registro, recuperación y privilegios)
 
@@ -133,7 +138,7 @@ UPDATE perfiles SET is_admin = true WHERE email = 'tu@correo.com';
 ## Deploy manual desde tu PC
 
 ```powershell
-cd "C:\Users\Gamer\OneDrive\Escritorio\EcosistemaCMSVIAM\ContacNeed - Arquitectura Modular Diamante Estabilizada"
+cd "C:\Users\Gamer\OneDrive\Escritorio\EcosistemaCMSVIAM\contacneed"
 npm install
 npm run build
 npx netlify deploy --prod

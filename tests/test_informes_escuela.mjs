@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const cn = join(root, "ContacNeed - Arquitectura Modular Diamante Estabilizada");
+const cn = join(root, "contacneed");
 
 const informes = readFileSync(join(cn, "src/lib/informes-escuela.ts"), "utf8");
 assert.match(informes, /export function esPreguntaEscuela/);

@@ -1,3 +1,4 @@
+// pragma: allowlist secret — legacy sample with public Cloudinary cloudName
 Here is the complete, unsummarized code for the requested files:
 
 src/server/posts.functions.ts
@@ -154,7 +155,7 @@ function ProfilePage() {
     }
     (window as any).cloudinary.createUploadWidget(
       {
-        cloudName: 'dgkruw6n7',
+        cloudName: 'dgkruw6n7',  // pragma: allowlist secret
         uploadPreset: 'contacneed_uploads',
         maxFiles: 1,
       },

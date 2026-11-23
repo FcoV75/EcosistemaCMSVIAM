@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 
-const base = 'ContacNeed - Arquitectura Modular Diamante Estabilizada'
+const base = 'contacneed'
 
 const migration = fs.readFileSync(`${base}/supabase/migrations/020_expediente_clinico.sql`, 'utf8')
 assert.match(migration, /expediente_profesional/)

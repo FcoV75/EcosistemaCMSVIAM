@@ -3,9 +3,9 @@ import fs from 'node:fs';
 
 const files = [
   'netlify/functions/create-checkout-session.mjs',
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/netlify/functions/create-checkout-session.mjs',
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/server/stripe.functions.ts',
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/server/cursos-educativos.functions.ts',
+  'contacneed/netlify/functions/create-checkout-session.mjs',
+  'contacneed/src/server/stripe.functions.ts',
+  'contacneed/src/server/cursos-educativos.functions.ts',
 ];
 
 for (const file of files) {
@@ -22,7 +22,7 @@ assert.match(cmsCheckout, /metadataBase\(req, \{ producto, plan: planTipo/);
 assert.match(cmsCheckout, /producto: 'ecosistema_cms_compra'/);
 
 const contacneedServer = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/server/stripe.functions.ts',
+  'contacneed/src/server/stripe.functions.ts',
   'utf8',
 );
 assert.match(contacneedServer, /metadata: \{ userId: user\.id, plan: data\.plan, producto: 'contacneed_pro' \}/);

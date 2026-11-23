@@ -1,4 +1,4 @@
-const CLOUDINARY_CLOUD_NAME = 'dgkruw6n7'
+const CLOUDINARY_CLOUD_NAME = 'dgkruw6n7'  // pragma: allowlist secret
 const CLOUDINARY_UPLOAD_PRESET = 'contacneed_uploads'
 
 type CloudinaryResourceType = 'image' | 'video' | 'raw' | 'auto'

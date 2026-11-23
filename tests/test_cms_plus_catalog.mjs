@@ -10,7 +10,7 @@ assert.match(catalogSrc, /STRIPE_PRICE_CMS_PLUS_PLATA_MONTHLY/)
 assert.match(catalogSrc, /249900/)
 
 const webhook = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/netlify/functions/stripe-webhook.mjs',
+  'contacneed/netlify/functions/stripe-webhook.mjs',
   'utf8',
 )
 assert.match(webhook, /producto === 'cms_plus'/)
@@ -21,7 +21,7 @@ assert.match(webhook, /renewFromInvoice/)
 assert.equal(webhook.includes('payment_method_types'), false)
 
 const stripeFn = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/server/stripe.functions.ts',
+  'contacneed/src/server/stripe.functions.ts',
   'utf8',
 )
 assert.match(stripeFn, /createCmsPlusCheckoutFn/)
@@ -31,7 +31,7 @@ assert.match(stripeFn, /Gracias_Pago_CMS\.png/)
 assert.equal(stripeFn.includes('payment_method_types'), false)
 
 const circuloUi = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/routes/circulo-cms-plus.tsx',
+  'contacneed/src/routes/circulo-cms-plus.tsx',
   'utf8',
 )
 assert.equal(
@@ -41,7 +41,7 @@ assert.equal(
 )
 
 const cmsPlus = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/lib/cms-plus.ts',
+  'contacneed/src/lib/cms-plus.ts',
   'utf8',
 )
 assert.match(cmsPlus, /precioMensualMxn: 499/)
@@ -51,14 +51,14 @@ assert.match(cmsPlus, /precioMensualMxn: 2499/)
 assert.equal(cmsPlus.includes('bronce'), false)
 
 const route = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/src/routes/circulo-cms-plus.tsx',
+  'contacneed/src/routes/circulo-cms-plus.tsx',
   'utf8',
 )
 assert.match(route, /Círculo CMS-Plus Membresías/)
 assert.match(route, /No es pirámide/)
 
 const migration = fs.readFileSync(
-  'ContacNeed - Arquitectura Modular Diamante Estabilizada/supabase/migrations/016_cms_plus_membresias.sql',
+  'contacneed/supabase/migrations/016_cms_plus_membresias.sql',
   'utf8',
 )
 assert.match(migration, /cms_plus_creditos/)

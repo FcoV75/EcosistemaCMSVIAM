@@ -4,7 +4,7 @@ import {
   PUNTOS_MENSUALIDAD_GRATIS,
   PUNTOS_POR_REFERIDO_REGISTRO,
   generarCodigoReferido,
-} from '../ContacNeed - Arquitectura Modular Diamante Estabilizada/src/lib/gamificacion.ts'
+} from '../contacneed/src/lib/gamificacion.ts'
 
 assert.equal(PUNTOS_POR_REFERIDO_REGISTRO, 10)
 assert.equal(PUNTOS_MENSUALIDAD_GRATIS, 100)

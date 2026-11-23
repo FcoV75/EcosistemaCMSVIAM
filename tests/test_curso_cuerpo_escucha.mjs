@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const cn = join(root, "ContacNeed - Arquitectura Modular Diamante Estabilizada");
+const cn = join(root, "contacneed");
 
 assert.ok(existsSync(join(cn, "src/routes/escuela.tsx")), "falta ruta /escuela");
 assert.ok(existsSync(join(cn, "src/routes/escuela.$slug.tsx")), "falta ruta /escuela/$slug");
