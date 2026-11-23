@@ -302,7 +302,7 @@ function ProfileContent({
               onClick={() => setActiveTab('guia')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === 'guia' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
             >
-              <HelpCircle size={18} /> Guía de Uso (IA)
+              <HelpCircle size={18} /> Guía de uso
             </button>
             {cursoPromotoresQuery.data?.ok && (
               <button
@@ -685,9 +685,9 @@ function ProfileContent({
         {activeTab === 'guia' && (
           <div className="p-6 md:p-8 animate-in fade-in">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900">Guía de Uso Inteligente</h2>
+              <h2 className="text-2xl font-bold text-slate-900">Guía de uso ContacNeed</h2>
               <p className="text-gray-500">
-                Aprende las funciones básicas de ContacNeed con consejos adaptados a tu perfil.
+                Ventajas y funciones de la red — pizarra, tienda, PRO, Contador Privado, expediente, Grupos y más — con un consejo adaptado a tu perfil.
               </p>
             </div>
             <SmartGuidePanel />
