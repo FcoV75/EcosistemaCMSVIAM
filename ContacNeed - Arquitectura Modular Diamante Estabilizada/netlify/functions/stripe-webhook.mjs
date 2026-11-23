@@ -367,6 +367,35 @@ async function activateCmsPlusFromCheckout(supabase, session) {
   }
 }
 
+async function activateExpedienteFromCheckout(supabase, session) {
+  const userId = session.metadata?.userId
+  if (!userId) {
+    return { warning: 'checkout expediente_clinico sin userId en metadata' }
+  }
+  const email =
+    String(session.customer_details?.email || session.customer_email || session.metadata?.email || '')
+      .trim()
+      .toLowerCase() || null
+  const expiresAt = new Date(Date.now() + 30 * 86400000).toISOString()
+  const precioMxn = Number(session.metadata?.precio_mxn || 0) || null
+  const cmsNivel = session.metadata?.cms_nivel || null
+  await upsertEntitlementRow(supabase, {
+    userId,
+    producto: 'expediente_clinico',
+    plan: 'mensual',
+    expiresAt,
+    sessionId: session.id,
+    legacyCode: null,
+    metadata: {
+      source: 'contacneed_webhook',
+      cms_nivel: cmsNivel,
+      precio_mxn: precioMxn,
+      email,
+    },
+  })
+  return { activated: true, producto: 'expediente_clinico', userId, expiresAt, precioMxn }
+}
+
 async function activateEscuelaFromCheckout(supabase, session) {
   const slug = session.metadata?.curso_slug
   const userId = session.metadata?.userId || null
@@ -460,6 +489,9 @@ async function activateProFromCheckout(session) {
   }
   if (producto === 'cms_plus') {
     return activateCmsPlusFromCheckout(supabase, session)
+  }
+  if (producto === 'expediente_clinico') {
+    return activateExpedienteFromCheckout(supabase, session)
   }
   if (producto !== 'contacneed_pro') {
     return { ignored: true, producto }
@@ -561,6 +593,24 @@ async function renewFromInvoice(stripe, invoice) {
       .trim()
       .toLowerCase() || null
   const legacyCode = await ensureLegacyCmsCode(supabase, { userId, email })
+
+  if (producto === 'expediente_clinico') {
+    await upsertEntitlementRow(supabase, {
+      userId,
+      producto: 'expediente_clinico',
+      plan: 'mensual',
+      expiresAt,
+      sessionId: invoice.id,
+      legacyCode,
+      metadata: {
+        source: 'contacneed_webhook_renewal',
+        cms_nivel: meta.cms_nivel || null,
+        precio_mxn: Number(meta.precio_mxn || 0) || null,
+        email,
+      },
+    })
+    return { renewed: true, producto: 'expediente_clinico', userId, expiresAt }
+  }
 
   if (producto === 'cms_plus') {
     const nivel = ['plata', 'oro', 'platino', 'diamante'].includes(meta.nivel) ? meta.nivel : 'plata'

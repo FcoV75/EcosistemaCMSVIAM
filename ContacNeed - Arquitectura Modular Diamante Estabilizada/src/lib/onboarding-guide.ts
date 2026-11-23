@@ -7,6 +7,7 @@ import {
   PenLine,
   Radio,
   Sparkles,
+  Stethoscope,
   Store,
   UserPlus,
   Users,
@@ -89,6 +90,14 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
       'Coordina obras grandes (edificio, escuela, hospital…) con grupos estratégicos por rol. Al concluir, dejas solo el equipo de mantenimiento. Exclusivo PRO.',
     icon: Building2,
     accent: 'from-orange-500 to-amber-600',
+  },
+  {
+    id: 'expediente-clinico',
+    title: 'Expediente clínico (NOM)',
+    description:
+      'Médicos y paramédicos: historia clínica, evolución sellada, audio de consulta y separación Miembros/No miembros. Cuota mensual según tu nivel CMS-Plus.',
+    icon: Stethoscope,
+    accent: 'from-cyan-500 to-emerald-500',
   },
   {
     id: 'community',
