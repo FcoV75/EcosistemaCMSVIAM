@@ -5,6 +5,7 @@ import {
   CHECKLIST_SAT_MENSUAL,
   evaluarPerfilCompleto,
   evaluarTiendaEstructurada,
+  resumenPorCategoria,
   type ContadorRegimen,
 } from '../lib/contador-privado'
 import { getContadorAccess } from '../lib/contador-entitlements'
@@ -204,6 +205,27 @@ export const getContadorPeriodoFn = createServerFn({ method: 'POST' })
       .filter((m) => m.tipo === 'egreso')
       .reduce((s, m) => s + Number(m.monto_centavos || 0), 0)
 
+    // Saldo acumulado: meses anteriores del mismo año + saldo del mes actual
+    const { data: prevPeriodos } = await supabase
+      .from('contador_periodos')
+      .select('id')
+      .eq('owner_id', user.id)
+      .eq('anio', periodo.anio)
+      .lt('mes', periodo.mes)
+    const prevIds = (prevPeriodos || []).map((p) => p.id)
+    let saldoAcumuladoAnterior = 0
+    if (prevIds.length) {
+      const { data: prevMovs } = await supabase
+        .from('contador_movimientos')
+        .select('tipo, monto_centavos')
+        .eq('owner_id', user.id)
+        .in('periodo_id', prevIds)
+      for (const m of prevMovs || []) {
+        const n = Number(m.monto_centavos || 0)
+        saldoAcumuladoAnterior += m.tipo === 'ingreso' ? n : -n
+      }
+    }
+
     return {
       periodo,
       movimientos: movs,
@@ -212,8 +234,10 @@ export const getContadorPeriodoFn = createServerFn({ method: 'POST' })
         ingresosCentavos: ingresos,
         egresosCentavos: egresos,
         saldoCentavos: ingresos - egresos,
+        saldoAcumuladoCentavos: saldoAcumuladoAnterior + (ingresos - egresos),
         countIngresos: movs.filter((m) => m.tipo === 'ingreso').length,
         countEgresos: movs.filter((m) => m.tipo === 'egreso').length,
+        porCategoria: resumenPorCategoria(movs),
       },
     }
   })

@@ -642,9 +642,26 @@ export const deleteProyectoFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const { user } = await requireProUser()
     await assertProyectoOwner(data.proyectoId, user.id)
-    const { error } = await admin().from('proyectos').delete().eq('id', data.proyectoId)
-    if (error) throw new Error(error.message)
-    return { success: true }
+    const db = admin()
+    // Archivo lógico: conserva grupos/mensajes/finanzas para continuidad histórica
+    const { error } = await db
+      .from('proyectos')
+      .update({ estatus: 'archivado', concluido_at: new Date().toISOString() })
+      .eq('id', data.proyectoId)
+    if (error) {
+      // Compatibilidad si aún no aplica migración 022
+      if (/check|archivado|violates/i.test(error.message)) {
+        const fallback = await db
+          .from('proyectos')
+          .update({ estatus: 'concluido', concluido_at: new Date().toISOString() })
+          .eq('id', data.proyectoId)
+        if (fallback.error) throw new Error(fallback.error.message)
+      } else {
+        throw new Error(error.message)
+      }
+    }
+    await db.from('grupos').update({ activo: false }).eq('proyecto_id', data.proyectoId)
+    return { success: true, archived: true }
   })
 
 export const updateProyectoFechasFn = createServerFn({ method: 'POST' })
@@ -677,20 +694,19 @@ export const getProyectoDetalleFn = createServerFn({ method: 'GET' })
     const db = admin()
 
     let grupos: any[] = []
+    // Incluye activos y archivados para continuidad histórica tras concluir obra
     const gFull = await db
       .from('grupos')
       .select(
         'id, nombre, descripcion, rol_etiqueta, activo, mantenimiento, owner_id, created_at, presupuesto_asignado',
       )
       .eq('proyecto_id', data.proyectoId)
-      .eq('activo', true)
       .order('created_at', { ascending: true })
     if (gFull.error && isMissingSchemaError(gFull.error.message)) {
       const gLegacy = await db
         .from('grupos')
         .select('id, nombre, descripcion, rol_etiqueta, activo, mantenimiento, owner_id, created_at')
         .eq('proyecto_id', data.proyectoId)
-        .eq('activo', true)
         .order('created_at', { ascending: true })
       if (gLegacy.error) throw new Error(gLegacy.error.message)
       grupos = (gLegacy.data || []).map((g) => ({ ...g, presupuesto_asignado: 0 }))

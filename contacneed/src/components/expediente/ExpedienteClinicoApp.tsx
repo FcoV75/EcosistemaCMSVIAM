@@ -26,6 +26,7 @@ import {
   buscarMiembroParaExpedienteFn,
   createExpedientePacienteFn,
   exportExpedienteBackupFn,
+  exportExpedientePacienteFn,
   getExpedientePacienteFn,
   getExpedienteProfesionalFn,
   listExpedientePacientesFn,
@@ -228,6 +229,23 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
     },
     onError: (e) => setExportError(errMsg(e)),
   })
+  const exportNubeMut = useMutation({
+    mutationFn: async () => {
+      const data = await exportExpedienteBackupFn()
+      const file = new File(
+        [JSON.stringify(data, null, 2)],
+        `expediente-respaldo-${new Date().toISOString().slice(0, 10)}.json`,
+        { type: 'application/json' },
+      )
+      return uploadFileToCloudinary(file)
+    },
+    onSuccess: (cloudUrl) => {
+      setExportError(null)
+      window.open(cloudUrl, '_blank', 'noopener,noreferrer')
+      window.alert('Respaldo completo subido a la nube ContacNeed. Conserva el enlace.')
+    },
+    onError: (e) => setExportError(errMsg(e)),
+  })
 
   const openDetail = (id: string) => {
     setPacienteId(id)
@@ -281,6 +299,16 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
             >
               {exportMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
               Respaldo JSON
+            </button>
+            <button
+              type="button"
+              className={btnGhost}
+              disabled={exportNubeMut.isPending || forzarAjustes}
+              onClick={() => exportNubeMut.mutate()}
+              title="Sube el respaldo completo a Cloudinary"
+            >
+              {exportNubeMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+              Respaldo en nube
             </button>
           </nav>
         </header>
@@ -763,6 +791,40 @@ function DetailView({
     onSuccess: onDeleted,
     onError: (e) => setError(errMsg(e)),
   })
+  const exportPacienteMut = useMutation({
+    mutationFn: () => exportExpedientePacienteFn({ data: { pacienteId } }),
+    onSuccess: async (data) => {
+      setError(null)
+      const json = JSON.stringify(data, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const folio = String(data.paciente?.numero_expediente || pacienteId).replace(/\W+/g, '-')
+      a.href = url
+      a.download = `expediente-${folio}-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    },
+    onError: (e) => setError(errMsg(e)),
+  })
+  const nubeMut = useMutation({
+    mutationFn: async () => {
+      const data = await exportExpedientePacienteFn({ data: { pacienteId } })
+      const json = JSON.stringify(data, null, 2)
+      const folio = String(data.paciente?.numero_expediente || pacienteId).replace(/\W+/g, '-')
+      const file = new File([json], `expediente-${folio}.json`, { type: 'application/json' })
+      const cloudUrl = await uploadFileToCloudinary(file)
+      return cloudUrl
+    },
+    onSuccess: (cloudUrl) => {
+      setError(null)
+      window.open(cloudUrl, '_blank', 'noopener,noreferrer')
+      window.alert('Respaldo subido a tu nube ContacNeed (Cloudinary). Guarda el enlace en un lugar seguro.')
+    },
+    onError: (e) => setError(errMsg(e)),
+  })
 
   if (query.isLoading) {
     return (
@@ -800,7 +862,26 @@ function DetailView({
         <button type="button" className={btnGhost} onClick={onBack}><ArrowLeft className="h-4 w-4" /> Pacientes</button>
         <div className="ml-auto flex flex-wrap gap-2">
           <button type="button" className={btnGhost} onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Imprimir
+            <Printer className="h-4 w-4" /> Imprimir / PDF
+          </button>
+          <button
+            type="button"
+            className={btnGhost}
+            disabled={exportPacienteMut.isPending}
+            onClick={() => exportPacienteMut.mutate()}
+          >
+            {exportPacienteMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Descargar JSON
+          </button>
+          <button
+            type="button"
+            className={btnGhost}
+            disabled={nubeMut.isPending}
+            onClick={() => nubeMut.mutate()}
+            title="Sube un respaldo JSON a Cloudinary y abre el enlace"
+          >
+            {nubeMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+            Guardar en nube
           </button>
           <button
             type="button"
@@ -823,6 +904,9 @@ function DetailView({
         </div>
       </div>
       <ErrorBox msg={error} />
+      <p className="print:hidden text-[11px] text-slate-500">
+        Descarga el JSON a tu equipo o guárdalo en la nube ContacNeed. También puedes imprimir a PDF desde el navegador.
+      </p>
 
       {alergiaReal && (
         <div className="flex items-start gap-2 rounded-xl border border-rose-500/50 bg-rose-950/40 p-3 text-sm text-rose-100">

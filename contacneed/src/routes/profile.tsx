@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Camera, Settings, HelpCircle, Store, Image as ImageIcon, Sparkles, X, Plus, LogOut, Crown, BarChart3, BookOpen } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { BusinessLocationPanel } from '../components/BusinessLocationPanel'
@@ -26,6 +26,12 @@ export const Route = createFileRoute('/profile')({
     if (!user) throw redirect({ to: '/' })
     return { user }
   },
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab:
+      search.tab === 'negocio' || search.tab === 'guia' || search.tab === 'perfil'
+        ? (search.tab as 'perfil' | 'negocio' | 'guia')
+        : undefined,
+  }),
   loader: async ({ context }) => {
     const negocio = await getNegocioFn({ data: context.user.id })
     return { negocio }
@@ -95,15 +101,30 @@ function ProfileContent({
     mutationFn: () => generateProMarketReportFn(),
     onSuccess: (result) => {
       alert(`${result.preview}...\n\nInforme completo enviado a tu bandeja en Mensajes.`)
+      window.location.href = '/mensajes'
     },
-    onError: (error) => alert(error instanceof Error ? error.message : 'No se pudo generar el informe'),
+    onError: (error) =>
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo generar el informe. Si persiste, contacta soporte.',
+      ),
   })
   const extraAdsMutation = useMutation({
     mutationFn: () => requestProExtraAdsFn(),
-    onSuccess: (result) => alert(result.message),
+    onSuccess: (result) => {
+      alert(result.message)
+      if (result.paypalUrl) {
+        window.open(result.paypalUrl, '_blank', 'noopener,noreferrer')
+      }
+    },
     onError: (error) => alert(error instanceof Error ? error.message : 'No se pudo solicitar'),
   })
-  const [activeTab, setActiveTab] = useState<'perfil' | 'negocio' | 'guia'>('perfil')
+  const { tab: tabFromSearch } = Route.useSearch()
+  const [activeTab, setActiveTab] = useState<'perfil' | 'negocio' | 'guia'>(tabFromSearch || 'perfil')
+  useEffect(() => {
+    if (tabFromSearch) setActiveTab(tabFromSearch)
+  }, [tabFromSearch])
   const [storePrompt, setStorePrompt] = useState('')
   const [aiSuggestions, setAiSuggestions] = useState<{
     promocion: { titulo: string; texto: string }

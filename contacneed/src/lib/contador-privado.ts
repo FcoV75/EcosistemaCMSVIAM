@@ -165,12 +165,31 @@ export type TiendaGate = {
   faltantes: string[]
 }
 
+/** Extrae URLs de producto aunque `items` venga como string[] u objetos {url|image|src}. */
+export function extractNegocioItemUrls(items: unknown): string[] {
+  if (!Array.isArray(items)) return []
+  const urls: string[] = []
+  for (const entry of items) {
+    if (typeof entry === 'string' && entry.trim()) {
+      urls.push(entry.trim())
+      continue
+    }
+    if (entry && typeof entry === 'object') {
+      const o = entry as Record<string, unknown>
+      const candidate = [o.url, o.image, o.src, o.imagen].find(
+        (v) => typeof v === 'string' && String(v).trim(),
+      )
+      if (typeof candidate === 'string') urls.push(candidate.trim())
+    }
+  }
+  return urls
+}
+
 export function evaluarTiendaEstructurada(negocio: {
   banner_url?: string | null
   items?: unknown
 } | null): TiendaGate {
-  const items = Array.isArray(negocio?.items) ? negocio!.items : []
-  const urls = items.filter((u) => typeof u === 'string' && String(u).trim())
+  const urls = extractNegocioItemUrls(negocio?.items)
   const tieneBanner = Boolean(negocio?.banner_url?.trim())
   const faltantes: string[] = []
   if (!tieneBanner) faltantes.push('Sube un banner de tu tienda')
@@ -181,6 +200,43 @@ export function evaluarTiendaEstructurada(negocio: {
     itemsCount: urls.length,
     faltantes,
   }
+}
+
+export function resumenPorCategoria(
+  movimientos: Array<{ tipo: string; categoria: string; monto_centavos: number }>,
+): Array<{ tipo: string; categoria: string; totalCentavos: number; count: number }> {
+  const map = new Map<string, { tipo: string; categoria: string; totalCentavos: number; count: number }>()
+  for (const m of movimientos) {
+    const key = `${m.tipo}:${m.categoria}`
+    const prev = map.get(key) || {
+      tipo: m.tipo,
+      categoria: m.categoria,
+      totalCentavos: 0,
+      count: 0,
+    }
+    prev.totalCentavos += Number(m.monto_centavos || 0)
+    prev.count += 1
+    map.set(key, prev)
+  }
+  return [...map.values()].sort((a, b) => b.totalCentavos - a.totalCentavos)
+}
+
+export function movimientosToCsv(
+  movimientos: Array<{
+    fecha: string
+    tipo: string
+    categoria: string
+    concepto: string
+    monto_centavos: number
+  }>,
+): string {
+  const header = 'fecha,tipo,categoria,concepto,monto_mxn'
+  const rows = movimientos.map((m) => {
+    const monto = (Number(m.monto_centavos) / 100).toFixed(2)
+    const concepto = `"${String(m.concepto || '').replace(/"/g, '""')}"`
+    return [m.fecha, m.tipo, m.categoria, concepto, monto].join(',')
+  })
+  return [header, ...rows].join('\n')
 }
 
 export type PerfilGate = {
