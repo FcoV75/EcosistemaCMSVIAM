@@ -323,12 +323,12 @@ function ProyectoDetallePage() {
               </button>
               <button
                 type="button"
-                title="Borrar proyecto"
+                title="Archivar proyecto"
                 className="rounded-lg border border-red-400/30 p-2 text-red-200 hover:bg-red-950/40"
                 onClick={() => {
                   if (
                     !window.confirm(
-                      `¿Borrar «${detalle.data?.proyecto?.nombre}» y todos sus grupos? No se puede deshacer.`,
+                      `¿Archivar «${detalle.data?.proyecto?.nombre}»? Se conserva el historial (grupos y finanzas) y deja de estar activo.`,
                     )
                   )
                     return
@@ -606,7 +606,11 @@ function ProyectoDetallePage() {
               {grupos.map((g: any) => (
                 <li
                   key={g.id}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                  className={`rounded-xl border px-4 py-3 ${
+                    g.activo === false
+                      ? 'border-white/5 bg-slate-950/40 opacity-80'
+                      : 'border-white/10 bg-white/5'
+                  }`}
                 >
                   {editingGrupoId === g.id ? (
                     <form
@@ -648,7 +652,19 @@ function ProyectoDetallePage() {
                     <>
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                          <p className="font-semibold text-white">{g.nombre}</p>
+                          <p className="font-semibold text-white">
+                            {g.nombre}
+                            {g.activo === false && (
+                              <span className="ml-2 rounded-full bg-slate-700/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-300">
+                                Archivado
+                              </span>
+                            )}
+                            {g.mantenimiento && g.activo !== false && (
+                              <span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200">
+                                Mantenimiento
+                              </span>
+                            )}
+                          </p>
                           <p className="text-xs text-purple-200/60">
                             {g.rol_etiqueta || 'grupo'}
                             {g.mantenimiento ? ' · mantenimiento' : ''}

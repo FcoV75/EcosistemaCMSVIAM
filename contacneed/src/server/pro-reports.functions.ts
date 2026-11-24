@@ -88,25 +88,39 @@ Datos:\n${context}`,
     })) ??
     `Informe PRO ContacNeed\n\n1) Tendencia: mayor actividad en servicios locales de ${profile?.estado ?? 'tu estado'}.\n2) Demanda: reparaciones, mantenimiento y trabajos visibles en portafolio.\n3) Campañas: publica antes/después, oferta de diagnóstico gratis y testimonios.\n4) Promoción: combina pizarra diaria + anuncio PRO con enlace directo a WhatsApp.`
 
-  const senderId = await getSystemSenderId(supabase)
-  if (!senderId) {
-    throw new Error('No hay remitente del sistema configurado. Contacta al administrador.')
-  }
+  // Prefer admin as system sender; fallback to self so Informe PRO never blocks on missing admin
+  const senderId = (await getSystemSenderId(supabase)) || user.id
 
-  const { error: msgError } = await supabase.from('mensajes').insert({
-    remitente_id: senderId,
-    destinatario_id: user.id,
-    asunto: 'Informe PRO · Tendencias y campañas',
-    cuerpo: report,
-    tipo: 'informe_pro',
-    leido: false,
-  })
+  let msgError = (
+    await supabase.from('mensajes').insert({
+      remitente_id: senderId,
+      destinatario_id: user.id,
+      asunto: 'Informe PRO · Tendencias y campañas',
+      cuerpo: report,
+      tipo: 'informe_pro',
+      leido: false,
+    })
+  ).error
+
+  // Compatibilidad si aún no se aplicó la migración 022 (CHECK sin informe_pro)
+  if (msgError && /check|informe_pro|violates/i.test(msgError.message)) {
+    msgError = (
+      await supabase.from('mensajes').insert({
+        remitente_id: senderId,
+        destinatario_id: user.id,
+        asunto: 'Informe PRO · Tendencias y campañas',
+        cuerpo: report,
+        tipo: 'general',
+        leido: false,
+      })
+    ).error
+  }
 
   if (msgError) {
     if (msgError.message.includes('does not exist')) {
-      throw new Error('Bandeja de mensajes en configuración. Ejecuta SQL 004 en Supabase.')
+      throw new Error('Bandeja de mensajes en configuración. Ejecuta SQL 004/022 en Supabase.')
     }
-    throw msgError
+    throw new Error(`No se pudo enviar el informe a Mensajes: ${msgError.message}`)
   }
 
   await supabase

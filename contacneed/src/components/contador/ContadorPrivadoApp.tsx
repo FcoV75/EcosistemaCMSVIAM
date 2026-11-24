@@ -5,13 +5,17 @@ import {
   CalendarDays,
   CheckSquare,
   Download,
+  FileSpreadsheet,
   Loader2,
   Lock,
   LockOpen,
   Paperclip,
+  PieChart,
   Plus,
+  Printer,
   Receipt,
   ShieldCheck,
+  Store,
   Trash2,
   TrendingDown,
   TrendingUp,
@@ -29,6 +33,7 @@ import {
   setContadorPeriodoEstatusFn,
   toggleContadorChecklistFn,
 } from '../../server/contador.functions'
+import { updateNegocioFn } from '../../server/negocios.functions'
 import {
   CATEGORIAS_EGRESO,
   CATEGORIAS_INGRESO,
@@ -37,6 +42,7 @@ import {
   CONTADOR_PRECIOS_PUBLICOS,
   CONTADOR_REGIMENES,
   formatMxnFromCentavos,
+  movimientosToCsv,
   periodoLabel,
 } from '../../lib/contador-privado'
 import { uploadFileToCloudinary } from '../../lib/cloudinary-upload'
@@ -96,10 +102,46 @@ function Disclaimer() {
 function ReadinessGate({
   perfil,
   tienda,
+  onReady,
 }: {
   perfil: string[]
   tienda: string[]
+  onReady: () => void
 }) {
+  const [bannerUrl, setBannerUrl] = useState('')
+  const [itemUrl, setItemUrl] = useState('')
+  const [busy, setBusy] = useState<'banner' | 'item' | 'save' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const bannerRef = useRef<HTMLInputElement>(null)
+  const itemRef = useRef<HTMLInputElement>(null)
+
+  const saveTienda = useMutation({
+    mutationFn: () =>
+      updateNegocioFn({
+        data: {
+          banner_url: bannerUrl,
+          items: itemUrl ? [itemUrl] : [],
+        },
+      }),
+    onSuccess: () => onReady(),
+    onError: (e) => setError(errMsg(e)),
+  })
+
+  const upload = async (kind: 'banner' | 'item', file: File | undefined) => {
+    if (!file) return
+    setError(null)
+    setBusy(kind)
+    try {
+      const url = await uploadFileToCloudinary(file)
+      if (kind === 'banner') setBannerUrl(url)
+      else setItemUrl(url)
+    } catch (e) {
+      setError(errMsg(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return (
     <div className={`${glass} space-y-4 border-amber-400/30 p-5`}>
       <div className="flex items-center gap-3">
@@ -109,7 +151,7 @@ function ReadinessGate({
         <div>
           <h2 className="text-base font-bold text-white">Completa tu perfil y tienda primero</h2>
           <p className="text-xs text-slate-400">
-            Tu Contador Privado necesita datos mínimos para organizar tu negocio.
+            Con banner + al menos un producto ya puedes llevar ingresos, egresos y balance aquí.
           </p>
         </div>
       </div>
@@ -117,7 +159,7 @@ function ReadinessGate({
         <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
           <p className="mb-2 text-xs font-bold text-emerald-300">Perfil</p>
           {perfil.length === 0 ? (
-            <p className="text-xs text-slate-400">Completo</p>
+            <p className="text-xs text-emerald-200/80">✓ Completo</p>
           ) : (
             <ul className="space-y-1 text-xs text-slate-300">
               {perfil.map((f) => (
@@ -129,7 +171,7 @@ function ReadinessGate({
         <div className="rounded-xl border border-white/10 bg-slate-950/40 p-3">
           <p className="mb-2 text-xs font-bold text-emerald-300">Tienda</p>
           {tienda.length === 0 ? (
-            <p className="text-xs text-slate-400">Completa</p>
+            <p className="text-xs text-emerald-200/80">✓ Completa</p>
           ) : (
             <ul className="space-y-1 text-xs text-slate-300">
               {tienda.map((f) => (
@@ -139,9 +181,89 @@ function ReadinessGate({
           )}
         </div>
       </div>
-      <a href="/profile" className={btnPrimary}>
-        Ir a mi perfil
-      </a>
+
+      {tienda.length > 0 && (
+        <div className="space-y-3 rounded-xl border border-emerald-400/25 bg-emerald-500/5 p-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-emerald-200">
+            <Store size={16} />
+            Completa tu tienda aquí (sin salir)
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className={labelCls}>Banner de tienda *</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className={btnGhost}
+                  disabled={busy !== null}
+                  onClick={() => bannerRef.current?.click()}
+                >
+                  {busy === 'banner' ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  {bannerUrl ? 'Cambiar banner' : 'Subir banner'}
+                </button>
+                <input
+                  ref={bannerRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => void upload('banner', e.target.files?.[0])}
+                />
+                {bannerUrl && (
+                  <img src={bannerUrl} alt="Banner" className="h-12 w-20 rounded-lg object-cover" />
+                )}
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Producto / servicio *</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className={btnGhost}
+                  disabled={busy !== null}
+                  onClick={() => itemRef.current?.click()}
+                >
+                  {busy === 'item' ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  {itemUrl ? 'Cambiar imagen' : 'Subir imagen'}
+                </button>
+                <input
+                  ref={itemRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => void upload('item', e.target.files?.[0])}
+                />
+                {itemUrl && (
+                  <img src={itemUrl} alt="Producto" className="h-12 w-12 rounded-lg object-cover" />
+                )}
+              </div>
+            </div>
+          </div>
+          <ErrorBanner message={error ?? (saveTienda.isError ? errMsg(saveTienda.error) : null)} />
+          <button
+            type="button"
+            className={btnPrimary}
+            disabled={!bannerUrl || !itemUrl || saveTienda.isPending}
+            onClick={() => {
+              setBusy('save')
+              saveTienda.mutate(undefined, { onSettled: () => setBusy(null) })
+            }}
+          >
+            {saveTienda.isPending && <Loader2 size={14} className="animate-spin" />}
+            Guardar tienda y continuar al Contador
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {perfil.length > 0 && (
+          <a href="/profile" className={btnPrimary}>
+            Completar perfil
+          </a>
+        )}
+        <a href="/profile?tab=negocio" className={btnGhost}>
+          Ir a Mi negocio
+        </a>
+      </div>
     </div>
   )
 }
@@ -494,7 +616,15 @@ function Workspace() {
   const data = periodoQ.data
   const cerrado = (data?.periodo?.estatus ?? ensure.data?.periodo?.estatus) === 'cerrado'
   const movimientos = (data?.movimientos ?? []) as Movimiento[]
-  const resumen = data?.resumen
+  const resumen = data?.resumen as
+    | {
+        ingresosCentavos: number
+        egresosCentavos: number
+        saldoCentavos: number
+        saldoAcumuladoCentavos?: number
+        porCategoria?: Array<{ tipo: string; categoria: string; totalCentavos: number; count: number }>
+      }
+    | undefined
   const checks = useMemo(() => {
     const map = new Map<string, boolean>()
     for (const c of (data?.checklist ?? []) as Array<{ item_key: string; hecho: boolean }>) {
@@ -511,6 +641,53 @@ function Workspace() {
     mes: number
     estatus: string
   }>
+
+  const exportCsvMes = () => {
+    const csv = movimientosToCsv(movimientos)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `contador-${anio}-${String(mes).padStart(2, '0')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const imprimirResumen = () => {
+    const w = window.open('', '_blank', 'noopener,noreferrer,width=720,height=900')
+    if (!w) {
+      setError('Permite ventanas emergentes para imprimir el resumen.')
+      return
+    }
+    const porCat = (resumen?.porCategoria ?? [])
+      .map(
+        (c) =>
+          `<tr><td>${c.tipo}</td><td>${categoriaLabel(c.tipo, c.categoria)}</td><td>${c.count}</td><td style="text-align:right">${formatMxnFromCentavos(c.totalCentavos)}</td></tr>`,
+      )
+      .join('')
+    const movRows = movimientos
+      .map(
+        (m) =>
+          `<tr><td>${m.fecha}</td><td>${m.tipo}</td><td>${categoriaLabel(m.tipo, m.categoria)}</td><td>${m.concepto}</td><td style="text-align:right">${formatMxnFromCentavos(m.monto_centavos)}</td></tr>`,
+      )
+      .join('')
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"/><title>Resumen Contador ${periodoLabel(anio, mes)}</title>
+      <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:1.25rem}table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}th,td{border:1px solid #ddd;padding:6px;text-align:left}.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.card{border:1px solid #ddd;padding:10px;border-radius:8px}p.note{font-size:11px;color:#555;margin-top:24px}</style></head><body>
+      <h1>Tu Contador Privado · ${periodoLabel(anio, mes)}</h1>
+      <div class="nums">
+        <div class="card"><strong>Ingresos</strong><div>${formatMxnFromCentavos(resumen?.ingresosCentavos ?? 0)}</div></div>
+        <div class="card"><strong>Egresos</strong><div>${formatMxnFromCentavos(resumen?.egresosCentavos ?? 0)}</div></div>
+        <div class="card"><strong>Saldo del mes</strong><div>${formatMxnFromCentavos(resumen?.saldoCentavos ?? 0)}</div></div>
+      </div>
+      <p><strong>Saldo acumulado del año:</strong> ${formatMxnFromCentavos(resumen?.saldoAcumuladoCentavos ?? resumen?.saldoCentavos ?? 0)}</p>
+      <h2>Por categoría</h2>
+      <table><thead><tr><th>Tipo</th><th>Categoría</th><th>#</th><th>Total</th></tr></thead><tbody>${porCat || '<tr><td colspan="4">Sin datos</td></tr>'}</tbody></table>
+      <h2>Movimientos</h2>
+      <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Concepto</th><th>Monto</th></tr></thead><tbody>${movRows || '<tr><td colspan="5">Sin movimientos</td></tr>'}</tbody></table>
+      <p class="note">${CONTADOR_DISCLAIMER}</p>
+      <script>window.onload=()=>{window.print()}</script></body></html>`)
+    w.document.close()
+  }
 
   return (
     <div className="space-y-4">
@@ -590,26 +767,60 @@ function Workspace() {
 
       {periodoId && data && (
         <>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
-              label="Ingresos"
+              label="Ingresos del mes"
               value={resumen?.ingresosCentavos ?? 0}
               tone="emerald"
               icon={<TrendingUp size={16} />}
             />
             <SummaryCard
-              label="Egresos"
+              label="Egresos del mes"
               value={resumen?.egresosCentavos ?? 0}
               tone="rose"
               icon={<TrendingDown size={16} />}
             />
             <SummaryCard
-              label="Saldo"
+              label="Saldo del mes"
               value={resumen?.saldoCentavos ?? 0}
               tone="amber"
               icon={<Wallet size={16} />}
             />
+            <SummaryCard
+              label="Saldo acumulado (año)"
+              value={resumen?.saldoAcumuladoCentavos ?? resumen?.saldoCentavos ?? 0}
+              tone="amber"
+              icon={<PieChart size={16} />}
+            />
           </div>
+
+          {(resumen?.porCategoria?.length ?? 0) > 0 && (
+            <div className={`${glass} p-4`}>
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-white">
+                <PieChart size={16} className="text-emerald-300" /> Balance por categoría
+              </h3>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {resumen!.porCategoria!.map((c) => (
+                  <li
+                    key={`${c.tipo}-${c.categoria}`}
+                    className="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/40 px-3 py-2 text-xs"
+                  >
+                    <span className="text-slate-300">
+                      <span className={c.tipo === 'ingreso' ? 'text-emerald-300' : 'text-amber-300'}>
+                        {c.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
+                      </span>
+                      {' · '}
+                      {categoriaLabel(c.tipo, c.categoria)}
+                      <span className="text-slate-500"> ({c.count})</span>
+                    </span>
+                    <span className="font-bold tabular-nums text-slate-100">
+                      {formatMxnFromCentavos(c.totalCentavos)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="space-y-4">
@@ -746,6 +957,14 @@ function Workspace() {
                     )}
                     {cerrado ? 'Reabrir mes' : 'Cerrar mes'}
                   </button>
+                  <button type="button" className={btnGhost} onClick={exportCsvMes} disabled={!movimientos.length}>
+                    <FileSpreadsheet size={14} />
+                    Exportar mes (CSV)
+                  </button>
+                  <button type="button" className={btnGhost} onClick={imprimirResumen}>
+                    <Printer size={14} />
+                    Imprimir / PDF
+                  </button>
                   <button
                     type="button"
                     className={btnGhost}
@@ -756,6 +975,9 @@ function Workspace() {
                     Exportar {anio} (JSON)
                   </button>
                 </div>
+                <p className="text-[11px] text-slate-500">
+                  El saldo del mes = ingresos − egresos. El acumulado suma todos los meses del año hasta el actual.
+                </p>
               </div>
             </div>
           </div>
@@ -815,7 +1037,13 @@ export function ContadorPrivadoApp() {
   } else {
     const { config, readiness } = cfg.data!
     if (!readiness.listo) {
-      body = <ReadinessGate perfil={readiness.perfil.faltantes} tienda={readiness.tienda.faltantes} />
+      body = (
+        <ReadinessGate
+          perfil={readiness.perfil.faltantes}
+          tienda={readiness.tienda.faltantes}
+          onReady={() => qc.invalidateQueries({ queryKey: ['contador-config'] })}
+        />
+      )
     } else if (!config || !config.aviso_aceptado) {
       body = (
         <SetupForm

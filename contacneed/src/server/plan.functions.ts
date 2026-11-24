@@ -116,6 +116,7 @@ export const requestProExtraAdsFn = createServerFn({ method: 'POST' }).handler(a
 
   return {
     success: true,
-    message: `Solicitud registrada. Tras confirmar el pago de $${PRO_EXTRA_ADS_PACK_PRICE_MXN} MXN se activarán ${PRO_EXTRA_ADS_PACK_SIZE} anuncios adicionales.`,
+    paypalUrl: `https://www.paypal.me/JValdezOsorio/${PRO_EXTRA_ADS_PACK_PRICE_MXN}.00MXN`,
+    message: `Solicitud registrada. Paga $${PRO_EXTRA_ADS_PACK_PRICE_MXN} MXN por PayPal y el admin activará +${PRO_EXTRA_ADS_PACK_SIZE} anuncios. Se abrirá PayPal para completar el pago.`,
   }
 })

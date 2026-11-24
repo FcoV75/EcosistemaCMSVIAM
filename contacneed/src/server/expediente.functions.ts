@@ -449,6 +449,43 @@ export const exportExpedienteBackupFn = createServerFn({ method: 'GET' }).handle
   }
 })
 
+/** Descarga de un solo expediente (paciente + notas selladas) para archivo local o nube. */
+export const exportExpedientePacienteFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { pacienteId: string }) => d)
+  .handler(async ({ data }) => {
+    const { user, supabase } = await requireExpedienteUser()
+    const { data: profesional } = await supabase
+      .from('expediente_profesional')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const { data: paciente, error } = await supabase
+      .from('expediente_pacientes')
+      .select('*')
+      .eq('id', data.pacienteId)
+      .eq('owner_id', user.id)
+      .maybeSingle()
+    if (error) throw new Error(error.message)
+    if (!paciente) throw new Error('Expediente no encontrado')
+
+    const { data: notas } = await supabase
+      .from('expediente_notas')
+      .select('*')
+      .eq('paciente_id', paciente.id)
+      .eq('owner_id', user.id)
+      .order('sealed_at', { ascending: true })
+
+    return {
+      exportedAt: new Date().toISOString(),
+      norma: 'NOM-004-SSA3-2012 / NOM-024-SSA3-2012',
+      disclaimer:
+        'Respaldo del expediente clínico ContacNeed. Consérvalo bajo tu responsabilidad profesional y la LFPDPPP.',
+      profesional,
+      paciente,
+      notas: notas || [],
+    }
+  })
+
 /** Owner/admin: activar expediente gratis para sí mismo (o permanent). */
 export const activarExpedienteOwnerFn = createServerFn({ method: 'POST' }).handler(async () => {
   const admin = await requireAdminUser()
