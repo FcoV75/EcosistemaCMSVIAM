@@ -101,12 +101,7 @@ export const ensureContadorPeriodoFn = createServerFn({ method: 'POST' })
   .inputValidator((d: { anio: number; mes: number }) => d)
   .handler(async ({ data }) => {
     const { user, supabase } = await requireContadorUser()
-    const readiness = await loadReadiness(supabase, user.id)
-    if (!readiness.listo) {
-      throw new Error(
-        `Completa perfil y tienda primero: ${[...readiness.perfil.faltantes, ...readiness.tienda.faltantes].join(', ')}`,
-      )
-    }
+    // Perfil/tienda son recomendaciones; no bloquean el libro de ingresos/egresos
     const anio = Number(data.anio)
     const mes = Number(data.mes)
     if (!anio || mes < 1 || mes > 12) throw new Error('Periodo inválido')
@@ -256,8 +251,6 @@ export const addContadorMovimientoFn = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data }) => {
     const { user, supabase } = await requireContadorUser()
-    const readiness = await loadReadiness(supabase, user.id)
-    if (!readiness.listo) throw new Error('Completa perfil y tienda antes de registrar movimientos')
 
     const { data: periodo } = await supabase
       .from('contador_periodos')

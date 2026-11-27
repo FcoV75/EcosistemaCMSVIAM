@@ -46,6 +46,7 @@ import {
   periodoLabel,
 } from '../../lib/contador-privado'
 import { uploadFileToCloudinary } from '../../lib/cloudinary-upload'
+import { RespaldoDestinoDialog } from '../RespaldoDestinoDialog'
 
 const glass = 'rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl shadow-lg shadow-black/30'
 const inputCls =
@@ -287,7 +288,15 @@ function SetupForm({
   const [rfc, setRfc] = useState(initial?.rfc ?? '')
   const [regimen, setRegimen] = useState(initial?.regimen ?? 'sin_definir')
   const [actividad, setActividad] = useState(initial?.actividad ?? '')
-  const [aviso, setAviso] = useState(false)
+  const [aviso, setAviso] = useState(Boolean(initial?.aviso_aceptado))
+
+  useEffect(() => {
+    setNombre(initial?.nombre_negocio ?? '')
+    setRfc(initial?.rfc ?? '')
+    setRegimen(initial?.regimen ?? 'sin_definir')
+    setActividad(initial?.actividad ?? '')
+    setAviso(Boolean(initial?.aviso_aceptado))
+  }, [initial?.nombre_negocio, initial?.rfc, initial?.regimen, initial?.actividad, initial?.aviso_aceptado])
 
   const save = useMutation({
     mutationFn: () =>
@@ -556,6 +565,7 @@ function Workspace() {
   const [anio, setAnio] = useState(now.getFullYear())
   const [mes, setMes] = useState(now.getMonth() + 1)
   const [error, setError] = useState<string | null>(null)
+  const [respaldoOpen, setRespaldoOpen] = useState(false)
 
   const ensure = useQuery({
     queryKey: ['contador-ensure', anio, mes],
@@ -974,10 +984,21 @@ function Workspace() {
                     {exportar.isPending ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                     Exportar {anio} (JSON)
                   </button>
+                  <button type="button" className={btnGhost} onClick={() => setRespaldoOpen(true)}>
+                    <Download size={14} />
+                    Respaldo seguro (impuestos)
+                  </button>
                 </div>
                 <p className="text-[11px] text-slate-500">
                   El saldo del mes = ingresos − egresos. El acumulado suma todos los meses del año hasta el actual.
                 </p>
+                <RespaldoDestinoDialog
+                  open={respaldoOpen}
+                  onClose={() => setRespaldoOpen(false)}
+                  title={`Respaldo fiscal · ${anio}`}
+                  filename={`contador-privado-${anio}.json`}
+                  getPayload={() => exportContadorAnualFn({ data: { anio } })}
+                />
               </div>
             </div>
           </div>
@@ -1036,24 +1057,63 @@ export function ContadorPrivadoApp() {
     )
   } else {
     const { config, readiness } = cfg.data!
-    if (!readiness.listo) {
+    const tipTienda =
+      readiness && !readiness.listo ? (
+        <div className={`${glass} space-y-2 border-amber-400/20 p-3`}>
+          <p className="text-xs text-amber-100/90">
+            Tu Contador ya está listo para ingresos y egresos. Completar perfil/tienda es opcional y solo mejora
+            tu presencia en ContacNeed.
+          </p>
+          <a href="/profile?tab=negocio" className={`${btnGhost} text-xs`}>
+            Ir a Mi negocio (opcional)
+          </a>
+          {(readiness.perfil.faltantes.length > 0 || readiness.tienda.faltantes.length > 0) && (
+            <details className="text-xs text-slate-400">
+              <summary className="cursor-pointer text-amber-200/90">Pendientes opcionales / completar tienda aquí</summary>
+              <ul className="mt-2 space-y-1">
+                {[...readiness.perfil.faltantes, ...readiness.tienda.faltantes].map((f) => (
+                  <li key={f}>• {f}</li>
+                ))}
+              </ul>
+              {readiness.tienda.faltantes.length > 0 && (
+                <div className="mt-3">
+                  <ReadinessGate
+                    perfil={readiness.perfil.faltantes}
+                    tienda={readiness.tienda.faltantes}
+                    onReady={() => qc.invalidateQueries({ queryKey: ['contador-config'] })}
+                  />
+                </div>
+              )}
+            </details>
+          )}
+        </div>
+      ) : null
+
+    if (!config || !config.aviso_aceptado) {
+      const profileName =
+        (cfg.data as { readiness?: { profile?: { nombre?: string | null; habilidad_empirica?: string | null } } } | undefined)
+          ?.readiness?.profile
+      const defaultNombre =
+        (config as ConfigRow | null)?.nombre_negocio ||
+        profileName?.habilidad_empirica ||
+        profileName?.nombre ||
+        ''
       body = (
-        <ReadinessGate
-          perfil={readiness.perfil.faltantes}
-          tienda={readiness.tienda.faltantes}
-          onReady={() => qc.invalidateQueries({ queryKey: ['contador-config'] })}
-        />
-      )
-    } else if (!config || !config.aviso_aceptado) {
-      body = (
-        <SetupForm
-          initial={config as ConfigRow | null}
-          onSaved={() => qc.invalidateQueries({ queryKey: ['contador-config'] })}
-        />
+        <>
+          {tipTienda}
+          <SetupForm
+            initial={{
+              ...(config as ConfigRow | null),
+              nombre_negocio: (config as ConfigRow | null)?.nombre_negocio || defaultNombre,
+            }}
+            onSaved={() => qc.invalidateQueries({ queryKey: ['contador-config'] })}
+          />
+        </>
       )
     } else {
       body = (
         <>
+          {tipTienda}
           <p className="text-xs text-slate-400">
             <span className="font-bold text-emerald-300">{config.nombre_negocio}</span>
             {config.rfc ? ` · ${config.rfc}` : ''}

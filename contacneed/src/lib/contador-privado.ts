@@ -264,4 +264,4 @@ export function evaluarPerfilCompleto(profile: {
 }
 
 export const CONTADOR_DISCLAIMER =
-  'Tu Contador Privado es una herramienta de organización y recordatorios. No sustituye a un contador público, no presenta declaraciones ante el SAT ni constituye asesoría fiscal vinculante.'
+  'Tu Contador Privado organiza ingresos, egresos, saldo y recordatorios fiscales de tu negocio. No sustituye a un contador público, no presenta declaraciones ante el SAT ni constituye asesoría fiscal vinculante.'
