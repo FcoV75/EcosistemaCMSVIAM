@@ -43,6 +43,7 @@ import {
   calcImc,
 } from '../../lib/expediente-clinico'
 import { uploadFileToCloudinary } from '../../lib/cloudinary-upload'
+import { RespaldoDestinoDialog } from '../RespaldoDestinoDialog'
 
 type Props = { variant?: 'page' | 'embedded'; title?: string }
 type View = 'patients' | 'new' | 'detail' | 'settings' | 'normativa'
@@ -194,6 +195,8 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
   const [q, setQ] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [exportError, setExportError] = useState<string | null>(null)
+  const [respaldoOpen, setRespaldoOpen] = useState(false)
+  const respaldoFilename = `expediente-respaldo-${new Date().toISOString().slice(0, 10)}.json`
 
   const profQuery = useQuery({
     queryKey: ['expediente', 'profesional'],
@@ -211,40 +214,6 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
     queryKey: ['expediente', 'pacientes', q, filtro],
     queryFn: () => listExpedientePacientesFn({ data: { q, filtro } }),
     enabled: profesionalListo,
-  })
-
-  const exportMut = useMutation({
-    mutationFn: () => exportExpedienteBackupFn(),
-    onSuccess: (data) => {
-      setExportError(null)
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `expediente-respaldo-${new Date().toISOString().slice(0, 10)}.json`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-    },
-    onError: (e) => setExportError(errMsg(e)),
-  })
-  const exportNubeMut = useMutation({
-    mutationFn: async () => {
-      const data = await exportExpedienteBackupFn()
-      const file = new File(
-        [JSON.stringify(data, null, 2)],
-        `expediente-respaldo-${new Date().toISOString().slice(0, 10)}.json`,
-        { type: 'application/json' },
-      )
-      return uploadFileToCloudinary(file)
-    },
-    onSuccess: (cloudUrl) => {
-      setExportError(null)
-      window.open(cloudUrl, '_blank', 'noopener,noreferrer')
-      window.alert('Respaldo completo subido a la nube ContacNeed. Conserva el enlace.')
-    },
-    onError: (e) => setExportError(errMsg(e)),
   })
 
   const openDetail = (id: string) => {
@@ -294,24 +263,32 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
             <button
               type="button"
               className={btnGhost}
-              disabled={exportMut.isPending || forzarAjustes}
-              onClick={() => exportMut.mutate()}
+              disabled={forzarAjustes}
+              onClick={() => {
+                setExportError(null)
+                setRespaldoOpen(true)
+              }}
             >
-              {exportMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-              Respaldo JSON
-            </button>
-            <button
-              type="button"
-              className={btnGhost}
-              disabled={exportNubeMut.isPending || forzarAjustes}
-              onClick={() => exportNubeMut.mutate()}
-              title="Sube el respaldo completo a Cloudinary"
-            >
-              {exportNubeMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-              Respaldo en nube
+              <Download className="h-3.5 w-3.5" />
+              Respaldo seguro
             </button>
           </nav>
         </header>
+
+        <RespaldoDestinoDialog
+          open={respaldoOpen}
+          onClose={() => setRespaldoOpen(false)}
+          title="Respaldo completo de expedientes"
+          filename={respaldoFilename}
+          getPayload={async () => {
+            try {
+              return await exportExpedienteBackupFn()
+            } catch (e) {
+              setExportError(errMsg(e))
+              throw e
+            }
+          }}
+        />
 
         <ErrorBox msg={exportError} />
 
@@ -791,40 +768,7 @@ function DetailView({
     onSuccess: onDeleted,
     onError: (e) => setError(errMsg(e)),
   })
-  const exportPacienteMut = useMutation({
-    mutationFn: () => exportExpedientePacienteFn({ data: { pacienteId } }),
-    onSuccess: async (data) => {
-      setError(null)
-      const json = JSON.stringify(data, null, 2)
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      const folio = String(data.paciente?.numero_expediente || pacienteId).replace(/\W+/g, '-')
-      a.href = url
-      a.download = `expediente-${folio}-${new Date().toISOString().slice(0, 10)}.json`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-    },
-    onError: (e) => setError(errMsg(e)),
-  })
-  const nubeMut = useMutation({
-    mutationFn: async () => {
-      const data = await exportExpedientePacienteFn({ data: { pacienteId } })
-      const json = JSON.stringify(data, null, 2)
-      const folio = String(data.paciente?.numero_expediente || pacienteId).replace(/\W+/g, '-')
-      const file = new File([json], `expediente-${folio}.json`, { type: 'application/json' })
-      const cloudUrl = await uploadFileToCloudinary(file)
-      return cloudUrl
-    },
-    onSuccess: (cloudUrl) => {
-      setError(null)
-      window.open(cloudUrl, '_blank', 'noopener,noreferrer')
-      window.alert('Respaldo subido a tu nube ContacNeed (Cloudinary). Guarda el enlace en un lugar seguro.')
-    },
-    onError: (e) => setError(errMsg(e)),
-  })
+  const [respaldoPacienteOpen, setRespaldoPacienteOpen] = useState(false)
 
   if (query.isLoading) {
     return (
@@ -867,21 +811,13 @@ function DetailView({
           <button
             type="button"
             className={btnGhost}
-            disabled={exportPacienteMut.isPending}
-            onClick={() => exportPacienteMut.mutate()}
+            onClick={() => {
+              setError(null)
+              setRespaldoPacienteOpen(true)
+            }}
           >
-            {exportPacienteMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Descargar JSON
-          </button>
-          <button
-            type="button"
-            className={btnGhost}
-            disabled={nubeMut.isPending}
-            onClick={() => nubeMut.mutate()}
-            title="Sube un respaldo JSON a Cloudinary y abre el enlace"
-          >
-            {nubeMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            Guardar en nube
+            <Download className="h-4 w-4" />
+            Respaldo seguro
           </button>
           <button
             type="button"
@@ -903,9 +839,24 @@ function DetailView({
           </button>
         </div>
       </div>
+      <RespaldoDestinoDialog
+        open={respaldoPacienteOpen}
+        onClose={() => setRespaldoPacienteOpen(false)}
+        title={`Respaldo · ${p.nombre_completo || 'Expediente'}`}
+        filename={`expediente-${String(p.numero_expediente || pacienteId).replace(/\W+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`}
+        getPayload={async () => {
+          try {
+            return await exportExpedientePacienteFn({ data: { pacienteId } })
+          } catch (e) {
+            setError(errMsg(e))
+            throw e
+          }
+        }}
+      />
       <ErrorBox msg={error} />
       <p className="print:hidden text-[11px] text-slate-500">
-        Descarga el JSON a tu equipo o guárdalo en la nube ContacNeed. También puedes imprimir a PDF desde el navegador.
+        Respaldo seguro: elige equipo, USB, nube ContacNeed o tu Google Drive / Dropbox / OneDrive. También puedes
+        imprimir a PDF.
       </p>
 
       {alergiaReal && (

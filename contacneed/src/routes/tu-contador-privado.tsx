@@ -112,9 +112,9 @@ function TuContadorPrivadoPage() {
             <div>
               <h2 className="text-lg font-bold text-emerald-100">Ordena tu negocio mes a mes</h2>
               <p className="mt-1 text-sm text-slate-300">
-                Ideal si tienes oficio o emprendimiento y quieres llegar al corriente con tus
-                impuestos sin perderte en Excel. Requiere perfil completo y tienda con banner +
-                productos.
+                Ideal si tienes oficio o emprendimiento y quieres llevar ingresos, egresos, saldo y
+                recordatorios fiscales mes a mes. Entras, configuras tu negocio y empiezas a
+                registrar movimientos — sin rodeos.
               </p>
               <p className="mt-2 text-base font-semibold text-amber-200">
                 Tu cuota: {access?.precioLabel || '—'}
