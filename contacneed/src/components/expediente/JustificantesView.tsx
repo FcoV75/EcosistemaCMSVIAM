@@ -18,6 +18,7 @@ import {
 import {
   JUSTIFICANTE_DISCLAIMER,
   JUSTIFICANTE_TIPOS,
+  buildEctoscopiaDraft,
   calcEdad,
   diasEntreFechas,
   type JustificanteTipo,
@@ -43,11 +44,18 @@ function hoyISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
-function formatFecha(iso?: string | null) {
+function formatFechaLarga(iso?: string | null) {
   if (!iso) return '—'
   const d = new Date(`${iso}T12:00:00`)
   if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
+  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function formatFechaCorta(iso?: string | null) {
+  if (!iso) return '—'
+  const d = new Date(`${iso}T12:00:00`)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 type Props = {
@@ -82,9 +90,7 @@ export function JustificantesView({ profesional, prefillPacienteId }: Props) {
   })
 
   useEffect(() => {
-    if (prefillPacienteId) {
-      setMode('new')
-    }
+    if (prefillPacienteId) setMode('new')
   }, [prefillPacienteId])
 
   const rows = (listQ.data?.justificantes as Row[] | undefined) || []
@@ -147,8 +153,8 @@ export function JustificantesView({ profesional, prefillPacienteId }: Props) {
       )}
 
       <p className="text-[11px] text-slate-500">
-        Emite constancias para el patrón, escuela u otra institución. Se imprimen con logo y datos de tu clínica.
-        {` ${JUSTIFICANTE_DISCLAIMER}`}
+        Constancia narrativa al estilo de tu consultorio (logo + clínica + cédula). Ideal cuando el superior pide
+        comprobante. {JUSTIFICANTE_DISCLAIMER}
       </p>
 
       {listQ.isLoading ? (
@@ -182,7 +188,7 @@ export function JustificantesView({ profesional, prefillPacienteId }: Props) {
                 </div>
                 <p className="mt-2 line-clamp-2 text-xs text-slate-300">{j.diagnostico}</p>
                 <p className="mt-2 text-[11px] text-slate-500">
-                  Emitido {formatFecha(j.fecha_emision)}
+                  Emitido {formatFechaCorta(j.fecha_emision)}
                   {j.dias_reposo > 0 ? ` · ${j.dias_reposo} día(s) de reposo` : ''}
                 </p>
               </button>
@@ -213,14 +219,20 @@ function JustificanteForm({
   const [nombre, setNombre] = useState('')
   const [edad, setEdad] = useState('')
   const [sexo, setSexo] = useState('')
+  const [ocupacion, setOcupacion] = useState('')
+  const [estadoCivil, setEstadoCivil] = useState('')
+  const [alergias, setAlergias] = useState('')
+  const [motivoAtencion, setMotivoAtencion] = useState(
+    'una valoración y tratamiento',
+  )
   const [diagnostico, setDiagnostico] = useState('')
   const [cie10, setCie10] = useState('')
+  const [ectoscopia, setEctoscopia] = useState('')
+  const [plan, setPlan] = useState('')
   const [emision, setEmision] = useState(hoyISO())
-  const [inicio, setInicio] = useState(hoyISO())
-  const [fin, setFin] = useState(hoyISO())
-  const [recomendaciones, setRecomendaciones] = useState(
-    'Se sugiere reposo relativo y seguimiento médico según evolución clínica.',
-  )
+  const [inicio, setInicio] = useState('')
+  const [fin, setFin] = useState('')
+  const [recomendaciones, setRecomendaciones] = useState('')
   const [observaciones, setObservaciones] = useState('')
   const [lugar, setLugar] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -235,8 +247,22 @@ function JustificanteForm({
     setSexo(String(p.sexo || ''))
     const e = calcEdad(String(p.fecha_nacimiento || ''))
     setEdad(e == null ? '' : String(e))
+    setOcupacion(String(p.ocupacion || ''))
+    setAlergias(String(p.alergias || ''))
     if (p.diagnostico) setDiagnostico(String(p.diagnostico))
-  }, [pacienteId, pacientes])
+    if (p.plan_terapeutico) setPlan(String(p.plan_terapeutico))
+    setEctoscopia(
+      buildEctoscopiaDraft({
+        sexo: String(p.sexo || ''),
+        edad: e,
+        ocupacion: String(p.ocupacion || ''),
+        estado_civil: estadoCivil || undefined,
+        alergias: String(p.alergias || ''),
+        ahf: String(p.ahf || ''),
+        app: String(p.app || ''),
+      }),
+    )
+  }, [pacienteId, pacientes]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const mut = useMutation({
     mutationFn: () =>
@@ -248,6 +274,12 @@ function JustificanteForm({
           paciente_nombre: nombre,
           paciente_edad: edad ? Number(edad) : null,
           paciente_sexo: sexo || undefined,
+          ocupacion,
+          estado_civil: estadoCivil,
+          alergias,
+          motivo_atencion: motivoAtencion,
+          ectoscopia,
+          plan_tratamiento: plan,
           diagnostico,
           cie10,
           fecha_emision: emision,
@@ -256,7 +288,7 @@ function JustificanteForm({
           dias_reposo: dias,
           recomendaciones,
           observaciones,
-          lugar_emision: lugar || profesional?.domicilio_establecimiento || undefined,
+          lugar_emision: lugar || undefined,
         },
       }),
     onSuccess: (res) => onCreated(res.justificante as Row),
@@ -275,7 +307,11 @@ function JustificanteForm({
       }}
     >
       <div className={`${glass} space-y-3 p-4`}>
-        <h3 className="text-sm font-bold text-cyan-200">Nuevo justificante médico</h3>
+        <h3 className="text-sm font-bold text-cyan-200">Nueva constancia / justificante</h3>
+        <p className="text-[11px] text-slate-500">
+          Formato de carta como el que usas en consultorio: lugar y fecha, “A quien corresponda”, narrativa clínica,
+          ectoscopía, plan y cierre “ATENTAMENTE” con C.P.
+        </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className={labelCls}>Paciente del expediente (opcional)</label>
@@ -304,13 +340,26 @@ function JustificanteForm({
             {tipoHint && <p className="mt-1 text-[11px] text-slate-500">{tipoHint}</p>}
           </div>
           <div>
-            <label className={labelCls}>Destinatario (empresa / escuela)</label>
+            <label className={labelCls}>Destinatario (opcional)</label>
             <input
               className={inputCls}
               value={destinatario}
               onChange={(e) => setDestinatario(e.target.value)}
-              placeholder="A quien corresponda / RH / Escuela"
+              placeholder="Vacío = A quien corresponda"
             />
+          </div>
+          <div>
+            <label className={labelCls}>Lugar de emisión</label>
+            <input
+              className={inputCls}
+              value={lugar}
+              onChange={(e) => setLugar(e.target.value)}
+              placeholder="Ej. Aguascalientes, Ags."
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Fecha de emisión *</label>
+            <input type="date" className={inputCls} required value={emision} onChange={(e) => setEmision(e.target.value)} />
           </div>
           <div>
             <label className={labelCls}>Nombre del paciente *</label>
@@ -331,14 +380,37 @@ function JustificanteForm({
               </select>
             </div>
           </div>
+          <div>
+            <label className={labelCls}>Estado civil</label>
+            <input
+              className={inputCls}
+              value={estadoCivil}
+              onChange={(e) => setEstadoCivil(e.target.value)}
+              placeholder="casado, soltero…"
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Ocupación</label>
+            <input className={inputCls} value={ocupacion} onChange={(e) => setOcupacion(e.target.value)} />
+          </div>
           <div className="sm:col-span-2">
-            <label className={labelCls}>Diagnóstico / motivo de atención *</label>
+            <label className={labelCls}>Motivo de presentación (frase corta)</label>
+            <input
+              className={inputCls}
+              value={motivoAtencion}
+              onChange={(e) => setMotivoAtencion(e.target.value)}
+              placeholder="una valoración y tratamiento fisioterapéutico"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Diagnóstico / motivo clínico *</label>
             <textarea
               className={inputCls}
               rows={3}
               required
               value={diagnostico}
               onChange={(e) => setDiagnostico(e.target.value)}
+              placeholder="Ej. rehabilitación osteoneuromuscular posterior a…"
             />
           </div>
           <div>
@@ -347,36 +419,47 @@ function JustificanteForm({
               className={inputCls}
               value={cie10}
               onChange={(e) => setCie10(e.target.value.toUpperCase())}
-              placeholder="Ej. J06.9"
+              placeholder="Ej. S92.0"
             />
           </div>
           <div>
-            <label className={labelCls}>Fecha de emisión *</label>
-            <input type="date" className={inputCls} required value={emision} onChange={(e) => setEmision(e.target.value)} />
+            <label className={labelCls}>Alergias</label>
+            <input className={inputCls} value={alergias} onChange={(e) => setAlergias(e.target.value)} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Ectoscopía / ficha clínica</label>
+            <textarea
+              className={inputCls}
+              rows={3}
+              value={ectoscopia}
+              onChange={(e) => setEctoscopia(e.target.value)}
+              placeholder="En la ectoscopía encontramos a paciente…"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Plan / sesiones / tratamiento</label>
+            <textarea
+              className={inputCls}
+              rows={4}
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              placeholder="Se opta por programar N sesiones… modalidades…"
+            />
           </div>
           <div>
-            <label className={labelCls}>Inicio de reposo</label>
+            <label className={labelCls}>Inicio de reposo (opcional)</label>
             <input type="date" className={inputCls} value={inicio} onChange={(e) => setInicio(e.target.value)} />
           </div>
           <div>
-            <label className={labelCls}>Fin de reposo</label>
+            <label className={labelCls}>Fin de reposo (opcional)</label>
             <input type="date" className={inputCls} value={fin} onChange={(e) => setFin(e.target.value)} />
           </div>
           <div>
             <label className={labelCls}>Días de reposo</label>
             <input className={inputCls} readOnly value={dias ? String(dias) : '0'} />
           </div>
-          <div>
-            <label className={labelCls}>Lugar de emisión</label>
-            <input
-              className={inputCls}
-              value={lugar}
-              onChange={(e) => setLugar(e.target.value)}
-              placeholder="Ciudad, Estado"
-            />
-          </div>
           <div className="sm:col-span-2">
-            <label className={labelCls}>Recomendaciones</label>
+            <label className={labelCls}>Recomendaciones adicionales</label>
             <textarea
               className={inputCls}
               rows={2}
@@ -415,6 +498,12 @@ function JustificanteForm({
   )
 }
 
+function firmaLinea(profesional: Row | null, authorLabel?: string) {
+  const titulo = String(profesional?.titulo_abreviado || '').trim()
+  const nombre = String(profesional?.nombre_profesional || authorLabel || 'Profesional tratante').trim()
+  return titulo ? `${titulo} ${nombre}` : nombre
+}
+
 function JustificantePrint({
   justificante,
   profesional,
@@ -427,7 +516,9 @@ function JustificantePrint({
   onDelete: () => void
 }) {
   const j = justificante
-  const tipoLabel = JUSTIFICANTE_TIPOS.find((t) => t.id === j.tipo)?.label || j.tipo
+  const institucion = String(profesional?.institucion || 'el establecimiento médico')
+  const motivo = String(j.motivo_atencion || 'una valoración y tratamiento').trim()
+  const lugarFecha = `${j.lugar_emision ? `${j.lugar_emision}, ` : ''}a ${formatFechaLarga(j.fecha_emision)}`
 
   return (
     <div className="space-y-4">
@@ -444,116 +535,99 @@ function JustificantePrint({
       </div>
 
       <article
-        className="mx-auto max-w-[800px] rounded-2xl border border-slate-300 bg-white p-8 text-slate-900 shadow-lg print:border-0 print:shadow-none"
+        className="mx-auto max-w-[800px] rounded-2xl border border-slate-300 bg-white p-10 text-slate-900 shadow-lg print:border-0 print:p-0 print:shadow-none"
         id="justificante-print"
+        style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
       >
-        <header className="mb-6 flex items-start gap-4 border-b border-slate-300 pb-4">
+        <header className="mb-8 flex items-start gap-4">
           {profesional?.logo_url ? (
             <img
               src={String(profesional.logo_url)}
               alt="Logo clínica"
-              className="h-16 w-16 rounded-lg object-contain"
+              className="h-20 w-20 object-contain"
             />
-          ) : (
-            <div className="grid h-16 w-16 place-items-center rounded-lg bg-slate-100 text-[10px] font-bold uppercase text-slate-500">
-              Logo
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-lg font-bold leading-tight">{profesional?.institucion || 'Establecimiento médico'}</p>
-            <p className="text-xs text-slate-600">
-              {profesional?.tipo_establecimiento}
-              {profesional?.domicilio_establecimiento ? ` · ${profesional.domicilio_establecimiento}` : ''}
+          ) : null}
+          <div className="min-w-0 flex-1 text-center sm:text-left">
+            <p className="text-base font-bold leading-tight tracking-wide">
+              {profesional?.institucion || 'Establecimiento médico'}
             </p>
+            {profesional?.tipo_establecimiento && (
+              <p className="text-xs text-slate-600">{profesional.tipo_establecimiento}</p>
+            )}
+            {profesional?.domicilio_establecimiento && (
+              <p className="text-xs text-slate-600">{profesional.domicilio_establecimiento}</p>
+            )}
             {profesional?.telefono_institucional && (
               <p className="text-xs text-slate-600">Tel. {profesional.telefono_institucional}</p>
             )}
           </div>
-          <div className="text-right text-xs text-slate-600">
-            <p className="font-bold text-slate-800">{j.folio}</p>
-            <p>{formatFecha(j.fecha_emision)}</p>
+          <div className="hidden text-right text-[10px] text-slate-500 sm:block">
+            <p>{j.folio}</p>
           </div>
         </header>
 
-        <h1 className="mb-4 text-center text-xl font-black tracking-wide text-slate-900">
-          JUSTIFICANTE MÉDICO
-        </h1>
-        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {tipoLabel}
-        </p>
+        <p className="mb-6 text-right text-sm leading-relaxed">{lugarFecha}</p>
 
-        <p className="mb-4 text-sm leading-relaxed">
-          {j.lugar_emision ? `${j.lugar_emision}, ` : ''}
-          a {formatFecha(j.fecha_emision)}.
+        <p className="mb-1 text-sm font-semibold">
+          {j.destinatario ? String(j.destinatario) : 'A quien corresponda'}:
         </p>
+        <p className="mb-5 text-sm">Presente:</p>
 
-        <p className="mb-4 text-sm leading-relaxed">
-          A quien corresponda
-          {j.destinatario ? ` (${j.destinatario})` : ''}:
-        </p>
-
-        <p className="mb-4 text-sm leading-relaxed">
-          Por medio de la presente se hace constar que el(la) paciente{' '}
+        <p className="mb-4 text-sm leading-relaxed text-justify">
+          Por medio de la presente se extiende constancia que se ha presentado al{' '}
+          <strong>{institucion}</strong> para {motivo} el paciente{' '}
           <strong>{j.paciente_nombre}</strong>
-          {j.paciente_edad != null ? `, de ${j.paciente_edad} años` : ''}
-          {j.paciente_sexo ? `, sexo ${j.paciente_sexo}` : ''}, acudió a valoración médica en este
-          establecimiento.
+          {j.diagnostico ? <> para {j.diagnostico}{j.cie10 ? ` (${j.cie10})` : ''}.</> : '.'}
         </p>
 
-        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
-          <p>
-            <strong>Diagnóstico / motivo:</strong> {j.diagnostico}
+        {j.ectoscopia && (
+          <p className="mb-4 text-sm leading-relaxed text-justify">{j.ectoscopia}</p>
+        )}
+
+        {j.plan_tratamiento && (
+          <p className="mb-4 text-sm leading-relaxed text-justify">{j.plan_tratamiento}</p>
+        )}
+
+        {(j.fecha_inicio_reposo || j.fecha_fin_reposo || j.dias_reposo > 0) && (
+          <p className="mb-4 text-sm leading-relaxed text-justify">
+            Se sugiere reposo
+            {j.fecha_inicio_reposo && j.fecha_fin_reposo
+              ? ` del ${formatFechaLarga(j.fecha_inicio_reposo)} al ${formatFechaLarga(j.fecha_fin_reposo)}`
+              : ''}
+            {j.dias_reposo > 0
+              ? ` (${j.dias_reposo} día${j.dias_reposo === 1 ? '' : 's'})`
+              : ''}
+            .
           </p>
-          {j.cie10 && (
-            <p className="mt-1">
-              <strong>CIE-10:</strong> {j.cie10}
-            </p>
-          )}
-          {(j.fecha_inicio_reposo || j.fecha_fin_reposo || j.dias_reposo > 0) && (
-            <p className="mt-1">
-              <strong>Reposo sugerido:</strong>{' '}
-              {j.fecha_inicio_reposo && j.fecha_fin_reposo
-                ? `del ${formatFecha(j.fecha_inicio_reposo)} al ${formatFecha(j.fecha_fin_reposo)}`
-                : 'según indicación clínica'}
-              {j.dias_reposo > 0 ? ` (${j.dias_reposo} día${j.dias_reposo === 1 ? '' : 's'})` : ''}
-            </p>
-          )}
-        </div>
+        )}
 
         {j.recomendaciones && (
-          <p className="mb-3 text-sm leading-relaxed">
-            <strong>Recomendaciones:</strong> {j.recomendaciones}
-          </p>
+          <p className="mb-4 text-sm leading-relaxed text-justify">{j.recomendaciones}</p>
         )}
         {j.observaciones && (
-          <p className="mb-3 text-sm leading-relaxed">
-            <strong>Observaciones:</strong> {j.observaciones}
-          </p>
+          <p className="mb-4 text-sm leading-relaxed text-justify">{j.observaciones}</p>
         )}
 
-        <p className="mb-8 text-sm leading-relaxed">
-          Se expide el presente justificante para los fines que al interesado convengan.
+        <p className="mb-10 text-sm leading-relaxed text-justify">
+          Sin más que referir por el momento y a petición del paciente para los fines que a su persona
+          convengan se extiende este documento quedando como su servidor.
         </p>
 
-        <div className="mt-12 grid gap-8 sm:grid-cols-2">
-          <div className="text-center text-sm">
-            <div className="mx-auto mb-2 h-16 border-b border-slate-400" />
-            <p className="font-semibold">{profesional?.nombre_profesional || j.author_label}</p>
-            {profesional?.especialidad && <p className="text-xs text-slate-600">{profesional.especialidad}</p>}
-            <p className="text-xs text-slate-600">
-              Céd. Prof. {profesional?.cedula_profesional || '—'}
-            </p>
-          </div>
-          <div className="text-center text-sm">
-            <div className="mx-auto mb-2 h-16 border-b border-slate-400" />
-            <p className="font-semibold">Sello del establecimiento</p>
-            <p className="text-xs text-slate-600">{profesional?.institucion}</p>
-          </div>
+        <div className="mt-12 text-center text-sm">
+          <p className="mb-8 font-semibold tracking-wide">ATENTAMENTE:</p>
+          <div className="mx-auto mb-2 h-14 w-56 border-b border-slate-500" />
+          <p className="font-semibold">{firmaLinea(profesional, j.author_label)}</p>
+          {profesional?.especialidad && (
+            <p className="text-xs text-slate-600">{profesional.especialidad}</p>
+          )}
+          <p className="text-sm">C.P. {profesional?.cedula_profesional || '—'}</p>
+          {profesional?.institucion && (
+            <p className="mt-1 text-xs text-slate-600">{profesional.institucion}</p>
+          )}
         </div>
 
-        <p className="mt-8 text-[10px] leading-relaxed text-slate-500">{JUSTIFICANTE_DISCLAIMER}</p>
-        <p className="mt-1 text-[10px] text-slate-400">
-          Emitido en ContacNeed · Expediente clínico · {j.folio} · {j.author_label}
+        <p className="mt-10 text-[9px] leading-relaxed text-slate-500 print:text-slate-600">
+          {JUSTIFICANTE_DISCLAIMER} · {j.folio}
         </p>
       </article>
     </div>

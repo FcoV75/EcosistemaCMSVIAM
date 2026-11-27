@@ -180,6 +180,72 @@ export function diasEntreFechas(inicio?: string | null, fin?: string | null): nu
 export const JUSTIFICANTE_DISCLAIMER =
   'Este justificante es una constancia médica emitida por el profesional tratante. No sustituye una incapacidad oficial del IMSS/ISSSTE ni un dictamen pericial.'
 
+export type ReferenciaTipo = 'referencia' | 'contrarreferencia' | 'interconsulta'
+export type ReferenciaUrgencia = 'ordinaria' | 'urgente' | 'emergencia'
+
+export const REFERENCIA_TIPOS: { id: ReferenciaTipo; label: string; hint: string }[] = [
+  {
+    id: 'referencia',
+    label: 'Referencia',
+    hint: 'Envías al paciente a otro establecimiento o especialidad con resumen clínico.',
+  },
+  {
+    id: 'contrarreferencia',
+    label: 'Contrarreferencia',
+    hint: 'Respuesta al médico o unidad que te envió al paciente, con hallazgos y plan.',
+  },
+  {
+    id: 'interconsulta',
+    label: 'Interconsulta',
+    hint: 'Solicitas opinión de otra especialidad sin necesariamente transferir la atención.',
+  },
+]
+
+export const REFERENCIA_URGENCIAS: { id: ReferenciaUrgencia; label: string }[] = [
+  { id: 'ordinaria', label: 'Ordinaria' },
+  { id: 'urgente', label: 'Urgente' },
+  { id: 'emergencia', label: 'Emergencia' },
+]
+
+export function nextFolioReferencia(
+  tipo: ReferenciaTipo,
+  year = new Date().getFullYear(),
+  seq = 1,
+): string {
+  const prefix =
+    tipo === 'contrarreferencia' ? 'CREF' : tipo === 'interconsulta' ? 'ICONS' : 'REF'
+  return `${prefix}-${year}-${String(seq).padStart(4, '0')}`
+}
+
+export function buildEctoscopiaDraft(p: {
+  sexo?: string | null
+  edad?: number | null
+  ocupacion?: string | null
+  estado_civil?: string | null
+  alergias?: string | null
+  ahf?: string | null
+  app?: string | null
+}): string {
+  const partes: string[] = []
+  const sexo = (p.sexo || '').trim().toLowerCase()
+  const quien =
+    sexo.startsWith('f') ? 'paciente femenina' : sexo.startsWith('m') ? 'paciente masculino' : 'paciente'
+  const edadTxt = p.edad != null ? ` de ${p.edad} años` : ''
+  const civil = (p.estado_civil || '').trim()
+  const ocup = (p.ocupacion || '').trim()
+  partes.push(
+    `En la ectoscopía encontramos a ${quien}${edadTxt}${civil ? `, ${civil}` : ''}${
+      ocup ? `, ocupación ${ocup}` : ''
+    }.`,
+  )
+  const ant = [p.app, p.ahf].map((x) => (x || '').trim()).filter(Boolean)
+  if (ant.length) partes.push(`Antecedentes: ${ant.join('; ')}.`)
+  else partes.push('Sin antecedentes de enfermedades crónico-degenerativas referidos; resto negados.')
+  const alerg = (p.alergias || '').trim()
+  if (!alerg || /^(ninguna|niega|n\/a|sin)/i.test(alerg)) partes.push('Alergias negadas.')
+  else partes.push(`Alergias: ${alerg}.`)
+  return partes.join(' ')
+}
 /** Otras profesiones fuera del ámbito clínico que suelen necesitar bitácoras propias. */
 export const OTROS_REGISTROS_SUGERIDOS = [
   {
