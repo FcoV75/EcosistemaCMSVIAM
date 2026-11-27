@@ -3,12 +3,19 @@ import { requireActiveUser, requireAdminUser } from '../lib/auth'
 import { createSupabaseAdminClient } from '../lib/supabase.server'
 import {
   authorLabel,
+  calcEdad,
   calcImc,
+  diasEntreFechas,
+  nextFolioJustificante,
+  nextFolioReferencia,
   nextNumeroExpediente,
   NOTA_TIPOS,
   type ExpedienteRama,
   type ExpedienteVitals,
+  type JustificanteTipo,
   type NotaTipo,
+  type ReferenciaTipo,
+  type ReferenciaUrgencia,
 } from '../lib/expediente-clinico'
 import {
   activateExpedienteClinico,
@@ -68,6 +75,8 @@ export const saveExpedienteProfesionalFn = createServerFn({ method: 'POST' })
       cedula_profesional: string
       especialidad?: string
       profesion_rama?: ExpedienteRama
+      logo_url?: string | null
+      titulo_abreviado?: string | null
       aviso_privacidad_aceptado?: boolean
     }) => d,
   )
@@ -78,7 +87,7 @@ export const saveExpedienteProfesionalFn = createServerFn({ method: 'POST' })
     if (!data.nombre_profesional?.trim()) throw new Error('Nombre del profesional es obligatorio')
     if (!data.cedula_profesional?.trim()) throw new Error('Cédula profesional es obligatoria')
 
-    const row = {
+    const row: Record<string, unknown> = {
       user_id: user.id,
       institucion: data.institucion.trim(),
       tipo_establecimiento: (data.tipo_establecimiento || '').trim(),
@@ -90,6 +99,12 @@ export const saveExpedienteProfesionalFn = createServerFn({ method: 'POST' })
       profesion_rama: data.profesion_rama || 'medicina',
       aviso_privacidad_aceptado: data.aviso_privacidad_aceptado !== false,
       updated_at: new Date().toISOString(),
+    }
+    if (data.logo_url !== undefined) {
+      row.logo_url = data.logo_url?.trim() || null
+    }
+    if (data.titulo_abreviado !== undefined) {
+      row.titulo_abreviado = data.titulo_abreviado?.trim() || null
     }
 
     const { data: saved, error } = await supabase
@@ -440,12 +455,26 @@ export const exportExpedienteBackupFn = createServerFn({ method: 'GET' }).handle
       .order('sealed_at', { ascending: true })
     notas = data || []
   }
+  const { data: justificantes } = await supabase
+    .from('expediente_justificantes')
+    .select('*')
+    .eq('owner_id', user.id)
+    .is('deleted_at', null)
+    .order('sealed_at', { ascending: true })
+  const { data: referencias } = await supabase
+    .from('expediente_referencias')
+    .select('*')
+    .eq('owner_id', user.id)
+    .is('deleted_at', null)
+    .order('sealed_at', { ascending: true })
   return {
     exportedAt: new Date().toISOString(),
     norma: 'NOM-004-SSA3-2012 / NOM-024-SSA3-2012',
     profesional,
     pacientes: pacientes || [],
     notas,
+    justificantes: justificantes || [],
+    referencias: referencias || [],
   }
 })
 
@@ -567,4 +596,353 @@ export const buscarMiembroParaExpedienteFn = createServerFn({ method: 'POST' })
     }
 
     return { matches }
+  })
+
+export const listExpedienteJustificantesFn = createServerFn({ method: 'POST' })
+  .inputValidator((d?: { q?: string; pacienteId?: string }) => d || {})
+  .handler(async ({ data }) => {
+    const { user, supabase } = await requireExpedienteUser()
+    let query = supabase
+      .from('expediente_justificantes')
+      .select('*')
+      .eq('owner_id', user.id)
+      .is('deleted_at', null)
+      .order('sealed_at', { ascending: false })
+      .limit(100)
+    if (data?.pacienteId) query = query.eq('paciente_id', data.pacienteId)
+    const { data: rows, error } = await query
+    if (error) {
+      if (/does not exist|schema cache/i.test(error.message)) {
+        throw new Error(
+          'Falta aplicar el SQL 023 en Supabase (tabla expediente_justificantes). Pégalo en el SQL Editor y reintenta.',
+        )
+      }
+      throw new Error(error.message)
+    }
+    const q = (data?.q || '').trim().toLowerCase()
+    const justificantes = !q
+      ? rows || []
+      : (rows || []).filter((j) =>
+          [j.folio, j.paciente_nombre, j.diagnostico, j.destinatario, j.tipo]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+            .includes(q),
+        )
+    return { justificantes }
+  })
+
+export const getExpedienteJustificanteFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    const { user, supabase } = await requireExpedienteUser()
+    const { data: justificante, error } = await supabase
+      .from('expediente_justificantes')
+      .select('*')
+      .eq('id', data.id)
+      .eq('owner_id', user.id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (error) throw new Error(error.message)
+    if (!justificante) throw new Error('Justificante no encontrado')
+    const { data: profesional } = await supabase
+      .from('expediente_profesional')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    return { justificante, profesional }
+  })
+
+export const createExpedienteJustificanteFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (d: {
+      pacienteId?: string
+      tipo?: JustificanteTipo
+      destinatario?: string
+      paciente_nombre: string
+      paciente_edad?: number | null
+      paciente_sexo?: string
+      ocupacion?: string
+      estado_civil?: string
+      alergias?: string
+      motivo_atencion?: string
+      ectoscopia?: string
+      plan_tratamiento?: string
+      diagnostico: string
+      cie10?: string
+      fecha_emision?: string
+      fecha_inicio_reposo?: string
+      fecha_fin_reposo?: string
+      dias_reposo?: number
+      recomendaciones?: string
+      observaciones?: string
+      lugar_emision?: string
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const { user, supabase } = await requireExpedienteUser()
+    const { data: profesional } = await supabase
+      .from('expediente_profesional')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!profesional?.cedula_profesional) {
+      throw new Error('Configura primero tus datos profesionales (cédula e institución).')
+    }
+    if (!data.paciente_nombre?.trim()) throw new Error('Nombre del paciente es obligatorio')
+    if (!data.diagnostico?.trim()) throw new Error('Diagnóstico / motivo es obligatorio')
+
+    let pacienteId = data.pacienteId || null
+    let edad = data.paciente_edad ?? null
+    let sexo = data.paciente_sexo || null
+    if (pacienteId) {
+      const { data: pac } = await supabase
+        .from('expediente_pacientes')
+        .select('id, nombre_completo, fecha_nacimiento, sexo, diagnostico')
+        .eq('id', pacienteId)
+        .eq('owner_id', user.id)
+        .is('deleted_at', null)
+        .maybeSingle()
+      if (!pac) throw new Error('Paciente no encontrado en tu expediente')
+      if (!data.paciente_nombre.trim()) data.paciente_nombre = pac.nombre_completo
+      if (edad == null) edad = calcEdad(String(pac.fecha_nacimiento || ''))
+      if (!sexo) sexo = pac.sexo
+    }
+
+    const year = new Date().getFullYear()
+    const { count } = await supabase
+      .from('expediente_justificantes')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', user.id)
+    const folio = nextFolioJustificante(year, (count || 0) + 1)
+
+    const inicio = data.fecha_inicio_reposo || null
+    const fin = data.fecha_fin_reposo || null
+    const dias =
+      data.dias_reposo != null && Number.isFinite(Number(data.dias_reposo))
+        ? Math.max(0, Math.round(Number(data.dias_reposo)))
+        : diasEntreFechas(inicio, fin)
+
+    const row = {
+      owner_id: user.id,
+      paciente_id: pacienteId,
+      folio,
+      tipo: data.tipo || 'laboral',
+      destinatario: (data.destinatario || '').trim() || null,
+      paciente_nombre: data.paciente_nombre.trim(),
+      paciente_edad: edad,
+      paciente_sexo: sexo,
+      ocupacion: (data.ocupacion || '').trim() || null,
+      estado_civil: (data.estado_civil || '').trim() || null,
+      alergias: (data.alergias || '').trim() || null,
+      motivo_atencion: (data.motivo_atencion || '').trim() || null,
+      ectoscopia: (data.ectoscopia || '').trim() || null,
+      plan_tratamiento: (data.plan_tratamiento || '').trim() || null,
+      diagnostico: data.diagnostico.trim(),
+      cie10: (data.cie10 || '').trim().toUpperCase() || null,
+      fecha_emision: data.fecha_emision || new Date().toISOString().slice(0, 10),
+      fecha_inicio_reposo: inicio,
+      fecha_fin_reposo: fin,
+      dias_reposo: dias,
+      recomendaciones: (data.recomendaciones || '').trim(),
+      observaciones: (data.observaciones || '').trim() || null,
+      lugar_emision: (data.lugar_emision || '').trim() || null,
+      author_label: sealAuthor(profesional),
+      sealed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data: saved, error } = await supabase
+      .from('expediente_justificantes')
+      .insert(row)
+      .select('*')
+      .single()
+    if (error) {
+      if (/does not exist|schema cache/i.test(error.message)) {
+        throw new Error(
+          'Falta aplicar el SQL 023/024 en Supabase (justificantes). Pégalo en el SQL Editor y reintenta.',
+        )
+      }
+      throw new Error(error.message)
+    }
+    return { justificante: saved }
+  })
+
+export const softDeleteExpedienteJustificanteFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    const { user, supabase } = await requireExpedienteUser()
+    const { error } = await supabase
+      .from('expediente_justificantes')
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', data.id)
+      .eq('owner_id', user.id)
+    if (error) throw new Error(error.message)
+    return { ok: true }
+  })
+
+function sqlMissingMsg(table: string, sqlFile: string) {
+  return `Falta aplicar el SQL ${sqlFile} en Supabase (tabla ${table}). Pégalo en el SQL Editor y reintenta.`
+}
+
+export const listExpedienteReferenciasFn = createServerFn({ method: 'POST' })
+  .inputValidator((d?: { q?: string; pacienteId?: string; tipo?: ReferenciaTipo }) => d || {})
+  .handler(async ({ data }) => {
+    const { user, supabase } = await requireExpedienteUser()
+    let query = supabase
+      .from('expediente_referencias')
+      .select('*')
+      .eq('owner_id', user.id)
+      .is('deleted_at', null)
+      .order('sealed_at', { ascending: false })
+      .limit(100)
+    if (data?.pacienteId) query = query.eq('paciente_id', data.pacienteId)
+    if (data?.tipo) query = query.eq('tipo', data.tipo)
+    const { data: rows, error } = await query
+    if (error) {
+      if (/does not exist|schema cache/i.test(error.message)) {
+        throw new Error(sqlMissingMsg('expediente_referencias', '024'))
+      }
+      throw new Error(error.message)
+    }
+    const q = (data?.q || '').trim().toLowerCase()
+    const referencias = !q
+      ? rows || []
+      : (rows || []).filter((r) =>
+          [
+            r.folio,
+            r.paciente_nombre,
+            r.motivo,
+            r.diagnostico,
+            r.especialidad_destino,
+            r.establecimiento_destino,
+            r.tipo,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+            .includes(q),
+        )
+    return { referencias }
+  })
+
+export const createExpedienteReferenciaFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (d: {
+      pacienteId?: string
+      tipo?: ReferenciaTipo
+      urgencia?: ReferenciaUrgencia
+      destinatario?: string
+      establecimiento_destino?: string
+      especialidad_destino?: string
+      medico_destino?: string
+      paciente_nombre: string
+      paciente_edad?: number | null
+      paciente_sexo?: string
+      motivo: string
+      resumen_clinico?: string
+      diagnostico?: string
+      cie10?: string
+      tratamiento_otorgado?: string
+      estudios_realizados?: string
+      pregunta_interconsulta?: string
+      respuesta_consultor?: string
+      recomendaciones?: string
+      fecha_emision?: string
+      lugar_emision?: string
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const { user, supabase } = await requireExpedienteUser()
+    const { data: profesional } = await supabase
+      .from('expediente_profesional')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!profesional?.cedula_profesional) {
+      throw new Error('Configura primero tus datos profesionales (cédula e institución).')
+    }
+    if (!data.paciente_nombre?.trim()) throw new Error('Nombre del paciente es obligatorio')
+    if (!data.motivo?.trim()) throw new Error('Motivo de la referencia / interconsulta es obligatorio')
+
+    const tipo: ReferenciaTipo = data.tipo || 'referencia'
+    let pacienteId = data.pacienteId || null
+    let edad = data.paciente_edad ?? null
+    let sexo = data.paciente_sexo || null
+    if (pacienteId) {
+      const { data: pac } = await supabase
+        .from('expediente_pacientes')
+        .select('id, nombre_completo, fecha_nacimiento, sexo, diagnostico, padecimiento_actual, plan_terapeutico')
+        .eq('id', pacienteId)
+        .eq('owner_id', user.id)
+        .is('deleted_at', null)
+        .maybeSingle()
+      if (!pac) throw new Error('Paciente no encontrado en tu expediente')
+      if (!data.paciente_nombre.trim()) data.paciente_nombre = pac.nombre_completo
+      if (edad == null) edad = calcEdad(String(pac.fecha_nacimiento || ''))
+      if (!sexo) sexo = pac.sexo
+    }
+
+    const year = new Date().getFullYear()
+    const { count } = await supabase
+      .from('expediente_referencias')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', user.id)
+      .eq('tipo', tipo)
+    const folio = nextFolioReferencia(tipo, year, (count || 0) + 1)
+
+    const row = {
+      owner_id: user.id,
+      paciente_id: pacienteId,
+      folio,
+      tipo,
+      urgencia: data.urgencia || 'ordinaria',
+      destinatario: (data.destinatario || '').trim() || null,
+      establecimiento_destino: (data.establecimiento_destino || '').trim() || null,
+      especialidad_destino: (data.especialidad_destino || '').trim() || null,
+      medico_destino: (data.medico_destino || '').trim() || null,
+      paciente_nombre: data.paciente_nombre.trim(),
+      paciente_edad: edad,
+      paciente_sexo: sexo,
+      motivo: data.motivo.trim(),
+      resumen_clinico: (data.resumen_clinico || '').trim(),
+      diagnostico: (data.diagnostico || '').trim(),
+      cie10: (data.cie10 || '').trim().toUpperCase() || null,
+      tratamiento_otorgado: (data.tratamiento_otorgado || '').trim(),
+      estudios_realizados: (data.estudios_realizados || '').trim() || null,
+      pregunta_interconsulta: (data.pregunta_interconsulta || '').trim() || null,
+      respuesta_consultor: (data.respuesta_consultor || '').trim() || null,
+      recomendaciones: (data.recomendaciones || '').trim(),
+      fecha_emision: data.fecha_emision || new Date().toISOString().slice(0, 10),
+      lugar_emision: (data.lugar_emision || '').trim() || null,
+      author_label: sealAuthor(profesional),
+      sealed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data: saved, error } = await supabase
+      .from('expediente_referencias')
+      .insert(row)
+      .select('*')
+      .single()
+    if (error) {
+      if (/does not exist|schema cache/i.test(error.message)) {
+        throw new Error(sqlMissingMsg('expediente_referencias', '024'))
+      }
+      throw new Error(error.message)
+    }
+    return { referencia: saved }
+  })
+
+export const softDeleteExpedienteReferenciaFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    const { user, supabase } = await requireExpedienteUser()
+    const { error } = await supabase
+      .from('expediente_referencias')
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', data.id)
+      .eq('owner_id', user.id)
+    if (error) throw new Error(error.message)
+    return { ok: true }
   })
