@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   BookOpen,
   Download,
+  FileBadge2,
   FilePlus2,
   FileText,
   Loader2,
@@ -21,6 +22,7 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react'
+import { JustificantesView } from './JustificantesView'
 import {
   addExpedienteNotaFn,
   buscarMiembroParaExpedienteFn,
@@ -46,7 +48,7 @@ import { uploadFileToCloudinary } from '../../lib/cloudinary-upload'
 import { RespaldoDestinoDialog } from '../RespaldoDestinoDialog'
 
 type Props = { variant?: 'page' | 'embedded'; title?: string }
-type View = 'patients' | 'new' | 'detail' | 'settings' | 'normativa'
+type View = 'patients' | 'new' | 'detail' | 'justificantes' | 'settings' | 'normativa'
 type Filtro = 'todos' | 'miembros' | 'no_miembros' | 'activo' | 'alta'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>
@@ -192,6 +194,7 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
   const qc = useQueryClient()
   const [view, setView] = useState<View>('patients')
   const [pacienteId, setPacienteId] = useState<string | null>(null)
+  const [justificantePrefillId, setJustificantePrefillId] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [exportError, setExportError] = useState<string | null>(null)
@@ -209,6 +212,10 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
   useEffect(() => {
     if (forzarAjustes && view !== 'settings' && view !== 'normativa') setView('settings')
   }, [forzarAjustes, view])
+
+  useEffect(() => {
+    if (view !== 'justificantes') setJustificantePrefillId(null)
+  }, [view])
 
   const listQuery = useQuery({
     queryKey: ['expediente', 'pacientes', q, filtro],
@@ -245,7 +252,7 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
   return (
     <div className={wrapper}>
       <div className="mx-auto max-w-5xl space-y-4">
-        <header className="flex flex-wrap items-center justify-between gap-3">
+        <header className="flex flex-wrap items-center justify-between gap-3 print:hidden">
           <div className="flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-500/30 to-emerald-500/30 ring-1 ring-cyan-400/40">
               <Stethoscope className="h-5 w-5 text-cyan-300" />
@@ -258,6 +265,7 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
           <nav className="flex flex-wrap items-center gap-1">
             {navBtn('patients', 'Pacientes', <Users className="h-3.5 w-3.5" />, forzarAjustes)}
             {navBtn('new', 'Nuevo', <FilePlus2 className="h-3.5 w-3.5" />, forzarAjustes)}
+            {navBtn('justificantes', 'Justificantes', <FileBadge2 className="h-3.5 w-3.5" />, forzarAjustes)}
             {navBtn('settings', 'Profesional', <Settings className="h-3.5 w-3.5" />)}
             {navBtn('normativa', 'Normativa', <BookOpen className="h-3.5 w-3.5" />)}
             <button
@@ -333,11 +341,21 @@ export function ExpedienteClinicoApp({ variant = 'page', title }: Props) {
           <DetailView
             pacienteId={pacienteId}
             onBack={() => setView('patients')}
+            onJustificante={() => {
+              setJustificantePrefillId(pacienteId)
+              setView('justificantes')
+            }}
             onDeleted={() => {
               qc.invalidateQueries({ queryKey: ['expediente', 'pacientes'] })
               setPacienteId(null)
               setView('patients')
             }}
+          />
+        )}
+        {profQuery.isSuccess && view === 'justificantes' && (
+          <JustificantesView
+            profesional={profesional || null}
+            prefillPacienteId={justificantePrefillId}
           />
         )}
         {profQuery.isSuccess && view === 'settings' && (
@@ -743,10 +761,12 @@ function NewPatientView({ onCancel, onCreated }: { onCancel: () => void; onCreat
 function DetailView({
   pacienteId,
   onBack,
+  onJustificante,
   onDeleted,
 }: {
   pacienteId: string
   onBack: () => void
+  onJustificante: () => void
   onDeleted: () => void
 }) {
   const qc = useQueryClient()
@@ -805,6 +825,9 @@ function DetailView({
       <div className="flex flex-wrap items-center gap-2 print:hidden">
         <button type="button" className={btnGhost} onClick={onBack}><ArrowLeft className="h-4 w-4" /> Pacientes</button>
         <div className="ml-auto flex flex-wrap gap-2">
+          <button type="button" className={btnPrimary} onClick={onJustificante}>
+            <FileBadge2 className="h-4 w-4" /> Justificante
+          </button>
           <button type="button" className={btnGhost} onClick={() => window.print()}>
             <Printer className="h-4 w-4" /> Imprimir / PDF
           </button>
@@ -1202,6 +1225,8 @@ function SettingsView({ profesional, onSaved }: { profesional: Row | null; onSav
     especialidad: String(profesional?.especialidad || ''),
     profesion_rama: String(profesional?.profesion_rama || 'medicina'),
   })
+  const [logoUrl, setLogoUrl] = useState(String(profesional?.logo_url || ''))
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [aviso, setAviso] = useState(profesional?.aviso_privacidad_aceptado !== false)
   const [error, setError] = useState<string | null>(null)
 
@@ -1211,6 +1236,7 @@ function SettingsView({ profesional, onSaved }: { profesional: Row | null; onSav
         data: {
           ...s,
           profesion_rama: s.profesion_rama as (typeof EXPEDIENTE_RAMAS)[number]['id'],
+          logo_url: logoUrl.trim() || null,
           aviso_privacidad_aceptado: aviso,
         },
       }),
@@ -1223,6 +1249,20 @@ function SettingsView({ profesional, onSaved }: { profesional: Row | null; onSav
     value: s[k],
     onChange: (e: { target: { value: string } }) => setS((prev) => ({ ...prev, [k]: e.target.value })),
   })
+
+  const onLogoFile = async (file: File | null) => {
+    if (!file) return
+    setError(null)
+    setUploadingLogo(true)
+    try {
+      const url = await uploadFileToCloudinary(file)
+      setLogoUrl(url)
+    } catch (e) {
+      setError(errMsg(e))
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
 
   return (
     <form
@@ -1242,6 +1282,39 @@ function SettingsView({ profesional, onSaved }: { profesional: Row | null; onSav
         <Field label="Tipo de establecimiento"><input {...bind('tipo_establecimiento')} placeholder="Consultorio, clínica…" /></Field>
         <Field label="Teléfono institucional"><input {...bind('telefono_institucional')} /></Field>
         <Field label="Domicilio del establecimiento" required className="sm:col-span-2"><input {...bind('domicilio_establecimiento')} /></Field>
+        <Field label="Logo de la clínica (justificantes)" className="sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-3">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo clínica" className="h-14 w-14 rounded-lg object-contain bg-white/90 p-1" />
+            ) : (
+              <div className="grid h-14 w-14 place-items-center rounded-lg bg-slate-950/50 text-[10px] uppercase text-slate-500">
+                Logo
+              </div>
+            )}
+            <div className="min-w-0 flex-1 space-y-1">
+              <input
+                type="file"
+                accept="image/*"
+                className="block w-full text-xs text-slate-300 file:mr-2 file:rounded-lg file:border-0 file:bg-cyan-500/20 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-cyan-200"
+                disabled={uploadingLogo}
+                onChange={(e) => void onLogoFile(e.target.files?.[0] || null)}
+              />
+              <p className="text-[11px] text-slate-500">
+                Aparece en el encabezado de los justificantes. PNG o JPG recomendado.
+                {uploadingLogo ? ' Subiendo…' : ''}
+              </p>
+              {logoUrl && (
+                <button
+                  type="button"
+                  className="text-[11px] text-rose-300 hover:underline"
+                  onClick={() => setLogoUrl('')}
+                >
+                  Quitar logo
+                </button>
+              )}
+            </div>
+          </div>
+        </Field>
       </Section>
       <Section title="Profesional tratante">
         <Field label="Nombre del profesional" required><input {...bind('nombre_profesional')} /></Field>
@@ -1265,7 +1338,7 @@ function SettingsView({ profesional, onSaved }: { profesional: Row | null; onSav
       </label>
       <ErrorBox msg={error} />
       <div className="flex justify-end">
-        <button type="submit" className={btnPrimary} disabled={mut.isPending}>
+        <button type="submit" className={btnPrimary} disabled={mut.isPending || uploadingLogo}>
           {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
           Guardar datos profesionales
         </button>
@@ -1282,6 +1355,7 @@ function NormativaView() {
     'Conservación mínima de 5 años desde el último acto médico; por eso aquí solo se aplica baja lógica (archivado).',
     'Los datos son confidenciales (LFPDPPP y NOM-024-SSA3-2012). Exporta respaldos periódicos en JSON.',
     'Las grabaciones de audio requieren consentimiento informado del paciente.',
+    'Los justificantes médicos son constancias del profesional tratante; no sustituyen incapacidad IMSS/ISSSTE. Incluye logo, cédula y folio para el patrón o escuela.',
   ]
   return (
     <div className="space-y-4">

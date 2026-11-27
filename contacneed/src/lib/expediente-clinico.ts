@@ -156,6 +156,30 @@ export function authorLabel(profesional: {
   return ced ? `${name} (Céd. ${ced})` : name
 }
 
+export type JustificanteTipo = 'laboral' | 'escolar' | 'deportivo' | 'otro'
+
+export const JUSTIFICANTE_TIPOS: { id: JustificanteTipo; label: string; hint: string }[] = [
+  { id: 'laboral', label: 'Laboral / laboral-empresarial', hint: 'Para el patrón o RH cuando piden comprobante de atención o reposo.' },
+  { id: 'escolar', label: 'Escolar / académico', hint: 'Para escuela o universidad.' },
+  { id: 'deportivo', label: 'Deportivo / actividad física', hint: 'Para clubes o entrenadores.' },
+  { id: 'otro', label: 'Otro destinatario', hint: 'Cualquier otra institución.' },
+]
+
+export function nextFolioJustificante(year = new Date().getFullYear(), seq = 1): string {
+  return `JUST-${year}-${String(seq).padStart(4, '0')}`
+}
+
+export function diasEntreFechas(inicio?: string | null, fin?: string | null): number {
+  if (!inicio || !fin) return 0
+  const a = Date.parse(`${inicio}T12:00:00`)
+  const b = Date.parse(`${fin}T12:00:00`)
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) return 0
+  return Math.round((b - a) / 86400000) + 1
+}
+
+export const JUSTIFICANTE_DISCLAIMER =
+  'Este justificante es una constancia médica emitida por el profesional tratante. No sustituye una incapacidad oficial del IMSS/ISSSTE ni un dictamen pericial.'
+
 /** Otras profesiones fuera del ámbito clínico que suelen necesitar bitácoras propias. */
 export const OTROS_REGISTROS_SUGERIDOS = [
   {
