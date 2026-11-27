@@ -1,9 +1,10 @@
 import { Link, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Download, Pencil, Trash2 } from 'lucide-react'
 import { AppShell } from '../components/AppShell'
 import { MemberInvitePicker } from '../components/MemberInvitePicker'
+import { RespaldoDestinoDialog } from '../components/RespaldoDestinoDialog'
 import { SectionHelpHint } from '../components/SectionHelpHint'
 import { DEFAULT_BROWSE_FILTER, type MexicoState } from '../lib/mexico-states'
 import { useIdentity } from '../lib/identity-context'
@@ -15,6 +16,7 @@ import {
   createGrupoProyectoFn,
   deleteGrupoFn,
   deleteProyectoFn,
+  exportProyectoBackupFn,
   getProyectoDetalleFn,
   updateGrupoFn,
   updateGrupoPresupuestoFn,
@@ -98,6 +100,7 @@ function ProyectoDetallePage() {
   const [impFecha, setImpFecha] = useState('')
 
   const [keep, setKeep] = useState<Record<string, boolean>>({})
+  const [respaldoOpen, setRespaldoOpen] = useState(false)
 
   const detalle = useQuery({
     queryKey: ['proyecto', projectId],
@@ -305,41 +308,63 @@ function ProyectoDetallePage() {
             title="Panel del proyecto"
             text="Resumen de tiempo y dinero, grupos estratégicos con presupuesto, finanzas, imprevistos y conclusión con grupos de mantenimiento. Puedes editar o borrar si eres el dueño."
           />
-          {esOwner && !concluido && (
-            <div className="ml-auto flex gap-2">
-              <button
-                type="button"
-                title="Editar proyecto"
-                className="rounded-lg border border-white/15 p-2 text-purple-100 hover:bg-white/10"
-                onClick={() => {
-                  setEditNombre(detalle.data?.proyecto?.nombre || '')
-                  setEditDesc(detalle.data?.proyecto?.descripcion || '')
-                  setEditTipo(detalle.data?.proyecto?.tipo_obra || 'otro')
-                  setEditingProyecto(true)
-                  setTab('resumen')
-                }}
-              >
-                <Pencil size={14} />
-              </button>
-              <button
-                type="button"
-                title="Archivar proyecto"
-                className="rounded-lg border border-red-400/30 p-2 text-red-200 hover:bg-red-950/40"
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      `¿Archivar «${detalle.data?.proyecto?.nombre}»? Se conserva el historial (grupos y finanzas) y deja de estar activo.`,
+          <div className="ml-auto flex flex-wrap gap-2">
+            <button
+              type="button"
+              title="Respaldo seguro del proyecto"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-950/30 px-2.5 py-1.5 text-xs font-bold text-cyan-100 hover:bg-cyan-900/40"
+              disabled={!detalle.data?.proyecto}
+              onClick={() => setRespaldoOpen(true)}
+            >
+              <Download size={14} />
+              Respaldo seguro
+            </button>
+            {esOwner && !concluido && (
+              <>
+                <button
+                  type="button"
+                  title="Editar proyecto"
+                  className="rounded-lg border border-white/15 p-2 text-purple-100 hover:bg-white/10"
+                  onClick={() => {
+                    setEditNombre(detalle.data?.proyecto?.nombre || '')
+                    setEditDesc(detalle.data?.proyecto?.descripcion || '')
+                    setEditTipo(detalle.data?.proyecto?.tipo_obra || 'otro')
+                    setEditingProyecto(true)
+                    setTab('resumen')
+                  }}
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  type="button"
+                  title="Archivar proyecto"
+                  className="rounded-lg border border-red-400/30 p-2 text-red-200 hover:bg-red-950/40"
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        `¿Archivar «${detalle.data?.proyecto?.nombre}»? Se conserva el historial (grupos y finanzas) y deja de estar activo.`,
+                      )
                     )
-                  )
-                    return
-                  deleteProyectoMutation.mutate()
-                }}
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          )}
+                      return
+                    deleteProyectoMutation.mutate()
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
+        <RespaldoDestinoDialog
+          open={respaldoOpen}
+          onClose={() => setRespaldoOpen(false)}
+          title={`Respaldo · ${detalle.data?.proyecto?.nombre || 'Mi Proyecto'}`}
+          filename={`mi-proyecto-${String(detalle.data?.proyecto?.nombre || projectId)
+            .toLowerCase()
+            .replace(/\W+/g, '-')
+            .slice(0, 40)}-${new Date().toISOString().slice(0, 10)}.json`}
+          getPayload={() => exportProyectoBackupFn({ data: { proyectoId: projectId } })}
+        />
         <p className="mb-4 text-sm text-purple-200/70">
           {detalle.data?.proyecto?.descripcion || 'Sin descripción'} ·{' '}
           {detalle.data?.proyecto?.tipo_obra}

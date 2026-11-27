@@ -788,6 +788,74 @@ export const getProyectoDetalleFn = createServerFn({ method: 'GET' })
     }
   })
 
+/** Respaldo portable del proyecto (obra, grupos, finanzas e imprevistos). */
+export const exportProyectoBackupFn = createServerFn({ method: 'POST' })
+  .inputValidator((d: { proyectoId: string }) => d)
+  .handler(async ({ data }) => {
+    const { user } = await requireProUser()
+    const { proyecto } = await assertProyectoAcceso(data.proyectoId, user.id)
+    const db = admin()
+
+    const gruposRes = await db
+      .from('grupos')
+      .select(
+        'id, nombre, descripcion, rol_etiqueta, activo, mantenimiento, owner_id, created_at, presupuesto_asignado',
+      )
+      .eq('proyecto_id', data.proyectoId)
+      .order('created_at', { ascending: true })
+    let grupos = gruposRes.data || []
+    if (gruposRes.error && isMissingSchemaError(gruposRes.error.message)) {
+      const legacy = await db
+        .from('grupos')
+        .select('id, nombre, descripcion, rol_etiqueta, activo, mantenimiento, owner_id, created_at')
+        .eq('proyecto_id', data.proyectoId)
+        .order('created_at', { ascending: true })
+      if (legacy.error) throw new Error(legacy.error.message)
+      grupos = (legacy.data || []).map((g) => ({ ...g, presupuesto_asignado: 0 }))
+    } else if (gruposRes.error) {
+      throw new Error(gruposRes.error.message)
+    }
+
+    const movRes = await db
+      .from('proyecto_movimientos')
+      .select('id, tipo, categoria, monto, fecha, concepto, referencia, notas, grupo_id, created_at')
+      .eq('proyecto_id', data.proyectoId)
+      .order('fecha', { ascending: true })
+      .limit(500)
+    const movimientos = movRes.error ? [] : movRes.data || []
+
+    const impRes = await db
+      .from('proyecto_imprevistos')
+      .select('id, titulo, descripcion, fecha, impacto, monto, movimiento_id, created_at')
+      .eq('proyecto_id', data.proyectoId)
+      .order('fecha', { ascending: true })
+      .limit(200)
+    const imprevistos = impRes.error ? [] : impRes.data || []
+
+    const ingresos = movimientos
+      .filter((m) => m.tipo === 'ingreso')
+      .reduce((s, m) => s + Number(m.monto || 0), 0)
+    const egresos = movimientos
+      .filter((m) => m.tipo === 'egreso')
+      .reduce((s, m) => s + Number(m.monto || 0), 0)
+
+    return {
+      exportedAt: new Date().toISOString(),
+      tipo: 'mi_proyecto_respaldo',
+      disclaimer:
+        'Respaldo ContacNeed · Mi Proyecto. Consérvalo bajo tu responsabilidad. No sustituye bitácoras oficiales de obra.',
+      proyecto,
+      grupos,
+      movimientos,
+      imprevistos,
+      finanzas: {
+        ingresos,
+        egresos,
+        balance: ingresos - egresos,
+      },
+    }
+  })
+
 export const createGrupoProyectoFn = createServerFn({ method: 'POST' })
   .inputValidator(
     (d: {

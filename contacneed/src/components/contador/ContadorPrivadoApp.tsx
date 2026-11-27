@@ -46,6 +46,7 @@ import {
   periodoLabel,
 } from '../../lib/contador-privado'
 import { uploadFileToCloudinary } from '../../lib/cloudinary-upload'
+import { RespaldoDestinoDialog } from '../RespaldoDestinoDialog'
 
 const glass = 'rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl shadow-lg shadow-black/30'
 const inputCls =
@@ -564,6 +565,7 @@ function Workspace() {
   const [anio, setAnio] = useState(now.getFullYear())
   const [mes, setMes] = useState(now.getMonth() + 1)
   const [error, setError] = useState<string | null>(null)
+  const [respaldoOpen, setRespaldoOpen] = useState(false)
 
   const ensure = useQuery({
     queryKey: ['contador-ensure', anio, mes],
@@ -982,10 +984,21 @@ function Workspace() {
                     {exportar.isPending ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                     Exportar {anio} (JSON)
                   </button>
+                  <button type="button" className={btnGhost} onClick={() => setRespaldoOpen(true)}>
+                    <Download size={14} />
+                    Respaldo seguro (impuestos)
+                  </button>
                 </div>
                 <p className="text-[11px] text-slate-500">
                   El saldo del mes = ingresos − egresos. El acumulado suma todos los meses del año hasta el actual.
                 </p>
+                <RespaldoDestinoDialog
+                  open={respaldoOpen}
+                  onClose={() => setRespaldoOpen(false)}
+                  title={`Respaldo fiscal · ${anio}`}
+                  filename={`contador-privado-${anio}.json`}
+                  getPayload={() => exportContadorAnualFn({ data: { anio } })}
+                />
               </div>
             </div>
           </div>
